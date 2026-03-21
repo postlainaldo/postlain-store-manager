@@ -399,11 +399,13 @@ export default function ShelfViewer3D() {
       : selectedEntry.shelf.shelfType === "shoes" ? "#5A7898" : "#9A7050"
     : "#B8914A";
 
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
   return (
     <div className="flex h-full w-full overflow-hidden bg-bg-base">
 
-      {/* ── Sidebar ── */}
-      <div className="w-52 flex-shrink-0 flex flex-col border-r border-border bg-bg-surface overflow-hidden">
+      {/* ── Sidebar — desktop only ── */}
+      <div className="hidden md:flex w-52 flex-shrink-0 flex-col border-r border-border bg-bg-surface overflow-hidden">
         <div className="px-3 py-2.5 border-b border-border flex-shrink-0">
           <p className="text-[8px] tracking-[0.28em] text-text-muted uppercase">Chọn kệ</p>
           <p className="text-[10px] text-text-muted mt-0.5">{entries.length} kệ</p>
@@ -499,15 +501,33 @@ export default function ShelfViewer3D() {
         {selectedEntry ? (
           <>
             {/* Header */}
-            <div className="px-5 py-3 border-b border-border bg-bg-surface flex-shrink-0 flex items-center justify-between"
-              style={{ borderLeftWidth: 3, borderLeftColor: accent, paddingLeft: 14 }}>
-              <div>
-                <p className="text-[8px] tracking-[0.22em] uppercase font-medium" style={{ color: accent }}>
-                  {selectedEntry.kind === "store" ? selectedEntry.section : (selectedEntry.shelf.shelfType === "shoes" ? "KỆ GIÀY" : "KỆ TÚI")}
-                </p>
-                <h2 className="text-text-primary text-base font-light mt-0.5">
-                  {selectedEntry.kind === "store" ? selectedEntry.sub.name : selectedEntry.shelf.name}
-                </h2>
+            <div className="px-4 py-2.5 border-b border-border bg-bg-surface flex-shrink-0 flex items-center justify-between"
+              style={{ borderLeftWidth: 3, borderLeftColor: accent, paddingLeft: 12 }}>
+              <div className="flex-1 min-w-0">
+                {/* Mobile: tap to open picker */}
+                <button
+                  className="md:hidden flex items-center gap-2 w-full text-left"
+                  onClick={() => setMobileMenuOpen(v => !v)}
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[8px] tracking-[0.2em] uppercase font-medium" style={{ color: accent }}>
+                      {selectedEntry.kind === "store" ? selectedEntry.section : (selectedEntry.shelf.shelfType === "shoes" ? "KỆ GIÀY" : "KỆ TÚI")}
+                    </p>
+                    <p className="text-text-primary text-sm font-light truncate">
+                      {selectedEntry.kind === "store" ? selectedEntry.sub.name : selectedEntry.shelf.name}
+                    </p>
+                  </div>
+                  <span className="text-text-muted text-lg flex-shrink-0">{mobileMenuOpen ? "▲" : "▼"}</span>
+                </button>
+                {/* Desktop: static header */}
+                <div className="hidden md:block">
+                  <p className="text-[8px] tracking-[0.22em] uppercase font-medium" style={{ color: accent }}>
+                    {selectedEntry.kind === "store" ? selectedEntry.section : (selectedEntry.shelf.shelfType === "shoes" ? "KỆ GIÀY" : "KỆ TÚI")}
+                  </p>
+                  <h2 className="text-text-primary text-base font-light mt-0.5">
+                    {selectedEntry.kind === "store" ? selectedEntry.sub.name : selectedEntry.shelf.name}
+                  </h2>
+                </div>
               </div>
 
               {/* Stats */}
@@ -542,8 +562,50 @@ export default function ShelfViewer3D() {
               })()}
             </div>
 
+            {/* Mobile shelf picker dropdown */}
+            {mobileMenuOpen && (
+              <div className="md:hidden flex-shrink-0 border-b border-border bg-bg-surface overflow-y-auto"
+                style={{ maxHeight: "50vh" }}>
+                {[...storeGroups.map(group => ({
+                  groupName: group.name,
+                  groupType: group.type,
+                  items: group.subs.map(e => ({
+                    id: e.sub.id,
+                    label: e.sub.name,
+                    ...entryStats(e),
+                    accent: SECTION_ACCENT[group.type] ?? "#B8914A",
+                  })),
+                })), {
+                  groupName: "KHO DỰ TRỮ",
+                  groupType: "warehouse",
+                  items: warehouseEntries.map(e => ({
+                    id: e.shelf.id,
+                    label: e.shelf.name,
+                    ...entryStats(e),
+                    accent: e.shelf.shelfType === "shoes" ? "#5A7898" : "#9A7050",
+                  })),
+                }].map(group => (
+                  <div key={group.groupName}>
+                    <div className="px-4 py-1.5 bg-bg-card border-b border-border/40">
+                      <p className="text-[9px] tracking-[0.15em] uppercase font-medium text-text-muted">{group.groupName}</p>
+                    </div>
+                    {group.items.map(item => (
+                      <button key={item.id}
+                        onClick={() => { setSelected(item.id); setMobileMenuOpen(false); }}
+                        className={`w-full text-left px-5 py-3 flex items-center justify-between border-b border-border/30 active:bg-bg-card transition-colors ${selectedId === item.id ? "bg-bg-card" : ""}`}
+                        style={selectedId === item.id ? { borderLeft: `3px solid ${item.accent}`, paddingLeft: 17 } : { borderLeft: "3px solid transparent" }}
+                      >
+                        <span className={`text-sm ${selectedId === item.id ? "text-text-primary font-medium" : "text-text-muted"}`}>{item.label}</span>
+                        <span className="text-[10px] text-text-muted ml-3 flex-shrink-0">{item.filled}/{item.total}</span>
+                      </button>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            )}
+
             {/* Legend */}
-            <div className="px-5 py-1.5 border-b border-border/50 bg-bg-surface flex-shrink-0 flex items-center gap-3 flex-wrap">
+            <div className="hidden md:flex px-5 py-1.5 border-b border-border/50 bg-bg-surface flex-shrink-0 items-center gap-3 flex-wrap">
               <span className="text-[8px] text-text-muted tracking-widest">MÀU DANH MỤC:</span>
               {[
                 { label: "Women", color: "#C9856A" },

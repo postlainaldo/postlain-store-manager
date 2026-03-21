@@ -46,7 +46,8 @@ function WarehouseSlot({ productId, shelfId, tierIndex, slotIndex }: {
           : "border-border bg-bg-elevated hover:border-border-strong"
       }`}
       style={{
-        width: 44, height: 40,
+        width: "clamp(44px, 10vw, 52px)",
+        height: "clamp(40px, 9vw, 48px)",
         background: product ? `${boxColor}22` : undefined,
         borderColor: product ? `${boxColor}60` : undefined,
       }}
@@ -107,28 +108,31 @@ function TierGrid({ tier, tierIndex, shelfId }: {
         </div>
       </div>
 
-      <div className="p-2 bg-bg-elevated">
-        <div className="flex flex-col gap-0.5">
-          {Array.from({ length: TIER_ROWS }, (_, visualRow) => {
-            const row = TIER_ROWS - 1 - visualRow; // bottom row first in data, shown at bottom visually
-            return (
-              <div key={row} className="flex items-center gap-0.5">
-                <div className="text-[7px] text-text-muted text-right flex-shrink-0" style={{ width: 14 }}>
-                  {TIER_ROWS - visualRow}
+      <div className="p-2 bg-bg-elevated overflow-x-auto">
+        <div style={{ minWidth: "max-content" }}>
+          <div className="flex flex-col gap-0.5">
+            {Array.from({ length: TIER_ROWS }, (_, visualRow) => {
+              const row = TIER_ROWS - 1 - visualRow;
+              return (
+                <div key={row} className="flex items-center gap-0.5">
+                  <div className="text-[7px] text-text-muted text-right flex-shrink-0" style={{ width: 14 }}>
+                    {TIER_ROWS - visualRow}
+                  </div>
+                  {Array.from({ length: TIER_COLS }, (_, col) => {
+                    const slotIndex = row * TIER_COLS + col;
+                    return <WarehouseSlot key={slotIndex} productId={tier[slotIndex] ?? null}
+                      shelfId={shelfId} tierIndex={tierIndex} slotIndex={slotIndex} />;
+                  })}
                 </div>
-                {Array.from({ length: TIER_COLS }, (_, col) => {
-                  const slotIndex = row * TIER_COLS + col;
-                  return <WarehouseSlot key={slotIndex} productId={tier[slotIndex] ?? null}
-                    shelfId={shelfId} tierIndex={tierIndex} slotIndex={slotIndex} />;
-                })}
-              </div>
-            );
-          })}
-        </div>
-        <div className="flex gap-0.5 mt-1 ml-[18px]">
-          {Array.from({ length: TIER_COLS }, (_, col) => (
-            <div key={col} className="text-center text-[7px] text-text-muted" style={{ width: 44 }}>{col + 1}</div>
-          ))}
+              );
+            })}
+          </div>
+          <div className="flex gap-0.5 mt-1 ml-[18px]">
+            {Array.from({ length: TIER_COLS }, (_, col) => (
+              <div key={col} className="text-center text-[7px] text-text-muted flex-shrink-0"
+                style={{ width: "clamp(44px, 10vw, 52px)" }}>{col + 1}</div>
+            ))}
+          </div>
         </div>
       </div>
     </div>
@@ -276,15 +280,14 @@ export default function WarehouseShelfEditor() {
       )}
 
       {/* Arrow navigation bar */}
-      <div className="flex items-center justify-between px-4 py-2.5 border-b border-border bg-bg-surface flex-shrink-0">
+      <div className="flex items-center justify-between px-3 py-2.5 border-b border-border bg-bg-surface flex-shrink-0">
         <button
           onClick={goLeft}
           disabled={idx === 0}
-          className={`flex items-center justify-center w-9 h-9 rounded-sm border text-lg transition-all ${
-            idx === 0
-              ? "border-border/40 text-text-muted/30 cursor-not-allowed"
-              : "border-border hover:border-border-strong text-text-muted hover:text-text-primary hover:bg-bg-card active:scale-95"
-          }`}
+          className={`flex items-center justify-center rounded-sm border transition-all active:scale-95
+            ${idx === 0 ? "border-border/40 text-text-muted/30 cursor-not-allowed" : "border-border text-text-muted hover:text-text-primary hover:bg-bg-card"}
+          `}
+          style={{ width: "clamp(36px,9vw,44px)", height: "clamp(36px,9vw,44px)", fontSize: "clamp(14px,4vw,18px)" }}
         >
           ←
         </button>
@@ -318,11 +321,10 @@ export default function WarehouseShelfEditor() {
         <button
           onClick={goRight}
           disabled={idx === total - 1}
-          className={`flex items-center justify-center w-9 h-9 rounded-sm border text-lg transition-all ${
-            idx === total - 1
-              ? "border-border/40 text-text-muted/30 cursor-not-allowed"
-              : "border-border hover:border-border-strong text-text-muted hover:text-text-primary hover:bg-bg-card active:scale-95"
-          }`}
+          className={`flex items-center justify-center rounded-sm border transition-all active:scale-95
+            ${idx === total - 1 ? "border-border/40 text-text-muted/30 cursor-not-allowed" : "border-border text-text-muted hover:text-text-primary hover:bg-bg-card"}
+          `}
+          style={{ width: "clamp(36px,9vw,44px)", height: "clamp(36px,9vw,44px)", fontSize: "clamp(14px,4vw,18px)" }}
         >
           →
         </button>

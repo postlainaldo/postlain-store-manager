@@ -260,7 +260,7 @@ export default function WarehousePanel() {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, x: -12 }}
                     transition={{ delay: Math.min(i * 0.008, 0.3), duration: 0.2 }}
-                    className={`relative flex items-center gap-2.5 px-3 py-2.5 transition-all duration-150 group border-l-2 ${
+                    className={`relative flex items-center gap-2.5 px-3 py-3 md:py-2.5 transition-all duration-150 group border-l-2 ${
                       isChecked
                         ? "bg-red-50/60 border-l-red-300"
                         : isSelected
@@ -301,13 +301,13 @@ export default function WarehousePanel() {
 
                     {/* Info */}
                     <div className="flex-1 min-w-0 cursor-pointer" onClick={() => !isChecked && selectProduct(isSelected ? null : p)}>
-                      <p className={`text-xs font-light truncate transition-colors ${isSelected ? "text-gold" : "text-text-primary"}`}>
+                      <p className={`text-sm md:text-xs font-light truncate transition-colors ${isSelected ? "text-gold" : "text-text-primary"}`}>
                         {p.name}
                       </p>
                       <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                        <span className="text-[9px] text-text-muted">{p.category}</span>
+                        <span className="text-[11px] md:text-[9px] text-text-muted">{p.category}</span>
                         <span className="text-[9px] text-text-muted/50">·</span>
-                        <span className="text-[9px] text-text-muted">SL: {p.quantity}</span>
+                        <span className="text-[11px] md:text-[9px] text-text-muted">SL: {p.quantity}</span>
                         {colorInfo && (
                           <span className="flex items-center gap-0.5">
                             <span className="w-2.5 h-2.5 rounded-full border border-border/40 flex-shrink-0"
@@ -324,8 +324,8 @@ export default function WarehousePanel() {
                       ) : null}
                     </div>
 
-                    {/* Hover tooltip card */}
-                    <div className="absolute left-full top-0 ml-2 z-50 pointer-events-none opacity-0 group-hover:opacity-100 transition-all duration-200 translate-x-1 group-hover:translate-x-0 min-w-[200px]">
+                    {/* Hover tooltip card — desktop only (hidden on touch screens) */}
+                    <div className="hidden md:block absolute left-full top-0 ml-2 z-50 pointer-events-none opacity-0 group-hover:opacity-100 transition-all duration-200 translate-x-1 group-hover:translate-x-0 min-w-[200px]">
                       <div className="bg-white border border-border rounded-lg shadow-xl overflow-hidden">
                         {/* Color header */}
                         <div className="h-2 w-full" style={{ background: displayColor ?? "#C9A96E" }} />
