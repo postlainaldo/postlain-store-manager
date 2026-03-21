@@ -1,0 +1,56 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+:root {
+  --font-montserrat: "Montserrat", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  height: 100%;
+  background: #F5F2EE;
+  color: #1A1410;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: #F0EDE8; }
+::-webkit-scrollbar-thumb { background: #C8C0B8; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #A09890; }
+
+::selection { background: rgba(184, 145, 74, 0.2); color: #1A1410; }
+
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; }
+
+* {
+  transition-property: color, background-color, border-color, opacity, box-shadow;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+canvas { display: block; outline: none; }
+
+.text-gradient-gold {
+  background: linear-gradient(135deg, #B8914A, #D4B06E, #B8914A);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Luxury divider */
+.divider-gold {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #B8914A40, transparent);
+}
