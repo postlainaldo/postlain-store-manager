@@ -26,12 +26,57 @@ export interface ShelfConfig {
   maxInventory: number;
 }
 
+export type UserRole = "admin" | "manager" | "staff";
+
+export interface AppUser {
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+  passwordHash: string; // simple: store plain pin in dev
+  createdAt: string;
+  active: boolean;
+}
+
 interface StoreState {
+  // ── Auth ─────────────────────────────────────────────────────────────────
+  users: AppUser[];
+  currentUser: AppUser | null;
+  login: (email: string, password: string) => boolean;
+  logout: () => void;
+  addUser: (u: Omit<AppUser, "id" | "createdAt">) => void;
+  updateUser: (id: string, changes: Partial<Omit<AppUser, "id" | "createdAt">>) => void;
+  removeUser: (id: string) => void;
+  changePassword: (userId: string, newPassword: string) => void;
+
   // ── Product inventory ────────────────────────────────────────────────────
   products: Product[];
   selectedProduct: Product | null;
   activeTab: Tab;
   shelfConfig: ShelfConfig;
+
+  // ── Store settings ───────────────────────────────────────────────────────
+  storeName: string;
+  storeAddress: string;
+  storePhone: string;
+  storeEmail: string;
+  setStoreSetting: (key: "storeName" | "storeAddress" | "storePhone" | "storeEmail", value: string) => void;
+
+  // ── Notify settings ──────────────────────────────────────────────────────
+  notifyLowStock: boolean;
+  notifyMovement: boolean;
+  notifyDaily: boolean;
+  notifyPush: boolean;
+  lowStockThreshold: number;
+  setNotifySetting: (key: "notifyLowStock" | "notifyMovement" | "notifyDaily" | "notifyPush", value: boolean) => void;
+  setLowStockThreshold: (value: number) => void;
+
+  // ── UI settings ───────────────────────────────────────────────────────────
+  uiCompact: boolean;
+  uiAnimations: boolean;
+  uiDensity: "comfortable" | "compact";
+  setUISetting: (key: "uiCompact" | "uiAnimations", value: boolean) => void;
+  setUIDensity: (value: "comfortable" | "compact") => void;
 
   // ── Legacy 3D display layout ─────────────────────────────────────────────
   shelfLayout: ShelfLayout;
@@ -101,9 +146,40 @@ interface StoreState {
   setWarehouseShelfNotes: (shelfId: string, notes: string) => void;
 }
 
+const DEFAULT_ADMIN: AppUser = {
+  id: "user_admin",
+  name: "Admin",
+  email: "admin@postlain.com",
+  role: "admin",
+  passwordHash: "1234",
+  createdAt: new Date().toISOString(),
+  active: true,
+};
+
 export const useStore = create<StoreState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
+      // ── Auth ──────────────────────────────────────────────────────────────
+      users: [DEFAULT_ADMIN],
+      currentUser: null,
+      login: (email, password) => {
+        const u = get().users.find(x => x.email === email && x.passwordHash === password && x.active);
+        if (u) { set({ currentUser: u }); return true; }
+        return false;
+      },
+      logout: () => set({ currentUser: null }),
+      addUser: (u) => set(s => ({
+        users: [...s.users, { ...u, id: `user_${Date.now()}`, createdAt: new Date().toISOString() }],
+      })),
+      updateUser: (id, changes) => set(s => ({
+        users: s.users.map(u => u.id === id ? { ...u, ...changes } : u),
+        currentUser: s.currentUser?.id === id ? { ...s.currentUser!, ...changes } : s.currentUser,
+      })),
+      removeUser: (id) => set(s => ({ users: s.users.filter(u => u.id !== id) })),
+      changePassword: (userId, newPassword) => set(s => ({
+        users: s.users.map(u => u.id === userId ? { ...u, passwordHash: newPassword } : u),
+      })),
+
       products: [],
       shelfLayout: {},
       selectedProduct: null,
@@ -112,6 +188,23 @@ export const useStore = create<StoreState>()(
       storeSections: INITIAL_STORE_SECTIONS,
       warehouseShelves: INITIAL_WAREHOUSE,
       storeLayout: INITIAL_LAYOUT,
+      storeName: "ALDO — Vincom Đồng Khởi",
+      storeAddress: "72 Lê Thánh Tôn, Q.1, TP.HCM",
+      storePhone: "+84 28 3822 1234",
+      storeEmail: "store.hcm@aldo.com",
+      setStoreSetting: (key, value) => set({ [key]: value }),
+      notifyLowStock: true,
+      notifyMovement: true,
+      notifyDaily: false,
+      notifyPush: true,
+      lowStockThreshold: 5,
+      setNotifySetting: (key, value) => set({ [key]: value }),
+      setLowStockThreshold: (value) => set({ lowStockThreshold: value }),
+      uiCompact: false,
+      uiAnimations: true,
+      uiDensity: "comfortable",
+      setUISetting: (key, value) => set({ [key]: value }),
+      setUIDensity: (value) => set({ uiDensity: value }),
 
       // ── Product CRUD ──────────────────────────────────────────────────────
       setProducts: (products) => set({ products }),
@@ -449,6 +542,20 @@ export const useStore = create<StoreState>()(
         storeSections: s.storeSections,
         warehouseShelves: s.warehouseShelves,
         storeLayout: s.storeLayout,
+        storeName: s.storeName,
+        storeAddress: s.storeAddress,
+        storePhone: s.storePhone,
+        storeEmail: s.storeEmail,
+        notifyLowStock: s.notifyLowStock,
+        notifyMovement: s.notifyMovement,
+        notifyDaily: s.notifyDaily,
+        notifyPush: s.notifyPush,
+        lowStockThreshold: s.lowStockThreshold,
+        uiCompact: s.uiCompact,
+        uiAnimations: s.uiAnimations,
+        uiDensity: s.uiDensity,
+        users: s.users,
+        currentUser: s.currentUser,
       }),
       skipHydration: true,
     }

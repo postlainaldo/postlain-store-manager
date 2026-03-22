@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Montserrat } from "next/font/google";
 import Providers from "@/components/Providers";
-import Sidebar from "@/components/Sidebar";
+import TopNav from "@/components/TopNav";
 import BottomNav from "@/components/BottomNav";
 import "./globals.css";
 
@@ -33,38 +33,21 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="vi">
       <head>
-        <meta name="theme-color" content="#000000" />
+        <meta name="theme-color" content="#e0f2fe" />
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-        {/* Blocking script: apply saved theme before first paint */}
-        <script dangerouslySetInnerHTML={{ __html: `
-          (function(){
-            try {
-              var saved = localStorage.getItem('postlain-theme');
-              var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-              if (saved === 'dark' || (!saved && prefersDark)) {
-                document.documentElement.classList.add('dark');
-              }
-            } catch(e){}
-          })();
-        `}} />
       </head>
       <body className={`${montserrat.variable} font-sans antialiased`}>
         <Providers>
-          {/* Full-height app shell */}
-          <div className="flex h-screen w-screen overflow-hidden bg-bg-base text-text-primary">
-
-            {/* Sidebar — hidden on mobile, visible md+ */}
-            <div className="hidden md:block flex-shrink-0">
-              <Sidebar />
-            </div>
+          <div className="flex flex-col h-screen w-screen overflow-hidden bg-bg-base text-text-primary">
+            {/* Top navigation bar */}
+            <TopNav />
 
             {/* Main content area */}
             <main className="flex-1 overflow-y-auto overflow-x-hidden min-w-0 bg-bg-base">
-              <div className="max-w-[1440px] mx-auto px-4 py-6 md:px-8 md:py-10 pb-20 md:pb-10">
+              <div className="max-w-[1440px] mx-auto px-4 py-5 md:px-8 md:py-6 pb-20 md:pb-8">
                 {children}
               </div>
             </main>
-
           </div>
 
           {/* Bottom nav — mobile only */}

@@ -16,11 +16,10 @@ import {
 import ThemeToggle from "./ThemeToggle";
 
 const NAV_ITEMS = [
-  { id: "overview",     label: "Tổng Quan",   href: "/",             icon: LayoutDashboard, exact: true  },
-  { id: "visual-board", label: "Bảng Trưng Bày", href: "/visual-board", icon: Focus,        exact: false },
-  { id: "inventory",    label: "Kho Hàng",    href: "/inventory",    icon: Box,             exact: false },
-  { id: "collections",  label: "Bộ Sưu Tập",  href: "/collections",  icon: Layers,          exact: false },
-  { id: "settings",     label: "Cài Đặt",     href: "/settings",     icon: Settings,        exact: false },
+  { id: "overview",     label: "Tổng Quan",      href: "/",             icon: LayoutDashboard, exact: true  },
+  { id: "visual-board", label: "Bảng Trưng Bày", href: "/visual-board", icon: Focus,           exact: false },
+  { id: "inventory",    label: "Kho Hàng",       href: "/inventory",    icon: Box,             exact: false },
+  { id: "settings",     label: "Cài Đặt",        href: "/settings",     icon: Settings,        exact: false },
 ] as const;
 
 const EXPANDED_W  = 220;

@@ -2,12 +2,12 @@
 
 import { useEffect } from "react";
 import { useStore } from "@/store/useStore";
-import { ThemeProvider } from "./ThemeProvider";
 
+// ThemeProvider removed — app is locked to Blue Mint light mode.
 export default function Providers({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     useStore.persist.rehydrate();
   }, []);
 
-  return <ThemeProvider>{children}</ThemeProvider>;
+  return <>{children}</>;
 }

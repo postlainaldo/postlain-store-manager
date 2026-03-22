@@ -1,405 +1,54 @@
 "use client";
 
 import {
-  useState, useEffect, useMemo, useCallback, useRef,
+  useState, useEffect, useMemo, useCallback, useRef, memo,
 } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import {
-  DndContext,
-  DragOverlay,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  closestCenter,
-  type DragStartEvent,
-  type DragEndEvent,
-  type DragOverEvent,
-  useDroppable,
-} from "@dnd-kit/core";
-import {
-  SortableContext,
-  useSortable,
-  rectSortingStrategy,
-  arrayMove,
-} from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
-import {
-  Search, X, Package, ArrowRight, Eye, Layers,
-  LayoutGrid, ChevronDown, ChevronUp,
+  Search, X, Package, Eye, Layers,
+  LayoutGrid, ChevronDown, ChevronUp, Warehouse,
+  MapPin, Check, ChevronLeft, ChevronRight,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useStore } from "@/store/useStore";
-import type { Product, StoreSection } from "@/types";
+import type { Product, StoreSection, WarehouseShelf } from "@/types";
 
-// ─── Zone colour mapping ────────────────────────────────────────────────────
+// ─── Subtab type ──────────────────────────────────────────────────────────────
+type Subtab = "display" | "warehouse";
 
-const ZONE_CFG: Record<string, { color: string; label: string }> = {
-  wall_woman:   { color: "#C9A55A", label: "KỆ NỮ"        },
-  wall_man:     { color: "#7A9EC0", label: "KỆ NAM"        },
-  center_woman: { color: "#C4956A", label: "WOMAN CENTER"  },
-  center_man:   { color: "#6A9EC4", label: "MAN CENTER"    },
-  acc:          { color: "#9B88C4", label: "ACC CENTER"    },
-  window:       { color: "#7BAF6A", label: "WINDOW"        },
+// ─── Zone color config ────────────────────────────────────────────────────────
+const ZONE_CFG: Record<string, { color: string }> = {
+  wall_woman:   { color: "#0ea5e9" },
+  wall_man:     { color: "#0284c7" },
+  center_woman: { color: "#38bdf8" },
+  center_man:   { color: "#075985" },
+  acc:          { color: "#10b981" },
+  window:       { color: "#C9A55A" },
 };
 
 const CAT_DOT: Record<string, string> = {
-  "Giày nữ": "#C49A6C", "Giày nam": "#5A7888", "Bốt nữ": "#C4A080",
-  "Bốt nam": "#6A8094", "Sandal nữ": "#D4A090", "Sandal nam": "#8890C4",
-  "Túi nữ": "#9B7060", "Túi nam": "#607080", "Phụ kiện": "#7A8B6B",
+  "Giày nữ":   "#0ea5e9", "Giày nam":   "#0284c7",
+  "Bốt nữ":    "#38bdf8", "Bốt nam":    "#075985",
+  "Sandal nữ": "#7dd3fc", "Sandal nam": "#0369a1",
+  "Túi nữ":    "#10b981", "Túi nam":    "#059669",
+  "Phụ kiện":  "#C9A55A",
 };
+function catColor(cat: string) { return CAT_DOT[cat] ?? "#64748b"; }
 
-function catColor(cat: string) { return CAT_DOT[cat] ?? "#888"; }
+// ─── Product Pool Panel (click-to-select) ────────────────────────────────────
 
-// ─── ID encoding ────────────────────────────────────────────────────────────
-// Format: "src__pid"
-// src variants:
-//   "pool"                         ← product pool
-//   "sec:{sId}:{subId}:{ri}:{si}"  ← store slot
-
-function mkPoolId(pid: string) { return `pool__${pid}`; }
-function mkSlotId(sId: string, subId: string, ri: number, si: number, pid: string) {
-  return `sec:${sId}:${subId}:${ri}:${si}__${pid}`;
-}
-function mkEmptyId(sId: string, subId: string, ri: number, si: number) {
-  return `empty:${sId}:${subId}:${ri}:${si}__null`;
-}
-
-interface ParsedId {
-  isPool: boolean;
-  isEmpty: boolean;
-  sId: string; subId: string; ri: number; si: number;
-  pid: string;
-}
-function parseId(raw: string): ParsedId {
-  const sep = raw.indexOf("__");
-  const src = raw.slice(0, sep);
-  const pid = raw.slice(sep + 2);
-  if (src === "pool") return { isPool: true, isEmpty: false, sId: "", subId: "", ri: 0, si: 0, pid };
-  const parts = src.split(":");          // "sec" | "empty", sId, subId, ri, si
-  return {
-    isPool: false,
-    isEmpty: src.startsWith("empty"),
-    sId: parts[1], subId: parts[2],
-    ri: parseInt(parts[3]), si: parseInt(parts[4]),
-    pid,
-  };
-}
-
-// ─── Pool card (draggable) ───────────────────────────────────────────────────
-
-function PoolCard({ product }: { product: Product }) {
-  const id  = mkPoolId(product.id);
-  const cc  = catColor(product.category);
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
-    useSortable({ id });
-
-  return (
-    <div
-      ref={setNodeRef}
-      style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.25 : 1 }}
-      className="flex items-center gap-2.5 px-3 py-2 rounded-lg border border-border bg-bg-elevated cursor-grab select-none hover:border-border-strong transition-colors"
-      {...attributes} {...listeners}
-    >
-      {/* Colour swatch / thumbnail */}
-      <div
-        className="w-7 h-7 rounded-md flex-shrink-0 overflow-hidden border border-border"
-        style={{ background: product.color ? `${product.color}55` : `${cc}33` }}
-      >
-        {product.imagePath && (
-          <img src={product.imagePath} alt="" className="w-full h-full object-cover" />
-        )}
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-text-primary truncate" style={{ fontSize: 10, fontWeight: 500 }}>
-          {product.name}
-        </p>
-        <p className="text-text-muted" style={{ fontSize: 8, marginTop: 1 }}>
-          {product.category} · {product.quantity > 0 ? `${product.quantity} cái` : <span style={{ color: "var(--accent-red)" }}>Hết hàng</span>}
-        </p>
-      </div>
-      <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: product.quantity > 0 ? cc : "var(--border)" }} />
-    </div>
-  );
-}
-
-// ─── Store slot (draggable when occupied, droppable when empty) ──────────────
-
-function StoreSlot({
-  pid, sId, subId, ri, si, onRemove,
+function PoolPanel({
+  products,
+  selectedPid,
+  onSelect,
+  mode,
+  assignedIds,
 }: {
-  pid: string | null; sId: string; subId: string; ri: number; si: number; onRemove: () => void;
-}) {
-  const { products } = useStore();
-  const [hov, setHov] = useState(false);
-
-  const p   = useMemo(() => (pid ? products.find(x => x.id === pid) ?? null : null), [pid, products]);
-  const id  = p ? mkSlotId(sId, subId, ri, si, p.id) : mkEmptyId(sId, subId, ri, si);
-  const cc  = p ? catColor(p.category) : "transparent";
-
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging, isOver } =
-    useSortable({ id });
-
-  if (!p) {
-    return (
-      <div
-        ref={setNodeRef}
-        style={{
-          transform: CSS.Transform.toString(transform),
-          transition,
-          width: 40, height: 40,
-          borderRadius: 6,
-          borderWidth: 1, borderStyle: "dashed",
-          borderColor: isOver ? "var(--blue)" : "var(--border)",
-          background: isOver ? "var(--blue-subtle)" : "transparent",
-          display: "flex", alignItems: "center", justifyContent: "center",
-        }}
-        {...attributes} {...listeners}
-      >
-        <Package size={8} style={{ color: isOver ? "var(--blue)" : "var(--border)" }} />
-      </div>
-    );
-  }
-
-  return (
-    <div
-      ref={setNodeRef}
-      onMouseEnter={() => setHov(true)}
-      onMouseLeave={() => setHov(false)}
-      style={{
-        transform: CSS.Transform.toString(transform),
-        transition,
-        opacity:     isDragging ? 0.15 : 1,
-        width:       40,
-        height:      40,
-        background:  `${p.color ?? cc}28`,
-        borderColor: `${cc}55`,
-        borderWidth:  1,
-        borderStyle: "solid",
-      }}
-      className="relative rounded-md overflow-hidden cursor-grab flex items-center justify-center"
-      {...attributes} {...listeners}
-    >
-      {p.imagePath
-        ? <img src={p.imagePath} alt="" className="w-full h-full object-cover" />
-        : <span className="font-semibold text-center leading-tight" style={{ fontSize: 6, color: cc, padding: "0 2px" }}>
-            {p.name.slice(0, 9)}
-          </span>
-      }
-      {/* Remove button */}
-      <AnimatePresence>
-        {hov && (
-          <motion.button
-            initial={{ opacity: 0, scale: 0.7 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.7 }}
-            transition={{ duration: 0.1 }}
-            onPointerDown={e => e.stopPropagation()}
-            onClick={e => { e.stopPropagation(); onRemove(); }}
-            className="absolute top-0.5 right-0.5 w-3.5 h-3.5 rounded flex items-center justify-center cursor-pointer"
-            style={{ background: "rgba(0,0,0,0.85)", border: "none" }}
-          >
-            <X size={7} color="#fff" />
-          </motion.button>
-        )}
-      </AnimatePresence>
-      {/* Tooltip on hover */}
-      <AnimatePresence>
-        {hov && (
-          <motion.div
-            initial={{ opacity: 0, y: 4 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            className="absolute -top-9 left-1/2 -translate-x-1/2 z-50 pointer-events-none whitespace-nowrap"
-          >
-            <div className="rounded-md border border-border bg-bg-elevated px-2 py-1 shadow-md">
-              <p className="text-text-primary" style={{ fontSize: 9 }}>{p.name}</p>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-}
-
-// ─── Subsection block ────────────────────────────────────────────────────────
-
-function SubBlock({
-  section, subIdx, highlightOver,
-}: {
-  section: StoreSection; subIdx: number; highlightOver: boolean;
-}) {
-  const { placeInSection } = useStore();
-  const sub = section.subsections[subIdx];
-  const cfg = ZONE_CFG[section.sectionType] ?? { color: "#C9A55A" };
-
-  const total  = sub.rows.reduce((s, r) => s + r.products.length, 0);
-  const filled = sub.rows.reduce((s, r) => s + r.products.filter(Boolean).length, 0);
-  const pct    = total > 0 ? (filled / total) * 100 : 0;
-
-  const allIds = sub.rows.flatMap((row, ri) =>
-    row.products.map((pid, si) =>
-      pid ? mkSlotId(section.id, sub.id, ri, si, pid) : mkEmptyId(section.id, sub.id, ri, si)
-    )
-  );
-
-  return (
-    <SortableContext items={allIds} strategy={rectSortingStrategy}>
-      <div
-        className="rounded-xl border p-2.5 transition-all duration-150"
-        style={{
-          minWidth:    148,
-          background:  highlightOver ? `color-mix(in srgb, ${cfg.color} 6%, var(--bg-card))` : "var(--bg-card)",
-          borderColor: highlightOver ? `${cfg.color}66` : "var(--border)",
-          boxShadow:   highlightOver ? `0 0 0 1px ${cfg.color}33` : "none",
-        }}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between mb-2">
-          <p className="font-semibold tracking-wider" style={{ fontSize: 8, color: cfg.color }}>
-            {sub.name}
-          </p>
-          <span className="text-text-muted" style={{ fontSize: 7 }}>{filled}/{total}</span>
-        </div>
-        {/* Progress bar */}
-        <div className="h-0.5 bg-border rounded-full mb-2 overflow-hidden">
-          <div
-            className="h-full rounded-full transition-all duration-300"
-            style={{ width: `${pct}%`, background: cfg.color }}
-          />
-        </div>
-        {/* Rows */}
-        <div className="flex flex-col gap-0.5">
-          {sub.rows.map((row, ri) => {
-            if (row.type === "image") return (
-              <div key={ri} className="h-3 rounded flex items-center px-1 bg-bg-elevated">
-                <span className="text-text-muted tracking-widest" style={{ fontSize: 5 }}>TRANH</span>
-              </div>
-            );
-            return (
-              <div key={ri} className="flex items-center gap-0.5">
-                <span className="text-text-muted flex-shrink-0 font-mono" style={{ fontSize: 5, width: 16 }}>
-                  {row.type === "long" ? "DÀI" : "N"}
-                </span>
-                <div className="flex gap-0.5 flex-wrap">
-                  {row.products.map((pid, si) => (
-                    <StoreSlot
-                      key={si} pid={pid} sId={section.id} subId={sub.id}
-                      ri={ri} si={si}
-                      onRemove={() => placeInSection(section.id, sub.id, ri, si, null)}
-                    />
-                  ))}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </SortableContext>
-  );
-}
-
-// ─── Section group (collapsible) ─────────────────────────────────────────────
-
-function SectionGroup({
-  section, overKey,
-}: {
-  section: StoreSection; overKey: string | null;
-}) {
-  const [open, setOpen] = useState(true);
-  const cfg = ZONE_CFG[section.sectionType] ?? { color: "#C9A55A", label: section.name };
-
-  const secFilled = section.subsections.reduce(
-    (s, sub) => s + sub.rows.reduce((rs, r) => rs + r.products.filter(Boolean).length, 0), 0
-  );
-  const secTotal = section.subsections.reduce(
-    (s, sub) => s + sub.rows.reduce((rs, r) => rs + r.products.length, 0), 0
-  );
-
-  return (
-    <div className="flex flex-col gap-2">
-      {/* Section header */}
-      <button
-        onClick={() => setOpen(v => !v)}
-        className="flex items-center gap-2 w-full cursor-pointer hover:opacity-80 transition-opacity"
-        style={{ background: "none", border: "none" }}
-      >
-        <div className="w-0.5 h-3.5 rounded-full flex-shrink-0" style={{ background: cfg.color }} />
-        <p className="font-semibold tracking-[0.2em]" style={{ fontSize: 10, color: cfg.color }}>
-          {section.name}
-        </p>
-        <div className="flex-1 h-px bg-border" />
-        <span className="text-text-muted" style={{ fontSize: 8 }}>{secFilled}/{secTotal}</span>
-        {open
-          ? <ChevronUp size={10} className="text-text-muted" />
-          : <ChevronDown size={10} className="text-text-muted" />
-        }
-      </button>
-
-      {/* Sub-blocks */}
-      <AnimatePresence initial={false}>
-        {open && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-            className="overflow-hidden"
-          >
-            <div className="flex gap-2 flex-wrap pb-1">
-              {section.subsections.map((sub, si) => (
-                <SubBlock
-                  key={sub.id}
-                  section={section}
-                  subIdx={si}
-                  highlightOver={!!overKey?.includes(`${section.id}:${sub.id}`)}
-                />
-              ))}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-}
-
-// ─── DragOverlay ghost ───────────────────────────────────────────────────────
-
-function DragGhost({ id, products }: { id: string; products: Product[] }) {
-  const { pid } = parseId(id);
-  const p  = products.find(x => x.id === pid);
-  if (!p) return null;
-  const cc = catColor(p.category);
-  return (
-    <div
-      className="rounded-lg flex items-center gap-2 px-3 py-2 shadow-xl border"
-      style={{
-        background:  "var(--bg-elevated)",
-        borderColor: `${cc}66`,
-        minWidth:     140,
-        cursor:      "grabbing",
-        boxShadow:   `0 8px 32px rgba(0,0,0,0.5), 0 0 0 1px ${cc}44`,
-      }}
-    >
-      <div
-        className="w-7 h-7 rounded-md flex-shrink-0 border border-border overflow-hidden"
-        style={{ background: `${p.color ?? cc}33` }}
-      >
-        {p.imagePath && <img src={p.imagePath} alt="" className="w-full h-full object-cover" />}
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-text-primary font-medium truncate" style={{ fontSize: 10 }}>{p.name}</p>
-        <p className="text-text-muted" style={{ fontSize: 8 }}>{p.category}</p>
-      </div>
-    </div>
-  );
-}
-
-// ─── Virtual pool list ───────────────────────────────────────────────────────
-
-function ProductPool({
-  products, onDisplayIds,
-}: {
-  products: Product[]; onDisplayIds: Set<string>;
+  products: Product[];
+  selectedPid: string | null;
+  onSelect: (pid: string | null) => void;
+  mode: Subtab;
+  assignedIds: Set<string>;
 }) {
   const [search, setSearch] = useState("");
   const parentRef = useRef<HTMLDivElement>(null);
@@ -410,323 +59,966 @@ function ProductPool({
         || p.name.toLowerCase().includes(search.toLowerCase())
         || (p.sku ?? "").toLowerCase().includes(search.toLowerCase())
         || p.category.toLowerCase().includes(search.toLowerCase())
-    ),
-    [products, search]
+    ), [products, search]
   );
 
-  const rowVirtualizer = useVirtualizer({
+  const virtualizer = useVirtualizer({
     count: filtered.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => 44,
+    estimateSize: () => 52,
     overscan: 6,
   });
 
-  const poolIds = useMemo(() => filtered.map(p => mkPoolId(p.id)), [filtered]);
+  const accentColor = mode === "display" ? "#C9A55A" : "#10b981";
 
   return (
-    <div className="flex flex-col gap-2.5 bg-bg-card border border-border rounded-xl p-3 overflow-hidden"
-      style={{ width: 240, flexShrink: 0 }}
-    >
+    <div style={{
+      width: 240, flexShrink: 0, display: "flex", flexDirection: "column", gap: 8,
+      background: "#ffffff", border: "1px solid #bae6fd", borderRadius: 16,
+      padding: 12, overflow: "hidden", boxShadow: "0 1px 4px rgba(12,26,46,0.06)",
+    }}>
       {/* Header */}
-      <div className="flex items-center justify-between flex-shrink-0">
-        <p className="text-text-muted font-semibold uppercase tracking-[0.2em]" style={{ fontSize: 8 }}>
-          Kho Sản Phẩm
-        </p>
-        <div className="flex gap-2">
-          <span className="text-text-muted" style={{ fontSize: 8 }}>
-            <span style={{ color: "var(--blue)" }}>{onDisplayIds.size}</span> / {products.length} trưng bày
-          </span>
-        </div>
+      <div style={{ flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <p style={{ fontSize: 8, fontWeight: 700, color: "#64748b", letterSpacing: "0.2em" }}>KHO SẢN PHẨM</p>
+        <span style={{ fontSize: 8, color: "#94a3b8" }}>
+          <span style={{ color: accentColor, fontWeight: 600 }}>{assignedIds.size}</span>/{products.length} đã xếp
+        </span>
       </div>
 
       {/* Search */}
-      <div className="flex-shrink-0 flex items-center gap-2 bg-bg-input border border-border rounded-lg px-2.5 h-8">
-        <Search size={10} className="text-text-muted flex-shrink-0" strokeWidth={1.5} />
-        <input
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          placeholder="Tên, SKU, danh mục..."
-          className="flex-1 bg-transparent border-none outline-none text-text-primary placeholder:text-text-muted font-[inherit]"
-          style={{ fontSize: 10 }}
-        />
-        {search && (
-          <button onClick={() => setSearch("")} className="cursor-pointer" style={{ background: "none", border: "none" }}>
-            <X size={9} className="text-text-muted" />
-          </button>
-        )}
-      </div>
-
-      {/* Stats row */}
-      <div className="flex gap-1.5 flex-shrink-0">
-        {[
-          { label: "Tổng SKU",    val: products.length,    color: "var(--text-primary)" },
-          { label: "Trưng Bày",  val: onDisplayIds.size,  color: "var(--gold)"         },
-          { label: "Trong Kho",  val: products.length - onDisplayIds.size, color: "var(--blue)" },
-        ].map(s => (
-          <div key={s.label} className="flex-1 bg-bg-elevated rounded-lg py-1.5 text-center">
-            <p className="font-light" style={{ fontSize: 14, color: s.color }}>{s.val}</p>
-            <p className="text-text-muted tracking-wider" style={{ fontSize: 6 }}>{s.label}</p>
-          </div>
-        ))}
+      <div style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 8, background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 10, padding: "0 10px", height: 32 }}>
+        <Search size={10} style={{ color: "#94a3b8", flexShrink: 0 }} strokeWidth={1.5} />
+        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Tên, SKU, danh mục..."
+          style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: 10, color: "#0c1a2e", fontFamily: "inherit" }} />
+        {search && <button onClick={() => setSearch("")} style={{ background: "none", border: "none", cursor: "pointer" }}><X size={9} style={{ color: "#94a3b8" }} /></button>}
       </div>
 
       {/* Hint */}
-      <div className="flex-shrink-0 flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-bg-elevated border border-border">
-        <ArrowRight size={9} className="text-text-muted" />
-        <p className="text-text-muted" style={{ fontSize: 8 }}>Kéo sản phẩm vào ô trống trên kệ</p>
-      </div>
+      {selectedPid ? (
+        <div style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 6, padding: "6px 8px", background: "rgba(201,165,90,0.08)", borderRadius: 10, border: "1px solid rgba(201,165,90,0.35)" }}>
+          <Check size={9} style={{ color: "#C9A55A" }} />
+          <p style={{ fontSize: 7.5, color: "#C9A55A", fontWeight: 600 }}>Đã chọn · Nhấn vào ô trống để đặt</p>
+        </div>
+      ) : (
+        <div style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 6, padding: "6px 8px", background: "#f0f9ff", borderRadius: 10, border: "1px solid #e0f2fe" }}>
+          <p style={{ fontSize: 7.5, color: "#64748b" }}>Nhấn chọn sản phẩm → nhấn vào ô trống</p>
+        </div>
+      )}
 
-      {/* Virtualized list */}
-      <SortableContext items={poolIds} strategy={rectSortingStrategy}>
-        <div ref={parentRef} className="flex-1 overflow-y-auto pr-0.5">
-          {filtered.length === 0 ? (
-            <p className="text-text-muted text-center mt-8" style={{ fontSize: 10 }}>
-              Không tìm thấy sản phẩm
-            </p>
-          ) : (
-            <div style={{ height: rowVirtualizer.getTotalSize(), position: "relative" }}>
-              {rowVirtualizer.getVirtualItems().map(vi => (
+      {/* List */}
+      <div ref={parentRef} style={{ flex: 1, overflowY: "auto", paddingRight: 2 }}>
+        {filtered.length === 0 ? (
+          <p style={{ textAlign: "center", marginTop: 32, fontSize: 10, color: "#94a3b8" }}>Không có sản phẩm</p>
+        ) : (
+          <div style={{ height: virtualizer.getTotalSize(), position: "relative" }}>
+            {virtualizer.getVirtualItems().map(vi => {
+              const p = filtered[vi.index];
+              const cc = catColor(p.category);
+              const isSelected = selectedPid === p.id;
+              const isPlaced = assignedIds.has(p.id);
+              return (
                 <div
                   key={vi.key}
                   style={{ position: "absolute", top: 0, left: 0, right: 0, transform: `translateY(${vi.start}px)`, paddingBottom: 4 }}
                 >
-                  <PoolCard product={filtered[vi.index]} />
+                  <button
+                    onClick={() => onSelect(isSelected ? null : p.id)}
+                    style={{
+                      width: "100%", display: "flex", alignItems: "center", gap: 8,
+                      padding: "7px 8px", borderRadius: 10, cursor: "pointer",
+                      border: isSelected ? `1.5px solid #C9A55A` : "1px solid #bae6fd",
+                      background: isSelected ? "rgba(201,165,90,0.10)" : isPlaced ? "#f8fffe" : "#ffffff",
+                      fontFamily: "inherit", textAlign: "left",
+                      boxShadow: isSelected ? "0 0 0 2px rgba(201,165,90,0.2)" : "none",
+                      transition: "all 0.1s",
+                    }}
+                  >
+                    <div style={{
+                      width: 24, height: 24, borderRadius: 6, flexShrink: 0, overflow: "hidden",
+                      border: `1px solid ${isSelected ? "#C9A55A88" : `${cc}44`}`,
+                      background: p.color ? `${p.color}22` : `${cc}22`,
+                    }}>
+                      {p.imagePath && <img src={p.imagePath} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontSize: 10, fontWeight: 600, color: isSelected ? "#C9A55A" : "#0c1a2e", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {p.name}
+                      </p>
+                      <p style={{ fontSize: 7.5, color: "#94a3b8", marginTop: 1 }}>
+                        {p.category}{isPlaced ? <span style={{ color: accentColor, marginLeft: 4 }}>· Đã xếp</span> : ""}
+                      </p>
+                    </div>
+                    {isSelected && <Check size={10} style={{ color: "#C9A55A", flexShrink: 0 }} />}
+                    {!isSelected && <div style={{ width: 6, height: 6, borderRadius: "50%", flexShrink: 0, background: isPlaced ? accentColor : cc }} />}
+                  </button>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </SortableContext>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
 
-// ─── Page ────────────────────────────────────────────────────────────────────
+// ─── Display Board: Store Slot ────────────────────────────────────────────────
 
-export default function VisualBoardPage() {
-  const { products, storeSections, placeInSection, fetchProducts } = useStore();
-  const [activeSection, setActiveSection] = useState("all");
-  const [activeDId,     setActiveDId]     = useState<string | null>(null);
-  const [overKey,       setOverKey]       = useState<string | null>(null);
+function StoreSlot({
+  pid, sId, subId, ri, si, onPlace, onRemove, highlightPid, products, selectedPid,
+}: {
+  pid: string | null; sId: string; subId: string; ri: number; si: number;
+  onPlace: (sId: string, subId: string, ri: number, si: number) => void;
+  onRemove: () => void;
+  highlightPid: string | null;
+  products: Product[];
+  selectedPid: string | null;
+}) {
+  const [hov, setHov] = useState(false);
+  const slotRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => { fetchProducts(); }, []);
+  const p  = useMemo(() => (pid ? products.find(x => x.id === pid) ?? null : null), [pid, products]);
+  const cc = p ? catColor(p.category) : "transparent";
+  const isHighlit = !!pid && pid === highlightPid;
+  const isEmpty = !pid;
+  const canPlace = isEmpty && !!selectedPid;
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } })
-  );
+  useEffect(() => {
+    if (!isHighlit) return;
+    const t = setTimeout(() => {
+      slotRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 80);
+    return () => clearTimeout(t);
+  }, [isHighlit]);
 
-  // Compute which products are currently on display
-  const onDisplayIds = useMemo(() => {
-    const ids = new Set<string>();
-    storeSections.forEach(sec =>
-      sec.subsections.forEach(sub =>
-        sub.rows.forEach(row =>
-          row.products.forEach(pid => { if (pid) ids.add(pid); })
-        )
-      )
+  if (isEmpty) {
+    return (
+      <div
+        ref={slotRef}
+        onClick={() => canPlace && onPlace(sId, subId, ri, si)}
+        onMouseEnter={() => setHov(true)}
+        onMouseLeave={() => setHov(false)}
+        style={{
+          width: 40, height: 40, borderRadius: 8,
+          border: `1px dashed ${canPlace && hov ? "#C9A55A" : canPlace ? "#0ea5e9" : "#bae6fd"}`,
+          background: canPlace && hov ? "rgba(201,165,90,0.12)" : canPlace ? "rgba(14,165,233,0.06)" : "#f0f9ff",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          cursor: canPlace ? "pointer" : "default",
+          transition: "all 0.1s",
+        }}
+      >
+        {canPlace
+          ? <div style={{ width: 8, height: 8, borderRadius: "50%", background: hov ? "#C9A55A" : "#0ea5e9", opacity: 0.7 }} />
+          : <Package size={8} style={{ color: "#bae6fd" }} />
+        }
+      </div>
     );
-    return ids;
-  }, [storeSections]);
-
-  const shownSections = useMemo(() =>
-    activeSection === "all" ? storeSections : storeSections.filter(s => s.id === activeSection),
-    [storeSections, activeSection]
-  );
-
-  const totalSlots = useMemo(() =>
-    storeSections.reduce((s, sec) =>
-      s + sec.subsections.reduce((ss, sub) =>
-        ss + sub.rows.reduce((rs, r) => rs + r.products.length, 0), 0), 0),
-    [storeSections]
-  );
-
-  // ── Drag handlers ──────────────────────────────────────────────────────────
-
-  const onDragStart = useCallback((e: DragStartEvent) => {
-    setActiveDId(String(e.active.id));
-  }, []);
-
-  const onDragOver = useCallback((e: DragOverEvent) => {
-    setOverKey(e.over ? String(e.over.id) : null);
-  }, []);
-
-  const onDragEnd = useCallback((e: DragEndEvent) => {
-    const { active, over } = e;
-    setActiveDId(null);
-    setOverKey(null);
-    if (!over || active.id === over.id) return;
-
-    const from = parseId(String(active.id));
-    const to   = parseId(String(over.id));
-
-    // ── POOL → STORE SLOT ──────────────────────────────────────────────────
-    if (from.isPool) {
-      if (to.isEmpty || !to.isPool) {
-        // Place into the target slot (only if it is empty or we accept the swap)
-        const sec = storeSections.find(s => s.id === to.sId);
-        const sub = sec?.subsections.find(s => s.id === to.subId);
-        const row = sub?.rows[to.ri];
-        if (!row) return;
-        // Find the first empty slot in this row if target isn't explicitly empty
-        if (to.isEmpty) {
-          placeInSection(to.sId, to.subId, to.ri, to.si, from.pid);
-        } else {
-          // Dropped onto an occupied slot — find nearest empty in same subsection
-          const emptyRowIdx = sub!.rows.findIndex(r => r.products.some(p => p === null));
-          if (emptyRowIdx === -1) return;
-          const emptySlotIdx = sub!.rows[emptyRowIdx].products.findIndex(p => p === null);
-          placeInSection(to.sId, to.subId, emptyRowIdx, emptySlotIdx, from.pid);
-        }
-      }
-      return;
-    }
-
-    // ── STORE SLOT → STORE SLOT ────────────────────────────────────────────
-    if (!from.isPool && !to.isPool) {
-      const sameRow = from.sId === to.sId && from.subId === to.subId && from.ri === to.ri;
-
-      if (sameRow) {
-        // Reorder within same row
-        const sec = storeSections.find(s => s.id === from.sId);
-        const sub = sec?.subsections.find(s => s.id === from.subId);
-        const row = sub?.rows[from.ri];
-        if (!row) return;
-        const fi = row.products.indexOf(from.pid);
-        const ti = to.isEmpty ? to.si : row.products.indexOf(to.pid);
-        if (fi === -1 || ti === -1) return;
-        const reordered = arrayMove([...row.products], fi, ti);
-        reordered.forEach((pid, i) => placeInSection(from.sId, from.subId, from.ri, i, pid));
-      } else {
-        // Move across rows / subsections
-        const fSec = storeSections.find(s => s.id === from.sId);
-        const fRow = fSec?.subsections.find(s => s.id === from.subId)?.rows[from.ri];
-        const tSec = storeSections.find(s => s.id === to.sId);
-        const tSub = tSec?.subsections.find(s => s.id === to.subId);
-        const tRow = tSub?.rows[to.ri];
-        if (!fRow || !tRow) return;
-        const fi = fRow.products.indexOf(from.pid);
-        if (fi === -1) return;
-
-        if (to.isEmpty) {
-          // Swap: move product, clear original slot
-          placeInSection(from.sId, from.subId, from.ri, fi, null);
-          placeInSection(to.sId, to.subId, to.ri, to.si, from.pid);
-        } else {
-          // Swap two occupied slots
-          const ti = tRow.products.indexOf(to.pid);
-          if (ti === -1) return;
-          placeInSection(from.sId, from.subId, from.ri, fi, to.pid);
-          placeInSection(to.sId, to.subId, to.ri, ti, from.pid);
-        }
-      }
-    }
-  }, [storeSections, placeInSection]);
-
-  // ── Render ─────────────────────────────────────────────────────────────────
+  }
 
   return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={closestCenter}
-      onDragStart={onDragStart}
-      onDragOver={onDragOver}
-      onDragEnd={onDragEnd}
+    <div
+      ref={slotRef}
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+      className={isHighlit ? "slot-highlight" : undefined}
+      style={{
+        width: 40, height: 40, borderRadius: 8,
+        border: `1px solid ${isHighlit ? "#C9A55A" : `${cc}66`}`,
+        background: isHighlit ? "rgba(201,165,90,0.22)" : p!.color ? `${p!.color}22` : `${cc}18`,
+        position: "relative", overflow: "hidden", cursor: "pointer",
+        display: "flex", alignItems: "center", justifyContent: "center",
+      }}
     >
-      <div
-        className="flex flex-col gap-4"
-        style={{ height: "calc(100vh - 72px)", minHeight: 0 }}
-      >
-        {/* ── Top bar ─────────────────────────────────────────────────────── */}
-        <div className="flex-shrink-0 flex items-end justify-between gap-4">
-          <div>
-            <p className="text-text-muted font-semibold uppercase tracking-[0.38em]" style={{ fontSize: 9 }}>
-              Quản Lý Cửa Hàng · ALDO
-            </p>
-            <h1 className="text-text-primary font-light mt-1" style={{ fontSize: 26, letterSpacing: "0.04em" }}>
-              Bảng Trưng Bày
-            </h1>
+      {p!.imagePath
+        ? <img src={p!.imagePath} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+        : <span style={{ fontSize: 6, color: isHighlit ? "#C9A55A" : cc, fontWeight: 700, textAlign: "center", padding: "0 2px", lineHeight: 1.2 }}>
+            {p!.name.slice(0, 9)}
+          </span>
+      }
+      <AnimatePresence>
+        {hov && (
+          <motion.button
+            initial={{ opacity: 0, scale: 0.7 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.7 }}
+            transition={{ duration: 0.1 }}
+            onClick={e => { e.stopPropagation(); onRemove(); }}
+            style={{ position: "absolute", top: 2, right: 2, width: 14, height: 14, borderRadius: 4, background: "rgba(12,26,46,0.75)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+          >
+            <X size={7} color="#fff" />
+          </motion.button>
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {hov && (
+          <motion.div
+            initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+            style={{ position: "absolute", bottom: "calc(100% + 6px)", left: "50%", transform: "translateX(-50%)", zIndex: 50, pointerEvents: "none", whiteSpace: "nowrap" }}
+          >
+            <div style={{ background: "#ffffff", border: "1px solid #bae6fd", borderRadius: 8, padding: "4px 8px", boxShadow: "0 4px 12px rgba(12,26,46,0.1)" }}>
+              <p style={{ fontSize: 9, color: "#0c1a2e", fontWeight: 600 }}>{p!.name}</p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+// ─── Display Board: SubBlock ──────────────────────────────────────────────────
+
+const SubBlock = memo(function SubBlock({
+  section, subIdx, highlightPid, products, selectedPid, onPlace, placeInSection,
+}: {
+  section: StoreSection; subIdx: number; highlightPid: string | null;
+  products: Product[];
+  selectedPid: string | null;
+  onPlace: (sId: string, subId: string, ri: number, si: number) => void;
+  placeInSection: (sId: string, subId: string, ri: number, si: number, pid: string | null) => void;
+}) {
+  const sub = section.subsections[subIdx];
+  const cfg = ZONE_CFG[section.sectionType] ?? { color: "#0ea5e9" };
+  const total  = sub.rows.reduce((s, r) => s + r.products.length, 0);
+  const filled = sub.rows.reduce((s, r) => s + r.products.filter(Boolean).length, 0);
+  const pct    = total > 0 ? (filled / total) * 100 : 0;
+
+  // Rows are stored bottom→top in data, but we display top→bottom visually
+  // so reverse to show row 0 (bottom) at the bottom of the UI
+  const reversedRows = [...sub.rows].reverse();
+
+  return (
+    <div style={{
+      minWidth: 150, background: "#ffffff",
+      border: "1px solid #bae6fd", borderRadius: 14, padding: 10,
+      display: "flex", flexDirection: "column", gap: 6,
+      boxShadow: "0 1px 3px rgba(12,26,46,0.05)",
+    }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <p style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.14em", color: cfg.color }}>{sub.name}</p>
+        <span style={{ fontSize: 7, color: "#94a3b8" }}>{filled}/{total}</span>
+      </div>
+      <div style={{ height: 2, borderRadius: 2, background: "#e0f2fe", overflow: "hidden" }}>
+        <div style={{ height: "100%", width: `${pct}%`, background: cfg.color, borderRadius: 2, transition: "width 0.3s" }} />
+      </div>
+      {reversedRows.map((row, revIdx) => {
+        const ri = sub.rows.length - 1 - revIdx; // actual row index
+        if (row.type === "image") return (
+          <div key={ri} style={{ height: 12, borderRadius: 4, background: "#f0f9ff", display: "flex", alignItems: "center", paddingLeft: 4 }}>
+            <span style={{ fontSize: 5, color: "#94a3b8", letterSpacing: "0.2em" }}>TRANH</span>
           </div>
-
-          {/* Summary chips */}
-          <div className="hidden md:flex items-center gap-3 mb-1">
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-bg-card border border-border">
-              <Eye size={10} className="text-gold" />
-              <span className="text-gold font-medium" style={{ fontSize: 10 }}>{onDisplayIds.size}</span>
-              <span className="text-text-muted" style={{ fontSize: 9 }}>trưng bày</span>
-            </div>
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-bg-card border border-border">
-              <LayoutGrid size={10} className="text-text-muted" />
-              <span className="text-text-primary font-medium" style={{ fontSize: 10 }}>{totalSlots}</span>
-              <span className="text-text-muted" style={{ fontSize: 9 }}>tổng ô</span>
-            </div>
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-bg-card border border-border">
-              <Layers size={10} className="text-blue" />
-              <span style={{ fontSize: 10, color: "var(--blue)", fontWeight: 500 }}>
-                {totalSlots > 0 ? Math.round((onDisplayIds.size / totalSlots) * 100) : 0}%
-              </span>
-              <span className="text-text-muted" style={{ fontSize: 9 }}>lấp đầy</span>
-            </div>
-          </div>
-        </div>
-
-        {/* ── Main body: pool + shelves ────────────────────────────────────── */}
-        <div className="flex gap-3 flex-1 min-h-0">
-
-          {/* Product pool — desktop only */}
-          <div className="hidden md:flex">
-            <ProductPool products={products} onDisplayIds={onDisplayIds} />
-          </div>
-
-          {/* Right: filter + shelf grid */}
-          <div className="flex flex-col flex-1 gap-2 min-w-0 min-h-0">
-
-            {/* Section filter tabs */}
-            <div className="flex-shrink-0 flex gap-1.5 flex-wrap">
-              <button
-                onClick={() => setActiveSection("all")}
-                className="px-2.5 py-1 rounded-lg border font-[inherit] cursor-pointer transition-colors text-[9px] tracking-wider"
-                style={{
-                  borderColor: activeSection === "all" ? "var(--gold)" : "var(--border)",
-                  background:  activeSection === "all" ? "color-mix(in srgb, var(--gold) 10%, transparent)" : "transparent",
-                  color:       activeSection === "all" ? "var(--gold)" : "var(--text-muted)",
-                }}
-              >
-                Tất Cả
-              </button>
-              {storeSections.map(sec => {
-                const cfg = ZONE_CFG[sec.sectionType] ?? { color: "var(--text-muted)" };
-                const isA = activeSection === sec.id;
-                return (
-                  <button
-                    key={sec.id}
-                    onClick={() => setActiveSection(sec.id)}
-                    className="px-2.5 py-1 rounded-lg border font-[inherit] cursor-pointer transition-colors text-[9px] tracking-wider"
-                    style={{
-                      borderColor: isA ? `${cfg.color}66` : "var(--border)",
-                      background:  isA ? `color-mix(in srgb, ${cfg.color} 10%, transparent)` : "transparent",
-                      color:       isA ? cfg.color : "var(--text-muted)",
-                    }}
-                  >
-                    {sec.name}
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Shelf sections — scrollable */}
-            <div className="flex-1 overflow-y-auto flex flex-col gap-5 pr-0.5">
-              {shownSections.map(section => (
-                <SectionGroup key={section.id} section={section} overKey={overKey} />
+        );
+        return (
+          <div key={ri} style={{ display: "flex", alignItems: "center", gap: 2 }}>
+            <span style={{ fontSize: 5, width: 18, flexShrink: 0, color: "#94a3b8", fontFamily: "monospace" }}>
+              {row.type === "long" ? "DÀI" : "N"}
+            </span>
+            <div style={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
+              {row.products.map((pid, si) => (
+                <StoreSlot
+                  key={si}
+                  pid={pid} sId={section.id} subId={sub.id} ri={ri} si={si}
+                  highlightPid={highlightPid}
+                  products={products}
+                  selectedPid={selectedPid}
+                  onPlace={onPlace}
+                  onRemove={() => placeInSection(section.id, sub.id, ri, si, null)}
+                />
               ))}
             </div>
           </div>
+        );
+      })}
+    </div>
+  );
+});
+
+// ─── Display Board: SectionGroup ─────────────────────────────────────────────
+
+const SectionGroup = memo(function SectionGroup({
+  section, highlightPid, products, selectedPid, onPlace, placeInSection,
+}: {
+  section: StoreSection; highlightPid: string | null;
+  products: Product[];
+  selectedPid: string | null;
+  onPlace: (sId: string, subId: string, ri: number, si: number) => void;
+  placeInSection: (sId: string, subId: string, ri: number, si: number, pid: string | null) => void;
+}) {
+  const [open, setOpen] = useState(true);
+  const cfg = ZONE_CFG[section.sectionType] ?? { color: "#0ea5e9" };
+  const secFilled = section.subsections.reduce((s, sub) => s + sub.rows.reduce((rs, r) => rs + r.products.filter(Boolean).length, 0), 0);
+  const secTotal  = section.subsections.reduce((s, sub) => s + sub.rows.reduce((rs, r) => rs + r.products.length, 0), 0);
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      <button onClick={() => setOpen(v => !v)} style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", background: "none", border: "none", cursor: "pointer", padding: 0 }}>
+        <div style={{ width: 2, height: 14, borderRadius: 2, background: cfg.color, flexShrink: 0 }} />
+        <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.2em", color: cfg.color }}>{section.name}</p>
+        <div style={{ flex: 1, height: 1, background: "#e0f2fe" }} />
+        <span style={{ fontSize: 8, color: "#94a3b8" }}>{secFilled}/{secTotal}</span>
+        {open ? <ChevronUp size={10} style={{ color: "#94a3b8" }} /> : <ChevronDown size={10} style={{ color: "#94a3b8" }} />}
+      </button>
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }} style={{ overflow: "hidden" }}
+          >
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", paddingBottom: 4 }}>
+              {section.subsections.map((sub, si) => (
+                <SubBlock
+                  key={sub.id} section={section} subIdx={si}
+                  highlightPid={highlightPid}
+                  products={products}
+                  selectedPid={selectedPid}
+                  onPlace={onPlace}
+                  placeInSection={placeInSection}
+                />
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+});
+
+// ─── Warehouse: WBin ──────────────────────────────────────────────────────────
+
+const TIER_LABELS_W = ["Tầng 4", "Tầng 3", "Tầng 2", "Tầng 1"];
+const COLS = 5; // 5×5 grid per tier
+
+function WBin({
+  shelfId, ti, si, pid, products, highlightPid, selectedPid,
+  onPlace, onRemove,
+}: {
+  shelfId: string; ti: number; si: number;
+  pid: string | null; products: Product[];
+  highlightPid: string | null;
+  selectedPid: string | null;
+  onPlace: (shelfId: string, ti: number, si: number) => void;
+  onRemove: () => void;
+}) {
+  const [hov, setHov] = useState(false);
+  const binRef = useRef<HTMLDivElement>(null);
+  const p         = pid ? products.find(x => x.id === pid) ?? null : null;
+  const isHighlit = !!pid && pid === highlightPid;
+  const cc        = p ? catColor(p.category) : "transparent";
+  const canPlace  = !pid && !!selectedPid;
+
+  useEffect(() => {
+    if (!isHighlit) return;
+    const t = setTimeout(() => {
+      binRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 80);
+    return () => clearTimeout(t);
+  }, [isHighlit]);
+
+  const borderColor = isHighlit ? "#C9A55A"
+    : canPlace && hov ? "#C9A55A"
+    : canPlace ? "#0ea5e9"
+    : pid ? `${cc}88`
+    : "#bae6fd";
+
+  const bgColor = isHighlit ? "rgba(201,165,90,0.28)"
+    : canPlace && hov ? "rgba(201,165,90,0.12)"
+    : canPlace ? "rgba(14,165,233,0.06)"
+    : pid ? (p?.color ? `${p.color}22` : `${cc}18`)
+    : "#f0f9ff";
+
+  return (
+    <div
+      ref={binRef}
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+      onClick={() => { if (canPlace) onPlace(shelfId, ti, si); }}
+      className={isHighlit ? "slot-highlight" : undefined}
+      style={{
+        width: 52, height: 52, borderRadius: 8,
+        border: `1px ${pid ? "solid" : "dashed"} ${borderColor}`,
+        background: bgColor,
+        position: "relative", cursor: canPlace || pid ? "pointer" : "default",
+        display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+        gap: 2, overflow: "hidden",
+        transition: "all 0.1s",
+      }}
+    >
+      {pid && p ? (
+        <>
+          {/* Color bar at top */}
+          <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, background: isHighlit ? "#C9A55A" : cc }} />
+          {/* Product image or color circle */}
+          {p.imagePath
+            ? <img src={p.imagePath} alt="" style={{ width: 24, height: 24, objectFit: "cover", borderRadius: 4, flexShrink: 0 }} />
+            : <div style={{ width: 20, height: 20, borderRadius: "50%", background: p.color ?? cc, flexShrink: 0 }} />
+          }
+          {/* SKU */}
+          <p style={{
+            fontSize: 6.5, fontWeight: 700, color: isHighlit ? "#C9A55A" : "#0c1a2e",
+            letterSpacing: "0.04em", textAlign: "center", lineHeight: 1.1,
+            maxWidth: 48, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+          }}>
+            {p.sku ? p.sku.slice(0, 7) : p.name.slice(0, 6)}
+          </p>
+        </>
+      ) : canPlace ? (
+        <div style={{ width: 8, height: 8, borderRadius: "50%", background: hov ? "#C9A55A" : "#0ea5e9", opacity: 0.7 }} />
+      ) : null}
+
+      {/* Tooltip */}
+      <AnimatePresence>
+        {hov && (
+          <motion.div
+            initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+            style={{ position: "absolute", bottom: "calc(100% + 6px)", left: "50%", transform: "translateX(-50%)", zIndex: 60, pointerEvents: "none", whiteSpace: "nowrap" }}
+          >
+            <div style={{ background: "#ffffff", border: "1px solid #bae6fd", borderRadius: 8, padding: "5px 10px", boxShadow: "0 4px 12px rgba(12,26,46,0.12)" }}>
+              {p ? (
+                <>
+                  <p style={{ fontSize: 9, fontWeight: 600, color: "#0c1a2e" }}>{p.name}</p>
+                  <p style={{ fontSize: 7.5, color: "#64748b", marginTop: 1 }}>
+                    {p.sku && <span style={{ color: "#0ea5e9", marginRight: 4 }}>{p.sku}</span>}
+                    {p.color && <span style={{ marginRight: 4 }}>{p.color}</span>}
+                    {p.category}
+                  </p>
+                </>
+              ) : canPlace ? (
+                <p style={{ fontSize: 8, color: "#C9A55A" }}>Đặt vào đây</p>
+              ) : (
+                <p style={{ fontSize: 8, color: "#94a3b8" }}>Trống</p>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Remove button */}
+      <AnimatePresence>
+        {hov && pid && !canPlace && (
+          <motion.button
+            initial={{ opacity: 0, scale: 0.6 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.6 }}
+            transition={{ duration: 0.1 }}
+            onClick={e => { e.stopPropagation(); onRemove(); }}
+            style={{ position: "absolute", top: 2, right: 2, width: 14, height: 14, borderRadius: 4, background: "rgba(220,38,38,0.88)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10 }}
+          >
+            <X size={7} color="#fff" />
+          </motion.button>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+// ─── Warehouse: ShelfCard ─────────────────────────────────────────────────────
+
+const SLOTS_PER_TIER = 25;
+
+function ShelfCard({
+  shelf, products, highlightPid, selectedPid, onPlaceSlot, onRemoveSlot,
+}: {
+  shelf: WarehouseShelf; products: Product[]; highlightPid: string | null;
+  selectedPid: string | null;
+  onPlaceSlot: (shelfId: string, ti: number, si: number) => void;
+  onRemoveSlot: (shelfId: string, ti: number, si: number) => void;
+}) {
+  const [open, setOpen] = useState(true);
+  const filled     = shelf.tiers.reduce((s, t) => s + t.filter(Boolean).length, 0);
+  const total      = shelf.tiers.length * SLOTS_PER_TIER;
+  const density    = total > 0 ? filled / total : 0;
+  const isTarget   = !!highlightPid && shelf.tiers.some(t => t.includes(highlightPid));
+  const densityColor = density >= 0.85 ? "#dc2626" : density >= 0.6 ? "#C9A55A" : "#10b981";
+
+  return (
+    <motion.div
+      animate={isTarget ? { borderColor: ["#bae6fd", "#C9A55A", "#bae6fd"] } : {}}
+      transition={isTarget ? { duration: 1.2, repeat: 3 } : {}}
+      style={{
+        background: "#ffffff", borderRadius: 16, overflow: "hidden",
+        border: `1px solid ${isTarget ? "#C9A55A" : "#bae6fd"}`,
+        boxShadow: isTarget ? "0 0 0 2px rgba(201,165,90,0.22)" : "0 1px 4px rgba(12,26,46,0.06)",
+        minWidth: 220,
+      }}
+    >
+      <button
+        onClick={() => setOpen(v => !v)}
+        style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: isTarget ? "rgba(201,165,90,0.08)" : "#f0f9ff", border: "none", borderBottom: "1px solid #bae6fd", width: "100%", cursor: "pointer" }}
+      >
+        <Warehouse size={11} style={{ color: isTarget ? "#C9A55A" : "#0ea5e9", flexShrink: 0 }} />
+        <p style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.12em", color: isTarget ? "#C9A55A" : "#0c1a2e", flex: 1, textAlign: "left" }}>{shelf.name}</p>
+        {isTarget && (
+          <motion.span
+            animate={{ opacity: [1, 0.5, 1] }} transition={{ duration: 0.7, repeat: Infinity }}
+            style={{ fontSize: 7, fontWeight: 700, letterSpacing: "0.2em", background: "rgba(201,165,90,0.18)", color: "#C9A55A", padding: "2px 6px", borderRadius: 5 }}
+          >
+            TÌM THẤY
+          </motion.span>
+        )}
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginLeft: 4 }}>
+          <div style={{ width: 32, height: 3, background: "#e0f2fe", borderRadius: 3, overflow: "hidden" }}>
+            <div style={{ height: "100%", width: `${density * 100}%`, background: densityColor, transition: "width 0.3s" }} />
+          </div>
+          <span style={{ fontSize: 7, color: "#64748b" }}>{filled}/{total}</span>
+        </div>
+        {open ? <ChevronUp size={9} style={{ color: "#94a3b8", flexShrink: 0 }} /> : <ChevronDown size={9} style={{ color: "#94a3b8", flexShrink: 0 }} />}
+      </button>
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }} style={{ overflow: "hidden" }}
+          >
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: 10 }}>
+              {shelf.tiers.map((tier, ti) => (
+                <div key={ti} style={{ display: "flex", alignItems: "flex-start", gap: 6 }}>
+                  <span style={{ fontSize: 7, fontWeight: 600, color: "#94a3b8", width: 32, textAlign: "right", flexShrink: 0, paddingTop: 6 }}>
+                    {TIER_LABELS_W[ti]}
+                  </span>
+                  {/* 5×5 grid */}
+                  <div style={{ display: "grid", gridTemplateColumns: `repeat(${COLS}, 52px)`, gap: 4 }}>
+                    {tier.map((pid, si) => (
+                      <WBin
+                        key={si} shelfId={shelf.id} ti={ti} si={si}
+                        pid={pid} products={products}
+                        highlightPid={highlightPid}
+                        selectedPid={selectedPid}
+                        onPlace={onPlaceSlot}
+                        onRemove={() => onRemoveSlot(shelf.id, ti, si)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
+}
+
+// ─── Display Board tab ────────────────────────────────────────────────────────
+
+function DisplayTab({
+  products, storeSections, placeInSection, highlightPid,
+}: {
+  products: Product[];
+  storeSections: StoreSection[];
+  placeInSection: (sId: string, subId: string, ri: number, si: number, pid: string | null) => void;
+  highlightPid: string | null;
+}) {
+  const [sectionIdx, setSectionIdx] = useState(0);
+  const [selectedPid, setSelectedPid] = useState<string | null>(null);
+
+  const displayIds = useMemo(() => {
+    const ids = new Set<string>();
+    storeSections.forEach(sec => sec.subsections.forEach(sub => sub.rows.forEach(row => row.products.forEach(pid => { if (pid) ids.add(pid); }))));
+    return ids;
+  }, [storeSections]);
+
+  const totalSlots = useMemo(() =>
+    storeSections.reduce((s, sec) => s + sec.subsections.reduce((ss, sub) => ss + sub.rows.reduce((rs, r) => rs + r.products.length, 0), 0), 0),
+    [storeSections]
+  );
+
+  const clampedIdx = Math.min(sectionIdx, Math.max(0, storeSections.length - 1));
+  const currentSection = storeSections[clampedIdx] ?? null;
+  const cfg = currentSection ? (ZONE_CFG[currentSection.sectionType] ?? { color: "#0ea5e9" }) : { color: "#0ea5e9" };
+
+  // Auto-jump to section containing highlighted product
+  useEffect(() => {
+    if (!highlightPid) return;
+    const idx = storeSections.findIndex(sec =>
+      sec.subsections.some(sub => sub.rows.some(row => row.products.includes(highlightPid)))
+    );
+    if (idx !== -1 && idx !== clampedIdx) setSectionIdx(idx);
+  }, [highlightPid]);
+
+  const handlePlace = useCallback((sId: string, subId: string, ri: number, si: number) => {
+    if (!selectedPid) return;
+    placeInSection(sId, subId, ri, si, selectedPid);
+    setSelectedPid(null);
+  }, [selectedPid, placeInSection]);
+
+  return (
+    <div style={{ display: "flex", gap: 12, flex: 1, minHeight: 0 }}>
+      <div className="hidden md:flex">
+        <PoolPanel
+          products={products}
+          selectedPid={selectedPid}
+          onSelect={setSelectedPid}
+          mode="display"
+          assignedIds={displayIds}
+        />
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", flex: 1, gap: 8, minWidth: 0, minHeight: 0 }}>
+        {/* Stats chips */}
+        <div style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          {[
+            { icon: Eye,        val: displayIds.size, unit: "trưng bày", color: "#C9A55A" },
+            { icon: LayoutGrid, val: totalSlots,       unit: "tổng ô",   color: "#94a3b8" },
+            { icon: Layers,     val: `${totalSlots > 0 ? Math.round((displayIds.size / totalSlots) * 100) : 0}%`, unit: "lấp đầy", color: "#0ea5e9" },
+          ].map((chip, i) => {
+            const Icon = chip.icon;
+            return (
+              <div key={i} style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 12, background: "#ffffff", border: "1px solid #bae6fd", boxShadow: "0 1px 3px rgba(12,26,46,0.05)" }}>
+                <Icon size={10} style={{ color: chip.color }} />
+                <span style={{ fontSize: 10, fontWeight: 600, color: chip.color }}>{chip.val}</span>
+                <span style={{ fontSize: 9, color: "#94a3b8" }}>{chip.unit}</span>
+              </div>
+            );
+          })}
+          {selectedPid && (
+            <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 12, background: "rgba(201,165,90,0.10)", border: "1px solid rgba(201,165,90,0.4)" }}>
+              <Check size={10} style={{ color: "#C9A55A" }} />
+              <span style={{ fontSize: 9, color: "#C9A55A", fontWeight: 600 }}>
+                {products.find(p => p.id === selectedPid)?.name ?? "..."} · Nhấn ô trống để đặt
+              </span>
+              <button onClick={() => setSelectedPid(null)} style={{ background: "none", border: "none", cursor: "pointer", display: "flex" }}>
+                <X size={9} style={{ color: "#C9A55A" }} />
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Section navigator */}
+        {storeSections.length > 0 && (
+          <div style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 8 }}>
+            <button
+              onClick={() => setSectionIdx(i => Math.max(0, i - 1))}
+              disabled={clampedIdx === 0}
+              style={{ width: 32, height: 32, borderRadius: 10, border: "1px solid #bae6fd", background: clampedIdx === 0 ? "#f8fafc" : "#ffffff", display: "flex", alignItems: "center", justifyContent: "center", cursor: clampedIdx === 0 ? "default" : "pointer", flexShrink: 0, transition: "all 0.1s" }}
+            >
+              <ChevronLeft size={14} style={{ color: clampedIdx === 0 ? "#bae6fd" : "#0ea5e9" }} />
+            </button>
+
+            <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 10, padding: "0 14px", height: 32, background: "#ffffff", border: "1px solid #bae6fd", borderRadius: 10 }}>
+              <div style={{ width: 2, height: 12, borderRadius: 2, background: cfg.color, flexShrink: 0 }} />
+              <span style={{ fontSize: 10, fontWeight: 600, color: cfg.color, flex: 1 }}>{currentSection?.name ?? "—"}</span>
+              <span style={{ fontSize: 8, color: "#94a3b8" }}>{clampedIdx + 1} / {storeSections.length} khu</span>
+            </div>
+
+            <button
+              onClick={() => setSectionIdx(i => Math.min(storeSections.length - 1, i + 1))}
+              disabled={clampedIdx === storeSections.length - 1}
+              style={{ width: 32, height: 32, borderRadius: 10, border: "1px solid #bae6fd", background: clampedIdx === storeSections.length - 1 ? "#f8fafc" : "#ffffff", display: "flex", alignItems: "center", justifyContent: "center", cursor: clampedIdx === storeSections.length - 1 ? "default" : "pointer", flexShrink: 0, transition: "all 0.1s" }}
+            >
+              <ChevronRight size={14} style={{ color: clampedIdx === storeSections.length - 1 ? "#bae6fd" : "#0ea5e9" }} />
+            </button>
+          </div>
+        )}
+
+        {/* Single section view */}
+        <div style={{ flex: 1, overflowY: "auto", paddingRight: 2 }}>
+          <AnimatePresence mode="wait" initial={false}>
+            {currentSection ? (
+              <motion.div
+                key={currentSection.id}
+                initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.18, ease: "easeOut" }}
+              >
+                <SectionGroup
+                  section={currentSection}
+                  highlightPid={highlightPid}
+                  products={products}
+                  selectedPid={selectedPid}
+                  onPlace={handlePlace}
+                  placeInSection={placeInSection}
+                />
+              </motion.div>
+            ) : (
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 120, color: "#94a3b8", fontSize: 11 }}>
+                Chưa có khu trưng bày nào
+              </div>
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Warehouse tab ────────────────────────────────────────────────────────────
+
+function WarehouseTab({
+  products, warehouseShelves, placeInWarehouse, highlightPid,
+}: {
+  products: Product[];
+  warehouseShelves: WarehouseShelf[];
+  placeInWarehouse: (shelfId: string, ti: number, si: number, pid: string | null) => void;
+  highlightPid: string | null;
+}) {
+  const [wSearch,     setWSearch]     = useState("");
+  const [selectedPid, setSelectedPid] = useState<string | null>(null);
+  const [shelfIdx,    setShelfIdx]    = useState(0);
+
+  const warehouseIds = useMemo(() => {
+    const ids = new Set<string>();
+    warehouseShelves.forEach(sh => sh.tiers.forEach(t => t.forEach(pid => { if (pid) ids.add(pid); })));
+    return ids;
+  }, [warehouseShelves]);
+
+  const searchHighlightPid = useMemo(() => {
+    if (!wSearch.trim()) return null;
+    const q = wSearch.trim().toLowerCase();
+    return products.find(p => p.name.toLowerCase().includes(q) || (p.sku ?? "").toLowerCase().includes(q))?.id ?? null;
+  }, [wSearch, products]);
+
+  const effectivePid = highlightPid ?? searchHighlightPid;
+
+  const highlightShelf = useMemo(() => {
+    if (!effectivePid) return null;
+    for (const shelf of warehouseShelves) {
+      for (let ti = 0; ti < shelf.tiers.length; ti++) {
+        const si = shelf.tiers[ti].indexOf(effectivePid);
+        if (si !== -1) return { shelf: shelf.name, tier: TIER_LABELS_W[ti], slot: si + 1 };
+      }
+    }
+    return null;
+  }, [effectivePid, warehouseShelves]);
+
+  const handlePlace = useCallback((shelfId: string, ti: number, si: number) => {
+    if (!selectedPid) return;
+    placeInWarehouse(shelfId, ti, si, selectedPid);
+    setSelectedPid(null);
+  }, [selectedPid, placeInWarehouse]);
+
+  const onRemoveSlot = useCallback((shelfId: string, ti: number, si: number) => {
+    placeInWarehouse(shelfId, ti, si, null);
+  }, [placeInWarehouse]);
+
+  const allShelves = warehouseShelves;
+  const clampedIdx = Math.min(shelfIdx, Math.max(0, allShelves.length - 1));
+  const currentShelf = allShelves[clampedIdx] ?? null;
+
+  // Auto-jump to the shelf that contains the highlighted product
+  useEffect(() => {
+    if (!effectivePid) return;
+    const idx = allShelves.findIndex(sh => sh.tiers.some(t => t.includes(effectivePid!)));
+    if (idx !== -1 && idx !== clampedIdx) setShelfIdx(idx);
+  }, [effectivePid]);
+
+  const shelfTypeColor = currentShelf?.shelfType === "bags" ? "#10b981" : "#0ea5e9";
+  const shelfTypeLabel = currentShelf?.shelfType === "bags" ? "KHU TÚI" : "KHU GIÀY";
+
+  return (
+    <div style={{ display: "flex", gap: 12, flex: 1, minHeight: 0 }}>
+      <div className="hidden md:flex">
+        <PoolPanel
+          products={products}
+          selectedPid={selectedPid}
+          onSelect={setSelectedPid}
+          mode="warehouse"
+          assignedIds={warehouseIds}
+        />
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", flex: 1, gap: 8, minWidth: 0, minHeight: 0 }}>
+        {/* Search + stats */}
+        <div style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          <div style={{ flex: 1, minWidth: 200, display: "flex", alignItems: "center", gap: 8, background: "#ffffff", border: "1px solid #bae6fd", borderRadius: 12, padding: "0 12px", height: 36 }}>
+            <Search size={12} style={{ color: "#94a3b8" }} strokeWidth={1.5} />
+            <input value={wSearch} onChange={e => setWSearch(e.target.value)} placeholder="Tìm SKU hoặc tên để highlight vị trí..."
+              style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: 11, color: "#0c1a2e", fontFamily: "inherit" }} />
+            {wSearch && <button onClick={() => setWSearch("")} style={{ background: "none", border: "none", cursor: "pointer" }}><X size={10} style={{ color: "#94a3b8" }} /></button>}
+          </div>
+          {[
+            { label: "Tổng SKU",  val: products.length,         color: "#0c1a2e" },
+            { label: "Trong Kho", val: warehouseIds.size,       color: "#0ea5e9" },
+            { label: "Chưa Xếp", val: products.length - warehouseIds.size, color: "#C9A55A" },
+          ].map(s => (
+            <div key={s.label} style={{ display: "flex", alignItems: "center", gap: 6, padding: "0 12px", height: 36, borderRadius: 12, background: "#ffffff", border: "1px solid #bae6fd" }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: s.color }}>{s.val}</span>
+              <span style={{ fontSize: 8, color: "#64748b" }}>{s.label}</span>
+            </div>
+          ))}
+          {selectedPid && (
+            <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "0 12px", height: 36, borderRadius: 12, background: "rgba(201,165,90,0.10)", border: "1px solid rgba(201,165,90,0.4)" }}>
+              <Check size={10} style={{ color: "#C9A55A" }} />
+              <span style={{ fontSize: 9, color: "#C9A55A", fontWeight: 600 }}>
+                {products.find(p => p.id === selectedPid)?.name ?? "..."} · Nhấn ô trống
+              </span>
+              <button onClick={() => setSelectedPid(null)} style={{ background: "none", border: "none", cursor: "pointer", display: "flex" }}>
+                <X size={9} style={{ color: "#C9A55A" }} />
+              </button>
+            </div>
+          )}
+        </div>
+        {/* Highlight banner */}
+        <AnimatePresence>
+          {(wSearch || highlightPid) && (
+            <motion.div
+              initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}
+              style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 8, padding: "8px 16px", borderRadius: 12, background: highlightShelf ? "rgba(201,165,90,0.08)" : "#f0f9ff", border: `1px solid ${highlightShelf ? "rgba(201,165,90,0.5)" : "#bae6fd"}` }}
+            >
+              <MapPin size={11} style={{ color: highlightShelf ? "#C9A55A" : "#94a3b8" }} />
+              {highlightShelf ? (
+                <p style={{ fontSize: 10, color: "#0c1a2e" }}>
+                  Tìm thấy tại <strong style={{ color: "#C9A55A" }}>{highlightShelf.shelf}</strong>
+                  {" · "}{highlightShelf.tier}, Ô {highlightShelf.slot}
+                </p>
+              ) : (
+                <p style={{ fontSize: 10, color: "#94a3b8" }}>Không tìm thấy sản phẩm nào khớp</p>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Single-shelf navigator */}
+        {allShelves.length > 0 && (
+          <div style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 8 }}>
+            {/* Prev arrow */}
+            <button
+              onClick={() => setShelfIdx(i => Math.max(0, i - 1))}
+              disabled={clampedIdx === 0}
+              style={{
+                width: 32, height: 32, borderRadius: 10, border: "1px solid #bae6fd",
+                background: clampedIdx === 0 ? "#f8fafc" : "#ffffff",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                cursor: clampedIdx === 0 ? "default" : "pointer",
+                flexShrink: 0, transition: "all 0.1s",
+              }}
+            >
+              <ChevronLeft size={14} style={{ color: clampedIdx === 0 ? "#bae6fd" : "#0ea5e9" }} />
+            </button>
+
+            {/* Shelf info */}
+            <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 10, padding: "0 14px", height: 32, background: "#ffffff", border: "1px solid #bae6fd", borderRadius: 10 }}>
+              <div style={{ width: 2, height: 12, borderRadius: 2, background: shelfTypeColor, flexShrink: 0 }} />
+              <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.15em", color: shelfTypeColor }}>{shelfTypeLabel}</span>
+              <span style={{ fontSize: 10, fontWeight: 600, color: "#0c1a2e", flex: 1 }}>{currentShelf?.name ?? "—"}</span>
+              <span style={{ fontSize: 8, color: "#94a3b8" }}>
+                {clampedIdx + 1} / {allShelves.length} kệ
+              </span>
+            </div>
+
+            {/* Next arrow */}
+            <button
+              onClick={() => setShelfIdx(i => Math.min(allShelves.length - 1, i + 1))}
+              disabled={clampedIdx === allShelves.length - 1}
+              style={{
+                width: 32, height: 32, borderRadius: 10, border: "1px solid #bae6fd",
+                background: clampedIdx === allShelves.length - 1 ? "#f8fafc" : "#ffffff",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                cursor: clampedIdx === allShelves.length - 1 ? "default" : "pointer",
+                flexShrink: 0, transition: "all 0.1s",
+              }}
+            >
+              <ChevronRight size={14} style={{ color: clampedIdx === allShelves.length - 1 ? "#bae6fd" : "#0ea5e9" }} />
+            </button>
+          </div>
+        )}
+
+        {/* Single ShelfCard */}
+        <div style={{ flex: 1, overflowY: "auto", overflowX: "auto", paddingRight: 2 }}>
+          <AnimatePresence mode="wait" initial={false}>
+            {currentShelf ? (
+              <motion.div
+                key={currentShelf.id}
+                initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.18, ease: "easeOut" }}
+              >
+                <ShelfCard
+                  shelf={currentShelf} products={products}
+                  highlightPid={effectivePid} selectedPid={selectedPid}
+                  onPlaceSlot={handlePlace} onRemoveSlot={onRemoveSlot}
+                />
+              </motion.div>
+            ) : (
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 120, color: "#94a3b8", fontSize: 11 }}>
+                Chưa có kệ nào
+              </div>
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
+export default function VisualBoardPage() {
+  const { products, storeSections, warehouseShelves, placeInSection, placeInWarehouse, fetchProducts } = useStore();
+
+  const [subtab, setSubtab] = useState<Subtab>("display");
+  const [highlightPid, setHighlightPid] = useState<string | null>(null);
+
+  useEffect(() => { fetchProducts(); }, []);
+
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem("postlain_highlight");
+      if (!raw) return;
+      sessionStorage.removeItem("postlain_highlight");
+      const { pid, mode } = JSON.parse(raw) as { pid: string; mode: Subtab };
+      setSubtab(mode);
+      setTimeout(() => {
+        setHighlightPid(pid);
+        setTimeout(() => setHighlightPid(null), 4000);
+      }, 450);
+    } catch { /* noop */ }
+  }, []);
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 16, height: "calc(100vh - 72px)", minHeight: 0 }}>
+
+      {/* Header */}
+      <div style={{ flexShrink: 0, display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
+        <div>
+          <p style={{ fontSize: 9, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.38em" }}>
+            Quản Lý Cửa Hàng · ALDO
+          </p>
+          <h1 style={{ fontSize: 26, fontWeight: 300, color: "#0c1a2e", letterSpacing: "0.04em", marginTop: 4 }}>
+            Bảng Trưng Bày
+          </h1>
+        </div>
+
+        {/* Subtab switcher */}
+        <div style={{ display: "flex", background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 14, padding: 3, gap: 2 }}>
+          {([
+            { key: "display",   label: "TRƯNG BÀY", icon: Eye       },
+            { key: "warehouse", label: "KHO HÀNG",  icon: Warehouse },
+          ] as const).map(({ key, label, icon: Icon }) => (
+            <button
+              key={key}
+              onClick={() => setSubtab(key)}
+              style={{
+                display: "flex", alignItems: "center", gap: 6,
+                padding: "7px 16px", borderRadius: 11, border: "none",
+                background: subtab === key ? (key === "display" ? "#0ea5e9" : "#10b981") : "transparent",
+                color: subtab === key ? "#ffffff" : "#64748b",
+                fontSize: 9, fontWeight: subtab === key ? 700 : 400,
+                letterSpacing: "0.12em", cursor: "pointer", fontFamily: "inherit", transition: "all 0.18s",
+              }}
+            >
+              <Icon size={10} />
+              {label}
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* Drag overlay — floating ghost card */}
-      <DragOverlay dropAnimation={{ duration: 150, easing: "cubic-bezier(0.18,0.67,0.6,1.22)" }}>
-        {activeDId ? <DragGhost id={activeDId} products={products} /> : null}
-      </DragOverlay>
-    </DndContext>
+      {/* Subtab content */}
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.div
+          key={subtab}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -8 }}
+          transition={{ duration: 0.22 }}
+          style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
+        >
+          {subtab === "display" ? (
+            <DisplayTab
+              products={products}
+              storeSections={storeSections}
+              placeInSection={placeInSection}
+              highlightPid={highlightPid}
+            />
+          ) : (
+            <WarehouseTab
+              products={products}
+              warehouseShelves={warehouseShelves}
+              placeInWarehouse={placeInWarehouse}
+              highlightPid={highlightPid}
+            />
+          )}
+        </motion.div>
+      </AnimatePresence>
+    </div>
   );
 }

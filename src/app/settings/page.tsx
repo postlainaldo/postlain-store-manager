@@ -1,31 +1,46 @@
 "use client";
 
 import { useState } from "react";
-import { motion } from "framer-motion";
-import { Store, Bell, Palette, Users, Database, Shield, ChevronRight, Check, ToggleLeft, ToggleRight } from "lucide-react";
-import ThemeToggle from "@/components/ThemeToggle";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Store, Bell, Palette, Users, Database, Shield,
+  ChevronRight, Check, ToggleLeft, ToggleRight,
+  Plus, Trash2, Pencil, Warehouse, X, Eye, EyeOff,
+  Download, Upload, RefreshCw, Lock, Key, UserPlus,
+  Crown, UserCheck, User,
+} from "lucide-react";
+import { useStore } from "@/store/useStore";
+import type { UserRole, AppUser } from "@/store/useStore";
 
 const SECTIONS = [
-  { id: "store",    label: "Thông Tin Cửa Hàng", icon: Store,    desc: "Tên, địa chỉ, liên hệ"    },
-  { id: "notify",   label: "Thông Báo",           icon: Bell,     desc: "Cảnh báo tồn kho, báo cáo" },
-  { id: "display",  label: "Giao Diện",            icon: Palette,  desc: "Bố cục, hoạt ảnh, theme"  },
-  { id: "users",    label: "Người Dùng",           icon: Users,    desc: "Phân quyền truy cập"       },
-  { id: "data",     label: "Dữ Liệu & Xuất File",  icon: Database, desc: "Sao lưu, export Excel"     },
-  { id: "security", label: "Bảo Mật",              icon: Shield,   desc: "Mật khẩu, xác thực"       },
+  { id: "store",    label: "Thông Tin Cửa Hàng", icon: Store,     desc: "Tên, địa chỉ, liên hệ"     },
+  { id: "shelves",  label: "Quản Lý Kệ Kho",      icon: Warehouse, desc: "Thêm, xoá, đổi tên kệ"     },
+  { id: "notify",   label: "Thông Báo",            icon: Bell,      desc: "Cảnh báo tồn kho, báo cáo" },
+  { id: "display",  label: "Giao Diện",            icon: Palette,   desc: "Bố cục, hoạt ảnh, theme"   },
+  { id: "users",    label: "Người Dùng",           icon: Users,     desc: "Phân quyền truy cập"        },
+  { id: "data",     label: "Dữ Liệu & Xuất File",  icon: Database,  desc: "Sao lưu, export Excel"      },
+  { id: "security", label: "Bảo Mật",              icon: Shield,    desc: "Mật khẩu, xác thực"         },
 ] as const;
 
 type SectionId = typeof SECTIONS[number]["id"];
+
+// ─── Shared components ────────────────────────────────────────────────────────
 
 function InputRow({ label, value, onChange, type = "text" }: {
   label: string; value: string; onChange: (v: string) => void; type?: string;
 }) {
   return (
-    <div className="px-5 py-3 flex items-center gap-4">
-      <label className="text-text-secondary flex-shrink-0" style={{ fontSize: 11, width: 160 }}>{label}</label>
+    <div style={{ padding: "10px 20px", display: "flex", alignItems: "center", gap: 16 }}>
+      <label style={{ fontSize: 11, color: "#64748b", flexShrink: 0, width: 160 }}>{label}</label>
       <input
         type={type} value={value} onChange={e => onChange(e.target.value)}
-        className="flex-1 bg-bg-input border border-border rounded-lg px-3 py-2 text-text-primary outline-none font-[inherit] transition-colors focus:border-blue"
-        style={{ fontSize: 11 }}
+        style={{
+          flex: 1, background: "#f0f9ff", border: "1px solid #bae6fd",
+          borderRadius: 8, padding: "7px 12px", fontSize: 11, color: "#0c1a2e",
+          outline: "none", fontFamily: "inherit",
+        }}
+        onFocus={e => (e.target.style.borderColor = "#0ea5e9")}
+        onBlur={e => (e.target.style.borderColor = "#bae6fd")}
       />
     </div>
   );
@@ -34,114 +49,322 @@ function InputRow({ label, value, onChange, type = "text" }: {
 function Toggle({ label, desc, on, set }: { label: string; desc: string; on: boolean; set: (v: boolean) => void }) {
   const Icon = on ? ToggleRight : ToggleLeft;
   return (
-    <div onClick={() => set(!on)} className="px-5 py-3 flex items-center justify-between cursor-pointer hover:bg-bg-elevated transition-colors">
+    <div
+      onClick={() => set(!on)}
+      style={{ padding: "10px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }}
+      onMouseEnter={e => (e.currentTarget.style.background = "#f0f9ff")}
+      onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+    >
       <div>
-        <p className="text-text-primary" style={{ fontSize: 11 }}>{label}</p>
-        <p className="text-text-muted" style={{ fontSize: 9, marginTop: 2 }}>{desc}</p>
+        <p style={{ fontSize: 11, color: "#0c1a2e" }}>{label}</p>
+        <p style={{ fontSize: 9, color: "#94a3b8", marginTop: 2 }}>{desc}</p>
       </div>
-      <Icon size={22} strokeWidth={1.5} style={{ flexShrink: 0, color: on ? "var(--gold)" : "var(--text-muted)", transition: "color 0.14s" }} />
+      <Icon size={22} strokeWidth={1.5} style={{ flexShrink: 0, color: on ? "#C9A55A" : "#bae6fd", transition: "color 0.14s" }} />
     </div>
   );
 }
 
-function Divider() { return <div className="h-px bg-border mx-5" />; }
+function Divider() { return <div style={{ height: 1, background: "#e0f2fe", margin: "0 20px" }} />; }
 
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-xl border border-border bg-bg-card overflow-hidden">
-      <div className="px-5 py-3 border-b border-border">
-        <p className="text-text-muted font-semibold uppercase tracking-[0.2em]" style={{ fontSize: 8 }}>{title}</p>
+    <div style={{ borderRadius: 14, border: "1px solid #bae6fd", background: "#ffffff", overflow: "hidden" }}>
+      <div style={{ padding: "8px 20px", borderBottom: "1px solid #e0f2fe", background: "#f0f9ff" }}>
+        <p style={{ fontSize: 8, fontWeight: 700, color: "#64748b", letterSpacing: "0.2em" }}>{title}</p>
       </div>
-      <div className="py-1.5">{children}</div>
+      <div style={{ padding: "4px 0" }}>{children}</div>
     </div>
   );
 }
 
-// ─── Panels ───────────────────────────────────────────────────────────────────
+// ─── Store Info Panel ────────────────────────────────────────────────────────
 
 function StorePanel() {
-  const [name,     setName]     = useState("ALDO — Vincom Đồng Khởi");
-  const [addr,     setAddr]     = useState("72 Lê Thánh Tôn, Q.1, TP.HCM");
-  const [phone,    setPhone]    = useState("+84 28 3822 1234");
-  const [email,    setEmail]    = useState("store.hcm@aldo.com");
-  const [currency, setCurrency] = useState("VND");
+  const { storeName, storeAddress, storePhone, storeEmail, setStoreSetting } = useStore();
+  const [name,    setName]    = useState(storeName);
+  const [addr,    setAddr]    = useState(storeAddress);
+  const [phone,   setPhone]   = useState(storePhone);
+  const [email,   setEmail]   = useState(storeEmail);
+  const [saved,   setSaved]   = useState(false);
+
+  const handleSave = () => {
+    setStoreSetting("storeName",    name);
+    setStoreSetting("storeAddress", addr);
+    setStoreSetting("storePhone",   phone);
+    setStoreSetting("storeEmail",   email);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  };
+
   return (
-    <div className="flex flex-col gap-3">
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <Card title="Thông Tin Cơ Bản">
-        <InputRow label="Tên cửa hàng"   value={name}     onChange={setName}    />
-        <Divider /><InputRow label="Địa chỉ"         value={addr}     onChange={setAddr}    />
-        <Divider /><InputRow label="Điện thoại"      value={phone}    onChange={setPhone}   />
-        <Divider /><InputRow label="Email"           value={email}    onChange={setEmail}   type="email" />
+        <InputRow label="Tên cửa hàng"   value={name}  onChange={setName}  />
+        <Divider /><InputRow label="Địa chỉ"         value={addr}  onChange={setAddr}  />
+        <Divider /><InputRow label="Điện thoại"      value={phone} onChange={setPhone} />
+        <Divider /><InputRow label="Email"           value={email} onChange={setEmail} type="email" />
       </Card>
       <Card title="Khu Vực">
-        <InputRow label="Đơn vị tiền tệ" value={currency} onChange={setCurrency} />
+        <div style={{ padding: "10px 20px", display: "flex", alignItems: "center", gap: 16 }}>
+          <label style={{ fontSize: 11, color: "#64748b", width: 160, flexShrink: 0 }}>Đơn vị tiền tệ</label>
+          <div style={{ flex: 1, padding: "7px 12px", background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 8, fontSize: 11, color: "#0c1a2e" }}>VND</div>
+        </div>
       </Card>
+      <div style={{ display: "flex", justifyContent: "flex-end" }}>
+        <button
+          onClick={handleSave}
+          style={{
+            display: "flex", alignItems: "center", gap: 6,
+            padding: "8px 20px", borderRadius: 10, border: "none",
+            background: saved ? "#10b981" : "#0ea5e9", color: "#ffffff",
+            fontSize: 9, fontWeight: 700, letterSpacing: "0.14em",
+            cursor: "pointer", fontFamily: "inherit", transition: "background 0.2s",
+          }}
+        >
+          {saved ? <><Check size={10} /> ĐÃ LƯU</> : "LƯU THAY ĐỔI"}
+        </button>
+      </div>
     </div>
   );
 }
 
-function NotifyPanel() {
-  const [lowStock,  setLowStock]  = useState(true);
-  const [movement,  setMovement]  = useState(true);
-  const [daily,     setDaily]     = useState(false);
-  const [pushNotif, setPushNotif] = useState(true);
-  return (
-    <div className="flex flex-col gap-3">
-      <Card title="Cảnh Báo Kho">
-        <Toggle label="Cảnh báo tồn kho thấp" desc="Thông báo khi SL < ngưỡng tối thiểu" on={lowStock} set={setLowStock} />
-        <Divider />
-        <Toggle label="Thông báo biến động"   desc="Mỗi khi có nhập/xuất/chuyển kho mới"  on={movement} set={setMovement} />
-        <Divider />
-        <Toggle label="Báo cáo hàng ngày"     desc="Tổng hợp cuối ngày gửi qua email"     on={daily}    set={setDaily} />
-      </Card>
-      <Card title="Kênh Nhận Thông Báo">
-        <Toggle label="Push trên trình duyệt" desc="Thông báo trực tiếp" on={pushNotif} set={setPushNotif} />
-      </Card>
-    </div>
-  );
-}
+// ─── Shelf Management Panel ───────────────────────────────────────────────────
 
-function DisplayPanel() {
-  const [compact, setCompact] = useState(false);
-  const [anim,    setAnim]    = useState(true);
-  const [density, setDensity] = useState<"thoải_mái" | "gọn">("thoải_mái");
+function ShelvesPanel() {
+  const {
+    warehouseShelves, addWarehouseShelf,
+    removeWarehouseShelf, renameWarehouseShelf,
+  } = useStore();
+
+  const [editId,    setEditId]    = useState<string | null>(null);
+  const [editName,  setEditName]  = useState("");
+  const [confirmId, setConfirmId] = useState<string | null>(null);
+
+  const startEdit = (id: string, name: string) => { setEditId(id); setEditName(name); };
+  const commitEdit = () => {
+    if (editId && editName.trim()) renameWarehouseShelf(editId, editName.trim());
+    setEditId(null);
+  };
+
+  const shoeShelves = warehouseShelves.filter(s => s.shelfType === "shoes");
+  const bagShelves  = warehouseShelves.filter(s => s.shelfType === "bags");
+
   return (
-    <div className="flex flex-col gap-3">
-      {/* Theme toggle */}
-      <Card title="Giao Diện Màu Sắc">
-        <div className="px-5 py-3 flex items-center justify-between">
-          <div>
-            <p className="text-text-primary" style={{ fontSize: 11 }}>Chế Độ Sáng / Tối</p>
-            <p className="text-text-muted" style={{ fontSize: 9, marginTop: 2 }}>Chuyển đổi giữa giao diện sáng và tối</p>
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      {/* Shoe shelves */}
+      <Card title={`KHU GIÀY · ${shoeShelves.length} KỆ`}>
+        {shoeShelves.length === 0 && (
+          <p style={{ padding: "16px 20px", fontSize: 10, color: "#94a3b8" }}>Chưa có kệ nào</p>
+        )}
+        {shoeShelves.map((shelf, i) => (
+          <div key={shelf.id}>
+            {i > 0 && <Divider />}
+            <div style={{ padding: "8px 20px", display: "flex", alignItems: "center", gap: 10 }}>
+              <Warehouse size={12} style={{ color: "#0ea5e9", flexShrink: 0 }} />
+              {editId === shelf.id ? (
+                <input
+                  autoFocus
+                  value={editName}
+                  onChange={e => setEditName(e.target.value)}
+                  onBlur={commitEdit}
+                  onKeyDown={e => { if (e.key === "Enter") commitEdit(); if (e.key === "Escape") setEditId(null); }}
+                  style={{ flex: 1, fontSize: 11, color: "#0c1a2e", background: "#f0f9ff", border: "1px solid #0ea5e9", borderRadius: 6, padding: "4px 8px", outline: "none", fontFamily: "inherit" }}
+                />
+              ) : (
+                <p style={{ flex: 1, fontSize: 11, color: "#0c1a2e" }}>{shelf.name}</p>
+              )}
+              <div style={{ display: "flex", gap: 4 }}>
+                <button onClick={() => startEdit(shelf.id, shelf.name)}
+                  style={{ width: 26, height: 26, borderRadius: 7, border: "1px solid #bae6fd", background: "#f0f9ff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <Pencil size={10} style={{ color: "#0ea5e9" }} />
+                </button>
+                {confirmId === shelf.id ? (
+                  <>
+                    <button onClick={() => { removeWarehouseShelf(shelf.id); setConfirmId(null); }}
+                      style={{ padding: "0 8px", height: 26, borderRadius: 7, border: "none", background: "#dc2626", color: "#fff", fontSize: 8, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                      XOÁ
+                    </button>
+                    <button onClick={() => setConfirmId(null)}
+                      style={{ width: 26, height: 26, borderRadius: 7, border: "1px solid #bae6fd", background: "#f0f9ff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <X size={10} style={{ color: "#94a3b8" }} />
+                    </button>
+                  </>
+                ) : (
+                  <button onClick={() => setConfirmId(shelf.id)}
+                    style={{ width: 26, height: 26, borderRadius: 7, border: "1px solid #bae6fd", background: "#f0f9ff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <Trash2 size={10} style={{ color: "#dc2626" }} />
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
-          <ThemeToggle variant="full" />
+        ))}
+        <div style={{ padding: "8px 20px", borderTop: shoeShelves.length > 0 ? "1px solid #e0f2fe" : "none" }}>
+          <button
+            onClick={() => addWarehouseShelf("shoes")}
+            style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 8, border: "1px dashed #bae6fd", background: "transparent", cursor: "pointer", fontFamily: "inherit", fontSize: 9, color: "#0ea5e9", letterSpacing: "0.1em" }}
+          >
+            <Plus size={10} /> THÊM KỆ GIÀY
+          </button>
         </div>
       </Card>
 
-      <Card title="Chế Độ Hiển Thị">
-        <Toggle label="Chế độ gọn" desc="Thu nhỏ khoảng cách trong bảng" on={compact} set={setCompact} />
-        <Divider />
-        <Toggle label="Hoạt ảnh"   desc="Bật/tắt hiệu ứng chuyển động"   on={anim}   set={setAnim} />
+      {/* Bag shelves */}
+      <Card title={`KHU TÚI · ${bagShelves.length} KỆ`}>
+        {bagShelves.length === 0 && (
+          <p style={{ padding: "16px 20px", fontSize: 10, color: "#94a3b8" }}>Chưa có kệ nào</p>
+        )}
+        {bagShelves.map((shelf, i) => (
+          <div key={shelf.id}>
+            {i > 0 && <Divider />}
+            <div style={{ padding: "8px 20px", display: "flex", alignItems: "center", gap: 10 }}>
+              <Warehouse size={12} style={{ color: "#10b981", flexShrink: 0 }} />
+              {editId === shelf.id ? (
+                <input
+                  autoFocus
+                  value={editName}
+                  onChange={e => setEditName(e.target.value)}
+                  onBlur={commitEdit}
+                  onKeyDown={e => { if (e.key === "Enter") commitEdit(); if (e.key === "Escape") setEditId(null); }}
+                  style={{ flex: 1, fontSize: 11, color: "#0c1a2e", background: "#f0f9ff", border: "1px solid #10b981", borderRadius: 6, padding: "4px 8px", outline: "none", fontFamily: "inherit" }}
+                />
+              ) : (
+                <p style={{ flex: 1, fontSize: 11, color: "#0c1a2e" }}>{shelf.name}</p>
+              )}
+              <div style={{ display: "flex", gap: 4 }}>
+                <button onClick={() => startEdit(shelf.id, shelf.name)}
+                  style={{ width: 26, height: 26, borderRadius: 7, border: "1px solid #bae6fd", background: "#f0f9ff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <Pencil size={10} style={{ color: "#0ea5e9" }} />
+                </button>
+                {confirmId === shelf.id ? (
+                  <>
+                    <button onClick={() => { removeWarehouseShelf(shelf.id); setConfirmId(null); }}
+                      style={{ padding: "0 8px", height: 26, borderRadius: 7, border: "none", background: "#dc2626", color: "#fff", fontSize: 8, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                      XOÁ
+                    </button>
+                    <button onClick={() => setConfirmId(null)}
+                      style={{ width: 26, height: 26, borderRadius: 7, border: "1px solid #bae6fd", background: "#f0f9ff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <X size={10} style={{ color: "#94a3b8" }} />
+                    </button>
+                  </>
+                ) : (
+                  <button onClick={() => setConfirmId(shelf.id)}
+                    style={{ width: 26, height: 26, borderRadius: 7, border: "1px solid #bae6fd", background: "#f0f9ff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <Trash2 size={10} style={{ color: "#dc2626" }} />
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        ))}
+        <div style={{ padding: "8px 20px", borderTop: bagShelves.length > 0 ? "1px solid #e0f2fe" : "none" }}>
+          <button
+            onClick={() => addWarehouseShelf("bags")}
+            style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 8, border: "1px dashed #bae6fd", background: "transparent", cursor: "pointer", fontFamily: "inherit", fontSize: 9, color: "#10b981", letterSpacing: "0.1em" }}
+          >
+            <Plus size={10} /> THÊM KỆ TÚI
+          </button>
+        </div>
       </Card>
+    </div>
+  );
+}
 
+// ─── Notify Panel ────────────────────────────────────────────────────────────
+
+function NotifyPanel() {
+  const {
+    notifyLowStock, notifyMovement, notifyDaily, notifyPush,
+    lowStockThreshold, setNotifySetting, setLowStockThreshold,
+  } = useStore();
+  const [threshold, setThreshold] = useState(String(lowStockThreshold));
+  const [saved, setSaved] = useState(false);
+
+  const saveThreshold = () => {
+    const n = parseInt(threshold, 10);
+    if (!isNaN(n) && n >= 0) {
+      setLowStockThreshold(n);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 1800);
+    }
+  };
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      <Card title="Cảnh Báo Kho">
+        <Toggle label="Cảnh báo tồn kho thấp" desc="Thông báo khi SL < ngưỡng tối thiểu"
+          on={notifyLowStock} set={v => setNotifySetting("notifyLowStock", v)} />
+        <Divider />
+        {/* Threshold input — only shown when lowStock is on */}
+        {notifyLowStock && (
+          <>
+            <div style={{ padding: "10px 20px", display: "flex", alignItems: "center", gap: 16 }}>
+              <label style={{ fontSize: 11, color: "#64748b", flexShrink: 0, width: 160 }}>Ngưỡng tồn kho thấp</label>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <input
+                  type="number" min={0} value={threshold}
+                  onChange={e => setThreshold(e.target.value)}
+                  onKeyDown={e => e.key === "Enter" && saveThreshold()}
+                  style={{ width: 72, background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 8, padding: "6px 10px", fontSize: 11, color: "#0c1a2e", outline: "none", fontFamily: "inherit" }}
+                  onFocus={e => (e.target.style.borderColor = "#0ea5e9")}
+                  onBlur={e => { e.target.style.borderColor = "#bae6fd"; saveThreshold(); }}
+                />
+                <span style={{ fontSize: 10, color: "#94a3b8" }}>sản phẩm</span>
+                {saved && <Check size={12} style={{ color: "#10b981" }} />}
+              </div>
+            </div>
+            <Divider />
+          </>
+        )}
+        <Toggle label="Thông báo biến động"   desc="Mỗi khi có nhập/xuất/chuyển kho mới"
+          on={notifyMovement} set={v => setNotifySetting("notifyMovement", v)} />
+        <Divider />
+        <Toggle label="Báo cáo hàng ngày"     desc="Tổng hợp cuối ngày gửi qua email"
+          on={notifyDaily} set={v => setNotifySetting("notifyDaily", v)} />
+      </Card>
+      <Card title="Kênh Nhận Thông Báo">
+        <Toggle label="Push trên trình duyệt" desc="Thông báo trực tiếp trên màn hình"
+          on={notifyPush} set={v => setNotifySetting("notifyPush", v)} />
+      </Card>
+    </div>
+  );
+}
+
+// ─── Display Panel ────────────────────────────────────────────────────────────
+
+function DisplayPanel() {
+  const { uiCompact, uiAnimations, uiDensity, setUISetting, setUIDensity } = useStore();
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      <Card title="Chế Độ Hiển Thị">
+        <Toggle label="Chế độ gọn" desc="Thu nhỏ khoảng cách trong bảng"
+          on={uiCompact} set={v => setUISetting("uiCompact", v)} />
+        <Divider />
+        <Toggle label="Hoạt ảnh" desc="Bật/tắt hiệu ứng chuyển động"
+          on={uiAnimations} set={v => setUISetting("uiAnimations", v)} />
+      </Card>
       <Card title="Mật Độ Bảng Dữ Liệu">
-        {(["thoải_mái", "gọn"] as const).map((d, i) => (
+        {(["comfortable", "compact"] as const).map((d, i) => (
           <div key={d}>
-            <div onClick={() => setDensity(d)} className="px-5 py-3 flex items-center justify-between cursor-pointer hover:bg-bg-elevated transition-colors">
+            <div
+              onClick={() => setUIDensity(d)}
+              style={{ padding: "10px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }}
+              onMouseEnter={e => (e.currentTarget.style.background = "#f0f9ff")}
+              onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+            >
               <div>
-                <p className="text-text-primary" style={{ fontSize: 11 }}>{d === "thoải_mái" ? "Thoải Mái" : "Gọn"}</p>
-                <p className="text-text-muted" style={{ fontSize: 9, marginTop: 2 }}>
-                  {d === "thoải_mái" ? "Hàng cao 52px — dễ đọc" : "Hàng cao 38px — nhiều hàng hơn"}
+                <p style={{ fontSize: 11, color: "#0c1a2e" }}>{d === "comfortable" ? "Thoải Mái" : "Gọn"}</p>
+                <p style={{ fontSize: 9, color: "#94a3b8", marginTop: 2 }}>
+                  {d === "comfortable" ? "Hàng cao 52px — dễ đọc" : "Hàng cao 38px — nhiều hàng hơn"}
                 </p>
               </div>
-              <div
-                className="w-4 h-4 rounded-full border flex items-center justify-center transition-all"
-                style={{
-                  borderColor: density === d ? "var(--blue)" : "var(--border)",
-                  background:  density === d ? "var(--blue)" : "transparent",
-                }}
-              >
-                {density === d && <Check size={8} color="white" strokeWidth={3} />}
+              <div style={{
+                width: 16, height: 16, borderRadius: "50%",
+                border: `1.5px solid ${uiDensity === d ? "#0ea5e9" : "#bae6fd"}`,
+                background: uiDensity === d ? "#0ea5e9" : "transparent",
+                display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.15s",
+              }}>
+                {uiDensity === d && <Check size={8} color="white" strokeWidth={3} />}
               </div>
             </div>
             {i === 0 && <Divider />}
@@ -152,10 +375,433 @@ function DisplayPanel() {
   );
 }
 
-function PlaceholderPanel({ label }: { label: string }) {
+// ─── Users Panel ──────────────────────────────────────────────────────────────
+
+const ROLE_CFG: Record<UserRole, { label: string; color: string; icon: React.FC<{ size?: number; style?: React.CSSProperties }> }> = {
+  admin:   { label: "Admin",   color: "#C9A55A", icon: Crown     },
+  manager: { label: "Quản Lý", color: "#0ea5e9", icon: UserCheck },
+  staff:   { label: "Nhân Viên", color: "#64748b", icon: User    },
+};
+
+function UsersPanel() {
+  const { users, currentUser, addUser, updateUser, removeUser, changePassword } = useStore();
+  const [addOpen, setAddOpen] = useState(false);
+  const [editId,  setEditId]  = useState<string | null>(null);
+  const [confirmId, setConfirmId] = useState<string | null>(null);
+  const [pwOpen, setPwOpen] = useState<string | null>(null);
+  const [newPw, setNewPw] = useState("");
+  const [showPw, setShowPw] = useState(false);
+  // New user form
+  const [form, setForm] = useState({ name: "", email: "", role: "staff" as UserRole, password: "" });
+
+  const isAdmin = currentUser?.role === "admin";
+
+  const handleAdd = () => {
+    if (!form.name.trim() || !form.email.trim() || !form.password.trim()) return;
+    addUser({ name: form.name.trim(), email: form.email.trim(), role: form.role, passwordHash: form.password, active: true });
+    setForm({ name: "", email: "", role: "staff", password: "" });
+    setAddOpen(false);
+  };
+
+  const handleChangePw = (uid: string) => {
+    if (!newPw.trim()) return;
+    changePassword(uid, newPw.trim());
+    setNewPw(""); setPwOpen(null);
+  };
+
   return (
-    <div className="rounded-xl border border-border bg-bg-card py-14 text-center">
-      <p className="text-text-muted tracking-widest" style={{ fontSize: 11 }}>{label} — sắp có</p>
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      {!isAdmin && (
+        <div style={{ padding: "12px 16px", borderRadius: 12, background: "rgba(201,165,90,0.08)", border: "1px solid rgba(201,165,90,0.3)", fontSize: 10, color: "#C9A55A" }}>
+          Chỉ Admin mới có quyền quản lý người dùng.
+        </div>
+      )}
+      <Card title={`NGƯỜI DÙNG · ${users.length}`}>
+        {users.map((u, i) => {
+          const rcfg = ROLE_CFG[u.role];
+          const RIcon = rcfg.icon;
+          const isMe = currentUser?.id === u.id;
+          return (
+            <div key={u.id}>
+              {i > 0 && <Divider />}
+              <div style={{ padding: "10px 20px", display: "flex", alignItems: "center", gap: 10 }}>
+                {/* Avatar */}
+                <div style={{ width: 32, height: 32, borderRadius: "50%", background: `${rcfg.color}22`, border: `1.5px solid ${rcfg.color}66`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <RIcon size={13} style={{ color: rcfg.color }} />
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  {editId === u.id && isAdmin ? (
+                    <input
+                      autoFocus value={u.name}
+                      onChange={e => updateUser(u.id, { name: e.target.value })}
+                      onBlur={() => setEditId(null)}
+                      onKeyDown={e => e.key === "Enter" && setEditId(null)}
+                      style={{ fontSize: 11, color: "#0c1a2e", background: "#f0f9ff", border: "1px solid #0ea5e9", borderRadius: 6, padding: "3px 8px", outline: "none", fontFamily: "inherit", width: "100%" }}
+                    />
+                  ) : (
+                    <p style={{ fontSize: 11, fontWeight: 600, color: "#0c1a2e" }}>
+                      {u.name} {isMe && <span style={{ fontSize: 8, color: "#0ea5e9", marginLeft: 4 }}>(bạn)</span>}
+                    </p>
+                  )}
+                  <p style={{ fontSize: 8, color: "#94a3b8", marginTop: 2 }}>{u.email}</p>
+                </div>
+                {/* Role badge */}
+                <div style={{ padding: "2px 8px", borderRadius: 8, background: `${rcfg.color}18`, border: `1px solid ${rcfg.color}44` }}>
+                  <span style={{ fontSize: 7.5, fontWeight: 700, color: rcfg.color, letterSpacing: "0.08em" }}>{rcfg.label}</span>
+                </div>
+                {/* Active toggle */}
+                {isAdmin && !isMe && (
+                  <button
+                    onClick={() => updateUser(u.id, { active: !u.active })}
+                    style={{ fontSize: 7.5, padding: "2px 8px", borderRadius: 8, border: `1px solid ${u.active ? "#10b981" : "#94a3b8"}`, background: "transparent", color: u.active ? "#10b981" : "#94a3b8", cursor: "pointer", fontFamily: "inherit" }}
+                  >
+                    {u.active ? "Hoạt động" : "Tắt"}
+                  </button>
+                )}
+                {/* Actions */}
+                {isAdmin && (
+                  <div style={{ display: "flex", gap: 4 }}>
+                    <button onClick={() => setEditId(u.id)}
+                      style={{ width: 26, height: 26, borderRadius: 7, border: "1px solid #bae6fd", background: "#f0f9ff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <Pencil size={10} style={{ color: "#0ea5e9" }} />
+                    </button>
+                    <button onClick={() => { setPwOpen(u.id); setNewPw(""); setShowPw(false); }}
+                      style={{ width: 26, height: 26, borderRadius: 7, border: "1px solid #bae6fd", background: "#f0f9ff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <Key size={10} style={{ color: "#C9A55A" }} />
+                    </button>
+                    {!isMe && (confirmId === u.id ? (
+                      <>
+                        <button onClick={() => { removeUser(u.id); setConfirmId(null); }}
+                          style={{ padding: "0 8px", height: 26, borderRadius: 7, border: "none", background: "#dc2626", color: "#fff", fontSize: 8, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>XOÁ</button>
+                        <button onClick={() => setConfirmId(null)}
+                          style={{ width: 26, height: 26, borderRadius: 7, border: "1px solid #bae6fd", background: "#f0f9ff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                          <X size={10} style={{ color: "#94a3b8" }} />
+                        </button>
+                      </>
+                    ) : (
+                      <button onClick={() => setConfirmId(u.id)}
+                        style={{ width: 26, height: 26, borderRadius: 7, border: "1px solid #bae6fd", background: "#f0f9ff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        <Trash2 size={10} style={{ color: "#dc2626" }} />
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              {/* Inline change password */}
+              {pwOpen === u.id && (
+                <div style={{ padding: "8px 20px 12px", display: "flex", alignItems: "center", gap: 8, background: "#f0f9ff", borderTop: "1px solid #e0f2fe" }}>
+                  <Key size={11} style={{ color: "#C9A55A", flexShrink: 0 }} />
+                  <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 6, background: "#ffffff", border: "1px solid #bae6fd", borderRadius: 8, padding: "0 10px", height: 30 }}>
+                    <input
+                      type={showPw ? "text" : "password"}
+                      value={newPw} onChange={e => setNewPw(e.target.value)}
+                      placeholder="Mật khẩu mới..."
+                      onKeyDown={e => e.key === "Enter" && handleChangePw(u.id)}
+                      style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: 11, fontFamily: "inherit", color: "#0c1a2e" }}
+                    />
+                    <button onClick={() => setShowPw(v => !v)} style={{ background: "none", border: "none", cursor: "pointer", display: "flex" }}>
+                      {showPw ? <EyeOff size={10} style={{ color: "#94a3b8" }} /> : <Eye size={10} style={{ color: "#94a3b8" }} />}
+                    </button>
+                  </div>
+                  <button onClick={() => handleChangePw(u.id)}
+                    style={{ padding: "0 12px", height: 30, borderRadius: 8, border: "none", background: "#C9A55A", color: "#fff", fontSize: 9, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                    LƯU
+                  </button>
+                  <button onClick={() => setPwOpen(null)}
+                    style={{ width: 30, height: 30, borderRadius: 8, border: "1px solid #bae6fd", background: "#ffffff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <X size={10} style={{ color: "#94a3b8" }} />
+                  </button>
+                </div>
+              )}
+            </div>
+          );
+        })}
+        {isAdmin && (
+          <div style={{ padding: "8px 20px", borderTop: users.length > 0 ? "1px solid #e0f2fe" : "none" }}>
+            {!addOpen ? (
+              <button onClick={() => setAddOpen(true)}
+                style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 8, border: "1px dashed #bae6fd", background: "transparent", cursor: "pointer", fontFamily: "inherit", fontSize: 9, color: "#0ea5e9", letterSpacing: "0.1em" }}>
+                <UserPlus size={10} /> THÊM NGƯỜI DÙNG
+              </button>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: "8px 0" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                  {[
+                    { ph: "Họ tên", key: "name" as const },
+                    { ph: "Email", key: "email" as const },
+                  ].map(f => (
+                    <input key={f.key} value={form[f.key]} onChange={e => setForm(v => ({ ...v, [f.key]: e.target.value }))}
+                      placeholder={f.ph}
+                      style={{ background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 8, padding: "7px 10px", fontSize: 11, color: "#0c1a2e", outline: "none", fontFamily: "inherit" }}
+                    />
+                  ))}
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                  <input value={form.password} onChange={e => setForm(v => ({ ...v, password: e.target.value }))}
+                    type="password" placeholder="Mật khẩu"
+                    style={{ background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 8, padding: "7px 10px", fontSize: 11, color: "#0c1a2e", outline: "none", fontFamily: "inherit" }}
+                  />
+                  <select value={form.role} onChange={e => setForm(v => ({ ...v, role: e.target.value as UserRole }))}
+                    style={{ background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 8, padding: "7px 10px", fontSize: 11, color: "#0c1a2e", outline: "none", fontFamily: "inherit" }}>
+                    <option value="staff">Nhân Viên</option>
+                    <option value="manager">Quản Lý</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                </div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button onClick={handleAdd}
+                    style={{ padding: "7px 16px", borderRadius: 8, border: "none", background: "#0ea5e9", color: "#fff", fontSize: 9, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                    THÊM
+                  </button>
+                  <button onClick={() => setAddOpen(false)}
+                    style={{ padding: "7px 16px", borderRadius: 8, border: "1px solid #bae6fd", background: "transparent", color: "#64748b", fontSize: 9, cursor: "pointer", fontFamily: "inherit" }}>
+                    HUỶ
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </Card>
+    </div>
+  );
+}
+
+// ─── Data Panel ───────────────────────────────────────────────────────────────
+
+function DataPanel() {
+  const { products, storeSections, warehouseShelves } = useStore();
+  const [exporting, setExporting] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+
+  const flash = (m: string) => { setMsg(m); setTimeout(() => setMsg(null), 2500); };
+
+  const exportProducts = async () => {
+    setExporting(true);
+    try {
+      const XLSX = await import("xlsx");
+      const rows = products.map(p => ({
+        "Tên sản phẩm": p.name,
+        "SKU": p.sku ?? "",
+        "Danh mục": p.category,
+        "Số lượng": p.quantity,
+        "Giá gốc": p.price ?? "",
+        "Giá giảm": p.markdownPrice ?? "",
+        "Màu sắc": p.color ?? "",
+        "Cỡ": p.size ?? "",
+        "Ghi chú": p.notes ?? "",
+        "Ngày tạo": p.createdAt.slice(0, 10),
+      }));
+      const ws = XLSX.utils.json_to_sheet(rows);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Sản phẩm");
+      XLSX.writeFile(wb, `postlain_products_${new Date().toISOString().slice(0, 10)}.xlsx`);
+      flash(`Đã xuất ${products.length} sản phẩm`);
+    } catch { flash("Lỗi xuất file"); }
+    setExporting(false);
+  };
+
+  const exportPlanogram = async () => {
+    try {
+      const XLSX = await import("xlsx");
+      const wb = XLSX.utils.book_new();
+      // Display sections
+      storeSections.forEach(sec => {
+        const rows: Record<string, string>[] = [];
+        sec.subsections.forEach(sub => {
+          sub.rows.forEach((row, ri) => {
+            row.products.forEach((pid, si) => {
+              rows.push({ "Khu": sec.name, "Vị trí": sub.name, "Hàng": String(ri + 1), "Ô": String(si + 1), "Sản phẩm ID": pid ?? "" });
+            });
+          });
+        });
+        if (rows.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), sec.name.slice(0, 28));
+      });
+      // Warehouse
+      const wRows: Record<string, string>[] = [];
+      warehouseShelves.forEach(sh => {
+        sh.tiers.forEach((tier, ti) => {
+          tier.forEach((pid, si) => {
+            wRows.push({ "Kệ": sh.name, "Tầng": String(ti + 1), "Ô": String(si + 1), "Sản phẩm ID": pid ?? "" });
+          });
+        });
+      });
+      if (wRows.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(wRows), "Kho");
+      XLSX.writeFile(wb, `postlain_planogram_${new Date().toISOString().slice(0, 10)}.xlsx`);
+      flash("Đã xuất sơ đồ trưng bày");
+    } catch { flash("Lỗi xuất file"); }
+  };
+
+  const exportFullBackup = async () => {
+    try {
+      const data = JSON.stringify({ products, storeSections, warehouseShelves, exportedAt: new Date().toISOString() }, null, 2);
+      const blob = new Blob([data], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = `postlain_backup_${new Date().toISOString().slice(0, 10)}.json`;
+      a.click(); URL.revokeObjectURL(url);
+      flash("Đã tạo bản sao lưu");
+    } catch { flash("Lỗi tạo backup"); }
+  };
+
+  const stats = [
+    { label: "Tổng sản phẩm",    val: products.length,         color: "#0c1a2e" },
+    { label: "Khu trưng bày",    val: storeSections.length,    color: "#C9A55A" },
+    { label: "Kệ kho",           val: warehouseShelves.length, color: "#0ea5e9" },
+  ];
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      {msg && (
+        <div style={{ padding: "10px 16px", borderRadius: 10, background: "rgba(16,185,129,0.10)", border: "1px solid rgba(16,185,129,0.4)", fontSize: 10, color: "#10b981", display: "flex", alignItems: "center", gap: 6 }}>
+          <Check size={11} /> {msg}
+        </div>
+      )}
+      <Card title="THỐNG KÊ DỮ LIỆU">
+        <div style={{ padding: "12px 20px", display: "flex", gap: 24 }}>
+          {stats.map(s => (
+            <div key={s.label}>
+              <p style={{ fontSize: 20, fontWeight: 700, color: s.color }}>{s.val}</p>
+              <p style={{ fontSize: 8, color: "#94a3b8", marginTop: 2 }}>{s.label}</p>
+            </div>
+          ))}
+        </div>
+      </Card>
+      <Card title="XUẤT DỮ LIỆU">
+        {[
+          { icon: Download, label: "Xuất danh sách sản phẩm", desc: "File Excel (.xlsx) — tất cả sản phẩm", color: "#0ea5e9", action: exportProducts, loading: exporting },
+          { icon: Download, label: "Xuất sơ đồ trưng bày",   desc: "Trưng bày + kho theo từng khu/kệ",     color: "#C9A55A", action: exportPlanogram, loading: false },
+          { icon: Download, label: "Sao lưu toàn bộ",         desc: "File JSON — dùng để khôi phục",        color: "#10b981", action: exportFullBackup, loading: false },
+        ].map((item, i) => {
+          const Icon = item.icon;
+          return (
+            <div key={i}>
+              {i > 0 && <Divider />}
+              <div style={{ padding: "10px 20px", display: "flex", alignItems: "center", gap: 12 }}>
+                <div style={{ width: 34, height: 34, borderRadius: 10, background: `${item.color}14`, border: `1px solid ${item.color}44`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <Icon size={14} style={{ color: item.color }} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontSize: 11, color: "#0c1a2e" }}>{item.label}</p>
+                  <p style={{ fontSize: 8, color: "#94a3b8", marginTop: 2 }}>{item.desc}</p>
+                </div>
+                <button onClick={item.action} disabled={item.loading}
+                  style={{ padding: "6px 14px", borderRadius: 8, border: `1px solid ${item.color}66`, background: `${item.color}10`, color: item.color, fontSize: 9, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", letterSpacing: "0.1em", opacity: item.loading ? 0.6 : 1 }}>
+                  {item.loading ? "..." : "XUẤT"}
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </Card>
+      <Card title="NHẬP DỮ LIỆU">
+        <div style={{ padding: "10px 20px", display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ width: 34, height: 34, borderRadius: 10, background: "rgba(100,116,139,0.1)", border: "1px solid rgba(100,116,139,0.3)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <Upload size={14} style={{ color: "#64748b" }} />
+          </div>
+          <div style={{ flex: 1 }}>
+            <p style={{ fontSize: 11, color: "#0c1a2e" }}>Khôi phục từ backup</p>
+            <p style={{ fontSize: 8, color: "#94a3b8", marginTop: 2 }}>Nhập file JSON đã sao lưu — chức năng dành cho kỹ thuật viên</p>
+          </div>
+          <button
+            onClick={() => flash("Liên hệ kỹ thuật viên để khôi phục")}
+            style={{ padding: "6px 14px", borderRadius: 8, border: "1px solid #bae6fd", background: "transparent", color: "#64748b", fontSize: 9, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+            NHẬP
+          </button>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+// ─── Security Panel ───────────────────────────────────────────────────────────
+
+function SecurityPanel() {
+  const { currentUser, changePassword, logout } = useStore();
+  const [oldPw, setOldPw] = useState("");
+  const [newPw, setNewPw] = useState("");
+  const [confirmPw, setConfirmPw] = useState("");
+  const [showOld, setShowOld] = useState(false);
+  const [showNew, setShowNew] = useState(false);
+  const [msg, setMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
+
+  const flash = (type: "ok" | "err", text: string) => {
+    setMsg({ type, text }); setTimeout(() => setMsg(null), 3000);
+  };
+
+  const handleChange = () => {
+    if (!currentUser) return;
+    if (oldPw !== currentUser.passwordHash) { flash("err", "Mật khẩu hiện tại không đúng"); return; }
+    if (newPw.length < 4) { flash("err", "Mật khẩu mới phải ít nhất 4 ký tự"); return; }
+    if (newPw !== confirmPw) { flash("err", "Xác nhận mật khẩu không khớp"); return; }
+    changePassword(currentUser.id, newPw);
+    setOldPw(""); setNewPw(""); setConfirmPw("");
+    flash("ok", "Đã đổi mật khẩu thành công");
+  };
+
+  const PwField = ({ label, value, set, show, setShow }: { label: string; value: string; set: (v: string) => void; show: boolean; setShow: (v: boolean) => void }) => (
+    <div style={{ padding: "10px 20px", display: "flex", alignItems: "center", gap: 16 }}>
+      <label style={{ fontSize: 11, color: "#64748b", flexShrink: 0, width: 160 }}>{label}</label>
+      <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 8, background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 8, padding: "0 12px", height: 34 }}>
+        <input
+          type={show ? "text" : "password"} value={value} onChange={e => set(e.target.value)}
+          style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: 11, color: "#0c1a2e", fontFamily: "inherit" }}
+        />
+        <button onClick={() => setShow(!show)} style={{ background: "none", border: "none", cursor: "pointer", display: "flex" }}>
+          {show ? <EyeOff size={11} style={{ color: "#94a3b8" }} /> : <Eye size={11} style={{ color: "#94a3b8" }} />}
+        </button>
+      </div>
+    </div>
+  );
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      {!currentUser && (
+        <div style={{ padding: "16px 20px", borderRadius: 12, background: "rgba(201,165,90,0.08)", border: "1px solid rgba(201,165,90,0.3)", fontSize: 10, color: "#C9A55A" }}>
+          Vui lòng đăng nhập để truy cập cài đặt bảo mật.
+        </div>
+      )}
+      {msg && (
+        <div style={{ padding: "10px 16px", borderRadius: 10, background: msg.type === "ok" ? "rgba(16,185,129,0.10)" : "rgba(220,38,38,0.08)", border: `1px solid ${msg.type === "ok" ? "rgba(16,185,129,0.4)" : "rgba(220,38,38,0.3)"}`, fontSize: 10, color: msg.type === "ok" ? "#10b981" : "#dc2626", display: "flex", alignItems: "center", gap: 6 }}>
+          {msg.type === "ok" ? <Check size={11} /> : <X size={11} />} {msg.text}
+        </div>
+      )}
+      <Card title="PHIÊN ĐĂNG NHẬP HIỆN TẠI">
+        <div style={{ padding: "12px 20px", display: "flex", alignItems: "center", gap: 12 }}>
+          {currentUser ? (
+            <>
+              <div style={{ width: 36, height: 36, borderRadius: "50%", background: "rgba(14,165,233,0.12)", border: "1.5px solid rgba(14,165,233,0.4)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <Lock size={14} style={{ color: "#0ea5e9" }} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <p style={{ fontSize: 11, fontWeight: 600, color: "#0c1a2e" }}>{currentUser.name}</p>
+                <p style={{ fontSize: 8, color: "#94a3b8", marginTop: 2 }}>{currentUser.email} · {ROLE_CFG[currentUser.role].label}</p>
+              </div>
+              <button onClick={logout}
+                style={{ padding: "6px 14px", borderRadius: 8, border: "1px solid rgba(220,38,38,0.4)", background: "rgba(220,38,38,0.06)", color: "#dc2626", fontSize: 9, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                ĐĂNG XUẤT
+              </button>
+            </>
+          ) : (
+            <p style={{ fontSize: 10, color: "#94a3b8" }}>Chưa đăng nhập</p>
+          )}
+        </div>
+      </Card>
+      {currentUser && (
+        <Card title="ĐỔI MẬT KHẨU">
+          <PwField label="Mật khẩu hiện tại" value={oldPw} set={setOldPw} show={showOld} setShow={setShowOld} />
+          <Divider />
+          <PwField label="Mật khẩu mới" value={newPw} set={setNewPw} show={showNew} setShow={setShowNew} />
+          <Divider />
+          <PwField label="Xác nhận mật khẩu mới" value={confirmPw} set={setConfirmPw} show={showNew} setShow={setShowNew} />
+          <div style={{ padding: "8px 20px 12px", display: "flex", justifyContent: "flex-end" }}>
+            <button onClick={handleChange}
+              style={{ padding: "7px 20px", borderRadius: 8, border: "none", background: "#0ea5e9", color: "#fff", fontSize: 9, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", letterSpacing: "0.1em" }}>
+              ĐỔI MẬT KHẨU
+            </button>
+          </div>
+        </Card>
+      )}
     </div>
   );
 }
@@ -164,37 +810,38 @@ function PlaceholderPanel({ label }: { label: string }) {
 
 export default function SettingsPage() {
   const [active, setActive] = useState<SectionId>("store");
+  const storeName = useStore(s => s.storeName);
+  const brandName = storeName.split("—")[0]?.trim() || storeName;
 
   function renderPanel() {
-    if (active === "store")   return <StorePanel />;
-    if (active === "notify")  return <NotifyPanel />;
-    if (active === "display") return <DisplayPanel />;
-    return <PlaceholderPanel label={SECTIONS.find(s => s.id === active)?.label ?? active} />;
+    if (active === "store")    return <StorePanel />;
+    if (active === "shelves")  return <ShelvesPanel />;
+    if (active === "notify")   return <NotifyPanel />;
+    if (active === "display")  return <DisplayPanel />;
+    if (active === "users")    return <UsersPanel />;
+    if (active === "data")     return <DataPanel />;
+    if (active === "security") return <SecurityPanel />;
+    return null;
   }
 
-  const showSave = active === "store" || active === "notify" || active === "display";
-
   return (
-    <div className="flex flex-col gap-8">
+    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
 
-      {/* Tiêu đề */}
-      <motion.div
-        initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}
-        className="flex flex-col gap-1.5"
-      >
-        <p className="text-text-muted font-semibold uppercase tracking-[0.38em]" style={{ fontSize: 9 }}>
-          Quản Lý Cửa Hàng · ALDO
+      {/* Header */}
+      <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.28 }}>
+        <p style={{ fontSize: 9, fontWeight: 700, color: "#94a3b8", letterSpacing: "0.38em" }}>
+          QUẢN LÝ CỬA HÀNG · {brandName.toUpperCase()}
         </p>
-        <h1 className="text-text-primary font-light tracking-wide" style={{ fontSize: 26 }}>Cài Đặt</h1>
+        <h1 style={{ fontSize: 26, fontWeight: 300, color: "#0c1a2e", marginTop: 4 }}>Cài Đặt</h1>
       </motion.div>
 
-      {/* 2-column layout */}
-      <div className="flex flex-col md:flex-row gap-4 md:gap-5 items-start">
+      {/* Body */}
+      <div style={{ display: "flex", gap: 20, alignItems: "flex-start" }}>
 
         {/* Sidebar nav */}
         <motion.div
-          initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }}
-          className="w-full md:w-[200px] md:flex-shrink-0 rounded-xl border border-border bg-bg-card overflow-hidden"
+          initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.08 }}
+          style={{ width: 200, flexShrink: 0, borderRadius: 14, border: "1px solid #bae6fd", background: "#ffffff", overflow: "hidden" }}
         >
           {SECTIONS.map((s, i) => {
             const Icon = s.icon;
@@ -203,51 +850,39 @@ export default function SettingsPage() {
               <div key={s.id}>
                 <button
                   onClick={() => setActive(s.id)}
-                  className="w-full px-3.5 py-3 flex items-center gap-2.5 border-l-2 font-[inherit] cursor-pointer transition-all hover:bg-bg-elevated"
                   style={{
-                    background:  isA ? "var(--blue-subtle)" : "transparent",
-                    borderColor: isA ? "var(--blue)" : "transparent",
-                    border: `none`,
-                    borderLeft: `2px solid ${isA ? "var(--blue)" : "transparent"}`,
+                    width: "100%", padding: "10px 14px", display: "flex", alignItems: "center", gap: 10,
+                    background: isA ? "rgba(14,165,233,0.06)" : "transparent",
+                    border: "none", borderLeft: `2px solid ${isA ? "#0ea5e9" : "transparent"}`,
+                    cursor: "pointer", fontFamily: "inherit", textAlign: "left",
                   }}
+                  onMouseEnter={e => { if (!isA) e.currentTarget.style.background = "#f0f9ff"; }}
+                  onMouseLeave={e => { if (!isA) e.currentTarget.style.background = "transparent"; }}
                 >
-                  <Icon size={12} strokeWidth={1.5} style={{ flexShrink: 0, color: isA ? "var(--blue)" : "var(--text-muted)" }} />
-                  <div className="text-left flex-1 overflow-hidden">
-                    <p className="truncate" style={{ fontSize: 11, color: isA ? "var(--text-primary)" : "var(--text-secondary)" }}>{s.label}</p>
-                    <p className="truncate text-text-muted" style={{ fontSize: 8, marginTop: 2 }}>{s.desc}</p>
+                  <Icon size={12} strokeWidth={1.5} style={{ flexShrink: 0, color: isA ? "#0ea5e9" : "#94a3b8" }} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontSize: 11, color: isA ? "#0c1a2e" : "#334e68", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.label}</p>
+                    <p style={{ fontSize: 8, color: "#94a3b8", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.desc}</p>
                   </div>
-                  <ChevronRight size={9} strokeWidth={1.5} style={{ color: isA ? "var(--text-muted)" : "var(--border)" }} />
+                  <ChevronRight size={9} style={{ color: isA ? "#94a3b8" : "#bae6fd", flexShrink: 0 }} />
                 </button>
-                {i < SECTIONS.length - 1 && <div className="h-px bg-border" />}
+                {i < SECTIONS.length - 1 && <div style={{ height: 1, background: "#e0f2fe" }} />}
               </div>
             );
           })}
         </motion.div>
 
         {/* Panel */}
-        <motion.div
-          key={active}
-          initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}
-          className="flex-1 min-w-0 flex flex-col gap-3"
-        >
-          {renderPanel()}
-          {showSave && (
-            <div className="flex justify-end">
-              <button
-                className="px-6 py-2.5 rounded-lg border font-semibold cursor-pointer font-[inherit] transition-colors"
-                style={{
-                  background:  "var(--blue-subtle)",
-                  borderColor: "var(--blue-dark)",
-                  color:       "var(--blue)",
-                  fontSize:    9,
-                  letterSpacing: "0.16em",
-                }}
-              >
-                LƯU THAY ĐỔI
-              </button>
-            </div>
-          )}
-        </motion.div>
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={active}
+            initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+            transition={{ duration: 0.18 }}
+            style={{ flex: 1, minWidth: 0 }}
+          >
+            {renderPanel()}
+          </motion.div>
+        </AnimatePresence>
       </div>
     </div>
   );
