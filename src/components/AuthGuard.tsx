@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useStore } from "@/store/useStore";
 
-const PUBLIC_PATHS = ["/login", "/install"];
+const PUBLIC_PATHS = ["/login", "/install", "/setup"];
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const pathname    = usePathname();
@@ -17,8 +17,8 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     if (!isPublic && !currentUser) {
       router.replace("/login");
     }
-    // If logged in and on /login, send them home
-    if (isPublic && currentUser) {
+    // If logged in and on /login, send them home (but not /setup — wizard handles its own redirect)
+    if (pathname === "/login" && currentUser) {
       router.replace("/");
     }
   }, [pathname, currentUser, isPublic, router]);

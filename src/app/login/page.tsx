@@ -170,6 +170,12 @@ export default function LoginPage() {
         <p style={{ textAlign: "center", fontSize: 9, color: "#b0c4d8", marginTop: 20, letterSpacing: "0.1em" }}>
           POSTLAIN STORE MANAGER · PHIÊN BẢN 1.0
         </p>
+        <p style={{ textAlign: "center", fontSize: 10, color: "#94a3b8", marginTop: 10 }}>
+          Lần đầu sử dụng?{" "}
+          <a href="/setup" style={{ color: "#0ea5e9", textDecoration: "underline", cursor: "pointer" }}>
+            Cài đặt môi trường →
+          </a>
+        </p>
       </motion.div>
     </div>
   );

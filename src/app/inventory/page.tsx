@@ -402,7 +402,7 @@ function ListView() {
           onClose={() => setShowImport(false)}
         />
       )}
-      {/* Delete confirm */}
+      {/* Single delete confirm */}
       <AnimatePresence>
         {deleteId && (
           <motion.div
@@ -431,6 +431,46 @@ function ListView() {
                   style={{ background: "#dc2626", borderColor: "#b91c1c", color: "#ffffff", fontSize: 11 }}
                 >
                   Xoá
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Bulk delete confirm */}
+      <AnimatePresence>
+        {confirmBulk && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 flex items-center justify-center z-50 p-4"
+            style={{ background: "rgba(12,26,46,0.35)", backdropFilter: "blur(4px)" }}
+          >
+            <motion.div
+              initial={{ scale: 0.94, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.94, opacity: 0 }}
+              className="rounded-2xl border p-6 max-w-sm w-full"
+              style={{ background: "#ffffff", borderColor: "#fca5a5", boxShadow: "0 20px 60px rgba(12,26,46,0.15)" }}
+            >
+              <p className="font-bold mb-1" style={{ fontSize: 14, color: "#0c1a2e" }}>
+                Xoá {selected.size} sản phẩm?
+              </p>
+              <p style={{ fontSize: 11, color: "#64748b", marginBottom: 20 }}>
+                Tất cả sản phẩm đã chọn sẽ bị xoá vĩnh viễn. Không thể hoàn tác.
+              </p>
+              <div className="flex gap-2 justify-end">
+                <button
+                  onClick={() => setConfirmBulk(false)}
+                  className="px-4 py-2 rounded-xl border font-[inherit] cursor-pointer"
+                  style={{ background: "#f0f9ff", borderColor: "#bae6fd", fontSize: 11, color: "#334e68" }}
+                >
+                  Huỷ
+                </button>
+                <button
+                  onClick={handleBulkDelete}
+                  className="px-4 py-2 rounded-xl border font-[inherit] cursor-pointer"
+                  style={{ background: "#dc2626", borderColor: "#b91c1c", color: "#ffffff", fontSize: 11 }}
+                >
+                  Xoá {selected.size} mục
                 </button>
               </div>
             </motion.div>
