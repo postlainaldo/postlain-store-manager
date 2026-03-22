@@ -4,6 +4,8 @@ import { useEffect } from "react";
 import { motion } from "framer-motion";
 import { useStore } from "@/store/useStore";
 import { DollarSign, Eye, Layers, Package, ArrowUpRight, ArrowDownRight, Minus } from "lucide-react";
+import AdminNotifyPanel from "@/components/AdminNotifyPanel";
+import NotificationBanner from "@/components/NotificationBanner";
 
 const MOVEMENT_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
   TRANSFER:   { label: "CHUYỂN KHO", color: "var(--blue)",       bg: "var(--blue-subtle)"   },
@@ -36,7 +38,8 @@ function fmt(n: number) {
 }
 
 export default function OverviewPage() {
-  const { products, warehouseShelves, storeSections, fetchProducts } = useStore();
+  const { products, warehouseShelves, storeSections, fetchProducts, currentUser } = useStore();
+  const isAdmin = currentUser?.role === "admin" || currentUser?.role === "manager";
 
   useEffect(() => { fetchProducts(); }, []);
 
@@ -185,6 +188,15 @@ export default function OverviewPage() {
               </div>
             ))}
           </div>
+        </motion.div>
+      )}
+
+      {/* ── Admin: Gửi thông báo ─────────────────────────────── */}
+      {isAdmin && (
+        <motion.div
+          initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.32, duration: 0.32 }}
+        >
+          <AdminNotifyPanel />
         </motion.div>
       )}
 

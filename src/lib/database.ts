@@ -66,6 +66,55 @@ function migrateSchema(db: Database.Database) {
     );
     CREATE INDEX IF NOT EXISTS idx_activity_created ON activity(createdAt DESC);
   `);
+
+  // Chat system
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS chat_rooms (
+      id        TEXT PRIMARY KEY,
+      name      TEXT NOT NULL,
+      type      TEXT NOT NULL DEFAULT 'channel',
+      createdBy TEXT NOT NULL,
+      createdAt TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS chat_messages (
+      id        TEXT PRIMARY KEY,
+      roomId    TEXT NOT NULL REFERENCES chat_rooms(id) ON DELETE CASCADE,
+      userId    TEXT NOT NULL,
+      userName  TEXT NOT NULL,
+      content   TEXT NOT NULL,
+      createdAt TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_chat_msg_room ON chat_messages(roomId, createdAt DESC);
+
+    -- Default rooms
+    INSERT OR IGNORE INTO chat_rooms (id, name, type, createdBy, createdAt)
+    VALUES ('room_general', 'Chung', 'channel', 'user_admin', datetime('now'));
+    INSERT OR IGNORE INTO chat_rooms (id, name, type, createdBy, createdAt)
+    VALUES ('room_announce', 'Thông Báo', 'announce', 'user_admin', datetime('now'));
+
+    -- Notifications
+    CREATE TABLE IF NOT EXISTS notifications (
+      id        TEXT PRIMARY KEY,
+      title     TEXT NOT NULL,
+      body      TEXT NOT NULL,
+      type      TEXT NOT NULL DEFAULT 'info',
+      createdBy TEXT NOT NULL,
+      createdAt TEXT NOT NULL,
+      pinned    INTEGER NOT NULL DEFAULT 0
+    );
+    CREATE INDEX IF NOT EXISTS idx_notif_created ON notifications(createdAt DESC);
+
+    -- Push subscriptions
+    CREATE TABLE IF NOT EXISTS push_subs (
+      id         TEXT PRIMARY KEY,
+      userId     TEXT NOT NULL,
+      endpoint   TEXT NOT NULL UNIQUE,
+      p256dh     TEXT NOT NULL,
+      auth       TEXT NOT NULL,
+      createdAt  TEXT NOT NULL
+    );
+  `);
 }
 
 // ─── Schema Init ─────────────────────────────────────────────────────────────

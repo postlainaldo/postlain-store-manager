@@ -2,13 +2,15 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Focus, Box, Settings, LogIn, LogOut, Download, Circle } from "lucide-react";
+import { LayoutDashboard, Focus, Box, Settings, LogIn, LogOut, Download, MessageSquare } from "lucide-react";
 import { useStore } from "@/store/useStore";
+import NotificationBanner from "@/components/NotificationBanner";
 
 const NAV_ITEMS = [
   { id: "overview",     label: "Tổng Quan",    href: "/",            icon: LayoutDashboard, exact: true  },
   { id: "visual-board", label: "Trưng Bày",    href: "/visual-board", icon: Focus,           exact: false },
   { id: "inventory",    label: "Kho Hàng",     href: "/inventory",   icon: Box,             exact: false },
+  { id: "chat",         label: "Chat",          href: "/chat",        icon: MessageSquare,   exact: false },
   { id: "settings",     label: "Cài Đặt",      href: "/settings",    icon: Settings,        exact: false },
 ] as const;
 
@@ -81,20 +83,19 @@ export default function TopNav() {
         })}
       </nav>
 
-      {/* Install button */}
-      <Link href="/install" style={{ textDecoration: "none", marginRight: 4 }}>
-        <div style={{
-          display: "flex", alignItems: "center", gap: 5,
-          padding: "4px 10px", borderRadius: 8,
-          border: "1px solid #bae6fd", background: "#f0f9ff", cursor: "pointer",
-        }}>
-          <Download size={10} style={{ color: "#64748b" }} />
-          <span style={{ fontSize: 8, color: "#64748b", letterSpacing: "0.1em", fontWeight: 600 }}>CÀI APP</span>
-        </div>
-      </Link>
+      {/* Notification bell + Install */}
+      <div style={{ display: "flex", alignItems: "center", gap: 6, marginRight: 4 }}>
+        <NotificationBanner />
+        <Link href="/install" style={{ textDecoration: "none" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 5, padding: "4px 10px", borderRadius: 8, border: "1px solid #bae6fd", background: "#f0f9ff", cursor: "pointer" }}>
+            <Download size={10} style={{ color: "#64748b" }} />
+            <span style={{ fontSize: 8, color: "#64748b", letterSpacing: "0.1em", fontWeight: 600 }}>CÀI APP</span>
+          </div>
+        </Link>
+      </div>
 
       {/* User chip */}
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: 4 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         {currentUser ? (
           <>
             <Link href="/profile" style={{ textDecoration: "none" }}>
