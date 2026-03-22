@@ -7,7 +7,8 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   Send, Hash, Megaphone, Plus, Trash2,
   Crown, UserCheck, User, Circle, X, Check,
-  Smile, ChevronLeft,
+  Smile, ChevronLeft, Paperclip, Image as ImageIcon,
+  File as FileIcon, Download, Reply,
 } from "lucide-react";
 import { useStore } from "@/store/useStore";
 
@@ -15,20 +16,22 @@ import { useStore } from "@/store/useStore";
 
 type Room = {
   id: string; name: string; type: string;
-  lastMessage: { content: string; userName: string; createdAt: string } | null;
+  lastMessage: { content: string; userName: string; createdAt: string; mediaType?: string } | null;
   messageCount: number;
 };
 type Message = {
   id: string; roomId: string; userId: string;
   userName: string; content: string; createdAt: string;
   deletedAt?: string | null;
+  mediaUrl?: string | null;
+  mediaType?: string | null;  // "image" | "file"
+  replyToId?: string | null;
+  reactions?: string | null;  // JSON: { emoji: userId[] }
 };
 type Member = {
   id: string; name: string; avatar: string | null;
   status: string; role: string;
 };
-
-// ─── Config ───────────────────────────────────────────────────────────────────
 
 const ROLE_CFG: Record<string, { color: string; icon: typeof User }> = {
   admin:   { color: "#C9A55A", icon: Crown },
@@ -38,14 +41,20 @@ const ROLE_CFG: Record<string, { color: string; icon: typeof User }> = {
 const STATUS_COLOR: Record<string, string> = {
   online: "#10b981", busy: "#f59e0b", away: "#94a3b8", offline: "#cbd5e1",
 };
-const QUICK_REACTIONS = ["👍", "❤️", "😂", "😮", "👏", "🔥"];
+const QUICK_REACTIONS = ["👍", "❤️", "😂", "😮", "👏", "🔥", "😢", "🎉"];
 
 function formatTime(iso: string) {
   const d = new Date(iso);
   const now = new Date();
-  const isToday = d.toDateString() === now.toDateString();
-  if (isToday) return d.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
+  if (d.toDateString() === now.toDateString())
+    return d.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
   return d.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+}
+
+function fmtSize(bytes: number) {
+  if (bytes < 1024) return bytes + " B";
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+  return (bytes / (1024 * 1024)).toFixed(1) + " MB";
 }
 
 // ─── Avatar ───────────────────────────────────────────────────────────────────
@@ -76,19 +85,65 @@ function Avatar({ src, name, size = 32, status }: { src?: string | null; name: s
   );
 }
 
-// ─── Icon button style ────────────────────────────────────────────────────────
-
 const iconBtn: React.CSSProperties = {
-  width: 24, height: 24, borderRadius: 6, border: "1px solid #e0f2fe",
+  width: 26, height: 26, borderRadius: 7, border: "1px solid #e0f2fe",
   background: "#f8fafc", display: "flex", alignItems: "center",
   justifyContent: "center", cursor: "pointer",
 };
 
-// ─── Message bubble ───────────────────────────────────────────────────────────
+// ─── Media Bubble ─────────────────────────────────────────────────────────────
 
-function MsgBubble({ msg, isMe, showHeader, members, onDelete, canDelete }: {
+function MediaContent({ msg, isMe }: { msg: Message; isMe: boolean }) {
+  if (!msg.mediaUrl) return null;
+
+  if (msg.mediaType === "image") {
+    return (
+      <div style={{ marginTop: msg.content ? 6 : 0 }}>
+        <img
+          src={msg.mediaUrl}
+          alt="media"
+          style={{
+            maxWidth: "100%", maxHeight: 240, borderRadius: 10, display: "block",
+            border: isMe ? "none" : "1px solid #e0f2fe",
+          }}
+        />
+      </div>
+    );
+  }
+
+  // File
+  const filename = msg.mediaUrl.split("/").pop() ?? "file";
+  return (
+    <a
+      href={msg.mediaUrl}
+      download
+      style={{
+        marginTop: msg.content ? 6 : 0,
+        display: "flex", alignItems: "center", gap: 8,
+        padding: "8px 10px", borderRadius: 10,
+        background: isMe ? "rgba(255,255,255,0.15)" : "#e0f2fe",
+        border: isMe ? "none" : "1px solid #bae6fd",
+        textDecoration: "none", cursor: "pointer",
+      }}
+    >
+      <FileIcon size={14} style={{ color: isMe ? "#fff" : "#0ea5e9", flexShrink: 0 }} />
+      <span style={{ fontSize: 10, color: isMe ? "#fff" : "#0c1a2e", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+        {filename.replace(/^chat_\d+_[a-z0-9]+/, "").replace(/^_/, "") || filename}
+      </span>
+      <Download size={11} style={{ color: isMe ? "rgba(255,255,255,0.7)" : "#64748b", flexShrink: 0 }} />
+    </a>
+  );
+}
+
+// ─── Message Bubble ───────────────────────────────────────────────────────────
+
+function MsgBubble({ msg, isMe, showHeader, members, onDelete, onReply, onReact, canDelete, replyTo }: {
   msg: Message; isMe: boolean; showHeader: boolean;
-  members: Member[]; onDelete: (id: string) => void; canDelete: boolean;
+  members: Member[]; canDelete: boolean;
+  replyTo?: Message | null;
+  onDelete: (id: string) => void;
+  onReply: (msg: Message) => void;
+  onReact: (msgId: string, emoji: string) => void;
 }) {
   const [hover, setHover] = useState(false);
   const [showReact, setShowReact] = useState(false);
@@ -97,11 +152,14 @@ function MsgBubble({ msg, isMe, showHeader, members, onDelete, canDelete }: {
   const RIcon = rcfg.icon;
   const isDeleted = !!msg.deletedAt;
 
+  let reactions: Record<string, string[]> = {};
+  try { if (msg.reactions) reactions = JSON.parse(msg.reactions); } catch { /* */ }
+
   const bubbleStyle = (own: boolean, deleted: boolean): React.CSSProperties => ({
     background: deleted ? "rgba(100,116,139,0.07)" : own ? "#0ea5e9" : "#f0f9ff",
     border: deleted ? "1px solid rgba(100,116,139,0.18)" : own ? "none" : "1px solid #e0f2fe",
     borderRadius: own ? "14px 14px 2px 14px" : "2px 14px 14px 14px",
-    padding: deleted ? "6px 10px" : "9px 13px",
+    padding: "9px 13px",
   });
 
   const textStyle = (own: boolean, deleted: boolean): React.CSSProperties => ({
@@ -110,19 +168,25 @@ function MsgBubble({ msg, isMe, showHeader, members, onDelete, canDelete }: {
     fontStyle: deleted ? "italic" : "normal",
   });
 
+  const hasReactions = Object.keys(reactions).length > 0;
+
   const ActionBar = () => (
     <AnimatePresence>
       {hover && !isDeleted && (
         <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.1 }}
+          initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0 }} transition={{ duration: 0.1 }}
           style={{ display: "flex", alignItems: "center", gap: 3, alignSelf: "flex-end", marginBottom: 2 }}
         >
+          {/* Reply */}
+          <button onClick={() => onReply(msg)} style={iconBtn} title="Trả lời">
+            <Reply size={10} style={{ color: "#64748b" }} />
+          </button>
+
+          {/* React */}
           <div style={{ position: "relative" }}>
             <button onClick={() => setShowReact(v => !v)} style={iconBtn}>
-              <Smile size={11} style={{ color: "#94a3b8" }} />
+              <Smile size={10} style={{ color: "#94a3b8" }} />
             </button>
             <AnimatePresence>
               {showReact && (
@@ -135,28 +199,25 @@ function MsgBubble({ msg, isMe, showHeader, members, onDelete, canDelete }: {
                     [isMe ? "right" : "left"]: 0,
                     bottom: "calc(100% + 4px)",
                     background: "#fff", border: "1px solid #e0f2fe",
-                    borderRadius: 20, padding: "4px 8px",
-                    display: "flex", gap: 2,
-                    boxShadow: "0 4px 16px rgba(12,26,46,0.12)",
-                    zIndex: 20, whiteSpace: "nowrap",
+                    borderRadius: 20, padding: "5px 8px",
+                    display: "flex", flexWrap: "wrap", gap: 2, maxWidth: 200,
+                    boxShadow: "0 4px 16px rgba(12,26,46,0.12)", zIndex: 20,
                   }}
                 >
                   {QUICK_REACTIONS.map(e => (
-                    <button key={e} onClick={() => setShowReact(false)}
-                      style={{ background: "none", border: "none", cursor: "pointer", fontSize: 15, padding: "2px 3px", borderRadius: 6, lineHeight: 1 }}
-                      onMouseEnter={el => (el.currentTarget.style.background = "#f0f9ff")}
-                      onMouseLeave={el => (el.currentTarget.style.background = "none")}
+                    <button key={e} onClick={() => { onReact(msg.id, e); setShowReact(false); }}
+                      style={{ background: "none", border: "none", cursor: "pointer", fontSize: 16, padding: "2px 3px", borderRadius: 6, lineHeight: 1 }}
                     >{e}</button>
                   ))}
                 </motion.div>
               )}
             </AnimatePresence>
           </div>
+
+          {/* Delete */}
           {canDelete && (
-            <button
-              onClick={() => { onDelete(msg.id); setHover(false); }}
-              style={{ ...iconBtn, background: "#fff5f5", borderColor: "#fecaca" }}
-            >
+            <button onClick={() => { onDelete(msg.id); setHover(false); }}
+              style={{ ...iconBtn, background: "#fff5f5", borderColor: "#fecaca" }}>
               <Trash2 size={10} style={{ color: "#ef4444" }} />
             </button>
           )}
@@ -165,30 +226,61 @@ function MsgBubble({ msg, isMe, showHeader, members, onDelete, canDelete }: {
     </AnimatePresence>
   );
 
+  const ReplyPreview = () => replyTo && !isDeleted ? (
+    <div style={{
+      borderLeft: `2px solid ${isMe ? "rgba(255,255,255,0.5)" : "#0ea5e9"}`,
+      paddingLeft: 8, marginBottom: 6,
+      opacity: 0.75,
+    }}>
+      <p style={{ fontSize: 9, fontWeight: 600, color: isMe ? "rgba(255,255,255,0.8)" : "#0ea5e9" }}>{replyTo.userName}</p>
+      <p style={{ fontSize: 10, color: isMe ? "rgba(255,255,255,0.7)" : "#64748b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 200 }}>
+        {replyTo.mediaType === "image" ? "📷 Ảnh" : replyTo.mediaType === "file" ? "📎 File" : replyTo.content}
+      </p>
+    </div>
+  ) : null;
+
+  const ReactionBar = () => hasReactions ? (
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 3, marginTop: 4 }}>
+      {Object.entries(reactions).map(([emoji, users]) =>
+        users.length > 0 && (
+          <button key={emoji} onClick={() => onReact(msg.id, emoji)}
+            style={{
+              display: "flex", alignItems: "center", gap: 3,
+              background: "#f0f9ff", border: "1px solid #e0f2fe",
+              borderRadius: 12, padding: "1px 6px",
+              cursor: "pointer", fontSize: 11, lineHeight: 1.4,
+            }}>
+            {emoji} <span style={{ fontSize: 9, color: "#64748b" }}>{users.length}</span>
+          </button>
+        )
+      )}
+    </div>
+  ) : null;
+
   if (isMe) return (
-    <div
-      style={{ display: "flex", justifyContent: "flex-end", gap: 6, marginBottom: 2, position: "relative" }}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => { setHover(false); setShowReact(false); }}
-    >
+    <div style={{ display: "flex", justifyContent: "flex-end", gap: 6, marginBottom: 2 }}
+      onMouseEnter={() => setHover(true)} onMouseLeave={() => { setHover(false); setShowReact(false); }}>
       <ActionBar />
-      <div style={{ maxWidth: "72%" }}>
-        {showHeader && <p style={{ fontSize: 8, color: "#94a3b8", textAlign: "right", marginBottom: 2 }}>{formatTime(msg.createdAt)}</p>}
+      <div style={{ maxWidth: "74%" }}>
+        {showHeader && <p style={{ fontSize: 8, color: "#94a3b8", textAlign: "right", marginBottom: 3 }}>{formatTime(msg.createdAt)}</p>}
         <div style={bubbleStyle(true, isDeleted)}>
-          <p style={textStyle(true, isDeleted)}>{msg.content}</p>
+          <ReplyPreview />
+          {msg.content && <p style={textStyle(true, isDeleted)}>{msg.content}</p>}
+          <MediaContent msg={msg} isMe />
         </div>
+        <ReactionBar />
       </div>
     </div>
   );
 
   return (
-    <div
-      style={{ display: "flex", gap: 8, marginBottom: 2, alignItems: "flex-end", position: "relative" }}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => { setHover(false); setShowReact(false); }}
-    >
-      {showHeader ? <Avatar src={member?.avatar} name={msg.userName} size={30} /> : <div style={{ width: 30, flexShrink: 0 }} />}
-      <div style={{ maxWidth: "72%" }}>
+    <div style={{ display: "flex", gap: 8, marginBottom: 2, alignItems: "flex-start" }}
+      onMouseEnter={() => setHover(true)} onMouseLeave={() => { setHover(false); setShowReact(false); }}>
+      {showHeader
+        ? <Avatar src={member?.avatar} name={msg.userName} size={30} />
+        : <div style={{ width: 30, flexShrink: 0 }} />
+      }
+      <div style={{ maxWidth: "74%" }}>
         {showHeader && (
           <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 3 }}>
             <span style={{ fontSize: 10, fontWeight: 700, color: "#0c1a2e" }}>{msg.userName}</span>
@@ -197,8 +289,11 @@ function MsgBubble({ msg, isMe, showHeader, members, onDelete, canDelete }: {
           </div>
         )}
         <div style={bubbleStyle(false, isDeleted)}>
-          <p style={textStyle(false, isDeleted)}>{msg.content}</p>
+          <ReplyPreview />
+          {msg.content && <p style={textStyle(false, isDeleted)}>{msg.content}</p>}
+          <MediaContent msg={msg} isMe={false} />
         </div>
+        <ReactionBar />
       </div>
       <ActionBar />
     </div>
@@ -223,6 +318,33 @@ function TypingDots({ name }: { name: string }) {
   );
 }
 
+// ─── Upload preview ───────────────────────────────────────────────────────────
+
+function UploadPreview({ file, onCancel }: { file: File; onCancel: () => void }) {
+  const isImage = file.type.startsWith("image/");
+  const url = isImage ? URL.createObjectURL(file) : null;
+  return (
+    <div style={{
+      display: "flex", alignItems: "center", gap: 8,
+      padding: "6px 10px", borderRadius: 10,
+      background: "#f0f9ff", border: "1px solid #bae6fd",
+      marginBottom: 6,
+    }}>
+      {url
+        ? <img src={url} alt="" style={{ width: 40, height: 40, objectFit: "cover", borderRadius: 6 }} />
+        : <FileIcon size={18} style={{ color: "#0ea5e9", flexShrink: 0 }} />
+      }
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <p style={{ fontSize: 10, color: "#0c1a2e", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{file.name}</p>
+        <p style={{ fontSize: 8.5, color: "#94a3b8" }}>{fmtSize(file.size)}</p>
+      </div>
+      <button onClick={onCancel} style={{ background: "none", border: "none", cursor: "pointer" }}>
+        <X size={13} style={{ color: "#94a3b8" }} />
+      </button>
+    </div>
+  );
+}
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function ChatPage() {
@@ -241,9 +363,13 @@ export default function ChatPage() {
   const [connected, setConnected] = useState(false);
   const [readCounts, setReadCounts] = useState<Record<string, number>>({});
   const [typingUsers] = useState<string[]>([]);
+  const [replyTo, setReplyTo] = useState<Message | null>(null);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const esRef = useRef<EventSource | null>(null);
   const activeRoomRef = useRef<Room | null>(null);
 
@@ -266,8 +392,8 @@ export default function ChatPage() {
     esRef.current = null;
     setConnected(false);
     setMessages([]);
+    setReplyTo(null);
 
-    // Load history
     fetch(`/api/chat?roomId=${room.id}`)
       .then(r => r.json())
       .then(msgs => {
@@ -275,16 +401,12 @@ export default function ChatPage() {
           setMessages(msgs);
           setReadCounts(prev => ({ ...prev, [room.id]: room.messageCount ?? msgs.length }));
         }
-      })
-      .catch(() => {});
+      }).catch(() => {});
 
-    // Stream new messages
     const since = encodeURIComponent(new Date(Date.now() - 3000).toISOString());
     const es = new EventSource(`/api/chat/stream?roomId=${room.id}&since=${since}`);
     esRef.current = es;
-
     es.onopen = () => setConnected(true);
-
     es.onmessage = e => {
       try {
         const payload = JSON.parse(e.data as string) as { type: string; data: Message[] | Room[] };
@@ -296,17 +418,12 @@ export default function ChatPage() {
             return fresh.length > 0 ? [...prev, ...fresh] : prev;
           });
         }
-        if (payload.type === "rooms") {
-          setRooms(payload.data as Room[]);
-        }
+        if (payload.type === "rooms") setRooms(payload.data as Room[]);
       } catch {/**/}
     };
-
     es.onerror = () => {
       setConnected(false);
-      setTimeout(() => {
-        if (activeRoomRef.current?.id === room.id) connectSSE(room);
-      }, 3000);
+      setTimeout(() => { if (activeRoomRef.current?.id === room.id) connectSSE(room); }, 3000);
     };
   }, []);
 
@@ -318,12 +435,10 @@ export default function ChatPage() {
 
   useEffect(() => () => { esRef.current?.close(); }, []);
 
-  // Auto scroll
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages.length]);
 
-  // Unread counts
   const unreadCounts: Record<string, number> = {};
   rooms.forEach(r => {
     if (r.id !== activeRoom?.id) {
@@ -333,14 +448,34 @@ export default function ChatPage() {
   });
 
   const handleSend = async () => {
-    if (!input.trim() || !activeRoom || !currentUser || sending) return;
+    if ((!input.trim() && !pendingFile) || !activeRoom || !currentUser || sending) return;
     if (activeRoom.type === "announce" && !isAdmin) return;
     setSending(true);
+
+    let mediaUrl: string | null = null;
+    let mediaType: string | null = null;
+
+    // Upload file first if present
+    if (pendingFile) {
+      setUploading(true);
+      const fd = new FormData();
+      fd.append("file", pendingFile);
+      try {
+        const res = await fetch("/api/chat/upload", { method: "POST", body: fd });
+        if (res.ok) {
+          const data = await res.json() as { url: string; mediaType: string };
+          mediaUrl = data.url;
+          mediaType = data.mediaType;
+        }
+      } catch { /* upload failed, send text only */ }
+      setUploading(false);
+      setPendingFile(null);
+    }
+
     const content = input.trim();
     setInput("");
     if (inputRef.current) inputRef.current.style.height = "auto";
 
-    // Optimistic
     const optimistic: Message = {
       id: `opt_${Date.now()}`,
       roomId: activeRoom.id,
@@ -348,13 +483,23 @@ export default function ChatPage() {
       userName: currentUser.name,
       content,
       createdAt: new Date().toISOString(),
+      mediaUrl, mediaType,
+      replyToId: replyTo?.id ?? null,
     };
     setMessages(prev => [...prev, optimistic]);
+    setReplyTo(null);
 
     await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ roomId: activeRoom.id, userId: currentUser.id, userName: currentUser.name, content }),
+      body: JSON.stringify({
+        roomId: activeRoom.id,
+        userId: currentUser.id,
+        userName: currentUser.name,
+        content,
+        mediaUrl, mediaType,
+        replyToId: replyTo?.id ?? null,
+      }),
     }).catch(() => {});
 
     setSending(false);
@@ -371,6 +516,32 @@ export default function ChatPage() {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ msgId, userId: currentUser.id }),
+    }).catch(() => {});
+  };
+
+  const handleReact = async (msgId: string, emoji: string) => {
+    if (!currentUser) return;
+    setMessages(prev => prev.map(m => {
+      if (m.id !== msgId) return m;
+      let r: Record<string, string[]> = {};
+      try { if (m.reactions) r = JSON.parse(m.reactions); } catch { /* */ }
+      const users = r[emoji] ?? [];
+      const myIdx = users.indexOf(currentUser.id);
+      if (myIdx >= 0) users.splice(myIdx, 1); else users.push(currentUser.id);
+      r[emoji] = users;
+      return { ...m, reactions: JSON.stringify(r) };
+    }));
+    const updated = messages.find(m => m.id === msgId);
+    let r: Record<string, string[]> = {};
+    try { if (updated?.reactions) r = JSON.parse(updated.reactions); } catch { /* */ }
+    const users = r[emoji] ?? [];
+    const myIdx = users.indexOf(currentUser.id);
+    if (myIdx >= 0) users.splice(myIdx, 1); else users.push(currentUser.id);
+    r[emoji] = users;
+    await fetch("/api/chat", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ msgId, userId: currentUser.id, action: "react", reactions: r }),
     }).catch(() => {});
   };
 
@@ -396,11 +567,18 @@ export default function ChatPage() {
     setRooms(prev => prev.filter(r => r.id !== roomId));
   };
 
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) setPendingFile(file);
+    e.target.value = "";
+  };
+
   const onlineMembers = members.filter(m => m.status === "online" || m.status === "busy");
   const isReadOnly = activeRoom?.type === "announce" && !isAdmin;
+  const msgMap = new Map(messages.map(m => [m.id, m]));
 
   return (
-    <>
+    <div style={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0, height: "100%" }}>
       <style>{`
         @keyframes typingBounce {
           0%, 60%, 100% { transform: translateY(0); }
@@ -408,9 +586,17 @@ export default function ChatPage() {
         }
       `}</style>
 
+      {/* Hidden file input */}
+      <input ref={fileInputRef} type="file" style={{ display: "none" }}
+        accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.zip"
+        onChange={handleFileSelect}
+      />
+
       <div style={{
         display: "flex",
-        height: "calc(100vh - 52px - 36px)",
+        flex: 1,
+        minHeight: 0,
+        height: "100%",
         borderRadius: 16,
         overflow: "hidden",
         border: "1px solid #bae6fd",
@@ -419,140 +605,131 @@ export default function ChatPage() {
       }}>
 
         {/* ── Sidebar ──────────────────────────────────────────────── */}
-        <div style={{
-          width: sidebarOpen ? 220 : 0,
-          flexShrink: 0,
-          overflow: "hidden",
-          transition: "width 0.18s cubic-bezier(0.4,0,0.2,1)",
-          borderRight: "1px solid #e0f2fe",
-          display: "flex",
-          flexDirection: "column",
-          background: "#f8fafc",
-        }}>
-          {/* Header */}
-          <div style={{ padding: "12px 14px 8px", borderBottom: "1px solid #e0f2fe", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <p style={{ fontSize: 8.5, fontWeight: 700, color: "#64748b", letterSpacing: "0.2em" }}>KÊNH CHAT</p>
-            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-              <Circle size={6} style={{ color: connected ? "#10b981" : "#f59e0b", fill: connected ? "#10b981" : "#f59e0b" }} />
-              <span style={{ fontSize: 7.5, color: "#94a3b8" }}>{connected ? "live" : "kết nối..."}</span>
-            </div>
-          </div>
-
-          {/* Rooms */}
-          <div style={{ flex: 1, overflowY: "auto", padding: "4px 0" }}>
-            {rooms.map(room => {
-              const isActive = activeRoom?.id === room.id;
-              const Icon = room.type === "announce" ? Megaphone : Hash;
-              const unread = unreadCounts[room.id] ?? 0;
-              return (
-                <div
-                  key={room.id}
-                  onClick={() => {
-                    setActiveRoom(room);
-                    setReadCounts(prev => ({ ...prev, [room.id]: room.messageCount ?? 0 }));
-                  }}
-                  style={{
-                    padding: "7px 12px", cursor: "pointer",
-                    display: "flex", alignItems: "center", gap: 7,
-                    background: isActive ? "rgba(14,165,233,0.08)" : "transparent",
-                    borderLeft: `2px solid ${isActive ? "#0ea5e9" : "transparent"}`,
-                    transition: "all 0.1s",
-                  }}
-                  onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = "#f0f9ff"; }}
-                  onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = "transparent"; }}
-                >
-                  <Icon size={11} style={{ color: isActive ? "#0ea5e9" : "#94a3b8", flexShrink: 0 }} />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{
-                      fontSize: 11,
-                      color: isActive ? "#0c1a2e" : "#475569",
-                      fontWeight: isActive || unread > 0 ? 700 : 400,
-                      overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                    }}>{room.name}</p>
-                    {room.lastMessage && (
-                      <p style={{ fontSize: 8, color: "#94a3b8", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginTop: 1 }}>
-                        {room.lastMessage.content.startsWith("[Tin nhắn") ? "Đã xóa" : room.lastMessage.content}
-                      </p>
-                    )}
-                  </div>
-                  {unread > 0 && !isActive && (
-                    <div style={{ minWidth: 16, height: 16, borderRadius: 8, background: "#0ea5e9", display: "flex", alignItems: "center", justifyContent: "center", padding: "0 4px" }}>
-                      <span style={{ fontSize: 7.5, fontWeight: 700, color: "#fff" }}>{unread > 99 ? "99+" : unread}</span>
-                    </div>
-                  )}
-                  {isAdmin && room.id !== "room_general" && room.id !== "room_announce" && (
-                    <button
-                      onClick={e => { e.stopPropagation(); handleDeleteRoom(room.id); }}
-                      style={{ ...iconBtn, width: 18, height: 18, opacity: 0, transition: "opacity 0.1s" }}
-                      onMouseEnter={e => { e.currentTarget.style.opacity = "1"; }}
-                      onMouseLeave={e => { e.currentTarget.style.opacity = "0"; }}
-                    >
-                      <X size={8} style={{ color: "#dc2626" }} />
-                    </button>
-                  )}
+        <AnimatePresence initial={false}>
+          {sidebarOpen && (
+            <motion.div
+              initial={{ width: 0, opacity: 0 }}
+              animate={{ width: 220, opacity: 1 }}
+              exit={{ width: 0, opacity: 0 }}
+              transition={{ duration: 0.18, ease: [0.4, 0, 0.2, 1] }}
+              style={{
+                flexShrink: 0, overflow: "hidden",
+                borderRight: "1px solid #e0f2fe",
+                display: "flex", flexDirection: "column",
+                background: "#f8fafc",
+              }}
+            >
+              {/* Sidebar header */}
+              <div style={{ padding: "12px 14px 8px", borderBottom: "1px solid #e0f2fe", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <p style={{ fontSize: 8.5, fontWeight: 700, color: "#64748b", letterSpacing: "0.2em", whiteSpace: "nowrap" }}>KÊNH CHAT</p>
+                <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                  <Circle size={6} style={{ color: connected ? "#10b981" : "#f59e0b", fill: connected ? "#10b981" : "#f59e0b" }} />
+                  <span style={{ fontSize: 7.5, color: "#94a3b8", whiteSpace: "nowrap" }}>{connected ? "live" : "..."}</span>
                 </div>
-              );
-            })}
+              </div>
 
-            {/* Add room */}
-            {isAdmin && (
-              <div style={{ padding: "4px 12px" }}>
-                {!newRoom ? (
-                  <button
-                    onClick={() => setNewRoom(true)}
-                    style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 9, color: "#94a3b8", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", padding: "4px 0", transition: "color 0.1s" }}
-                    onMouseEnter={e => (e.currentTarget.style.color = "#0ea5e9")}
-                    onMouseLeave={e => (e.currentTarget.style.color = "#94a3b8")}
-                  >
-                    <Plus size={10} /> Thêm kênh
-                  </button>
-                ) : (
-                  <div style={{ display: "flex", gap: 4 }}>
-                    <input
-                      value={newRoomName} onChange={e => setNewRoomName(e.target.value)} autoFocus
-                      onKeyDown={e => { if (e.key === "Enter") handleCreateRoom(); if (e.key === "Escape") { setNewRoom(false); setNewRoomName(""); } }}
-                      placeholder="Tên kênh..."
-                      style={{ flex: 1, fontSize: 10, background: "#fff", border: "1px solid #bae6fd", borderRadius: 6, padding: "4px 8px", outline: "none", fontFamily: "inherit", color: "#0c1a2e" }}
-                    />
-                    <button onClick={handleCreateRoom} style={{ background: "#0ea5e9", border: "none", borderRadius: 6, padding: "4px 7px", cursor: "pointer" }}>
-                      <Check size={9} style={{ color: "#fff" }} />
-                    </button>
+              {/* Rooms list */}
+              <div style={{ flex: 1, overflowY: "auto", padding: "4px 0" }}>
+                {rooms.map(room => {
+                  const isActive = activeRoom?.id === room.id;
+                  const Icon = room.type === "announce" ? Megaphone : Hash;
+                  const unread = unreadCounts[room.id] ?? 0;
+                  const lastContent = room.lastMessage?.mediaType === "image" ? "📷 Ảnh"
+                    : room.lastMessage?.mediaType === "file" ? "📎 File"
+                    : (room.lastMessage?.content ?? "");
+                  return (
+                    <div key={room.id}
+                      onClick={() => {
+                        setActiveRoom(room);
+                        setReadCounts(prev => ({ ...prev, [room.id]: room.messageCount ?? 0 }));
+                      }}
+                      style={{
+                        padding: "7px 12px", cursor: "pointer",
+                        display: "flex", alignItems: "center", gap: 7,
+                        background: isActive ? "rgba(14,165,233,0.08)" : "transparent",
+                        borderLeft: `2px solid ${isActive ? "#0ea5e9" : "transparent"}`,
+                      }}
+                      onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = "#f0f9ff"; }}
+                      onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = "transparent"; }}
+                    >
+                      <Icon size={11} style={{ color: isActive ? "#0ea5e9" : "#94a3b8", flexShrink: 0 }} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ fontSize: 11, color: isActive ? "#0c1a2e" : "#475569", fontWeight: isActive || unread > 0 ? 700 : 400, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {room.name}
+                        </p>
+                        {lastContent && (
+                          <p style={{ fontSize: 8, color: "#94a3b8", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginTop: 1 }}>
+                            {lastContent.startsWith("[Tin nhắn") ? "Đã xóa" : lastContent}
+                          </p>
+                        )}
+                      </div>
+                      {unread > 0 && !isActive && (
+                        <div style={{ minWidth: 16, height: 16, borderRadius: 8, background: "#0ea5e9", display: "flex", alignItems: "center", justifyContent: "center", padding: "0 4px" }}>
+                          <span style={{ fontSize: 7.5, fontWeight: 700, color: "#fff" }}>{unread > 99 ? "99+" : unread}</span>
+                        </div>
+                      )}
+                      {isAdmin && room.id !== "room_general" && room.id !== "room_announce" && (
+                        <button onClick={e => { e.stopPropagation(); handleDeleteRoom(room.id); }}
+                          style={{ ...iconBtn, width: 18, height: 18, opacity: 0, transition: "opacity 0.1s" }}
+                          onMouseEnter={e => (e.currentTarget.style.opacity = "1")}
+                          onMouseLeave={e => (e.currentTarget.style.opacity = "0")}
+                        >
+                          <X size={8} style={{ color: "#dc2626" }} />
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+
+                {isAdmin && (
+                  <div style={{ padding: "4px 12px" }}>
+                    {!newRoom ? (
+                      <button onClick={() => setNewRoom(true)}
+                        style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 9, color: "#94a3b8", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", padding: "4px 0" }}
+                        onMouseEnter={e => (e.currentTarget.style.color = "#0ea5e9")}
+                        onMouseLeave={e => (e.currentTarget.style.color = "#94a3b8")}
+                      >
+                        <Plus size={10} /> Thêm kênh
+                      </button>
+                    ) : (
+                      <div style={{ display: "flex", gap: 4 }}>
+                        <input value={newRoomName} onChange={e => setNewRoomName(e.target.value)} autoFocus
+                          onKeyDown={e => { if (e.key === "Enter") handleCreateRoom(); if (e.key === "Escape") { setNewRoom(false); setNewRoomName(""); } }}
+                          placeholder="Tên kênh..."
+                          style={{ flex: 1, fontSize: 10, background: "#fff", border: "1px solid #bae6fd", borderRadius: 6, padding: "4px 8px", outline: "none", fontFamily: "inherit", color: "#0c1a2e" }}
+                        />
+                        <button onClick={handleCreateRoom} style={{ background: "#0ea5e9", border: "none", borderRadius: 6, padding: "4px 7px", cursor: "pointer" }}>
+                          <Check size={9} style={{ color: "#fff" }} />
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
-            )}
-          </div>
 
-          {/* Online members */}
-          {onlineMembers.length > 0 && (
-            <div style={{ borderTop: "1px solid #e0f2fe", padding: "6px 0" }}>
-              <p style={{ fontSize: 7.5, fontWeight: 700, color: "#94a3b8", letterSpacing: "0.15em", padding: "0 12px 4px" }}>
-                ONLINE · {onlineMembers.length}
-              </p>
-              {onlineMembers.slice(0, 6).map(m => {
-                const rcfg = ROLE_CFG[m.role] ?? ROLE_CFG.staff;
-                const RIcon = rcfg.icon;
-                return (
-                  <div key={m.id} style={{ padding: "3px 12px", display: "flex", alignItems: "center", gap: 7 }}>
-                    <Avatar src={m.avatar} name={m.name} size={20} status={m.status} />
-                    <span style={{ fontSize: 9.5, color: "#475569", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.name}</span>
-                    <RIcon size={8} style={{ color: rcfg.color, flexShrink: 0 }} />
-                  </div>
-                );
-              })}
-            </div>
+              {/* Online members */}
+              {onlineMembers.length > 0 && (
+                <div style={{ borderTop: "1px solid #e0f2fe", padding: "6px 0" }}>
+                  <p style={{ fontSize: 7.5, fontWeight: 700, color: "#94a3b8", letterSpacing: "0.15em", padding: "0 12px 4px" }}>ONLINE · {onlineMembers.length}</p>
+                  {onlineMembers.slice(0, 5).map(m => (
+                    <div key={m.id} style={{ padding: "3px 12px", display: "flex", alignItems: "center", gap: 7 }}>
+                      <Avatar src={m.avatar} name={m.name} size={20} status={m.status} />
+                      <span style={{ fontSize: 9.5, color: "#475569", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.name}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </motion.div>
           )}
-        </div>
+        </AnimatePresence>
 
         {/* ── Chat main ────────────────────────────────────────────── */}
         <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
 
           {/* Header */}
           <div style={{ height: 50, padding: "0 16px", borderBottom: "1px solid #e0f2fe", display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
-            <button
-              onClick={() => setSidebarOpen(v => !v)}
-              style={{ width: 28, height: 28, borderRadius: 7, border: "1px solid #e0f2fe", background: "#f8fafc", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}
-            >
+            <button onClick={() => setSidebarOpen(v => !v)}
+              style={{ width: 28, height: 28, borderRadius: 7, border: "1px solid #e0f2fe", background: "#f8fafc", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}>
               <ChevronLeft size={13} style={{ color: "#64748b", transition: "transform 0.18s", transform: sidebarOpen ? "rotate(0deg)" : "rotate(180deg)" }} />
             </button>
 
@@ -563,15 +740,15 @@ export default function ChatPage() {
                     {activeRoom.type === "announce"
                       ? <Megaphone size={13} style={{ color: "#C9A55A" }} />
                       : <Hash size={13} style={{ color: "#0ea5e9" }} />}
-                    <p style={{ fontSize: 13, fontWeight: 700, color: "#0c1a2e" }}>{activeRoom.name}</p>
+                    <p style={{ fontSize: 13, fontWeight: 700, color: "#0c1a2e", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{activeRoom.name}</p>
                     {activeRoom.type === "announce" && (
-                      <span style={{ fontSize: 7.5, color: "#C9A55A", background: "rgba(201,165,90,0.1)", padding: "1px 7px", borderRadius: 10, fontWeight: 700 }}>THÔNG BÁO</span>
+                      <span style={{ fontSize: 7.5, color: "#C9A55A", background: "rgba(201,165,90,0.1)", padding: "1px 7px", borderRadius: 10, fontWeight: 700, whiteSpace: "nowrap" }}>THÔNG BÁO</span>
                     )}
                   </div>
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
                   <Circle size={6} style={{ color: "#10b981", fill: "#10b981" }} />
-                  <span style={{ fontSize: 8.5, color: "#64748b" }}>{onlineMembers.length} online</span>
+                  <span style={{ fontSize: 8.5, color: "#64748b", whiteSpace: "nowrap" }}>{onlineMembers.length} online</span>
                 </div>
               </>
             ) : (
@@ -585,7 +762,6 @@ export default function ChatPage() {
               <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 6, opacity: 0.5, marginTop: "auto", marginBottom: "auto" }}>
                 <Hash size={28} style={{ color: "#bae6fd" }} strokeWidth={1} />
                 <p style={{ fontSize: 12, color: "#94a3b8" }}>Chưa có tin nhắn trong #{activeRoom.name}</p>
-                <p style={{ fontSize: 10, color: "#b0c4d8" }}>Hãy là người đầu tiên nhắn tin!</p>
               </div>
             )}
 
@@ -600,7 +776,7 @@ export default function ChatPage() {
                   initial={{ opacity: 0, y: 6 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.14 }}
-                  style={{ marginTop: showHeader && i > 0 ? 14 : 2 }}
+                  style={{ marginTop: showHeader && i > 0 ? 14 : 3 }}
                 >
                   <MsgBubble
                     msg={msg}
@@ -608,7 +784,10 @@ export default function ChatPage() {
                     showHeader={showHeader}
                     members={members}
                     onDelete={handleDeleteMsg}
+                    onReply={setReplyTo}
+                    onReact={handleReact}
                     canDelete={msg.userId === currentUser?.id || isAdmin}
+                    replyTo={msg.replyToId ? (msgMap.get(msg.replyToId) ?? null) : null}
                   />
                 </motion.div>
               );
@@ -618,8 +797,8 @@ export default function ChatPage() {
             <div ref={bottomRef} />
           </div>
 
-          {/* Input */}
-          <div style={{ padding: "10px 16px 12px", borderTop: "1px solid #e0f2fe", flexShrink: 0 }}>
+          {/* Input area */}
+          <div style={{ padding: "8px 16px 12px", borderTop: "1px solid #e0f2fe", flexShrink: 0 }}>
             {isReadOnly ? (
               <div style={{ padding: "10px 14px", borderRadius: 10, background: "rgba(201,165,90,0.06)", border: "1px solid rgba(201,165,90,0.2)", display: "flex", alignItems: "center", gap: 8 }}>
                 <Megaphone size={12} style={{ color: "#C9A55A" }} />
@@ -627,15 +806,48 @@ export default function ChatPage() {
               </div>
             ) : (
               <>
+                {/* Reply preview */}
+                {replyTo && (
+                  <div style={{
+                    display: "flex", alignItems: "center", gap: 8,
+                    padding: "5px 10px", borderRadius: 8, marginBottom: 6,
+                    background: "rgba(14,165,233,0.06)", border: "1px solid rgba(14,165,233,0.2)",
+                  }}>
+                    <Reply size={10} style={{ color: "#0ea5e9", flexShrink: 0 }} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <span style={{ fontSize: 9, fontWeight: 700, color: "#0ea5e9" }}>{replyTo.userName}</span>
+                      <p style={{ fontSize: 9.5, color: "#64748b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {replyTo.mediaType === "image" ? "📷 Ảnh" : replyTo.mediaType === "file" ? "📎 File" : replyTo.content}
+                      </p>
+                    </div>
+                    <button onClick={() => setReplyTo(null)} style={{ background: "none", border: "none", cursor: "pointer" }}>
+                      <X size={11} style={{ color: "#94a3b8" }} />
+                    </button>
+                  </div>
+                )}
+
+                {/* File preview */}
+                {pendingFile && <UploadPreview file={pendingFile} onCancel={() => setPendingFile(null)} />}
+
                 <div style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
                   <Avatar src={null} name={currentUser?.name ?? "?"} size={28} />
-                  <div style={{ flex: 1, background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 14, padding: "8px 10px 8px 14px", display: "flex", alignItems: "flex-end", gap: 8 }}>
+                  <div style={{ flex: 1, background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 14, padding: "8px 10px 8px 12px", display: "flex", alignItems: "flex-end", gap: 6 }}>
+                    {/* Attach file button */}
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={!activeRoom}
+                      title="Đính kèm file/ảnh"
+                      style={{ background: "none", border: "none", cursor: "pointer", padding: "2px", flexShrink: 0 }}
+                    >
+                      <Paperclip size={14} style={{ color: "#94a3b8" }} />
+                    </button>
+
                     <textarea
                       ref={inputRef}
                       value={input}
                       onChange={e => setInput(e.target.value)}
                       onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
-                      placeholder={activeRoom ? `Nhắn vào #${activeRoom.name}...` : "Chọn kênh..."}
+                      placeholder={activeRoom ? `Nhắn vào #${activeRoom.name}... (Enter gửi, Shift+Enter xuống dòng)` : "Chọn kênh..."}
                       disabled={!activeRoom}
                       rows={1}
                       style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: 12, color: "#0c1a2e", fontFamily: "inherit", resize: "none", lineHeight: 1.5, maxHeight: 120, overflowY: "auto" }}
@@ -645,27 +857,33 @@ export default function ChatPage() {
                         t.style.height = Math.min(t.scrollHeight, 120) + "px";
                       }}
                     />
+
                     <button
                       onClick={handleSend}
-                      disabled={!input.trim() || sending || !activeRoom}
+                      disabled={(!input.trim() && !pendingFile) || sending || uploading || !activeRoom}
                       style={{
                         width: 32, height: 32, borderRadius: 10, border: "none", flexShrink: 0,
-                        background: input.trim() && activeRoom ? "#0ea5e9" : "#e0f2fe",
+                        background: (input.trim() || pendingFile) && activeRoom ? "#0ea5e9" : "#e0f2fe",
                         display: "flex", alignItems: "center", justifyContent: "center",
-                        cursor: input.trim() && activeRoom ? "pointer" : "default",
+                        cursor: (input.trim() || pendingFile) && activeRoom ? "pointer" : "default",
                         transition: "background 0.12s",
                       }}
                     >
-                      <Send size={13} style={{ color: input.trim() && activeRoom ? "#fff" : "#94a3b8" }} />
+                      {uploading
+                        ? <div style={{ width: 12, height: 12, borderRadius: "50%", border: "2px solid #fff", borderTopColor: "transparent", animation: "spin 0.6s linear infinite" }} />
+                        : <Send size={13} style={{ color: (input.trim() || pendingFile) && activeRoom ? "#fff" : "#94a3b8" }} />
+                      }
                     </button>
                   </div>
                 </div>
-                <p style={{ fontSize: 8, color: "#b0c4d8", marginTop: 4, paddingLeft: 36 }}>Enter để gửi · Shift+Enter xuống dòng</p>
               </>
             )}
           </div>
         </div>
       </div>
-    </>
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+      `}</style>
+    </div>
   );
 }

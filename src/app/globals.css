@@ -127,14 +127,16 @@ body, .theme-transition {
     color            0.2s cubic-bezier(0.4,0,0.2,1);
 }
 
-/* PWA standalone mode */
-@media (display-mode: standalone) {
-  html, body { height: 100dvh; position: fixed; width: 100%; }
+/* Full-height layout — let AppShell divs handle scrolling, not html/body */
+html, body {
+  height: 100%;
+  height: 100dvh;
+  overflow: hidden;  /* AppShell inner divs scroll individually */
 }
 
-/* iOS rubber-band fix — only apply on mobile (md and below) */
-@media (max-width: 767px) {
-  html, body { position: fixed; width: 100%; overflow: hidden; }
+/* PWA standalone mode — same behaviour */
+@media (display-mode: standalone) {
+  html, body { height: 100dvh; }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════

@@ -9,9 +9,9 @@ import { useStore } from "@/store/useStore";
 
 const NAV_ITEMS = [
   { id: "overview",     label: "Tổng Quan", href: "/",             icon: LayoutDashboard, exact: true  },
-  { id: "visual-board", label: "Trưng Bày", href: "/visual-board", icon: Focus,           exact: false },
-  { id: "chat",         label: "Chat",       href: "/chat",         icon: MessageSquare,   exact: false },
   { id: "inventory",    label: "Kho Hàng",  href: "/inventory",    icon: Box,             exact: false },
+  { id: "chat",         label: "Chat",       href: "/chat",         icon: MessageSquare,   exact: false },
+  { id: "settings",     label: "Cài Đặt",   href: "/settings",     icon: Settings,        exact: false },
   { id: "profile",      label: "Hồ Sơ",     href: "/profile",      icon: UserCircle,      exact: false },
 ] as const;
 
@@ -26,15 +26,13 @@ export default function BottomNav() {
     <nav
       style={{
         position: "fixed",
-        bottom: 0,
-        left: 0,
-        right: 0,
+        bottom: 0, left: 0, right: 0,
         zIndex: 50,
         background: "#ffffff",
         borderTop: "1px solid #bae6fd",
         display: "flex",
         alignItems: "stretch",
-        height: `calc(64px + env(safe-area-inset-bottom, 0px))`,
+        height: `calc(60px + env(safe-area-inset-bottom, 0px))`,
         paddingBottom: "env(safe-area-inset-bottom, 0px)",
         boxShadow: "0 -2px 16px rgba(12,26,46,0.07)",
       }}
@@ -49,23 +47,27 @@ export default function BottomNav() {
           <Link
             key={item.id}
             href={item.href}
-            style={{ flex: 1, textDecoration: "none", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 3, position: "relative", minWidth: 0 }}
+            style={{
+              flex: 1, textDecoration: "none",
+              display: "flex", flexDirection: "column",
+              alignItems: "center", justifyContent: "center",
+              gap: 3, position: "relative", minWidth: 0,
+              padding: "0 2px",
+            }}
           >
             {/* Active top indicator */}
             {active && (
-              <span
-                style={{
-                  position: "absolute", top: 0, left: "50%", transform: "translateX(-50%)",
-                  width: 28, height: 2.5, borderRadius: "0 0 3px 3px",
-                  background: "linear-gradient(90deg, #0ea5e9, #38bdf8)",
-                }}
-              />
+              <span style={{
+                position: "absolute", top: 0, left: "50%", transform: "translateX(-50%)",
+                width: 24, height: 2, borderRadius: "0 0 3px 3px",
+                background: "linear-gradient(90deg, #0ea5e9, #38bdf8)",
+              }} />
             )}
 
-            {/* Icon — profile shows avatar initial if logged in */}
+            {/* Icon */}
             {isProfile && currentUser ? (
               <div style={{
-                width: 22, height: 22, borderRadius: "50%",
+                width: 20, height: 20, borderRadius: "50%",
                 background: active
                   ? "linear-gradient(135deg, #0ea5e9, #0284c7)"
                   : "linear-gradient(135deg, #0c1a2e, #1e3a5f)",
@@ -73,24 +75,28 @@ export default function BottomNav() {
                 border: `1.5px solid ${active ? "#0ea5e9" : "#bae6fd"}`,
                 flexShrink: 0,
               }}>
-                <span style={{ fontSize: 9, fontWeight: 700, color: active ? "#fff" : "#C9A55A" }}>
+                <span style={{ fontSize: 8, fontWeight: 700, color: active ? "#fff" : "#C9A55A" }}>
                   {currentUser.name.slice(0, 1).toUpperCase()}
                 </span>
               </div>
             ) : (
               <Icon
-                size={20}
+                size={18}
                 strokeWidth={active ? 2 : 1.5}
                 style={{ color: active ? "#0ea5e9" : "#94a3b8", flexShrink: 0 }}
               />
             )}
 
             <span style={{
-              fontSize: 9,
+              fontSize: 8,
               fontWeight: active ? 700 : 500,
-              letterSpacing: "0.03em",
+              letterSpacing: "0.02em",
               color: active ? "#0ea5e9" : "#94a3b8",
               whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              maxWidth: "100%",
+              textAlign: "center",
             }}>
               {item.label}
             </span>

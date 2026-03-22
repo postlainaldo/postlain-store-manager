@@ -44,6 +44,7 @@ interface StoreState {
   currentUser: AppUser | null;
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
+  fetchUsersFromDb: () => Promise<void>;
   addUser: (u: Omit<AppUser, "id" | "createdAt">) => void;
   updateUser: (id: string, changes: Partial<Omit<AppUser, "id" | "createdAt">>) => void;
   removeUser: (id: string) => void;
@@ -190,6 +191,26 @@ export const useStore = create<StoreState>()(
         }
       },
       logout: () => set({ currentUser: null }),
+
+      // Load users from SQLite (source of truth) and sync to store
+      fetchUsersFromDb: async () => {
+        try {
+          const res = await fetch("/api/auth");
+          if (!res.ok) return;
+          const dbUsers = await res.json() as { id: string; name: string; username: string; role: string; active: number; createdAt: string }[];
+          const mapped: AppUser[] = dbUsers.map(u => ({
+            id: u.id,
+            name: u.name,
+            email: u.username,
+            role: u.role as AppUser["role"],
+            passwordHash: "",
+            createdAt: u.createdAt,
+            active: u.active === 1,
+          }));
+          set({ users: mapped });
+        } catch { /* network error — keep existing list */ }
+      },
+
       addUser: (u) => set(s => ({
         users: [...s.users, { ...u, id: `user_${Date.now()}`, createdAt: new Date().toISOString() }],
       })),

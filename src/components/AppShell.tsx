@@ -9,9 +9,13 @@ import NotificationBanner from "@/components/NotificationBanner";
 
 const NO_SHELL_PATHS = ["/login", "/setup", "/install"];
 
+// Pages that need full-height containers (no extra padding, scroll managed inside)
+const FULL_HEIGHT_PATHS = ["/chat", "/visual-board"];
+
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isShellless = NO_SHELL_PATHS.includes(pathname);
+  const isFullHeight = FULL_HEIGHT_PATHS.some(p => pathname.startsWith(p));
 
   if (isShellless) {
     return <AuthGuard>{children}</AuthGuard>;
@@ -19,40 +23,63 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthGuard>
-      {/* Desktop: TopNav fixed at top, content scrolls below */}
-      <div className="hidden md:flex flex-col h-screen w-screen overflow-hidden bg-bg-base">
+      {/* ── Desktop: TopNav + scrollable content ──────────────────── */}
+      <div className="hidden md:flex flex-col bg-bg-base" style={{ height: "100dvh", overflow: "hidden" }}>
         <TopNav />
         <main className="flex-1 overflow-y-auto overflow-x-hidden bg-bg-base">
-          <div className="max-w-[1440px] mx-auto px-6 py-6">
-            {children}
-          </div>
+          {isFullHeight ? (
+            <div style={{ height: "calc(100vh - 52px)", padding: "12px 24px", display: "flex", flexDirection: "column" }}>
+              {children}
+            </div>
+          ) : (
+            <div className="max-w-[1440px] mx-auto px-6 py-6">
+              {children}
+            </div>
+          )}
         </main>
       </div>
 
-      {/* Mobile: content scrolls, BottomNav fixed at bottom */}
-      <div className="md:hidden flex flex-col w-full bg-bg-base" style={{ height: "100dvh" }}>
+      {/* ── Mobile: top bar + scrollable content + bottom nav ─────── */}
+      <div className="md:hidden flex flex-col bg-bg-base" style={{ height: "100dvh", overflow: "hidden" }}>
         {/* Mobile top bar */}
         <div style={{
           flexShrink: 0,
           display: "flex", alignItems: "center", gap: 8,
-          padding: "8px 14px",
+          padding: "6px 12px",
           background: "#fff",
           borderBottom: "1px solid #e0f2fe",
+          minHeight: 46,
         }}>
-          <div style={{ flex: 1 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
             <GlobalSearch />
           </div>
           <NotificationBanner />
         </div>
 
-        <main
-          className="flex-1 overflow-y-auto overflow-x-hidden bg-bg-base"
-          style={{ paddingBottom: "calc(64px + env(safe-area-inset-bottom, 0px))" }}
-        >
-          <div className="px-4 pt-4 pb-2">
+        {/* Content */}
+        {isFullHeight ? (
+          /* Full-height pages (chat, visual-board): fill all space between top bar and bottom nav */
+          <div style={{
+            flex: 1,
+            overflow: "hidden",
+            paddingBottom: "calc(60px + env(safe-area-inset-bottom, 0px))",
+            display: "flex",
+            flexDirection: "column",
+          }}>
             {children}
           </div>
-        </main>
+        ) : (
+          /* Normal pages: scrollable with padding so content clears bottom nav */
+          <main
+            className="flex-1 overflow-y-auto overflow-x-hidden bg-bg-base"
+            style={{ paddingBottom: "calc(60px + env(safe-area-inset-bottom, 0px))" }}
+          >
+            <div style={{ padding: "12px 14px 8px" }}>
+              {children}
+            </div>
+          </main>
+        )}
+
         <BottomNav />
       </div>
     </AuthGuard>

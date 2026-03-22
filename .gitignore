@@ -20,9 +20,15 @@ out/
 # Vercel
 .vercel
 
-# Data & uploads (local only)
-data/
-assets/
+# SQLite WAL temp files (the .db file itself IS committed for persistence)
+data/*.db-shm
+data/*.db-wal
+# Uploaded product assets (large binary files)
+public/assets/*.jpeg
+public/assets/*.jpg
+public/assets/*.png
+public/assets/*.webp
+public/assets/*.gif
 
 # Env files
 .env

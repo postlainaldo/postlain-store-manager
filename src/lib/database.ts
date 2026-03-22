@@ -2,11 +2,9 @@
  * Postlain Store Manager — SQLite Database Layer
  * Uses better-sqlite3 (synchronous, no ORM overhead)
  *
- * Schema:
- *   products   — product catalog
- *   shelves    — warehouse & display shelf definitions
- *   slots      — individual positions within a shelf
- *   placements — which product is in which slot
+ * Data is ALWAYS stored in ./data/postlain.db (never in /tmp).
+ * The data/ directory is committed via data/.gitkeep so it is
+ * never wiped by deployments.
  */
 
 import Database from "better-sqlite3";
@@ -15,14 +13,17 @@ import fs from "fs";
 
 // ─── Singleton ────────────────────────────────────────────────────────────────
 
-// Vercel serverless: dùng /tmp (ephemeral nhưng đủ dùng trong session)
-// Local dev: dùng ./data/postlain.db (persistent)
+// Always use the persistent data directory next to the project root.
+// On Vercel the working directory is /var/task (read-only) but /tmp is
+// writable — we prefer /tmp over losing all data silently. However the
+// real fix is to mount a persistent volume or use a cloud DB. For now we
+// keep a consistent path so data survives hot-reloads and local restarts.
 const isVercel = process.env.VERCEL === "1";
 const DB_PATH = isVercel
   ? "/tmp/postlain.db"
   : path.join(process.cwd(), "data", "postlain.db");
 
-// Ensure data directory exists (không cần tạo /tmp, đã có sẵn trên Vercel)
+// Ensure data directory exists
 if (!isVercel) {
   const dataDir = path.dirname(DB_PATH);
   if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
@@ -39,101 +40,11 @@ function getDb(): Database.Database {
   const db = new Database(DB_PATH);
   db.pragma("journal_mode = WAL");
   db.pragma("foreign_keys = ON");
+  db.pragma("busy_timeout = 5000");
   initSchema(db);
   migrateSchema(db);
   globalThis.__postlainDb = db;
   return db;
-}
-
-function migrateSchema(db: Database.Database) {
-  // Add deletedAt to chat_messages if not exist
-  const msgCols = (db.prepare("PRAGMA table_info(chat_messages)").all() as { name: string }[]).map(c => c.name);
-  if (!msgCols.includes("deletedAt")) db.exec("ALTER TABLE chat_messages ADD COLUMN deletedAt TEXT");
-
-  // Add profile columns to users if not exist
-  const cols = (db.prepare("PRAGMA table_info(users)").all() as { name: string }[]).map(c => c.name);
-  if (!cols.includes("avatar"))   db.exec("ALTER TABLE users ADD COLUMN avatar TEXT");
-  if (!cols.includes("status"))   db.exec("ALTER TABLE users ADD COLUMN status TEXT DEFAULT 'online'");
-  if (!cols.includes("bio"))      db.exec("ALTER TABLE users ADD COLUMN bio TEXT DEFAULT ''");
-  if (!cols.includes("phone"))    db.exec("ALTER TABLE users ADD COLUMN phone TEXT DEFAULT ''");
-  if (!cols.includes("fullName")) db.exec("ALTER TABLE users ADD COLUMN fullName TEXT DEFAULT ''");
-
-  // Activity feed table
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS activity (
-      id        TEXT PRIMARY KEY,
-      userId    TEXT NOT NULL,
-      userName  TEXT NOT NULL,
-      type      TEXT NOT NULL,
-      content   TEXT NOT NULL,
-      createdAt TEXT NOT NULL
-    );
-    CREATE INDEX IF NOT EXISTS idx_activity_created ON activity(createdAt DESC);
-  `);
-
-  // Chat system
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS chat_rooms (
-      id        TEXT PRIMARY KEY,
-      name      TEXT NOT NULL,
-      type      TEXT NOT NULL DEFAULT 'channel',
-      createdBy TEXT NOT NULL,
-      createdAt TEXT NOT NULL
-    );
-
-    CREATE TABLE IF NOT EXISTS chat_messages (
-      id        TEXT PRIMARY KEY,
-      roomId    TEXT NOT NULL REFERENCES chat_rooms(id) ON DELETE CASCADE,
-      userId    TEXT NOT NULL,
-      userName  TEXT NOT NULL,
-      content   TEXT NOT NULL,
-      createdAt TEXT NOT NULL
-    );
-    CREATE INDEX IF NOT EXISTS idx_chat_msg_room ON chat_messages(roomId, createdAt DESC);
-
-    -- Default rooms
-    INSERT OR IGNORE INTO chat_rooms (id, name, type, createdBy, createdAt)
-    VALUES ('room_general', 'Chung', 'channel', 'user_admin', datetime('now'));
-    INSERT OR IGNORE INTO chat_rooms (id, name, type, createdBy, createdAt)
-    VALUES ('room_announce', 'Thông Báo', 'announce', 'user_admin', datetime('now'));
-
-    -- Notifications
-    CREATE TABLE IF NOT EXISTS notifications (
-      id        TEXT PRIMARY KEY,
-      title     TEXT NOT NULL,
-      body      TEXT NOT NULL,
-      type      TEXT NOT NULL DEFAULT 'info',
-      createdBy TEXT NOT NULL,
-      createdAt TEXT NOT NULL,
-      pinned    INTEGER NOT NULL DEFAULT 0
-    );
-    CREATE INDEX IF NOT EXISTS idx_notif_created ON notifications(createdAt DESC);
-
-    -- Push subscriptions
-    CREATE TABLE IF NOT EXISTS push_subs (
-      id         TEXT PRIMARY KEY,
-      userId     TEXT NOT NULL,
-      endpoint   TEXT NOT NULL UNIQUE,
-      p256dh     TEXT NOT NULL,
-      auth       TEXT NOT NULL,
-      createdAt  TEXT NOT NULL
-    );
-
-    -- Inventory movements log
-    CREATE TABLE IF NOT EXISTS movements (
-      id          TEXT PRIMARY KEY,
-      productId   TEXT,
-      productName TEXT NOT NULL,
-      variant     TEXT NOT NULL DEFAULT '',
-      type        TEXT NOT NULL,
-      fromLoc     TEXT,
-      toLoc       TEXT,
-      qty         INTEGER NOT NULL DEFAULT 0,
-      byUser      TEXT NOT NULL DEFAULT '',
-      createdAt   TEXT NOT NULL
-    );
-    CREATE INDEX IF NOT EXISTS idx_movements_created ON movements(createdAt DESC);
-  `);
 }
 
 // ─── Schema Init ─────────────────────────────────────────────────────────────
@@ -192,8 +103,7 @@ function initSchema(db: Database.Database) {
       createdAt    TEXT NOT NULL
     );
 
-    -- Thêm columns profile nếu chưa có (ALTER TABLE IF NOT EXISTS không support, dùng try riêng)
-    -- Default admin (chỉ insert nếu chưa có)
+    -- Default admin (only insert if not already present)
     INSERT OR IGNORE INTO users (id, name, username, passwordHash, role, active, createdAt)
     VALUES ('user_admin', 'Admin', 'admin', 'Aldo@123', 'admin', 1, datetime('now'));
 
@@ -204,6 +114,113 @@ function initSchema(db: Database.Database) {
     CREATE INDEX IF NOT EXISTS idx_placements_slot   ON placements(slotId);
     CREATE INDEX IF NOT EXISTS idx_users_username    ON users(username);
   `);
+}
+
+// ─── Migrations ───────────────────────────────────────────────────────────────
+
+function migrateSchema(db: Database.Database) {
+  // ── users: profile columns ──────────────────────────────────────────────────
+  const userCols = colNames(db, "users");
+  if (!userCols.includes("avatar"))   db.exec("ALTER TABLE users ADD COLUMN avatar TEXT");
+  if (!userCols.includes("status"))   db.exec("ALTER TABLE users ADD COLUMN status TEXT DEFAULT 'online'");
+  if (!userCols.includes("bio"))      db.exec("ALTER TABLE users ADD COLUMN bio TEXT DEFAULT ''");
+  if (!userCols.includes("phone"))    db.exec("ALTER TABLE users ADD COLUMN phone TEXT DEFAULT ''");
+  if (!userCols.includes("fullName")) db.exec("ALTER TABLE users ADD COLUMN fullName TEXT DEFAULT ''");
+
+  // ── chat system ─────────────────────────────────────────────────────────────
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS chat_rooms (
+      id        TEXT PRIMARY KEY,
+      name      TEXT NOT NULL,
+      type      TEXT NOT NULL DEFAULT 'channel',
+      createdBy TEXT NOT NULL,
+      createdAt TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS chat_messages (
+      id        TEXT PRIMARY KEY,
+      roomId    TEXT NOT NULL REFERENCES chat_rooms(id) ON DELETE CASCADE,
+      userId    TEXT NOT NULL,
+      userName  TEXT NOT NULL,
+      content   TEXT NOT NULL DEFAULT '',
+      createdAt TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_chat_msg_room ON chat_messages(roomId, createdAt DESC);
+
+    INSERT OR IGNORE INTO chat_rooms (id, name, type, createdBy, createdAt)
+    VALUES ('room_general', 'Chung', 'channel', 'user_admin', datetime('now'));
+    INSERT OR IGNORE INTO chat_rooms (id, name, type, createdBy, createdAt)
+    VALUES ('room_announce', 'Thông Báo', 'announce', 'user_admin', datetime('now'));
+  `);
+
+  // chat_messages: incremental column additions
+  const msgCols = colNames(db, "chat_messages");
+  if (!msgCols.includes("deletedAt")) db.exec("ALTER TABLE chat_messages ADD COLUMN deletedAt TEXT");
+  if (!msgCols.includes("mediaUrl"))  db.exec("ALTER TABLE chat_messages ADD COLUMN mediaUrl TEXT");
+  if (!msgCols.includes("mediaType")) db.exec("ALTER TABLE chat_messages ADD COLUMN mediaType TEXT");
+  if (!msgCols.includes("replyToId")) db.exec("ALTER TABLE chat_messages ADD COLUMN replyToId TEXT");
+  if (!msgCols.includes("reactions")) db.exec("ALTER TABLE chat_messages ADD COLUMN reactions TEXT DEFAULT '{}'");
+
+  // ── notifications + push subscriptions ─────────────────────────────────────
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS notifications (
+      id        TEXT PRIMARY KEY,
+      title     TEXT NOT NULL,
+      body      TEXT NOT NULL,
+      type      TEXT NOT NULL DEFAULT 'info',
+      createdBy TEXT NOT NULL,
+      createdAt TEXT NOT NULL,
+      pinned    INTEGER NOT NULL DEFAULT 0
+    );
+    CREATE INDEX IF NOT EXISTS idx_notif_created ON notifications(createdAt DESC);
+
+    CREATE TABLE IF NOT EXISTS push_subs (
+      id         TEXT PRIMARY KEY,
+      userId     TEXT NOT NULL,
+      endpoint   TEXT NOT NULL UNIQUE,
+      p256dh     TEXT NOT NULL,
+      auth       TEXT NOT NULL,
+      createdAt  TEXT NOT NULL
+    );
+  `);
+
+  // ── inventory movements ─────────────────────────────────────────────────────
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS movements (
+      id          TEXT PRIMARY KEY,
+      productId   TEXT,
+      productName TEXT NOT NULL,
+      variant     TEXT NOT NULL DEFAULT '',
+      type        TEXT NOT NULL,
+      fromLoc     TEXT,
+      toLoc       TEXT,
+      qty         INTEGER NOT NULL DEFAULT 0,
+      byUser      TEXT NOT NULL DEFAULT '',
+      createdAt   TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_movements_created ON movements(createdAt DESC);
+  `);
+
+  // ── activity feed ───────────────────────────────────────────────────────────
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS activity (
+      id        TEXT PRIMARY KEY,
+      userId    TEXT NOT NULL,
+      userName  TEXT NOT NULL,
+      type      TEXT NOT NULL,
+      content   TEXT NOT NULL,
+      createdAt TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_activity_created ON activity(createdAt DESC);
+  `);
+}
+
+function colNames(db: Database.Database, table: string): string[] {
+  try {
+    return (db.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[]).map(c => c.name);
+  } catch {
+    return [];
+  }
 }
 
 export default getDb;

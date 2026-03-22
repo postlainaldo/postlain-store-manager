@@ -2,10 +2,18 @@ import { NextRequest, NextResponse } from "next/server";
 import getDb from "@/lib/database";
 
 type Room = { id: string; name: string; type: string; createdBy: string; createdAt: string };
-type Message = { id: string; roomId: string; userId: string; userName: string; content: string; createdAt: string; deletedAt?: string | null };
+type Message = {
+  id: string; roomId: string; userId: string; userName: string;
+  content: string; createdAt: string;
+  deletedAt?: string | null;
+  mediaUrl?: string | null;
+  mediaType?: string | null;
+  replyToId?: string | null;
+  reactions?: string | null;
+};
 
-// GET /api/chat?rooms=1            — list rooms with last message
-// GET /api/chat?roomId=xxx         — messages in room (latest 100)
+// GET /api/chat?rooms=1            — list rooms with last message + count
+// GET /api/chat?roomId=xxx         — messages in room (latest 80)
 // GET /api/chat?roomId=xxx&since=iso — messages after timestamp
 export async function GET(req: NextRequest) {
   const db = getDb();
@@ -15,12 +23,10 @@ export async function GET(req: NextRequest) {
     const rooms = db.prepare("SELECT * FROM chat_rooms ORDER BY createdAt").all() as Room[];
     const result = rooms.map(r => {
       const last = db.prepare(
-        "SELECT content, userName, createdAt FROM chat_messages WHERE roomId=? AND (deletedAt IS NULL) ORDER BY createdAt DESC LIMIT 1"
-      ).get(r.id) as { content: string; userName: string; createdAt: string } | undefined;
-      const unread = db.prepare(
-        "SELECT COUNT(*) as cnt FROM chat_messages WHERE roomId=? AND (deletedAt IS NULL)"
-      ).get(r.id) as { cnt: number };
-      return { ...r, lastMessage: last ?? null, messageCount: unread.cnt };
+        "SELECT content, userName, createdAt, mediaType FROM chat_messages WHERE roomId=? AND deletedAt IS NULL ORDER BY createdAt DESC LIMIT 1"
+      ).get(r.id) as { content: string; userName: string; createdAt: string; mediaType?: string } | undefined;
+      const count = (db.prepare("SELECT COUNT(*) as cnt FROM chat_messages WHERE roomId=? AND deletedAt IS NULL").get(r.id) as { cnt: number }).cnt;
+      return { ...r, lastMessage: last ?? null, messageCount: count };
     });
     return NextResponse.json(result);
   }
@@ -30,27 +36,29 @@ export async function GET(req: NextRequest) {
 
   const since = searchParams.get("since");
   const msgs = since
-    ? db.prepare("SELECT * FROM chat_messages WHERE roomId=? AND createdAt > ? ORDER BY createdAt ASC LIMIT 100").all(roomId, since) as Message[]
-    : db.prepare("SELECT * FROM chat_messages WHERE roomId=? ORDER BY createdAt ASC LIMIT 100").all(roomId) as Message[];
+    ? db.prepare("SELECT * FROM chat_messages WHERE roomId=? AND createdAt > ? ORDER BY createdAt ASC LIMIT 80").all(roomId, since) as Message[]
+    : db.prepare("SELECT * FROM chat_messages WHERE roomId=? ORDER BY createdAt ASC LIMIT 80").all(roomId) as Message[];
 
   return NextResponse.json(msgs);
 }
 
-// POST /api/chat — send message
+// POST /api/chat — send message (text or media)
 export async function POST(req: NextRequest) {
-  const { roomId, userId, userName, content } = await req.json();
-  if (!roomId || !userId || !content?.trim()) return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+  const { roomId, userId, userName, content, mediaUrl, mediaType, replyToId } = await req.json();
+  if (!roomId || !userId) return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+  // Must have text content OR media
+  if (!content?.trim() && !mediaUrl) return NextResponse.json({ error: "Empty message" }, { status: 400 });
 
   const db = getDb();
-
-  // Verify room exists
   const room = db.prepare("SELECT id FROM chat_rooms WHERE id=?").get(roomId);
   if (!room) return NextResponse.json({ error: "Room not found" }, { status: 404 });
 
   const id = `msg_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
   const now = new Date().toISOString();
-  db.prepare("INSERT INTO chat_messages (id, roomId, userId, userName, content, createdAt) VALUES (?,?,?,?,?,?)")
-    .run(id, roomId, userId, userName, content.trim(), now);
+  db.prepare(`
+    INSERT INTO chat_messages (id, roomId, userId, userName, content, mediaUrl, mediaType, replyToId, createdAt)
+    VALUES (?,?,?,?,?,?,?,?,?)
+  `).run(id, roomId, userId, userName, (content ?? "").trim(), mediaUrl ?? null, mediaType ?? null, replyToId ?? null, now);
 
   return NextResponse.json({ ok: true, id, createdAt: now });
 }
@@ -66,22 +74,26 @@ export async function PUT(req: NextRequest) {
   return NextResponse.json({ ok: true, id });
 }
 
-// PATCH /api/chat — delete a message (soft delete)
+// PATCH /api/chat — soft delete a message OR update reactions
 export async function PATCH(req: NextRequest) {
-  const { msgId, userId } = await req.json();
+  const { msgId, userId, action, reactions } = await req.json();
   if (!msgId) return NextResponse.json({ error: "Missing msgId" }, { status: 400 });
   const db = getDb();
-  // Only the sender or admin can delete
+
+  if (action === "react" && reactions !== undefined) {
+    db.prepare("UPDATE chat_messages SET reactions=? WHERE id=?").run(JSON.stringify(reactions), msgId);
+    return NextResponse.json({ ok: true });
+  }
+
+  // Soft delete
   const msg = db.prepare("SELECT userId FROM chat_messages WHERE id=?").get(msgId) as { userId: string } | undefined;
   if (!msg) return NextResponse.json({ error: "Not found" }, { status: 404 });
-
   const user = db.prepare("SELECT role FROM users WHERE id=?").get(userId) as { role: string } | undefined;
   const isAdmin = user?.role === "admin" || user?.role === "manager";
   if (msg.userId !== userId && !isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   db.prepare("UPDATE chat_messages SET content=?, deletedAt=? WHERE id=?")
     .run("[Tin nhắn đã bị xóa]", new Date().toISOString(), msgId);
-
   return NextResponse.json({ ok: true });
 }
 
@@ -91,7 +103,6 @@ export async function DELETE(req: NextRequest) {
   if (roomId === "room_general" || roomId === "room_announce") {
     return NextResponse.json({ error: "Cannot delete default rooms" }, { status: 400 });
   }
-  const db = getDb();
-  db.prepare("DELETE FROM chat_rooms WHERE id=?").run(roomId);
+  getDb().prepare("DELETE FROM chat_rooms WHERE id=?").run(roomId);
   return NextResponse.json({ ok: true });
 }
