@@ -132,10 +132,9 @@ body, .theme-transition {
   html, body { height: 100dvh; position: fixed; width: 100%; }
 }
 
-/* iOS rubber-band fix */
-html, body { position: fixed; width: 100%; }
-@media (min-width: 768px) {
-  html, body { position: static; }
+/* iOS rubber-band fix — only apply on mobile (md and below) */
+@media (max-width: 767px) {
+  html, body { position: fixed; width: 100%; overflow: hidden; }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════

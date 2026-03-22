@@ -2,16 +2,19 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Focus, Box, Settings, LogIn, LogOut, Download, MessageSquare } from "lucide-react";
+import {
+  LayoutDashboard, Focus, Box, Settings, LogIn, LogOut,
+  MessageSquare, User,
+} from "lucide-react";
 import { useStore } from "@/store/useStore";
 import NotificationBanner from "@/components/NotificationBanner";
 
 const NAV_ITEMS = [
-  { id: "overview",     label: "Tổng Quan",    href: "/",            icon: LayoutDashboard, exact: true  },
-  { id: "visual-board", label: "Trưng Bày",    href: "/visual-board", icon: Focus,           exact: false },
-  { id: "inventory",    label: "Kho Hàng",     href: "/inventory",   icon: Box,             exact: false },
-  { id: "chat",         label: "Chat",          href: "/chat",        icon: MessageSquare,   exact: false },
-  { id: "settings",     label: "Cài Đặt",      href: "/settings",    icon: Settings,        exact: false },
+  { id: "overview",     label: "Tổng Quan",  href: "/",             icon: LayoutDashboard, exact: true  },
+  { id: "visual-board", label: "Trưng Bày",  href: "/visual-board", icon: Focus,           exact: false },
+  { id: "inventory",    label: "Kho Hàng",   href: "/inventory",    icon: Box,             exact: false },
+  { id: "chat",         label: "Chat",        href: "/chat",         icon: MessageSquare,   exact: false },
+  { id: "settings",     label: "Cài Đặt",    href: "/settings",     icon: Settings,        exact: false },
 ] as const;
 
 export default function TopNav() {
@@ -23,44 +26,45 @@ export default function TopNav() {
   const isActive = (href: string, exact: boolean) =>
     exact ? pathname === href : pathname.startsWith(href);
 
+  const storeSubtitle = storeName.includes("—")
+    ? storeName.split("—")[1]?.trim()
+    : storeName;
+
   return (
     <header
-      className="hidden md:flex"
+      className="hidden md:flex flex-shrink-0 items-center gap-0"
       style={{
-        flexShrink: 0,
         height: 52,
         background: "#ffffff",
         borderBottom: "1px solid #bae6fd",
-        alignItems: "center",
-        gap: 0,
-        padding: "0 24px",
-        boxShadow: "0 1px 4px rgba(12,26,46,0.05)",
+        padding: "0 20px",
+        boxShadow: "0 1px 4px rgba(12,26,46,0.06)",
         zIndex: 40,
       }}
     >
-      {/* Logo mark */}
-      <Link href="/" style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: 10, flexShrink: 0, marginRight: 28 }}>
-        <div
-          style={{
-            width: 28, height: 28, borderRadius: 8,
-            border: "1px solid #C9A55A",
-            background: "#f0f9ff",
-            display: "flex", alignItems: "center", justifyContent: "center",
-          }}
-        >
-          <span style={{ fontSize: 11, fontWeight: 800, color: "#C9A55A", letterSpacing: "0.04em" }}>P</span>
+      {/* ── Logo ─────────────────────────────────────────── */}
+      <Link
+        href="/"
+        style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: 10, flexShrink: 0, marginRight: 24 }}
+      >
+        <div style={{
+          width: 30, height: 30, borderRadius: 8,
+          border: "1.5px solid #C9A55A",
+          background: "linear-gradient(135deg, #0c1a2e 0%, #1e3a5f 100%)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+        }}>
+          <span style={{ fontSize: 12, fontWeight: 800, color: "#C9A55A", letterSpacing: "0.06em" }}>P</span>
         </div>
         <div style={{ lineHeight: 1 }}>
-          <p style={{ fontSize: 9, fontWeight: 700, color: "#C9A55A", letterSpacing: "0.5em" }}>POSTLAIN</p>
-          <p style={{ fontSize: 6.5, color: "#94a3b8", letterSpacing: "0.22em", marginTop: 3 }}>
-            {storeName.split("—")[1]?.trim() || "QUẢN LÝ CỬA HÀNG"}
+          <p style={{ fontSize: 9.5, fontWeight: 800, color: "#C9A55A", letterSpacing: "0.48em" }}>POSTLAIN</p>
+          <p style={{ fontSize: 7, color: "#94a3b8", letterSpacing: "0.2em", marginTop: 3 }}>
+            {storeSubtitle || "QUẢN LÝ CỬA HÀNG"}
           </p>
         </div>
       </Link>
 
-      {/* Nav links */}
+      {/* ── Nav links ────────────────────────────────────── */}
       <nav style={{ display: "flex", alignItems: "center", gap: 2, flex: 1 }}>
-
         {NAV_ITEMS.map(item => {
           const active = isActive(item.href, item.exact);
           const Icon = item.icon;
@@ -70,11 +74,15 @@ export default function TopNav() {
                 display: "flex", alignItems: "center", gap: 6,
                 padding: "5px 12px", borderRadius: 8,
                 background: active ? "rgba(14,165,233,0.08)" : "transparent",
-                border: active ? "1px solid rgba(14,165,233,0.2)" : "1px solid transparent",
+                border: `1px solid ${active ? "rgba(14,165,233,0.2)" : "transparent"}`,
                 cursor: "pointer", transition: "all 0.12s",
               }}>
                 <Icon size={13} strokeWidth={active ? 2 : 1.5} style={{ color: active ? "#0ea5e9" : "#64748b" }} />
-                <span style={{ fontSize: 9, fontWeight: active ? 700 : 400, color: active ? "#0ea5e9" : "#64748b", letterSpacing: "0.1em" }}>
+                <span style={{
+                  fontSize: 9, fontWeight: active ? 700 : 500,
+                  color: active ? "#0ea5e9" : "#64748b",
+                  letterSpacing: "0.1em",
+                }}>
                   {item.label.toUpperCase()}
                 </span>
               </div>
@@ -83,45 +91,71 @@ export default function TopNav() {
         })}
       </nav>
 
-      {/* Notification bell + Install */}
-      <div style={{ display: "flex", alignItems: "center", gap: 6, marginRight: 4 }}>
+      {/* ── Right side ───────────────────────────────────── */}
+      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
         <NotificationBanner />
-        <Link href="/install" style={{ textDecoration: "none" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 5, padding: "4px 10px", borderRadius: 8, border: "1px solid #bae6fd", background: "#f0f9ff", cursor: "pointer" }}>
-            <Download size={10} style={{ color: "#64748b" }} />
-            <span style={{ fontSize: 8, color: "#64748b", letterSpacing: "0.1em", fontWeight: 600 }}>CÀI APP</span>
-          </div>
-        </Link>
-      </div>
 
-      {/* User chip */}
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         {currentUser ? (
           <>
+            {/* Profile chip */}
             <Link href="/profile" style={{ textDecoration: "none" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 10px", borderRadius: 8, background: "rgba(14,165,233,0.06)", border: "1px solid rgba(14,165,233,0.2)", cursor: "pointer" }}>
-                <div style={{ position: "relative", width: 18, height: 18 }}>
-                  <div style={{ width: 18, height: 18, borderRadius: "50%", background: "#0ea5e9", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <span style={{ fontSize: 8, fontWeight: 700, color: "#fff" }}>{currentUser.name.slice(0, 1).toUpperCase()}</span>
+              <div style={{
+                display: "flex", alignItems: "center", gap: 7,
+                padding: "4px 10px 4px 6px", borderRadius: 20,
+                background: "rgba(14,165,233,0.06)",
+                border: "1px solid rgba(14,165,233,0.2)",
+                cursor: "pointer", transition: "all 0.12s",
+              }}>
+                {/* Avatar */}
+                <div style={{ position: "relative", flexShrink: 0 }}>
+                  <div style={{
+                    width: 24, height: 24, borderRadius: "50%",
+                    background: "linear-gradient(135deg, #0c1a2e, #1e3a5f)",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    border: "1.5px solid #bae6fd",
+                  }}>
+                    <span style={{ fontSize: 9, fontWeight: 700, color: "#C9A55A" }}>
+                      {currentUser.name.slice(0, 1).toUpperCase()}
+                    </span>
                   </div>
-                  <div style={{ position: "absolute", bottom: -1, right: -1, width: 6, height: 6, borderRadius: "50%", background: "#10b981", border: "1px solid #fff" }} />
+                  {/* Online dot */}
+                  <div style={{
+                    position: "absolute", bottom: -1, right: -1,
+                    width: 7, height: 7, borderRadius: "50%",
+                    background: "#10b981", border: "1.5px solid #fff",
+                  }} />
                 </div>
-                <span style={{ fontSize: 9, fontWeight: 600, color: "#0ea5e9" }}>{currentUser.name}</span>
+                <div style={{ lineHeight: 1 }}>
+                  <p style={{ fontSize: 10, fontWeight: 600, color: "#0c1a2e" }}>{currentUser.name}</p>
+                  <p style={{ fontSize: 7.5, color: "#94a3b8", marginTop: 1.5, letterSpacing: "0.08em" }}>
+                    {currentUser.role === "admin" ? "ADMIN" : currentUser.role === "manager" ? "QUẢN LÝ" : "NHÂN VIÊN"}
+                  </p>
+                </div>
               </div>
             </Link>
+
+            {/* Logout */}
             <button
               onClick={logout}
-              style={{ width: 28, height: 28, borderRadius: 8, border: "1px solid #bae6fd", background: "#f0f9ff", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
               title="Đăng xuất"
+              style={{
+                width: 30, height: 30, borderRadius: 8,
+                border: "1px solid #fee2e2", background: "#fff5f5",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                cursor: "pointer",
+              }}
             >
-              <LogOut size={12} style={{ color: "#94a3b8" }} />
+              <LogOut size={12} style={{ color: "#ef4444" }} />
             </button>
           </>
         ) : (
           <Link href="/login" style={{ textDecoration: "none" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "5px 12px", borderRadius: 8, background: "#0ea5e9", cursor: "pointer" }}>
+            <div style={{
+              display: "flex", alignItems: "center", gap: 6,
+              padding: "6px 14px", borderRadius: 8, background: "#0ea5e9", cursor: "pointer",
+            }}>
               <LogIn size={11} style={{ color: "#fff" }} />
-              <span style={{ fontSize: 9, fontWeight: 700, color: "#fff", letterSpacing: "0.1em" }}>ĐĂNG NHẬP</span>
+              <span style={{ fontSize: 9, fontWeight: 700, color: "#fff", letterSpacing: "0.12em" }}>ĐĂNG NHẬP</span>
             </div>
           </Link>
         )}

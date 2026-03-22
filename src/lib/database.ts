@@ -114,6 +114,21 @@ function migrateSchema(db: Database.Database) {
       auth       TEXT NOT NULL,
       createdAt  TEXT NOT NULL
     );
+
+    -- Inventory movements log
+    CREATE TABLE IF NOT EXISTS movements (
+      id          TEXT PRIMARY KEY,
+      productId   TEXT,
+      productName TEXT NOT NULL,
+      variant     TEXT NOT NULL DEFAULT '',
+      type        TEXT NOT NULL,
+      fromLoc     TEXT,
+      toLoc       TEXT,
+      qty         INTEGER NOT NULL DEFAULT 0,
+      byUser      TEXT NOT NULL DEFAULT '',
+      createdAt   TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_movements_created ON movements(createdAt DESC);
   `);
 }
 

@@ -1,35 +1,46 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import { useStore } from "@/store/useStore";
-import { DollarSign, Eye, Layers, Package, ArrowUpRight, ArrowDownRight, Minus } from "lucide-react";
+import {
+  DollarSign, Eye, Package, Layers,
+  ArrowUpRight, ArrowDownRight, Minus,
+  ArrowRight, RefreshCw, AlertTriangle,
+} from "lucide-react";
 import AdminNotifyPanel from "@/components/AdminNotifyPanel";
-import NotificationBanner from "@/components/NotificationBanner";
+import Link from "next/link";
 
-const MOVEMENT_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
-  TRANSFER:   { label: "CHUYỂN KHO", color: "var(--blue)",       bg: "var(--blue-subtle)"   },
-  RECEIVE:    { label: "NHẬP KHO",   color: "var(--accent-green)",bg: "rgba(123,175,106,0.10)" },
-  SALE:       { label: "BÁN RA",     color: "var(--gold)",        bg: "var(--gold-muted)"    },
-  ADJUSTMENT: { label: "ĐIỀU CHỈNH", color: "var(--accent-purple)",bg: "rgba(155,136,196,0.10)" },
-  MARKDOWN:   { label: "MARKDOWN",   color: "var(--accent-red)",  bg: "rgba(200,122,90,0.10)"  },
-  RETURN:     { label: "TRẢ HÀNG",   color: "var(--text-muted)",  bg: "var(--bg-elevated)"   },
+// ─── Types ───────────────────────────────────────────────────────────────────
+
+type Movement = {
+  id: string;
+  productName: string;
+  variant: string;
+  type: string;
+  fromLoc: string | null;
+  toLoc: string | null;
+  qty: number;
+  byUser: string;
+  createdAt: string;
 };
 
-const RECENT_MOVEMENTS = [
-  { id: "mv-001", product: "ALDO Dress Pump",    variant: "Đen / EU 38",    type: "TRANSFER",   from: "Kho Chính A",    to: "Kệ Nữ — DRESS",  qty: 4,  by: "Nguyễn P.", time: "2 phút trước"  },
-  { id: "mv-002", product: "ALDO Tote Bag",       variant: "Nude / One Size",type: "RECEIVE",    from: null,             to: "Kho Chính B",     qty: 24, by: "Trần M.",   time: "18 phút trước" },
-  { id: "mv-003", product: "ALDO Sneaker Low",    variant: "Trắng / EU 40", type: "SALE",       from: "Kệ Nữ — DRESS",  to: null,              qty: 1,  by: "POS Auto",  time: "42 phút trước" },
-  { id: "mv-004", product: "ALDO Block Heel",     variant: "Tan / EU 37",   type: "ADJUSTMENT", from: "Kho Chính A",    to: "Kho Chính A",     qty: -2, by: "Lê T.",     time: "1 giờ trước"   },
-  { id: "mv-005", product: "ALDO Strappy Sandal", variant: "Vàng / EU 38",  type: "MARKDOWN",   from: "Kệ Nữ — CASUAL", to: "Khu Markdown",    qty: 8,  by: "Nguyễn P.", time: "2 giờ trước"   },
-  { id: "mv-006", product: "ALDO Ankle Boot",     variant: "Đen / EU 39",   type: "RETURN",     from: null,             to: "Kho Kiểm Hàng",   qty: 1,  by: "POS Auto",  time: "3 giờ trước"   },
-] as const;
+// ─── Config ──────────────────────────────────────────────────────────────────
+
+const MOVEMENT_CFG: Record<string, { label: string; color: string; bg: string }> = {
+  TRANSFER:   { label: "CHUYỂN KHO",  color: "#0ea5e9", bg: "rgba(14,165,233,0.08)"  },
+  RECEIVE:    { label: "NHẬP KHO",    color: "#16a34a", bg: "rgba(22,163,74,0.08)"   },
+  SALE:       { label: "BÁN RA",      color: "#C9A55A", bg: "rgba(201,165,90,0.10)"  },
+  ADJUSTMENT: { label: "ĐIỀU CHỈNH",  color: "#7c3aed", bg: "rgba(124,58,237,0.08)" },
+  MARKDOWN:   { label: "MARKDOWN",    color: "#dc2626", bg: "rgba(220,38,38,0.08)"   },
+  RETURN:     { label: "TRẢ HÀNG",    color: "#64748b", bg: "rgba(100,116,139,0.08)" },
+};
 
 const fadeUp = {
-  hidden:  { opacity: 0, y: 16 },
+  hidden:  { opacity: 0, y: 14 },
   visible: (i: number) => ({
     opacity: 1, y: 0,
-    transition: { delay: i * 0.06, duration: 0.38, ease: [0.16, 1, 0.3, 1] },
+    transition: { delay: i * 0.06, duration: 0.36, ease: [0.16, 1, 0.3, 1] },
   }),
 };
 
@@ -37,14 +48,44 @@ function fmt(n: number) {
   return new Intl.NumberFormat("vi-VN").format(n);
 }
 
+function timeAgo(iso: string) {
+  const diff = Date.now() - new Date(iso).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return "vừa xong";
+  if (m < 60) return `${m} phút trước`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h} giờ trước`;
+  return `${Math.floor(h / 24)} ngày trước`;
+}
+
+// ─── Component ───────────────────────────────────────────────────────────────
+
 export default function OverviewPage() {
-  const { products, warehouseShelves, storeSections, fetchProducts, currentUser } = useStore();
+  const { products, warehouseShelves, storeSections, fetchProducts, currentUser, storeName } = useStore();
   const isAdmin = currentUser?.role === "admin" || currentUser?.role === "manager";
 
+  const [movements, setMovements] = useState<Movement[]>([]);
+  const [movLoading, setMovLoading] = useState(true);
+
+  // ── Fetch products & movements on mount ────────────────────────────────
   useEffect(() => { fetchProducts(); }, []);
 
-  const totalSKUs  = products.length;
-  const totalValue = products.reduce((s, p) => s + (p.price || 0) * p.quantity, 0);
+  const loadMovements = useCallback(async () => {
+    setMovLoading(true);
+    try {
+      const res = await fetch("/api/movements?limit=10");
+      if (res.ok) setMovements(await res.json());
+    } catch {/* silently ignore */}
+    finally { setMovLoading(false); }
+  }, []);
+
+  useEffect(() => { loadMovements(); }, [loadMovements]);
+
+  // ── Computed stats ──────────────────────────────────────────────────────
+  const totalSKUs   = products.length;
+  const totalValue  = products.reduce((s, p) => s + (p.price ?? 0) * p.quantity, 0);
+  const lowStock    = products.filter(p => p.quantity > 0 && p.quantity <= 5).length;
+  const outOfStock  = products.filter(p => p.quantity === 0).length;
 
   const displayedIds = new Set<string>();
   storeSections.forEach(sec =>
@@ -60,217 +101,377 @@ export default function OverviewPage() {
     (s, sh) => s + sh.tiers.reduce((ts, t) => ts + t.filter(Boolean).length, 0), 0
   );
 
-  const categories = Array.from(new Set(products.map(p => p.category))).length;
+  const categories = Array.from(new Set(products.map(p => p.category).filter(Boolean))).length;
 
   const STATS = [
     {
-      id: "stock-value", label: "Giá Trị Tồn Kho", sublabel: "Tổng giá trị hàng tồn",
+      id: "stock-value",
+      label: "Giá Trị Tồn Kho",
+      sublabel: "Tổng giá trị hàng tồn",
       value: totalValue >= 1_000_000_000
         ? `${(totalValue / 1_000_000_000).toFixed(2)} Tỷ`
-        : `${fmt(Math.round(totalValue / 1_000))}K`,
-      unit: "VND", icon: DollarSign, trend: +12.4, color: "var(--gold)",
+        : totalValue >= 1_000_000
+        ? `${fmt(Math.round(totalValue / 1_000))}K`
+        : fmt(Math.round(totalValue)),
+      unit: "VND",
+      icon: DollarSign,
+      color: "#C9A55A",
+      trend: null as number | null,
     },
     {
-      id: "on-display", label: "Đang Trưng Bày", sublabel: "Sản phẩm đang đặt trên kệ",
-      value: fmt(onDisplayCount), unit: "sản phẩm", icon: Eye, trend: onDisplayCount > 0 ? 5 : 0, color: "var(--blue)",
+      id: "on-display",
+      label: "Đang Trưng Bày",
+      sublabel: "Sản phẩm trên kệ cửa hàng",
+      value: fmt(onDisplayCount),
+      unit: "sản phẩm",
+      icon: Eye,
+      color: "#0ea5e9",
+      trend: null as number | null,
     },
     {
-      id: "warehouse", label: "Trong Kho", sublabel: "Vị trí đang có hàng trong kho",
-      value: fmt(warehouseTotal), unit: "vị trí", icon: Package, trend: 0, color: "var(--accent-purple)",
+      id: "warehouse",
+      label: "Trong Kho",
+      sublabel: "Vị trí đang có hàng",
+      value: fmt(warehouseTotal),
+      unit: "vị trí",
+      icon: Package,
+      color: "#7c3aed",
+      trend: null as number | null,
     },
     {
-      id: "categories", label: "Danh Mục", sublabel: "Số danh mục sản phẩm",
-      value: categories, unit: "danh mục", icon: Layers, trend: 0, color: "var(--accent-green)",
+      id: "categories",
+      label: "Danh Mục",
+      sublabel: "Số danh mục sản phẩm",
+      value: categories || totalSKUs,
+      unit: categories ? "danh mục" : "SKU",
+      icon: Layers,
+      color: "#16a34a",
+      trend: null as number | null,
     },
   ];
 
-  return (
-    <div className="flex flex-col gap-8 md:gap-10">
+  const storeSubtitle = storeName.includes("—") ? storeName.split("—")[1]?.trim() : storeName;
 
-      {/* ── Tiêu đề ─────────────────────────────────────────── */}
+  return (
+    <div className="flex flex-col gap-6 md:gap-8">
+
+      {/* ── Header ─────────────────────────────────────────────────── */}
       <motion.div
-        initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}
-        className="flex flex-col gap-1.5"
+        initial={{ opacity: 0, y: -6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.28 }}
+        className="flex items-start justify-between"
       >
-        <p className="text-text-muted font-semibold uppercase tracking-[0.38em]" style={{ fontSize: 9 }}>
-          Quản Lý Cửa Hàng · ALDO
-        </p>
-        <h1 className="text-text-primary font-light tracking-wide" style={{ fontSize: 26, lineHeight: 1.2 }}>
-          Tổng Quan
-        </h1>
+        <div className="flex flex-col gap-1">
+          <p className="text-text-muted font-semibold uppercase tracking-[0.36em]" style={{ fontSize: 9 }}>
+            {storeSubtitle || "Quản Lý Cửa Hàng"}
+          </p>
+          <h1 className="text-text-primary font-light tracking-wide" style={{ fontSize: 24, lineHeight: 1.2 }}>
+            Tổng Quan
+          </h1>
+        </div>
+        {/* Quick links */}
+        <div className="hidden md:flex items-center gap-2">
+          <Link href="/inventory" style={{ textDecoration: "none" }}>
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-text-muted hover:border-blue hover:text-blue transition-colors" style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.1em" }}>
+              <Package size={10} /> KHO HÀNG
+            </div>
+          </Link>
+          <Link href="/visual-board" style={{ textDecoration: "none" }}>
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-text-muted hover:border-blue hover:text-blue transition-colors" style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.1em" }}>
+              <Eye size={10} /> TRƯNG BÀY
+            </div>
+          </Link>
+        </div>
       </motion.div>
 
-      {/* ── Thẻ thống kê — responsive grid ──────────────────── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+      {/* ── Alert banners ────────��──────────────────────────────────── */}
+      {(lowStock > 0 || outOfStock > 0) && (
+        <motion.div
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1, duration: 0.28 }}
+          className="flex flex-col gap-2"
+        >
+          {outOfStock > 0 && (
+            <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl border" style={{ background: "rgba(220,38,38,0.05)", borderColor: "rgba(220,38,38,0.2)" }}>
+              <AlertTriangle size={13} style={{ color: "#dc2626", flexShrink: 0 }} />
+              <p style={{ fontSize: 10, color: "#dc2626", fontWeight: 600 }}>
+                {outOfStock} sản phẩm đã hết hàng
+              </p>
+              <Link href="/inventory?filter=out" style={{ textDecoration: "none", marginLeft: "auto" }}>
+                <span style={{ fontSize: 9, color: "#dc2626", fontWeight: 600, letterSpacing: "0.08em" }}>XEM →</span>
+              </Link>
+            </div>
+          )}
+          {lowStock > 0 && (
+            <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl border" style={{ background: "rgba(201,165,90,0.06)", borderColor: "rgba(201,165,90,0.25)" }}>
+              <AlertTriangle size={13} style={{ color: "#C9A55A", flexShrink: 0 }} />
+              <p style={{ fontSize: 10, color: "#C9A55A", fontWeight: 600 }}>
+                {lowStock} sản phẩm sắp hết hàng (≤ 5)
+              </p>
+              <Link href="/inventory?filter=low" style={{ textDecoration: "none", marginLeft: "auto" }}>
+                <span style={{ fontSize: 9, color: "#C9A55A", fontWeight: 600, letterSpacing: "0.08em" }}>XEM →</span>
+              </Link>
+            </div>
+          )}
+        </motion.div>
+      )}
+
+      {/* ── KPI Cards ───────────────────────────────────────────────── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {STATS.map((stat, i) => {
-          const Icon    = stat.icon;
-          const trendUp = stat.trend > 0;
-          const neutral = stat.trend === 0;
+          const Icon = stat.icon;
           return (
             <motion.div
-              key={stat.id} custom={i} initial="hidden" animate="visible" variants={fadeUp}
-              className="relative overflow-hidden rounded-xl border border-border bg-bg-card p-5 flex flex-col gap-3"
+              key={stat.id}
+              custom={i}
+              initial="hidden"
+              animate="visible"
+              variants={fadeUp}
+              className="relative overflow-hidden rounded-xl border border-border bg-bg-card"
+              style={{ padding: "16px" }}
             >
-              {/* Top gradient line */}
+              {/* Top accent line */}
               <div
-                className="absolute top-0 left-6 right-6 h-px"
-                style={{ background: `linear-gradient(90deg, transparent, ${stat.color}55, transparent)` }}
+                className="absolute top-0 left-0 right-0 h-[2px]"
+                style={{ background: `linear-gradient(90deg, transparent 10%, ${stat.color}55 50%, transparent 90%)` }}
               />
-              <div className="flex items-start justify-between">
-                <div className="flex flex-col gap-1">
-                  <p className="text-text-muted font-semibold uppercase tracking-[0.2em]" style={{ fontSize: 9 }}>{stat.label}</p>
-                  <p className="text-text-muted" style={{ fontSize: 8, opacity: 0.5 }}>{stat.sublabel}</p>
-                </div>
+
+              {/* Header row */}
+              <div className="flex items-start justify-between mb-3">
+                <p className="text-text-muted font-semibold uppercase tracking-[0.18em] leading-tight" style={{ fontSize: 8.5 }}>
+                  {stat.label}
+                </p>
                 <div
-                  className="w-8 h-8 rounded-lg border flex items-center justify-center flex-shrink-0"
-                  style={{ background: `color-mix(in srgb, ${stat.color} 12%, transparent)`, borderColor: `color-mix(in srgb, ${stat.color} 28%, transparent)` }}
+                  className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+                  style={{
+                    background: `color-mix(in srgb, ${stat.color} 10%, transparent)`,
+                    border: `1px solid color-mix(in srgb, ${stat.color} 25%, transparent)`,
+                  }}
                 >
-                  <Icon size={13} style={{ color: stat.color }} strokeWidth={1.5} />
+                  <Icon size={12} style={{ color: stat.color }} strokeWidth={1.6} />
                 </div>
               </div>
-              <div className="flex items-baseline gap-2">
-                <span className="text-text-primary font-light" style={{ fontSize: 26, letterSpacing: "0.02em" }}>{stat.value}</span>
-                <span className="font-medium tracking-widest" style={{ fontSize: 8, color: stat.color }}>{stat.unit}</span>
+
+              {/* Value */}
+              <div className="flex items-baseline gap-1.5">
+                <span className="font-light" style={{ fontSize: 28, color: "#0c1a2e", letterSpacing: "0.01em", lineHeight: 1 }}>
+                  {stat.value}
+                </span>
+                <span className="font-medium tracking-widest" style={{ fontSize: 7.5, color: stat.color }}>
+                  {stat.unit}
+                </span>
               </div>
-              {!neutral && (
-                <div className="flex items-center gap-1">
-                  {trendUp
-                    ? <ArrowUpRight size={10} className="text-accent-green" />
-                    : <ArrowDownRight size={10} className="text-accent-red" />}
-                  <span style={{ fontSize: 9 }} className={trendUp ? "text-accent-green" : "text-accent-red"}>
-                    {Math.abs(stat.trend)}% so với tháng trước
-                  </span>
-                </div>
-              )}
-              {neutral && (
-                <div className="flex items-center gap-1">
-                  <Minus size={10} className="text-text-muted" />
-                  <span style={{ fontSize: 9 }} className="text-text-muted">Không thay đổi</span>
-                </div>
-              )}
+
+              {/* Sublabel */}
+              <p className="mt-2" style={{ fontSize: 8, color: "#94a3b8" }}>{stat.sublabel}</p>
             </motion.div>
           );
         })}
       </div>
 
-      {/* ── Danh sách sản phẩm ──────────────────────────────── */}
-      {products.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.28, duration: 0.32 }}
-          className="rounded-xl border border-border bg-bg-card overflow-hidden"
-        >
-          <div className="px-5 py-3 border-b border-border flex justify-between items-center">
-            <p className="text-text-muted font-semibold uppercase tracking-[0.22em]" style={{ fontSize: 9 }}>Danh sách sản phẩm</p>
-            <span className="text-text-muted" style={{ fontSize: 9 }}>{totalSKUs} SKU</span>
-          </div>
-          <div style={{ maxHeight: 300, overflowY: "auto" }}>
-            {products.slice(0, 10).map((p, i) => (
-              <div
-                key={p.id}
-                className="grid px-5 items-center gap-3 border-b border-border last:border-0 product-row"
-                style={{ gridTemplateColumns: "2fr 1fr 0.8fr 0.8fr", height: 46 }}
-              >
-                <div className="flex items-center gap-2 overflow-hidden">
-                  {p.color && <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: p.color }} />}
-                  <span className="text-text-primary font-medium truncate" style={{ fontSize: 11 }}>{p.name}</span>
-                </div>
-                <span className="text-text-muted tracking-wide" style={{ fontSize: 9 }}>{p.category}</span>
-                <span className="text-text-muted font-mono tracking-wide" style={{ fontSize: 9 }}>{p.sku || "—"}</span>
-                <span
-                  className="font-medium"
-                  style={{
-                    fontSize: 12,
-                    color: p.quantity === 0 ? "var(--accent-red)" : p.quantity < 5 ? "var(--gold)" : "var(--text-primary)",
-                  }}
-                >
-                  {p.quantity}
-                </span>
+      {/* ── Two-column layout: product list + admin panel ───────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 md:gap-6">
+
+        {/* Product list — takes 3/5 on desktop */}
+        {products.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.26, duration: 0.32 }}
+            className="lg:col-span-3 rounded-xl border border-border bg-bg-card overflow-hidden"
+          >
+            <div className="flex items-center justify-between px-5 py-3 border-b border-border">
+              <p className="text-text-muted font-semibold uppercase tracking-[0.2em]" style={{ fontSize: 8.5 }}>
+                Sản Phẩm
+              </p>
+              <div className="flex items-center gap-3">
+                <span className="text-text-muted" style={{ fontSize: 8.5 }}>{totalSKUs} SKU</span>
+                <Link href="/inventory" style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: 3 }}>
+                  <span style={{ fontSize: 8.5, color: "#0ea5e9", fontWeight: 600 }}>Tất cả</span>
+                  <ArrowRight size={9} style={{ color: "#0ea5e9" }} />
+                </Link>
               </div>
-            ))}
-          </div>
-        </motion.div>
-      )}
+            </div>
 
-      {/* ── Admin: Gửi thông báo ─────────────────────────────── */}
-      {isAdmin && (
-        <motion.div
-          initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.32, duration: 0.32 }}
-        >
-          <AdminNotifyPanel />
-        </motion.div>
-      )}
+            {/* Table header */}
+            <div
+              className="grid px-5 items-center gap-3 border-b border-border"
+              style={{ gridTemplateColumns: "2fr 1fr 0.7fr 0.7fr", height: 30, background: "#f8faff" }}
+            >
+              {["Sản Phẩm", "Danh Mục", "SKU", "Tồn"].map(h => (
+                <span key={h} className="text-text-muted font-semibold uppercase tracking-[0.15em]" style={{ fontSize: 7.5 }}>{h}</span>
+              ))}
+            </div>
 
-      {/* ── Biến động gần đây ────────────────────────────────── */}
+            <div style={{ maxHeight: 280, overflowY: "auto" }}>
+              {products.slice(0, 12).map((p) => (
+                <div
+                  key={p.id}
+                  className="grid px-5 items-center gap-3 border-b border-border last:border-0 product-row"
+                  style={{ gridTemplateColumns: "2fr 1fr 0.7fr 0.7fr", height: 44 }}
+                >
+                  <div className="flex items-center gap-2 overflow-hidden">
+                    {p.color && (
+                      <div
+                        className="w-2 h-2 rounded-full flex-shrink-0"
+                        style={{ background: p.color, border: "1px solid rgba(0,0,0,0.1)" }}
+                      />
+                    )}
+                    <span className="text-text-primary font-medium truncate" style={{ fontSize: 11 }}>{p.name}</span>
+                  </div>
+                  <span className="text-text-muted truncate tracking-wide" style={{ fontSize: 8.5 }}>{p.category || "—"}</span>
+                  <span className="text-text-muted font-mono tracking-wide" style={{ fontSize: 8.5 }}>{p.sku || "—"}</span>
+                  <span
+                    className="font-semibold"
+                    style={{
+                      fontSize: 12,
+                      color: p.quantity === 0
+                        ? "#dc2626"
+                        : p.quantity <= 5
+                        ? "#C9A55A"
+                        : "#0c1a2e",
+                    }}
+                  >
+                    {p.quantity}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+
+        {/* Admin notify panel — takes 2/5 on desktop, shows if admin */}
+        {isAdmin && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3, duration: 0.32 }}
+            className={products.length > 0 ? "lg:col-span-2" : "lg:col-span-5"}
+          >
+            <AdminNotifyPanel />
+          </motion.div>
+        )}
+
+        {/* If no products and not admin, show empty state */}
+        {products.length === 0 && !isAdmin && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3 }}
+            className="lg:col-span-5 rounded-xl border border-border bg-bg-card flex flex-col items-center justify-center gap-3"
+            style={{ minHeight: 160 }}
+          >
+            <Package size={28} style={{ color: "#bae6fd" }} strokeWidth={1} />
+            <p className="text-text-muted" style={{ fontSize: 11 }}>Chưa có sản phẩm nào</p>
+            <Link href="/inventory" style={{ textDecoration: "none" }}>
+              <div className="btn-primary" style={{ fontSize: 9, padding: "6px 16px" }}>+ Thêm Sản Phẩm</div>
+            </Link>
+          </motion.div>
+        )}
+      </div>
+
+      {/* ── Movements ───────────────────────────────────────────────── */}
       <motion.div
-        initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.34, duration: 0.32 }}
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.34, duration: 0.32 }}
         className="rounded-xl border border-border bg-bg-card overflow-hidden"
       >
-        <div className="px-5 py-3 border-b border-border">
-          <p className="text-text-muted font-semibold uppercase tracking-[0.22em]" style={{ fontSize: 9 }}>Biến Động Gần Đây</p>
-        </div>
-
-        {/* Responsive: table on md+, cards on mobile */}
-        <div className="hidden md:block">
-          <div
-            className="grid px-5 items-center gap-3 border-b border-border"
-            style={{ gridTemplateColumns: "2fr 1fr 1fr 1fr 0.5fr 0.8fr", height: 32 }}
+        <div className="flex items-center justify-between px-5 py-3 border-b border-border">
+          <p className="text-text-muted font-semibold uppercase tracking-[0.2em]" style={{ fontSize: 8.5 }}>
+            Biến Động Gần Đây
+          </p>
+          <button
+            onClick={loadMovements}
+            className="flex items-center gap-1.5 text-text-muted hover:text-blue transition-colors"
+            style={{ background: "none", border: "none", cursor: "pointer", fontSize: 8.5, fontWeight: 600 }}
           >
-            {["Sản Phẩm", "Loại", "Từ", "Đến", "SL", "Thời Gian"].map(h => (
-              <span key={h} className="text-text-muted font-semibold uppercase tracking-[0.2em]" style={{ fontSize: 8 }}>{h}</span>
-            ))}
-          </div>
-          {RECENT_MOVEMENTS.map((mv, i) => {
-            const cfg = MOVEMENT_CONFIG[mv.type];
-            return (
-              <div
-                key={mv.id}
-                className="grid px-5 items-center gap-3 border-b border-border last:border-0 product-row"
-                style={{ gridTemplateColumns: "2fr 1fr 1fr 1fr 0.5fr 0.8fr", height: 48 }}
-              >
-                <div>
-                  <p className="text-text-primary font-medium" style={{ fontSize: 11 }}>{mv.product}</p>
-                  <p className="text-text-muted" style={{ fontSize: 8, marginTop: 1 }}>{mv.variant}</p>
-                </div>
-                <div className="inline-flex items-center px-2 py-0.5 rounded" style={{ background: cfg.bg }}>
-                  <span className="font-semibold tracking-wider" style={{ fontSize: 8, color: cfg.color }}>{cfg.label}</span>
-                </div>
-                <span className="text-text-muted truncate" style={{ fontSize: 9 }}>{mv.from ?? "—"}</span>
-                <span className="text-text-muted truncate" style={{ fontSize: 9 }}>{mv.to ?? "—"}</span>
-                <span className="font-medium" style={{ fontSize: 11, color: mv.qty < 0 ? "var(--accent-red)" : "var(--text-primary)" }}>
-                  {mv.qty > 0 ? `+${mv.qty}` : mv.qty}
-                </span>
-                <span className="text-text-muted" style={{ fontSize: 9 }}>{mv.time}</span>
-              </div>
-            );
-          })}
+            <RefreshCw size={9} />
+            Làm mới
+          </button>
         </div>
 
-        {/* Mobile cards */}
-        <div className="md:hidden divide-y divide-border">
-          {RECENT_MOVEMENTS.map(mv => {
-            const cfg = MOVEMENT_CONFIG[mv.type];
-            return (
-              <div key={mv.id} className="px-4 py-3 flex items-start justify-between gap-3">
-                <div className="flex-1 min-w-0">
-                  <p className="text-text-primary font-medium truncate" style={{ fontSize: 11 }}>{mv.product}</p>
-                  <p className="text-text-muted" style={{ fontSize: 9, marginTop: 2 }}>{mv.variant}</p>
-                  <div className="flex items-center gap-2 mt-1.5">
-                    <div className="inline-flex items-center px-1.5 py-0.5 rounded" style={{ background: cfg.bg }}>
-                      <span className="font-semibold" style={{ fontSize: 7, color: cfg.color }}>{cfg.label}</span>
-                    </div>
-                    <span className="text-text-muted" style={{ fontSize: 8 }}>{mv.time}</span>
-                  </div>
-                </div>
-                <span
-                  className="font-medium flex-shrink-0"
-                  style={{ fontSize: 13, color: mv.qty < 0 ? "var(--accent-red)" : "var(--text-primary)" }}
-                >
-                  {mv.qty > 0 ? `+${mv.qty}` : mv.qty}
-                </span>
+        {movLoading ? (
+          <div className="px-5 py-8 flex items-center justify-center">
+            <div className="skeleton w-full" style={{ height: 40 }} />
+          </div>
+        ) : movements.length === 0 ? (
+          <div className="px-5 py-10 flex flex-col items-center gap-2">
+            <Package size={24} style={{ color: "#bae6fd" }} strokeWidth={1} />
+            <p style={{ fontSize: 10, color: "#94a3b8" }}>Chưa có biến động nào được ghi lại</p>
+            <p style={{ fontSize: 9, color: "#b0c4d8" }}>Biến động sẽ tự động xuất hiện khi có nhập/xuất/chuyển kho</p>
+          </div>
+        ) : (
+          <>
+            {/* Desktop table */}
+            <div className="hidden md:block">
+              <div
+                className="grid px-5 items-center gap-3 border-b border-border"
+                style={{ gridTemplateColumns: "2fr 1fr 1fr 1fr 0.5fr 0.9fr", height: 30, background: "#f8faff" }}
+              >
+                {["Sản Phẩm", "Loại", "Từ", "Đến", "SL", "Thời Gian"].map(h => (
+                  <span key={h} className="text-text-muted font-semibold uppercase tracking-[0.15em]" style={{ fontSize: 7.5 }}>{h}</span>
+                ))}
               </div>
-            );
-          })}
-        </div>
+              {movements.map(mv => {
+                const cfg = MOVEMENT_CFG[mv.type] ?? MOVEMENT_CFG.ADJUSTMENT;
+                return (
+                  <div
+                    key={mv.id}
+                    className="grid px-5 items-center gap-3 border-b border-border last:border-0 product-row"
+                    style={{ gridTemplateColumns: "2fr 1fr 1fr 1fr 0.5fr 0.9fr", height: 46 }}
+                  >
+                    <div>
+                      <p className="text-text-primary font-medium truncate" style={{ fontSize: 11 }}>{mv.productName}</p>
+                      {mv.variant && <p className="text-text-muted truncate" style={{ fontSize: 8, marginTop: 1 }}>{mv.variant}</p>}
+                    </div>
+                    <div className="inline-flex items-center px-2 py-0.5 rounded-md" style={{ background: cfg.bg, width: "fit-content" }}>
+                      <span className="font-semibold tracking-wide" style={{ fontSize: 7.5, color: cfg.color }}>{cfg.label}</span>
+                    </div>
+                    <span className="text-text-muted truncate" style={{ fontSize: 8.5 }}>{mv.fromLoc ?? "—"}</span>
+                    <span className="text-text-muted truncate" style={{ fontSize: 8.5 }}>{mv.toLoc ?? "—"}</span>
+                    <span
+                      className="font-semibold"
+                      style={{ fontSize: 12, color: mv.qty < 0 ? "#dc2626" : mv.qty > 0 ? "#16a34a" : "#94a3b8" }}
+                    >
+                      {mv.qty > 0 ? `+${mv.qty}` : mv.qty}
+                    </span>
+                    <span className="text-text-muted" style={{ fontSize: 8.5 }}>{timeAgo(mv.createdAt)}</span>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Mobile cards */}
+            <div className="md:hidden divide-y divide-border">
+              {movements.map(mv => {
+                const cfg = MOVEMENT_CFG[mv.type] ?? MOVEMENT_CFG.ADJUSTMENT;
+                return (
+                  <div key={mv.id} className="px-4 py-3 flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-text-primary font-medium truncate" style={{ fontSize: 11 }}>{mv.productName}</p>
+                      {mv.variant && <p className="text-text-muted" style={{ fontSize: 9, marginTop: 1 }}>{mv.variant}</p>}
+                      <div className="flex items-center gap-2 mt-1.5">
+                        <div className="inline-flex items-center px-1.5 py-0.5 rounded" style={{ background: cfg.bg }}>
+                          <span className="font-semibold" style={{ fontSize: 7, color: cfg.color }}>{cfg.label}</span>
+                        </div>
+                        <span className="text-text-muted" style={{ fontSize: 8 }}>{timeAgo(mv.createdAt)}</span>
+                      </div>
+                    </div>
+                    <span
+                      className="font-semibold flex-shrink-0"
+                      style={{ fontSize: 14, color: mv.qty < 0 ? "#dc2626" : mv.qty > 0 ? "#16a34a" : "#94a3b8" }}
+                    >
+                      {mv.qty > 0 ? `+${mv.qty}` : mv.qty}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
       </motion.div>
     </div>
   );
