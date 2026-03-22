@@ -40,8 +40,32 @@ function getDb(): Database.Database {
   db.pragma("journal_mode = WAL");
   db.pragma("foreign_keys = ON");
   initSchema(db);
+  migrateSchema(db);
   globalThis.__postlainDb = db;
   return db;
+}
+
+function migrateSchema(db: Database.Database) {
+  // Add profile columns to users if not exist
+  const cols = (db.prepare("PRAGMA table_info(users)").all() as { name: string }[]).map(c => c.name);
+  if (!cols.includes("avatar"))   db.exec("ALTER TABLE users ADD COLUMN avatar TEXT");
+  if (!cols.includes("status"))   db.exec("ALTER TABLE users ADD COLUMN status TEXT DEFAULT 'online'");
+  if (!cols.includes("bio"))      db.exec("ALTER TABLE users ADD COLUMN bio TEXT DEFAULT ''");
+  if (!cols.includes("phone"))    db.exec("ALTER TABLE users ADD COLUMN phone TEXT DEFAULT ''");
+  if (!cols.includes("fullName")) db.exec("ALTER TABLE users ADD COLUMN fullName TEXT DEFAULT ''");
+
+  // Activity feed table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS activity (
+      id        TEXT PRIMARY KEY,
+      userId    TEXT NOT NULL,
+      userName  TEXT NOT NULL,
+      type      TEXT NOT NULL,
+      content   TEXT NOT NULL,
+      createdAt TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_activity_created ON activity(createdAt DESC);
+  `);
 }
 
 // ─── Schema Init ─────────────────────────────────────────────────────────────
@@ -100,6 +124,7 @@ function initSchema(db: Database.Database) {
       createdAt    TEXT NOT NULL
     );
 
+    -- Thêm columns profile nếu chưa có (ALTER TABLE IF NOT EXISTS không support, dùng try riêng)
     -- Default admin (chỉ insert nếu chưa có)
     INSERT OR IGNORE INTO users (id, name, username, passwordHash, role, active, createdAt)
     VALUES ('user_admin', 'Admin', 'admin', 'Aldo@123', 'admin', 1, datetime('now'));

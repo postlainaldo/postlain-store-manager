@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Focus, Box, Settings, LogIn, LogOut, Download } from "lucide-react";
+import { LayoutDashboard, Focus, Box, Settings, LogIn, LogOut, Download, Circle } from "lucide-react";
 import { useStore } from "@/store/useStore";
 
 const NAV_ITEMS = [
@@ -97,12 +97,17 @@ export default function TopNav() {
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: 4 }}>
         {currentUser ? (
           <>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 10px", borderRadius: 8, background: "rgba(14,165,233,0.06)", border: "1px solid rgba(14,165,233,0.2)" }}>
-              <div style={{ width: 18, height: 18, borderRadius: "50%", background: "#0ea5e9", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <span style={{ fontSize: 8, fontWeight: 700, color: "#fff" }}>{currentUser.name.slice(0, 1).toUpperCase()}</span>
+            <Link href="/profile" style={{ textDecoration: "none" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 10px", borderRadius: 8, background: "rgba(14,165,233,0.06)", border: "1px solid rgba(14,165,233,0.2)", cursor: "pointer" }}>
+                <div style={{ position: "relative", width: 18, height: 18 }}>
+                  <div style={{ width: 18, height: 18, borderRadius: "50%", background: "#0ea5e9", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <span style={{ fontSize: 8, fontWeight: 700, color: "#fff" }}>{currentUser.name.slice(0, 1).toUpperCase()}</span>
+                  </div>
+                  <div style={{ position: "absolute", bottom: -1, right: -1, width: 6, height: 6, borderRadius: "50%", background: "#10b981", border: "1px solid #fff" }} />
+                </div>
+                <span style={{ fontSize: 9, fontWeight: 600, color: "#0ea5e9" }}>{currentUser.name}</span>
               </div>
-              <span style={{ fontSize: 9, fontWeight: 600, color: "#0ea5e9" }}>{currentUser.name}</span>
-            </div>
+            </Link>
             <button
               onClick={logout}
               style={{ width: 28, height: 28, borderRadius: 8, border: "1px solid #bae6fd", background: "#f0f9ff", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
