@@ -13,17 +13,22 @@ const montserrat = Montserrat({
 
 export const metadata: Metadata = {
   title: "POSTLAIN — Store Manager",
-  description: "High-end inventory & display management system",
+  description: "Hệ thống quản lý cửa hàng POSTLAIN",
   icons: {
-    icon: "/favicon.ico",
-    shortcut: "/favicon.ico",
-    apple: "/apple-touch-icon.png",
+    icon: [
+      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+      { url: "/icon-192x192.png", sizes: "192x192", type: "image/png" },
+    ],
+    apple: [
+      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+    ],
   },
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
-    statusBarStyle: "default",
+    statusBarStyle: "black-translucent",
     title: "POSTLAIN",
+    startupImage: "/apple-touch-icon.png",
   },
   formatDetection: { telephone: false },
 };
@@ -32,8 +37,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="vi">
       <head>
-        <meta name="theme-color" content="#e0f2fe" />
+        <meta name="theme-color" content="#0c1a2e" />
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="POSTLAIN" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
       </head>
       <body className={`${montserrat.variable} font-sans antialiased`}>
         <Providers>
