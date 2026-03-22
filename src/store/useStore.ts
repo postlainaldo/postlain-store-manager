@@ -152,9 +152,9 @@ interface StoreState {
 const DEFAULT_ADMIN: AppUser = {
   id: "user_admin",
   name: "Admin",
-  email: "postlain.aldo@gmail.com",
+  email: "admin",
   role: "admin",
-  passwordHash: "Lucii@1108",
+  passwordHash: "Aldo@123",
   createdAt: new Date().toISOString(),
   active: true,
 };
@@ -165,8 +165,12 @@ export const useStore = create<StoreState>()(
       // ── Auth ──────────────────────────────────────────────────────────────
       users: [DEFAULT_ADMIN],
       currentUser: null,
-      login: (email, password) => {
-        const u = get().users.find(x => x.email === email && x.passwordHash === password && x.active);
+      login: (username, password) => {
+        // Match by email OR by name (username) — case-insensitive
+        const u = get().users.find(x =>
+          (x.email.toLowerCase() === username.toLowerCase() || x.name.toLowerCase() === username.toLowerCase())
+          && x.passwordHash === password && x.active
+        );
         if (u) { set({ currentUser: u }); return true; }
         return false;
       },

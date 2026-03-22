@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Eye, EyeOff, Lock, Mail, AlertCircle, Check } from "lucide-react";
+import { Eye, EyeOff, Lock, User, AlertCircle, Check } from "lucide-react";
 import { useStore } from "@/store/useStore";
 
 export default function LoginPage() {
@@ -33,7 +33,7 @@ export default function LoginPage() {
       router.replace("/");
     } else {
       setLoading(false);
-      setError("Email hoặc mật khẩu không đúng");
+      setError("Tên đăng nhập hoặc mật khẩu không đúng");
     }
   };
 
@@ -106,14 +106,14 @@ export default function LoginPage() {
           </AnimatePresence>
 
           <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 11 }}>
-            {/* Email */}
+            {/* Username */}
             <FieldWrap>
-              <Mail size={13} style={{ color: "#94a3b8", flexShrink: 0 }} />
+              <User size={13} style={{ color: "#94a3b8", flexShrink: 0 }} />
               <input
-                type="email" value={email}
+                type="text" value={email}
                 onChange={e => setEmail(e.target.value)}
-                placeholder="Email"
-                required autoComplete="email"
+                placeholder="Tên đăng nhập"
+                required autoComplete="username"
                 style={inputStyle}
               />
             </FieldWrap>

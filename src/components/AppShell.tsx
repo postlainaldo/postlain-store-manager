@@ -6,7 +6,7 @@ import TopNav from "@/components/TopNav";
 import BottomNav from "@/components/BottomNav";
 import AuthGuard from "@/components/AuthGuard";
 
-const NO_SHELL_PATHS = ["/login", "/setup"];
+const NO_SHELL_PATHS = ["/login", "/setup", "/install"];
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();

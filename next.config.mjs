@@ -13,8 +13,6 @@ const withPWA = withPWAInit({
 });
 
 /** @type {import('next').NextConfig} */
-const nextConfig = {
-  // Chỗ này giữ lại các cấu hình cũ của mày nếu có
-};
+const nextConfig = {};
 
 export default withPWA(nextConfig);

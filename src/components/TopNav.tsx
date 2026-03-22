@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Focus, Box, Settings, LogIn, LogOut } from "lucide-react";
+import { LayoutDashboard, Focus, Box, Settings, LogIn, LogOut, Download } from "lucide-react";
 import { useStore } from "@/store/useStore";
 
 const NAV_ITEMS = [
@@ -81,8 +81,20 @@ export default function TopNav() {
         })}
       </nav>
 
+      {/* Install button */}
+      <Link href="/install" style={{ textDecoration: "none", marginRight: 4 }}>
+        <div style={{
+          display: "flex", alignItems: "center", gap: 5,
+          padding: "4px 10px", borderRadius: 8,
+          border: "1px solid #bae6fd", background: "#f0f9ff", cursor: "pointer",
+        }}>
+          <Download size={10} style={{ color: "#64748b" }} />
+          <span style={{ fontSize: 8, color: "#64748b", letterSpacing: "0.1em", fontWeight: 600 }}>CÀI APP</span>
+        </div>
+      </Link>
+
       {/* User chip */}
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: 8 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: 4 }}>
         {currentUser ? (
           <>
             <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 10px", borderRadius: 8, background: "rgba(14,165,233,0.06)", border: "1px solid rgba(14,165,233,0.2)" }}>
