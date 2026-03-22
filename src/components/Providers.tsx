@@ -11,24 +11,25 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     const CURRENT_VERSION = "3";
     const storedVersion = localStorage.getItem("postlain-auth-version");
     if (storedVersion !== CURRENT_VERSION) {
-      // Xóa toàn bộ store cũ để migration chạy sạch
       localStorage.removeItem("postlain-store-v2");
       localStorage.setItem("postlain-auth-version", CURRENT_VERSION);
     }
 
-    useStore.persist.rehydrate();
-
-    // Force-update admin credentials sau rehydrate
-    setTimeout(() => {
+    // Rehydrate xong mới render — đảm bảo users từ localStorage có sẵn khi login
+    const unsub = useStore.persist.onFinishHydration(() => {
       const state = useStore.getState();
+      // Force-update admin credentials
       const adminUser = state.users.find(u => u.id === "user_admin");
       if (!adminUser || adminUser.email !== "admin" || adminUser.passwordHash !== "Aldo@123") {
         state.updateUser("user_admin", { email: "admin", passwordHash: "Aldo@123" });
       }
       state.fetchDbState();
-    }, 0);
+      setHydrated(true);
+    });
 
-    setHydrated(true);
+    useStore.persist.rehydrate();
+
+    return () => unsub();
   }, []);
 
   if (!hydrated) {
