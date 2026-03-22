@@ -95,6 +95,8 @@ interface StoreState {
   ) => void;
   clearWarehouseTier: (shelfId: string, tierIndex: number) => void;
   clearWarehouseShelf: (shelfId: string) => void;
+  removeWarehouseShelf: (shelfId: string) => void;
+  addWarehouseShelf: (shelfType: "shoes" | "bags") => void;
   renameWarehouseShelf: (shelfId: string, name: string) => void;
   setWarehouseShelfNotes: (shelfId: string, notes: string) => void;
 }
@@ -403,6 +405,27 @@ export const useStore = create<StoreState>()(
               : shelf
           ),
         })),
+
+      removeWarehouseShelf: (shelfId) =>
+        set((s) => ({
+          warehouseShelves: s.warehouseShelves.filter((shelf) => shelf.id !== shelfId),
+        })),
+
+      addWarehouseShelf: (shelfType) =>
+        set((s) => {
+          const sameType = s.warehouseShelves.filter(sh => sh.shelfType === shelfType);
+          const num = sameType.length + 1;
+          const name = shelfType === "shoes" ? `Kệ Giày ${num}` : `Kệ Túi ${num}`;
+          const newShelf: WarehouseShelf = {
+            id: `shelf_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+            name,
+            shelfType,
+            number: num,
+            tiers: Array(4).fill(null).map(() => Array(25).fill(null)),
+            notes: "",
+          };
+          return { warehouseShelves: [...s.warehouseShelves, newShelf] };
+        }),
 
       renameWarehouseShelf: (shelfId, name) =>
         set((s) => ({

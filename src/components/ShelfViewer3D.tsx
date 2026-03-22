@@ -266,17 +266,17 @@ function StoreSub2D({ sub, prodMap }: { sub: StoreSubsection; prodMap: Map<strin
       <div style={{
         display: "inline-flex", flexDirection: "column", gap: GAP,
         padding: "18px 14px 14px",
-        background: "#FFFFFF", border: "1px solid #E8E4DE", borderRadius: 10,
-        boxShadow: "0 4px 16px rgba(26,20,16,0.08)", minWidth: "max-content", position: "relative",
+        background: "var(--bg-surface)", border: "1px solid var(--border)", borderRadius: 10,
+        boxShadow: "var(--shadow-md)", minWidth: "max-content", position: "relative",
       }}>
-        <div style={{ position:"absolute", top:0, left:10, right:10, height:5, background:"linear-gradient(90deg,#C8BEB4,#E8E0D8,#C8BEB4)", borderRadius:"0 0 4px 4px" }} />
+        <div style={{ position:"absolute", top:0, left:10, right:10, height:4, background:"linear-gradient(90deg,var(--border-strong),var(--border),var(--border-strong))", borderRadius:"0 0 4px 4px" }} />
         {rows.map((row, ri) => {
           const filled = row.products.filter(Boolean).length;
           if (row.type === "image") return (
             <div key={ri} style={{ display:"flex", gap:GAP }}>
               <div style={{ width:LABEL_W, flexShrink:0 }} />
-              <div style={{ height:34, width:maxSlots*(SLOT_W+GAP)-GAP, border:"1.5px dashed #D8D0C8", borderRadius:5, display:"flex", alignItems:"center", justifyContent:"center", background:"#F8F5F0" }}>
-                <span style={{ fontSize:8, color:"#B8A898", letterSpacing:"0.15em" }}>IMAGE</span>
+              <div style={{ height:34, width:maxSlots*(SLOT_W+GAP)-GAP, border:"1.5px dashed var(--border)", borderRadius:5, display:"flex", alignItems:"center", justifyContent:"center", background:"var(--bg-card)" }}>
+                <span style={{ fontSize:8, color:"var(--text-muted)", letterSpacing:"0.15em" }}>IMAGE</span>
               </div>
             </div>
           );
@@ -284,8 +284,8 @@ function StoreSub2D({ sub, prodMap }: { sub: StoreSubsection; prodMap: Map<strin
           return (
             <div key={ri} style={{ display:"flex", alignItems:"flex-end", gap:GAP }}>
               <div style={{ width:LABEL_W, flexShrink:0, display:"flex", flexDirection:"column", alignItems:"flex-end", paddingRight:6, paddingBottom:8 }}>
-                <span style={{ fontSize:8, fontWeight:700, color:isShort?"#A87848":"#8A8078", letterSpacing:"0.08em" }}>{isShort?"NGẮN":"DÀI"}</span>
-                <span style={{ fontSize:7, marginTop:2, color:filled>0?"#B8914A":"#C8C0B8" }}>{filled}/{row.products.length}</span>
+                <span style={{ fontSize:8, fontWeight:700, color:isShort?"var(--gold)":"var(--text-muted)", letterSpacing:"0.08em" }}>{isShort?"NGẮN":"DÀI"}</span>
+                <span style={{ fontSize:7, marginTop:2, color:filled>0?"var(--gold)":"var(--text-muted)" }}>{filled}/{row.products.length}</span>
               </div>
               <div>
                 <div style={{ display:"flex", gap:GAP }}>
@@ -295,14 +295,14 @@ function StoreSub2D({ sub, prodMap }: { sub: StoreSubsection; prodMap: Map<strin
                     return (
                       <div key={si} style={{
                         width:SLOT_W, height:SLOT_H, flexShrink:0, borderRadius:5, position:"relative", overflow:"hidden",
-                        border:prod?`1px solid ${cc}50`:"1px solid #E8E4DE",
-                        background:prod?`${cc}10`:"#FAF8F5",
+                        border:prod?`1px solid ${cc}50`:"1px solid var(--border)",
+                        background:prod?`${cc}12`:"var(--bg-card)",
                       }}>
                         {prod && (
                           <>
-                            <div style={{ position:"absolute", top:0, left:0, right:0, height:3, background:cc||"#B8914A" }} />
+                            <div style={{ position:"absolute", top:0, left:0, right:0, height:3, background:cc||"var(--gold)" }} />
                             <div style={{ position:"absolute", inset:0, display:"flex", alignItems:"center", justifyContent:"center", paddingTop:4, flexDirection:"column" }}>
-                              <span style={{ fontSize:Math.max(7,Math.min(9,SLOT_W/9)), color:"#2A2420", fontWeight:500, textAlign:"center", padding:"0 3px", lineHeight:1.25 }}>
+                              <span style={{ fontSize:Math.max(7,Math.min(9,SLOT_W/9)), color:"var(--text-primary)", fontWeight:500, textAlign:"center", padding:"0 3px", lineHeight:1.25 }}>
                                 {prod.name.length>11?prod.name.slice(0,11)+"…":prod.name}
                               </span>
                             </div>
@@ -312,12 +312,12 @@ function StoreSub2D({ sub, prodMap }: { sub: StoreSubsection; prodMap: Map<strin
                     );
                   })}
                 </div>
-                <div style={{ marginTop:3, height:5, borderRadius:3, background:isShort?"linear-gradient(90deg,#C8A880,#E8C898,#C8A880)":"linear-gradient(90deg,#C8C0B8,#E0D8D0,#C8C0B8)", boxShadow:"0 1px 2px rgba(26,20,16,0.07)" }} />
+                <div style={{ marginTop:3, height:4, borderRadius:3, background:isShort?"linear-gradient(90deg,var(--gold-dark),var(--gold-muted),var(--gold-dark))":"linear-gradient(90deg,var(--border-strong),var(--border),var(--border-strong))", boxShadow:"var(--shadow-xs)" }} />
               </div>
             </div>
           );
         })}
-        <div style={{ position:"absolute", bottom:0, left:10, right:10, height:5, background:"linear-gradient(90deg,#C8BEB4,#E8E0D8,#C8BEB4)", borderRadius:"4px 4px 0 0" }} />
+        <div style={{ position:"absolute", bottom:0, left:10, right:10, height:4, background:"linear-gradient(90deg,var(--border-strong),var(--border),var(--border-strong))", borderRadius:"4px 4px 0 0" }} />
       </div>
     </div>
   );
@@ -336,21 +336,21 @@ function WarehouseSub2D({ shelf, prodMap }: { shelf: WarehouseShelf; prodMap: Ma
       <div style={{
         display:"inline-flex", flexDirection:"column", gap:10,
         padding:"18px 14px 14px",
-        background:"#FFFFFF", border:"1px solid #E8E4DE", borderRadius:10,
-        boxShadow:"0 4px 16px rgba(26,20,16,0.08)", minWidth:"max-content", position:"relative",
+        background:"var(--bg-surface)", border:"1px solid var(--border)", borderRadius:10,
+        boxShadow:"var(--shadow-md)", minWidth:"max-content", position:"relative",
       }}>
-        <div style={{ position:"absolute", top:0, left:10, right:10, height:5, background:`linear-gradient(90deg,${accent}70,${accent}BB,${accent}70)`, borderRadius:"0 0 4px 4px" }} />
+        <div style={{ position:"absolute", top:0, left:10, right:10, height:4, background:`linear-gradient(90deg,${accent}60,${accent}AA,${accent}60)`, borderRadius:"0 0 4px 4px" }} />
         {[...shelf.tiers].reverse().map((tier, revIdx) => {
           const ti = shelf.tiers.length - 1 - revIdx;
           const filled = tier.filter(Boolean).length;
           return (
             <div key={ti} style={{ display:"flex", alignItems:"flex-end", gap:8 }}>
               <div style={{ width:60, flexShrink:0, display:"flex", flexDirection:"column", alignItems:"flex-end", paddingRight:8, paddingBottom:5 }}>
-                <div style={{ width:20, height:20, borderRadius:4, background:`${accent}14`, border:`1px solid ${accent}28`, display:"flex", alignItems:"center", justifyContent:"center", marginBottom:3 }}>
+                <div style={{ width:20, height:20, borderRadius:4, background:`${accent}18`, border:`1px solid ${accent}30`, display:"flex", alignItems:"center", justifyContent:"center", marginBottom:3 }}>
                   <span style={{ fontSize:9, fontWeight:800, color:accent }}>{ti+1}</span>
                 </div>
-                <span style={{ fontSize:7, color:"#9A9080", textAlign:"right", lineHeight:1.3 }}>{tierLabels[ti]}</span>
-                <span style={{ fontSize:8, marginTop:2, fontWeight:600, color:filled>0?accent:"#C8C0B8" }}>{filled}/25</span>
+                <span style={{ fontSize:7, color:"var(--text-muted)", textAlign:"right", lineHeight:1.3 }}>{tierLabels[ti]}</span>
+                <span style={{ fontSize:8, marginTop:2, fontWeight:600, color:filled>0?accent:"var(--text-muted)" }}>{filled}/25</span>
               </div>
               <div style={{ position:"relative" }}>
                 <div style={{ display:"flex", gap:COL_GAP }}>
@@ -365,15 +365,15 @@ function WarehouseSub2D({ shelf, prodMap }: { shelf: WarehouseShelf; prodMap: Ma
                         return (
                           <div key={idx} style={{
                             width:SLOT_W, height:SLOT_H, borderRadius:4,
-                            border:prod?`1px solid ${cc}50`:"1px solid #E8E4DE",
-                            background:prod?`${cc}10`:"#FAF8F5",
+                            border:prod?`1px solid ${cc}50`:"1px solid var(--border)",
+                            background:prod?`${cc}12`:"var(--bg-card)",
                             position:"relative", overflow:"hidden",
                             display:"flex", alignItems:"center", justifyContent:"center",
                           }}>
                             {prod && (
                               <>
-                                <div style={{ position:"absolute", top:0, left:0, right:0, height:3, background:cc||"#B8914A" }} />
-                                <span style={{ fontSize:9, fontWeight:600, color:cc||"#B8914A", marginTop:2 }}>
+                                <div style={{ position:"absolute", top:0, left:0, right:0, height:3, background:cc||accent }} />
+                                <span style={{ fontSize:9, fontWeight:700, color:cc||accent, marginTop:2 }}>
                                   {prod.name.charAt(0).toUpperCase()}
                                 </span>
                               </>
@@ -384,12 +384,12 @@ function WarehouseSub2D({ shelf, prodMap }: { shelf: WarehouseShelf; prodMap: Ma
                     </div>
                   ))}
                 </div>
-                <div style={{ marginTop:3, height:5, borderRadius:3, background:`linear-gradient(90deg,${accent}40,${accent}88,${accent}40)`, boxShadow:"0 1px 2px rgba(26,20,16,0.07)" }} />
+                <div style={{ marginTop:3, height:4, borderRadius:3, background:`linear-gradient(90deg,${accent}35,${accent}70,${accent}35)`, boxShadow:"var(--shadow-xs)" }} />
               </div>
             </div>
           );
         })}
-        <div style={{ position:"absolute", bottom:0, left:10, right:10, height:5, background:`linear-gradient(90deg,${accent}70,${accent}BB,${accent}70)`, borderRadius:"5px 5px 0 0" }} />
+        <div style={{ position:"absolute", bottom:0, left:10, right:10, height:4, background:`linear-gradient(90deg,${accent}60,${accent}AA,${accent}60)`, borderRadius:"4px 4px 0 0" }} />
       </div>
     </div>
   );
@@ -404,17 +404,17 @@ function SidebarBtn({ label, filled, total, accent, isSelected, onClick }: {
     <button onClick={onClick} style={{
       width:"100%", textAlign:"left", padding:"9px 12px",
       display:"flex", flexDirection:"column", gap:4,
-      background:isSelected?"#F5F2EE":"transparent",
+      background:isSelected?"var(--bg-elevated)":"transparent",
       borderLeft:`2.5px solid ${isSelected?accent:"transparent"}`,
       paddingLeft:isSelected?9.5:12,
       border:"none", cursor:"pointer", transition:"background 0.1s",
     }}>
-      <span style={{ fontSize:10.5, lineHeight:1.3, color:isSelected?"#1A1410":"#9A9080", fontWeight:isSelected?600:400 }}>{label}</span>
+      <span style={{ fontSize:10.5, lineHeight:1.3, color:isSelected?"var(--text-primary)":"var(--text-muted)", fontWeight:isSelected?600:400 }}>{label}</span>
       <div style={{ display:"flex", alignItems:"center", gap:6 }}>
-        <div style={{ flex:1, height:3, borderRadius:2, background:"#EAE6E0", overflow:"hidden" }}>
-          <div style={{ width:`${pct}%`, height:"100%", background:filled>0?accent:"transparent", borderRadius:2, opacity:0.8, transition:"width 0.4s" }} />
+        <div style={{ flex:1, height:2.5, borderRadius:2, background:"var(--border)", overflow:"hidden" }}>
+          <div style={{ width:`${pct}%`, height:"100%", background:filled>0?accent:"transparent", borderRadius:2, opacity:0.85, transition:"width 0.4s" }} />
         </div>
-        <span style={{ fontSize:8, color:filled>0?accent:"#C8C0B8", fontWeight:600, flexShrink:0 }}>{filled}/{total}</span>
+        <span style={{ fontSize:8, color:filled>0?accent:"var(--text-muted)", fontWeight:600, flexShrink:0 }}>{filled}/{total}</span>
       </div>
     </button>
   );
@@ -426,7 +426,6 @@ export default function ShelfViewer3D({ activeSubTab = "display" }: { activeSubT
   const [selectedStoreId, setSelectedStoreId] = useState<string | null>(null);
   const [selectedWHId, setSelectedWHId]       = useState<string | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen]   = useState(false);
-  const [viewMode, setViewMode]               = useState<"2d" | "3d">("2d");
 
   const prodMap = useMemo(() => new Map(products.map(p => [p.id, p])), [products]);
 
@@ -477,12 +476,13 @@ export default function ShelfViewer3D({ activeSubTab = "display" }: { activeSubT
     : [{ l: "Giày nữ", c: "#C49A6C" }, { l: "Giày nam", c: "#5A7888" }, { l: "Túi nữ", c: "#9B7060" }, { l: "Túi nam", c: "#607080" }];
 
   return (
-    <div style={{ display:"flex", height:"100%", width:"100%", overflow:"hidden", background:"#F5F2EE" }}>
+    <div style={{ display:"flex", height:"100%", width:"100%", overflow:"hidden", background:"var(--bg-base)" }}>
 
       {/* ── Sidebar (desktop) ── */}
-      <div className="hidden md:flex flex-col border-r border-border bg-white overflow-hidden flex-shrink-0"
-        style={{ width: 196, boxShadow: "1px 0 0 #EAE6E0" }}>
-        <div style={{ padding:"10px 12px 8px", borderBottom:"1px solid #EAE6E0", background:"linear-gradient(180deg,#FFFFFF,#FAFAF8)", flexShrink:0 }}>
+      <div className="hidden md:flex flex-col flex-shrink-0" style={{
+        width: 192, borderRight: "1px solid var(--border)", background: "var(--bg-surface)", overflow: "hidden",
+      }}>
+        <div style={{ padding:"9px 12px 7px", borderBottom:"1px solid var(--border)", background:"var(--bg-card)", flexShrink:0 }}>
           <p style={{ fontSize:7, letterSpacing:"0.3em", fontWeight:700, color:accent, textTransform:"uppercase" }}>
             {activeSubTab === "display" ? "KHU VỰC" : "KHO"}
           </p>
@@ -492,10 +492,10 @@ export default function ShelfViewer3D({ activeSubTab = "display" }: { activeSubT
             {activeSubTab === "display" && (
               <motion.div key="sd" initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }} transition={{ duration:0.1 }}>
                 {storeGroups.map(group => {
-                  const gAcc = SECTION_ACCENT[group.type] ?? "#B8914A";
+                  const gAcc = SECTION_ACCENT[group.type] ?? "var(--gold)";
                   return (
                     <div key={group.name}>
-                      <div style={{ padding:"6px 12px", borderBottom:"1px solid #EAE6E0", borderTop:"1px solid #EAE6E0", background:"#F9F7F4" }}>
+                      <div style={{ padding:"6px 12px", borderBottom:"1px solid var(--border)", background:"var(--bg-card)" }}>
                         <p style={{ fontSize:8, letterSpacing:"0.2em", fontWeight:700, color:gAcc, textTransform:"uppercase" }}>{group.name}</p>
                       </div>
                       {group.subs.map(({ id, name, sub }) => {
@@ -516,7 +516,7 @@ export default function ShelfViewer3D({ activeSubTab = "display" }: { activeSubT
                   const acc = type === "shoes" ? "#5A7898" : "#9A7050";
                   return (
                     <div key={type}>
-                      <div style={{ padding:"6px 12px", borderBottom:"1px solid #EAE6E0", borderTop:"1px solid #EAE6E0", background:"#F9F7F4" }}>
+                      <div style={{ padding:"6px 12px", borderBottom:"1px solid var(--border)", background:"var(--bg-card)" }}>
                         <p style={{ fontSize:8, letterSpacing:"0.2em", fontWeight:700, color:acc, textTransform:"uppercase" }}>
                           {type==="shoes"?"KỆ GIÀY":"KỆ TÚI"}
                         </p>
@@ -540,59 +540,43 @@ export default function ShelfViewer3D({ activeSubTab = "display" }: { activeSubT
 
         {/* Header bar */}
         <div style={{
-          padding:"10px 16px 10px 13px", borderBottom:"1px solid #EAE6E0",
-          background:"#FFFFFF", flexShrink:0,
+          padding:"10px 16px 10px 13px", borderBottom:"1px solid var(--border)",
+          background:"var(--bg-surface)", flexShrink:0,
           display:"flex", alignItems:"center", justifyContent:"space-between",
-          borderLeft:`3px solid ${accent}`, boxShadow:"0 1px 0 #EAE6E0",
+          borderLeft:`2.5px solid ${accent}`,
         }}>
           {/* Mobile trigger */}
           <button className="md:hidden" style={{ background:"none", border:"none", cursor:"pointer", padding:0, flex:1, display:"flex", alignItems:"center", gap:8, textAlign:"left" }}
             onClick={() => setMobileMenuOpen(v => !v)}>
             <div style={{ minWidth:0, flex:1 }}>
               <p style={{ fontSize:7, letterSpacing:"0.22em", textTransform:"uppercase", fontWeight:700, color:accent }}>{headerSub}</p>
-              <p style={{ fontSize:14, fontWeight:500, color:"#1A1410", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{headerLabel}</p>
+              <p style={{ fontSize:14, fontWeight:500, color:"var(--text-primary)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{headerLabel}</p>
             </div>
-            <motion.span animate={{ rotate:mobileMenuOpen?180:0 }} style={{ fontSize:10, color:"#9A9080", flexShrink:0 }}>▼</motion.span>
+            <motion.span animate={{ rotate:mobileMenuOpen?180:0 }} style={{ fontSize:9, color:"var(--text-muted)", flexShrink:0 }}>▼</motion.span>
           </button>
           {/* Desktop title */}
           <div className="hidden md:block" style={{ minWidth:0, flex:1 }}>
             <p style={{ fontSize:7, letterSpacing:"0.22em", textTransform:"uppercase", fontWeight:700, color:accent }}>{headerSub}</p>
-            <p style={{ fontSize:15, fontWeight:400, color:"#1A1410", marginTop:2 }}>{headerLabel}</p>
+            <p style={{ fontSize:15, fontWeight:400, color:"var(--text-primary)", marginTop:2 }}>{headerLabel}</p>
           </div>
 
-          {/* Right controls */}
-          <div style={{ display:"flex", alignItems:"center", gap:12, flexShrink:0, marginLeft:16 }}>
-            {/* 2D/3D toggle */}
-            <div style={{ display:"flex", background:"#F0EDE8", border:"1px solid #DDD8D0", borderRadius:7, padding:3, gap:2 }}>
-              {(["2d","3d"] as const).map(m => (
-                <button key={m} onClick={() => setViewMode(m)} style={{
-                  padding:"4px 11px", borderRadius:5, border:"none",
-                  fontSize:9, fontWeight:700, letterSpacing:"0.1em",
-                  background:viewMode===m?"#1A1410":"transparent",
-                  color:viewMode===m?"#FFFFFF":"#9A9080",
-                  cursor:"pointer", transition:"all 0.15s",
-                  boxShadow:viewMode===m?"0 1px 4px rgba(0,0,0,0.2)":"none",
-                }}>{m.toUpperCase()}</button>
-              ))}
+          {/* Stats */}
+          <div style={{ display:"flex", alignItems:"center", gap:10, flexShrink:0, marginLeft:16 }}>
+            <div className="hidden sm:block" style={{ textAlign:"right" }}>
+              <p style={{ fontSize:18, fontWeight:300, color:accent, lineHeight:1 }}>
+                {stats.filled}<span style={{ fontSize:11, color:"var(--text-muted)", fontWeight:400 }}>/{stats.total}</span>
+              </p>
+              <p style={{ fontSize:7, color:"var(--text-muted)", marginTop:2, letterSpacing:"0.2em", fontWeight:500 }}>SẢN PHẨM</p>
             </div>
-            {/* Stats */}
-            <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-              <div className="hidden sm:block" style={{ textAlign:"right" }}>
-                <p style={{ fontSize:18, fontWeight:300, color:accent, lineHeight:1 }}>
-                  {stats.filled}<span style={{ fontSize:11, color:"#9A9080", fontWeight:400 }}>/{stats.total}</span>
-                </p>
-                <p style={{ fontSize:7, color:"#9A9080", marginTop:2, letterSpacing:"0.2em", fontWeight:500 }}>SẢN PHẨM</p>
-              </div>
-              <div style={{ position:"relative", width:40, height:40 }}>
-                <svg width="40" height="40" style={{ transform:"rotate(-90deg)" }}>
-                  <circle cx="20" cy="20" r="16" fill="none" stroke="#EAE6E0" strokeWidth="3" />
-                  <circle cx="20" cy="20" r="16" fill="none" stroke={accent} strokeWidth="3"
-                    strokeDasharray={`${2*Math.PI*16*pct/100} ${2*Math.PI*16}`}
-                    strokeLinecap="round" style={{ transition:"stroke-dasharray 0.5s ease" }} />
-                </svg>
-                <div style={{ position:"absolute", inset:0, display:"flex", alignItems:"center", justifyContent:"center", fontSize:9, fontWeight:700, color:accent }}>
-                  {pct}%
-                </div>
+            <div style={{ position:"relative", width:40, height:40 }}>
+              <svg width="40" height="40" style={{ transform:"rotate(-90deg)" }}>
+                <circle cx="20" cy="20" r="16" fill="none" stroke="var(--border)" strokeWidth="3" />
+                <circle cx="20" cy="20" r="16" fill="none" stroke={accent} strokeWidth="3"
+                  strokeDasharray={`${2*Math.PI*16*pct/100} ${2*Math.PI*16}`}
+                  strokeLinecap="round" style={{ transition:"stroke-dasharray 0.5s ease" }} />
+              </svg>
+              <div style={{ position:"absolute", inset:0, display:"flex", alignItems:"center", justifyContent:"center", fontSize:9, fontWeight:700, color:accent }}>
+                {pct}%
               </div>
             </div>
           </div>
@@ -604,14 +588,14 @@ export default function ShelfViewer3D({ activeSubTab = "display" }: { activeSubT
             <motion.div
               initial={{ opacity:0, y:-8 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0, y:-8 }}
               transition={{ duration:0.15 }}
-              className="md:hidden flex-shrink-0 border-b border-border bg-white overflow-y-auto"
-              style={{ maxHeight:"52vh", boxShadow:"0 8px 24px rgba(26,20,16,0.12)", zIndex:30 }}
+              className="md:hidden flex-shrink-0"
+              style={{ maxHeight:"52vh", overflowY:"auto", borderBottom:"1px solid var(--border)", background:"var(--bg-surface)", boxShadow:"0 8px 32px rgba(0,0,0,0.2)", zIndex:30 }}
             >
               {activeSubTab === "display" && storeGroups.map(group => {
-                const gAcc = SECTION_ACCENT[group.type] ?? "#B8914A";
+                const gAcc = SECTION_ACCENT[group.type] ?? "var(--gold)";
                 return (
                   <div key={group.name}>
-                    <div style={{ padding:"8px 16px", background:"#F9F7F4", borderBottom:"1px solid #EAE6E0" }}>
+                    <div style={{ padding:"8px 16px", background:"var(--bg-card)", borderBottom:"1px solid var(--border)" }}>
                       <p style={{ fontSize:9, letterSpacing:"0.18em", fontWeight:700, color:gAcc, textTransform:"uppercase" }}>{group.name}</p>
                     </div>
                     {group.subs.map(({ id, name, sub }) => {
@@ -622,14 +606,14 @@ export default function ShelfViewer3D({ activeSubTab = "display" }: { activeSubT
                           style={{
                             width:"100%", textAlign:"left", padding:"12px 20px",
                             display:"flex", alignItems:"center", justifyContent:"space-between",
-                            borderBottom:"1px solid rgba(220,216,208,0.25)",
+                            borderBottom:"1px solid var(--border-subtle)",
                             borderLeft:`3px solid ${isSel?gAcc:"transparent"}`,
                             paddingLeft:isSel?17:20,
-                            background:isSel?"#F9F7F4":"transparent",
-                            border:"none", cursor:"pointer",
+                            background:isSel?"var(--bg-card)":"transparent",
+                            border:"none", cursor:"pointer", transition:"background 0.1s",
                           }}>
-                          <span style={{ fontSize:14, color:isSel?"#1A1410":"#9A9080", fontWeight:isSel?600:400 }}>{name}</span>
-                          <span style={{ fontSize:10, marginLeft:12, flexShrink:0, fontWeight:500, color:filled>0?gAcc:"#C8C0B8" }}>{filled}/{total}</span>
+                          <span style={{ fontSize:14, color:isSel?"var(--text-primary)":"var(--text-muted)", fontWeight:isSel?600:400 }}>{name}</span>
+                          <span style={{ fontSize:10, marginLeft:12, flexShrink:0, fontWeight:500, color:filled>0?gAcc:"var(--text-muted)" }}>{filled}/{total}</span>
                         </button>
                       );
                     })}
@@ -645,14 +629,14 @@ export default function ShelfViewer3D({ activeSubTab = "display" }: { activeSubT
                     style={{
                       width:"100%", textAlign:"left", padding:"12px 20px",
                       display:"flex", alignItems:"center", justifyContent:"space-between",
-                      borderBottom:"1px solid rgba(220,216,208,0.25)",
+                      borderBottom:"1px solid var(--border-subtle)",
                       borderLeft:`3px solid ${isSel?wAcc:"transparent"}`,
                       paddingLeft:isSel?17:20,
-                      background:isSel?"#F9F7F4":"transparent",
+                      background:isSel?"var(--bg-card)":"transparent",
                       border:"none", cursor:"pointer",
                     }}>
-                    <span style={{ fontSize:14, color:isSel?"#1A1410":"#9A9080", fontWeight:isSel?600:400 }}>{shelf.name}</span>
-                    <span style={{ fontSize:10, marginLeft:12, flexShrink:0, fontWeight:500, color:filled>0?wAcc:"#C8C0B8" }}>{filled}/{total}</span>
+                    <span style={{ fontSize:14, color:isSel?"var(--text-primary)":"var(--text-muted)", fontWeight:isSel?600:400 }}>{shelf.name}</span>
+                    <span style={{ fontSize:10, marginLeft:12, flexShrink:0, fontWeight:500, color:filled>0?wAcc:"var(--text-muted)" }}>{filled}/{total}</span>
                   </button>
                 );
               })}
@@ -661,46 +645,24 @@ export default function ShelfViewer3D({ activeSubTab = "display" }: { activeSubT
         </AnimatePresence>
 
         {/* Legend */}
-        <div className="hidden md:flex" style={{ padding:"5px 16px", borderBottom:"1px solid rgba(220,216,208,0.5)", background:"#FAFAF8", flexShrink:0, alignItems:"center", gap:12, flexWrap:"wrap" }}>
-          <span style={{ fontSize:7, color:"#9A9080", letterSpacing:"0.25em", fontWeight:600, textTransform:"uppercase" }}>Màu:</span>
+        <div className="hidden md:flex" style={{ padding:"5px 16px", borderBottom:"1px solid var(--border-subtle)", background:"var(--bg-card)", flexShrink:0, alignItems:"center", gap:12, flexWrap:"wrap" }}>
+          <span style={{ fontSize:7, color:"var(--text-muted)", letterSpacing:"0.25em", fontWeight:600, textTransform:"uppercase" }}>Màu:</span>
           {LEGEND.map(({ l, c }) => (
             <div key={l} style={{ display:"flex", alignItems:"center", gap:5 }}>
               <div style={{ width:8, height:8, borderRadius:2, background:c }} />
-              <span style={{ fontSize:8, color:"#9A9080" }}>{l}</span>
+              <span style={{ fontSize:8, color:"var(--text-muted)" }}>{l}</span>
             </div>
           ))}
         </div>
 
-        {/* Content */}
-        <div style={{ flex:1, overflow:viewMode==="3d"?"hidden":"auto", padding:viewMode==="3d"?0:20 }}>
-          <AnimatePresence mode="wait">
-            {viewMode === "3d" ? (
-              <motion.div key="3d" initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }}
-                style={{ width:"100%", height:"100%", background:"#0C0C10" }}
-              >
-                {activeSubTab === "display" && selectedStoreSub ? (
-                  <Scene3DCanvas camY={camYTarget}>
-                    <StoreSub3D sub={selectedStoreSub.sub} prodMap={prodMap} />
-                  </Scene3DCanvas>
-                ) : activeSubTab === "warehouse" && selectedWHShelf ? (
-                  <Scene3DCanvas camY={camYTarget}>
-                    <WarehouseShelf3D shelf={selectedWHShelf} prodMap={prodMap} />
-                  </Scene3DCanvas>
-                ) : (
-                  <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:"100%" }}>
-                    <p style={{ color:"rgba(255,255,255,0.25)", fontSize:12 }}>Chọn kệ bên trái</p>
-                  </div>
-                )}
-              </motion.div>
-            ) : (
-              <motion.div key="2d" initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }}>
-                {activeSubTab === "display"
-                  ? (selectedStoreSub ? <StoreSub2D sub={selectedStoreSub.sub} prodMap={prodMap} /> : <Empty label="Chọn kệ trưng bày bên trái" />)
-                  : (selectedWHShelf  ? <WarehouseSub2D shelf={selectedWHShelf} prodMap={prodMap} /> : <Empty label="Chọn kệ kho bên trái" />)
-                }
-              </motion.div>
-            )}
-          </AnimatePresence>
+        {/* Content — 2D planogram only */}
+        <div style={{ flex:1, overflowY:"auto", overflowX:"auto", padding:20 }}>
+          <motion.div initial={{ opacity:0 }} animate={{ opacity:1 }}>
+            {activeSubTab === "display"
+              ? (selectedStoreSub ? <StoreSub2D sub={selectedStoreSub.sub} prodMap={prodMap} /> : <Empty label="Chọn kệ trưng bày bên trái" />)
+              : (selectedWHShelf  ? <WarehouseSub2D shelf={selectedWHShelf} prodMap={prodMap} /> : <Empty label="Chọn kệ kho bên trái" />)
+            }
+          </motion.div>
         </div>
       </div>
     </div>
@@ -709,9 +671,9 @@ export default function ShelfViewer3D({ activeSubTab = "display" }: { activeSubT
 
 function Empty({ label }: { label: string }) {
   return (
-    <div style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", height:200, gap:12, color:"#9A9080" }}>
-      <span style={{ fontSize:36, opacity:0.1 }}>◫</span>
-      <p style={{ fontSize:10, letterSpacing:"0.2em", textTransform:"uppercase", fontWeight:500 }}>{label}</p>
+    <div style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", height:200, gap:12 }}>
+      <span style={{ fontSize:36, opacity:0.08, color:"var(--text-muted)" }}>◫</span>
+      <p style={{ fontSize:10, letterSpacing:"0.2em", textTransform:"uppercase", fontWeight:500, color:"var(--text-muted)" }}>{label}</p>
     </div>
   );
 }

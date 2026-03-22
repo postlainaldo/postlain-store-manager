@@ -1,342 +1,265 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import WarehousePanel from "@/components/WarehousePanel";
-import SectionEditor from "@/components/SectionEditor";
-import WarehouseShelfEditor from "@/components/WarehouseShelfEditor";
-import ShelfViewer3D from "@/components/ShelfViewer3D";
+import { useEffect } from "react";
+import { motion } from "framer-motion";
 import { useStore } from "@/store/useStore";
-type MainTab = "prepare" | "view";
-type SubTab  = "display" | "warehouse";
-type MobTab  = "products" | "prepare" | "view";
+import { DollarSign, Eye, Layers, Package, ArrowUpRight, ArrowDownRight, Minus } from "lucide-react";
 
-const MAIN_TABS: { id: MainTab; label: string; icon: string }[] = [
-  { id: "prepare", label: "CHUẨN BỊ", icon: "◫" },
-  { id: "view",    label: "XEM KỆ",   icon: "◈" },
-];
+const MOVEMENT_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
+  TRANSFER:   { label: "CHUYỂN KHO", color: "var(--blue)",       bg: "var(--blue-subtle)"   },
+  RECEIVE:    { label: "NHẬP KHO",   color: "var(--accent-green)",bg: "rgba(123,175,106,0.10)" },
+  SALE:       { label: "BÁN RA",     color: "var(--gold)",        bg: "var(--gold-muted)"    },
+  ADJUSTMENT: { label: "ĐIỀU CHỈNH", color: "var(--accent-purple)",bg: "rgba(155,136,196,0.10)" },
+  MARKDOWN:   { label: "MARKDOWN",   color: "var(--accent-red)",  bg: "rgba(200,122,90,0.10)"  },
+  RETURN:     { label: "TRẢ HÀNG",   color: "var(--text-muted)",  bg: "var(--bg-elevated)"   },
+};
 
-const SUB_TABS: { id: SubTab; label: string; icon: string; color: string }[] = [
-  { id: "display",   label: "Trưng bày", icon: "◫", color: "#B8914A" },
-  { id: "warehouse", label: "Kho",       icon: "▤", color: "#5A7898" },
-];
+const RECENT_MOVEMENTS = [
+  { id: "mv-001", product: "ALDO Dress Pump",    variant: "Đen / EU 38",    type: "TRANSFER",   from: "Kho Chính A",    to: "Kệ Nữ — DRESS",  qty: 4,  by: "Nguyễn P.", time: "2 phút trước"  },
+  { id: "mv-002", product: "ALDO Tote Bag",       variant: "Nude / One Size",type: "RECEIVE",    from: null,             to: "Kho Chính B",     qty: 24, by: "Trần M.",   time: "18 phút trước" },
+  { id: "mv-003", product: "ALDO Sneaker Low",    variant: "Trắng / EU 40", type: "SALE",       from: "Kệ Nữ — DRESS",  to: null,              qty: 1,  by: "POS Auto",  time: "42 phút trước" },
+  { id: "mv-004", product: "ALDO Block Heel",     variant: "Tan / EU 37",   type: "ADJUSTMENT", from: "Kho Chính A",    to: "Kho Chính A",     qty: -2, by: "Lê T.",     time: "1 giờ trước"   },
+  { id: "mv-005", product: "ALDO Strappy Sandal", variant: "Vàng / EU 38",  type: "MARKDOWN",   from: "Kệ Nữ — CASUAL", to: "Khu Markdown",    qty: 8,  by: "Nguyễn P.", time: "2 giờ trước"   },
+  { id: "mv-006", product: "ALDO Ankle Boot",     variant: "Đen / EU 39",   type: "RETURN",     from: null,             to: "Kho Kiểm Hàng",   qty: 1,  by: "POS Auto",  time: "3 giờ trước"   },
+] as const;
 
-const MOB_TABS: { id: MobTab; label: string; icon: string; color: string }[] = [
-  { id: "products", label: "SẢN PHẨM", icon: "▦", color: "#B8914A" },
-  { id: "prepare",  label: "CHUẨN BỊ", icon: "◫", color: "#B8914A" },
-  { id: "view",     label: "XEM KỆ",   icon: "◈", color: "#6A8868" },
-];
+const fadeUp = {
+  hidden:  { opacity: 0, y: 16 },
+  visible: (i: number) => ({
+    opacity: 1, y: 0,
+    transition: { delay: i * 0.06, duration: 0.38, ease: [0.16, 1, 0.3, 1] },
+  }),
+};
 
-export default function Home() {
-  const [mainTab, setMainTab] = useState<MainTab>("prepare");
-  const [subTab, setSubTab]   = useState<SubTab>("display");
-  const [mobTab, setMobTab]   = useState<MobTab>("prepare");
+function fmt(n: number) {
+  return new Intl.NumberFormat("vi-VN").format(n);
+}
 
-  const { selectedProduct, warehouseShelves, products } = useStore();
+export default function OverviewPage() {
+  const { products, warehouseShelves, storeSections, fetchProducts } = useStore();
 
-  const totalFilled = warehouseShelves.reduce(
+  useEffect(() => { fetchProducts(); }, []);
+
+  const totalSKUs  = products.length;
+  const totalValue = products.reduce((s, p) => s + (p.price || 0) * p.quantity, 0);
+
+  const displayedIds = new Set<string>();
+  storeSections.forEach(sec =>
+    sec.subsections.forEach(sub =>
+      sub.rows.forEach(row =>
+        row.products.forEach(pid => { if (pid) displayedIds.add(pid); })
+      )
+    )
+  );
+  const onDisplayCount = displayedIds.size;
+
+  const warehouseTotal = warehouseShelves.reduce(
     (s, sh) => s + sh.tiers.reduce((ts, t) => ts + t.filter(Boolean).length, 0), 0
   );
-  const totalSlots = warehouseShelves.reduce((s, sh) => s + sh.tiers.length * 25, 0);
-  const fillPct = totalSlots > 0 ? Math.round((totalFilled / totalSlots) * 100) : 0;
 
-  // ESC to deselect
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") useStore.getState().selectProduct(null);
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, []);
+  const categories = Array.from(new Set(products.map(p => p.category))).length;
 
-  function PrepareContent() {
-    return (
-      <div className="flex flex-col h-full overflow-hidden">
-        {/* Local subtab bar — TRƯNG BÀY / KHO */}
-        <div
-          className="flex-shrink-0 border-b border-border flex items-stretch"
-          style={{ height: 40, background: "#FAFAF8" }}
-        >
-          <div className="flex items-stretch">
-            {SUB_TABS.map(tab => {
-              const isActive = subTab === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setSubTab(tab.id)}
-                  className="relative flex items-center gap-1.5 px-5 transition-colors"
-                  style={{
-                    fontSize: 9, fontWeight: 600, letterSpacing: "0.18em",
-                    color: isActive ? tab.color : "#B0A898",
-                    background: isActive ? "rgba(255,255,255,0.8)" : "transparent",
-                    minWidth: 100,
-                  }}
-                >
-                  <span style={{ fontSize: 13 }}>{tab.icon}</span>
-                  <span>{tab.label.toUpperCase()}</span>
-                  {isActive && (
-                    <motion.div
-                      layoutId="prepSubUnderline"
-                      className="absolute bottom-0 left-0 right-0"
-                      style={{ height: 2, background: tab.color, borderRadius: "2px 2px 0 0" }}
-                      transition={{ type: "spring", bounce: 0.25, duration: 0.35 }}
-                    />
-                  )}
-                </button>
-              );
-            })}
-          </div>
-          {/* Right status */}
-          <div className="ml-auto flex items-center gap-4 px-4">
-            {subTab === "warehouse" && totalSlots > 0 && (
-              <div className="flex items-center gap-2">
-                <div style={{ width: 64, height: 3, background: "#EAE6E0", borderRadius: 2, overflow: "hidden" }}>
-                  <div style={{ width: `${fillPct}%`, height: "100%", background: "#5A7898", borderRadius: 2 }} />
-                </div>
-                <span style={{ fontSize: 8, color: "#5A7898", fontWeight: 600 }}>{fillPct}%</span>
-              </div>
-            )}
-            {subTab === "display" && selectedProduct && (
-              <div className="hidden sm:flex items-center gap-1.5">
-                <div className="w-1.5 h-1.5 rounded-full pulse-gold" style={{ background: "#B8914A" }} />
-                <span style={{ fontSize: 8, color: "#B8914A", fontWeight: 500, maxWidth: 140, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {selectedProduct.name}
-                </span>
-              </div>
-            )}
-          </div>
-        </div>
-
-        <AnimatePresence mode="wait" initial={false}>
-          {subTab === "display" && (
-            <motion.div key="prep-display"
-              className="flex-1 flex overflow-hidden min-h-0"
-              initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 6 }}
-              transition={{ duration: 0.15 }}
-            >
-              <div className="flex-1 overflow-hidden min-w-0 relative">
-                <SectionEditor />
-              </div>
-            </motion.div>
-          )}
-          {subTab === "warehouse" && (
-            <motion.div key="prep-warehouse"
-              className="flex-1 flex flex-col overflow-hidden min-h-0"
-              initial={{ opacity: 0, x: 6 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -6 }}
-              transition={{ duration: 0.15 }}
-            >
-              <div className="flex-1 overflow-hidden min-h-0">
-                <WarehouseShelfEditor />
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-    );
-  }
-
-  function ViewContent() {
-    return (
-      <div className="flex-1 overflow-hidden h-full w-full min-h-0">
-        <ShelfViewer3D activeSubTab={subTab} />
-      </div>
-    );
-  }
+  const STATS = [
+    {
+      id: "stock-value", label: "Giá Trị Tồn Kho", sublabel: "Tổng giá trị hàng tồn",
+      value: totalValue >= 1_000_000_000
+        ? `${(totalValue / 1_000_000_000).toFixed(2)} Tỷ`
+        : `${fmt(Math.round(totalValue / 1_000))}K`,
+      unit: "VND", icon: DollarSign, trend: +12.4, color: "var(--gold)",
+    },
+    {
+      id: "on-display", label: "Đang Trưng Bày", sublabel: "Sản phẩm đang đặt trên kệ",
+      value: fmt(onDisplayCount), unit: "sản phẩm", icon: Eye, trend: onDisplayCount > 0 ? 5 : 0, color: "var(--blue)",
+    },
+    {
+      id: "warehouse", label: "Trong Kho", sublabel: "Vị trí đang có hàng trong kho",
+      value: fmt(warehouseTotal), unit: "vị trí", icon: Package, trend: 0, color: "var(--accent-purple)",
+    },
+    {
+      id: "categories", label: "Danh Mục", sublabel: "Số danh mục sản phẩm",
+      value: categories, unit: "danh mục", icon: Layers, trend: 0, color: "var(--accent-green)",
+    },
+  ];
 
   return (
-    <div className="flex flex-col h-[100dvh] w-screen overflow-hidden" style={{ background: "var(--bg-base)" }}>
+    <div className="flex flex-col gap-8 md:gap-10">
 
-      {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <header
-        className="flex-shrink-0 flex items-center justify-between border-b border-border"
-        style={{
-          height: 54,
-          paddingLeft: 16, paddingRight: 16,
-          background: "#FFFFFF",
-          boxShadow: "0 1px 0 #EAE6E0, 0 2px 12px rgba(26,20,16,0.04)",
-        }}
+      {/* ── Tiêu đề ─────────────────────────────────────────── */}
+      <motion.div
+        initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}
+        className="flex flex-col gap-1.5"
       >
-        {/* Logo */}
-        <div className="flex items-center gap-3 flex-shrink-0">
-          <div
-            className="w-8 h-8 flex items-center justify-center flex-shrink-0"
-            style={{
-              border: "1px solid rgba(184,145,74,0.4)",
-              background: "linear-gradient(145deg,#FFFDF9,#F5F0E8)",
-              boxShadow: "0 1px 6px rgba(184,145,74,0.14), inset 0 1px 0 rgba(255,255,255,0.8)",
-            }}
-          >
-            <span style={{ color: "#B8914A", fontSize: 12, fontWeight: 600, letterSpacing: "0.1em" }}>P</span>
-          </div>
-          <div className="leading-none">
-            <p style={{ fontSize: 10, letterSpacing: "0.5em", color: "#B8914A", fontWeight: 600 }}>POSTLAIN</p>
-            <p className="hidden sm:block" style={{ fontSize: 7, letterSpacing: "0.22em", color: "#9A9080", marginTop: 2 }}>
-              STORE MANAGER · ALDO
-            </p>
-          </div>
-        </div>
+        <p className="text-text-muted font-semibold uppercase tracking-[0.38em]" style={{ fontSize: 9 }}>
+          Quản Lý Cửa Hàng · ALDO
+        </p>
+        <h1 className="text-text-primary font-light tracking-wide" style={{ fontSize: 26, lineHeight: 1.2 }}>
+          Tổng Quan
+        </h1>
+      </motion.div>
 
-        {/* Desktop main tab switcher */}
-        <div className="hidden md:flex items-center"
-          style={{
-            background: "#F0EDE8", border: "1px solid #DDD8D0",
-            borderRadius: 8, padding: 3, gap: 2,
-          }}>
-          {MAIN_TABS.map(t => {
-            const isActive = mainTab === t.id;
-            return (
-              <button key={t.id} onClick={() => setMainTab(t.id)}
-                className="transition-all duration-150 active:scale-95"
-                style={{
-                  padding: "7px 20px",
-                  borderRadius: 6,
-                  fontSize: 9, fontWeight: 600, letterSpacing: "0.2em",
-                  background: isActive ? "#1A1410" : "transparent",
-                  color: isActive ? "#FFFFFF" : "#9A9080",
-                  boxShadow: isActive ? "0 1px 6px rgba(0,0,0,0.2)" : "none",
-                }}
-              >{t.icon} {t.label}</button>
-            );
-          })}
-        </div>
-
-        {/* Right indicators */}
-        <div className="flex items-center gap-3 flex-shrink-0">
-          {/* Live dot */}
-          <div className="flex items-center gap-1.5">
-            <div className="w-2 h-2 rounded-full pulse-green flex-shrink-0" style={{ background: "#22C55E" }} />
-            <span className="hidden sm:inline" style={{ fontSize: 8, color: "#9A9080", letterSpacing: "0.2em", fontWeight: 500 }}>LIVE</span>
-          </div>
-
-          {/* Product count badge */}
-          <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5"
-            style={{ background: "#F5F2EE", border: "1px solid #DDD8D0", borderRadius: 6 }}>
-            <span style={{ fontSize: 7, color: "#9A9080", letterSpacing: "0.2em" }}>SKU</span>
-            <span style={{ fontSize: 10, color: "#1A1410", fontWeight: 600 }}>{products.length}</span>
-          </div>
-        </div>
-      </header>
-
-      {/* ── Body ─────────────────────────────────────────────────────────────── */}
-      <div className="flex flex-1 overflow-hidden min-h-0">
-
-        {/* LEFT: Products panel */}
-        <div
-          className={[
-            "flex-shrink-0 flex flex-col border-r border-border overflow-hidden",
-            "md:w-[280px] md:flex bg-white",
-            mobTab === "products" ? "flex flex-1 w-full" : "hidden md:flex md:w-[280px]",
-          ].join(" ")}
-          style={{ boxShadow: "1px 0 0 #EAE6E0" }}
-        >
-          {/* Panel header */}
-          <div
-            className="px-4 py-2.5 border-b border-border flex-shrink-0 flex items-center justify-between"
-            style={{ background: "linear-gradient(180deg,#FFFFFF 0%,#FAFAF8 100%)", minHeight: 40 }}
-          >
-            <div className="flex items-center gap-2">
-              <span style={{ fontSize: 8, letterSpacing: "0.35em", color: "#B8914A", fontWeight: 700, textTransform: "uppercase" }}>
-                SẢN PHẨM
-              </span>
-              <span
-                style={{
-                  padding: "1px 7px", borderRadius: 20,
-                  fontSize: 8, fontWeight: 700, color: "#B8914A",
-                  background: "rgba(184,145,74,0.10)", border: "1px solid rgba(184,145,74,0.20)",
-                }}
-              >{products.length}</span>
-            </div>
-            <div style={{ width: 6, height: 6, borderRadius: "50%", background: "rgba(184,145,74,0.3)" }} />
-          </div>
-          <div className="flex-1 overflow-hidden min-h-0">
-            <WarehousePanel />
-          </div>
-        </div>
-
-        {/* RIGHT: Content area */}
-        <div className={[
-          "flex-1 flex flex-col overflow-hidden min-w-0",
-          mobTab === "products" ? "hidden md:flex" : "flex",
-        ].join(" ")}>
-
-          {/* DESKTOP content */}
-          <div className="hidden md:flex flex-1 overflow-hidden min-h-0">
-            {mainTab === "prepare" && <PrepareContent />}
-            {mainTab === "view"    && <ViewContent />}
-          </div>
-
-          {/* MOBILE content */}
-          <div className="md:hidden flex-1 overflow-hidden min-h-0 relative">
-            {/* Selected product banner */}
-            {mobTab === "prepare" && subTab === "display" && selectedProduct && (
-              <motion.div
-                initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
-                className="absolute top-0 left-0 right-0 z-20 mx-3 mt-2 px-3 py-2 flex items-center gap-2"
-                style={{
-                  background: "rgba(184,145,74,0.09)", border: "1px solid rgba(184,145,74,0.28)",
-                  borderRadius: 8, boxShadow: "0 2px 8px rgba(184,145,74,0.12)",
-                  pointerEvents: "none",
-                }}
-              >
-                <div className="w-1.5 h-1.5 rounded-full pulse-gold flex-shrink-0" style={{ background: "#B8914A" }} />
-                <span style={{ fontSize: 11, color: "#B8914A", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontWeight: 500 }}>
-                  {selectedProduct.name}
-                </span>
-                <span style={{ fontSize: 9, color: "rgba(184,145,74,0.6)", flexShrink: 0 }}>→ chọn ô kệ</span>
-              </motion.div>
-            )}
-            {mobTab === "prepare" && <PrepareContent />}
-            {mobTab === "view"    && <ViewContent />}
-          </div>
-        </div>
+      {/* ── Thẻ thống kê — responsive grid ──────────────────── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+        {STATS.map((stat, i) => {
+          const Icon    = stat.icon;
+          const trendUp = stat.trend > 0;
+          const neutral = stat.trend === 0;
+          return (
+            <motion.div
+              key={stat.id} custom={i} initial="hidden" animate="visible" variants={fadeUp}
+              className="relative overflow-hidden rounded-xl border border-border bg-bg-card p-5 flex flex-col gap-3"
+            >
+              {/* Top gradient line */}
+              <div
+                className="absolute top-0 left-6 right-6 h-px"
+                style={{ background: `linear-gradient(90deg, transparent, ${stat.color}55, transparent)` }}
+              />
+              <div className="flex items-start justify-between">
+                <div className="flex flex-col gap-1">
+                  <p className="text-text-muted font-semibold uppercase tracking-[0.2em]" style={{ fontSize: 9 }}>{stat.label}</p>
+                  <p className="text-text-muted" style={{ fontSize: 8, opacity: 0.5 }}>{stat.sublabel}</p>
+                </div>
+                <div
+                  className="w-8 h-8 rounded-lg border flex items-center justify-center flex-shrink-0"
+                  style={{ background: `color-mix(in srgb, ${stat.color} 12%, transparent)`, borderColor: `color-mix(in srgb, ${stat.color} 28%, transparent)` }}
+                >
+                  <Icon size={13} style={{ color: stat.color }} strokeWidth={1.5} />
+                </div>
+              </div>
+              <div className="flex items-baseline gap-2">
+                <span className="text-text-primary font-light" style={{ fontSize: 26, letterSpacing: "0.02em" }}>{stat.value}</span>
+                <span className="font-medium tracking-widest" style={{ fontSize: 8, color: stat.color }}>{stat.unit}</span>
+              </div>
+              {!neutral && (
+                <div className="flex items-center gap-1">
+                  {trendUp
+                    ? <ArrowUpRight size={10} className="text-accent-green" />
+                    : <ArrowDownRight size={10} className="text-accent-red" />}
+                  <span style={{ fontSize: 9 }} className={trendUp ? "text-accent-green" : "text-accent-red"}>
+                    {Math.abs(stat.trend)}% so với tháng trước
+                  </span>
+                </div>
+              )}
+              {neutral && (
+                <div className="flex items-center gap-1">
+                  <Minus size={10} className="text-text-muted" />
+                  <span style={{ fontSize: 9 }} className="text-text-muted">Không thay đổi</span>
+                </div>
+              )}
+            </motion.div>
+          );
+        })}
       </div>
 
-      {/* ── Bottom nav — mobile only ──────────────────────────────────────────── */}
-      <nav
-        className="md:hidden flex-shrink-0 border-t border-border"
-        style={{
-          background: "#FFFFFF",
-          paddingBottom: "max(env(safe-area-inset-bottom), 6px)",
-          boxShadow: "0 -1px 0 #EAE6E0, 0 -4px 20px rgba(26,20,16,0.06)",
-        }}
-      >
-        <div className="flex">
-          {MOB_TABS.map(tab => {
-            const isActive = mobTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setMobTab(tab.id)}
-                className="relative flex-1 flex flex-col items-center justify-center gap-1 transition-all tap-scale"
-                style={{ minHeight: 56, paddingTop: 10, paddingBottom: 8 }}
+      {/* ── Danh sách sản phẩm ──────────────────────────────── */}
+      {products.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.28, duration: 0.32 }}
+          className="rounded-xl border border-border bg-bg-card overflow-hidden"
+        >
+          <div className="px-5 py-3 border-b border-border flex justify-between items-center">
+            <p className="text-text-muted font-semibold uppercase tracking-[0.22em]" style={{ fontSize: 9 }}>Danh sách sản phẩm</p>
+            <span className="text-text-muted" style={{ fontSize: 9 }}>{totalSKUs} SKU</span>
+          </div>
+          <div style={{ maxHeight: 300, overflowY: "auto" }}>
+            {products.slice(0, 10).map((p, i) => (
+              <div
+                key={p.id}
+                className="grid px-5 items-center gap-3 border-b border-border last:border-0 product-row"
+                style={{ gridTemplateColumns: "2fr 1fr 0.8fr 0.8fr", height: 46 }}
               >
-                {isActive && (
-                  <motion.div
-                    layoutId="bottomNavBar"
-                    className="absolute top-0 left-1/2 -translate-x-1/2 rounded-b-full"
-                    style={{ height: 2, width: 32, background: tab.color }}
-                    transition={{ type: "spring", bounce: 0.35, duration: 0.4 }}
-                  />
-                )}
-                <motion.span
-                  animate={{ scale: isActive ? 1.12 : 1 }}
-                  transition={{ type: "spring", stiffness: 400, damping: 20 }}
-                  style={{ fontSize: 17, lineHeight: 1, color: isActive ? tab.color : "#B0A898" }}
+                <div className="flex items-center gap-2 overflow-hidden">
+                  {p.color && <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: p.color }} />}
+                  <span className="text-text-primary font-medium truncate" style={{ fontSize: 11 }}>{p.name}</span>
+                </div>
+                <span className="text-text-muted tracking-wide" style={{ fontSize: 9 }}>{p.category}</span>
+                <span className="text-text-muted font-mono tracking-wide" style={{ fontSize: 9 }}>{p.sku || "—"}</span>
+                <span
+                  className="font-medium"
+                  style={{
+                    fontSize: 12,
+                    color: p.quantity === 0 ? "var(--accent-red)" : p.quantity < 5 ? "var(--gold)" : "var(--text-primary)",
+                  }}
                 >
-                  {tab.icon}
-                </motion.span>
-                <span style={{
-                  fontSize: 8, fontWeight: 600, letterSpacing: "0.08em", lineHeight: 1,
-                  color: isActive ? tab.color : "#B0A898",
-                }}>
-                  {tab.label}
+                  {p.quantity}
                 </span>
-              </button>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+      )}
+
+      {/* ── Biến động gần đây ────────────────────────────────── */}
+      <motion.div
+        initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.34, duration: 0.32 }}
+        className="rounded-xl border border-border bg-bg-card overflow-hidden"
+      >
+        <div className="px-5 py-3 border-b border-border">
+          <p className="text-text-muted font-semibold uppercase tracking-[0.22em]" style={{ fontSize: 9 }}>Biến Động Gần Đây</p>
+        </div>
+
+        {/* Responsive: table on md+, cards on mobile */}
+        <div className="hidden md:block">
+          <div
+            className="grid px-5 items-center gap-3 border-b border-border"
+            style={{ gridTemplateColumns: "2fr 1fr 1fr 1fr 0.5fr 0.8fr", height: 32 }}
+          >
+            {["Sản Phẩm", "Loại", "Từ", "Đến", "SL", "Thời Gian"].map(h => (
+              <span key={h} className="text-text-muted font-semibold uppercase tracking-[0.2em]" style={{ fontSize: 8 }}>{h}</span>
+            ))}
+          </div>
+          {RECENT_MOVEMENTS.map((mv, i) => {
+            const cfg = MOVEMENT_CONFIG[mv.type];
+            return (
+              <div
+                key={mv.id}
+                className="grid px-5 items-center gap-3 border-b border-border last:border-0 product-row"
+                style={{ gridTemplateColumns: "2fr 1fr 1fr 1fr 0.5fr 0.8fr", height: 48 }}
+              >
+                <div>
+                  <p className="text-text-primary font-medium" style={{ fontSize: 11 }}>{mv.product}</p>
+                  <p className="text-text-muted" style={{ fontSize: 8, marginTop: 1 }}>{mv.variant}</p>
+                </div>
+                <div className="inline-flex items-center px-2 py-0.5 rounded" style={{ background: cfg.bg }}>
+                  <span className="font-semibold tracking-wider" style={{ fontSize: 8, color: cfg.color }}>{cfg.label}</span>
+                </div>
+                <span className="text-text-muted truncate" style={{ fontSize: 9 }}>{mv.from ?? "—"}</span>
+                <span className="text-text-muted truncate" style={{ fontSize: 9 }}>{mv.to ?? "—"}</span>
+                <span className="font-medium" style={{ fontSize: 11, color: mv.qty < 0 ? "var(--accent-red)" : "var(--text-primary)" }}>
+                  {mv.qty > 0 ? `+${mv.qty}` : mv.qty}
+                </span>
+                <span className="text-text-muted" style={{ fontSize: 9 }}>{mv.time}</span>
+              </div>
             );
           })}
         </div>
-      </nav>
 
+        {/* Mobile cards */}
+        <div className="md:hidden divide-y divide-border">
+          {RECENT_MOVEMENTS.map(mv => {
+            const cfg = MOVEMENT_CONFIG[mv.type];
+            return (
+              <div key={mv.id} className="px-4 py-3 flex items-start justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <p className="text-text-primary font-medium truncate" style={{ fontSize: 11 }}>{mv.product}</p>
+                  <p className="text-text-muted" style={{ fontSize: 9, marginTop: 2 }}>{mv.variant}</p>
+                  <div className="flex items-center gap-2 mt-1.5">
+                    <div className="inline-flex items-center px-1.5 py-0.5 rounded" style={{ background: cfg.bg }}>
+                      <span className="font-semibold" style={{ fontSize: 7, color: cfg.color }}>{cfg.label}</span>
+                    </div>
+                    <span className="text-text-muted" style={{ fontSize: 8 }}>{mv.time}</span>
+                  </div>
+                </div>
+                <span
+                  className="font-medium flex-shrink-0"
+                  style={{ fontSize: 13, color: mv.qty < 0 ? "var(--accent-red)" : "var(--text-primary)" }}
+                >
+                  {mv.qty > 0 ? `+${mv.qty}` : mv.qty}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </motion.div>
     </div>
   );
 }

@@ -61,12 +61,12 @@ function Slot({ productId, sectionId, subsectionId, rowIndex, slotIndex }: {
           ? `1px solid ${catColor}55`
           : isPlacementMode
           ? "1px solid rgba(99,179,237,0.55)"
-          : "1px solid #E8E4DE",
+          : "1px solid var(--border)",
         background: product
           ? `${catColor}16`
           : isPlacementMode
-          ? "rgba(235,248,255,0.7)"
-          : "#F8F6F2",
+          ? "rgba(96,165,250,0.08)"
+          : "var(--bg-elevated)",
         boxShadow: product ? `0 1px 4px ${catColor}20` : "none",
       }}
     >
@@ -114,9 +114,9 @@ function ShelfRowView({ row, rowIndex, sectionId, subsectionId, shelfNumber, sho
         <div
           className="h-9 flex-1 min-w-0 flex items-center justify-center"
           style={{
-            border: "1.5px dashed #DDD8D0",
+            border: "1.5px dashed var(--border)",
             borderRadius: 5,
-            background: "#F8F6F2",
+            background: "var(--bg-elevated)",
           }}
         >
           <span className="text-[8px] text-text-muted tracking-widest font-medium">IMAGE PANEL</span>
@@ -208,9 +208,9 @@ function AddRowForm({ sectionId, subsectionId, onDone }: {
               className="px-3 py-1.5 text-[9px] tracking-[0.12em] font-semibold transition-all active:scale-95"
               style={{
                 borderRadius: 5,
-                border: type === t ? "1px solid rgba(184,145,74,0.5)" : "1px solid #DDD8D0",
-                background: type === t ? "rgba(184,145,74,0.12)" : "#F9F7F4",
-                color: type === t ? "#B8914A" : "#9A9080",
+                border: type === t ? "1px solid rgba(184,145,74,0.5)" : "1px solid var(--border)",
+                background: type === t ? "rgba(184,145,74,0.12)" : "var(--bg-elevated)",
+                color: type === t ? "var(--gold)" : "var(--text-muted)",
               }}
             >
               {t === "long" ? "DÀI" : t === "short" ? "NGẮN" : "TRANH"}
@@ -225,18 +225,18 @@ function AddRowForm({ sectionId, subsectionId, onDone }: {
               onChange={e => setSlots(Math.max(1, Math.min(20, Number(e.target.value))))}
               className="w-12 px-2 py-1 text-[10px] text-center text-text-primary focus:outline-none"
               style={{
-                border: "1px solid #DDD8D0", borderRadius: 5,
-                background: "#F0EDE8",
+                border: "1px solid var(--border)", borderRadius: 5,
+                background: "var(--bg-input)",
               }}
               onFocus={e => (e.currentTarget.style.borderColor = "rgba(184,145,74,0.5)")}
-              onBlur={e => (e.currentTarget.style.borderColor = "#DDD8D0")}
+              onBlur={e => (e.currentTarget.style.borderColor = "var(--border)")}
             />
           </label>
         )}
         {type !== "image" && (
           <div className="flex gap-0.5">
             {Array.from({ length: Math.min(slots, 12) }).map((_, i) => (
-              <div key={i} style={{ width: 11, height: 15, borderRadius: 2, border: "1px solid #DDD8D0", background: "#F8F6F2" }} />
+              <div key={i} style={{ width: 11, height: 15, borderRadius: 2, border: "1px solid var(--border)", background: "var(--bg-elevated)" }} />
             ))}
             {slots > 12 && <span className="text-[8px] text-text-muted self-end ml-0.5">+{slots - 12}</span>}
           </div>
@@ -245,7 +245,7 @@ function AddRowForm({ sectionId, subsectionId, onDone }: {
           <button
             onClick={onDone}
             className="px-3 py-1.5 text-[9px] font-medium text-text-muted transition-all active:scale-95"
-            style={{ border: "1px solid #DDD8D0", borderRadius: 5, background: "#F9F7F4" }}
+            style={{ border: "1px solid var(--border)", borderRadius: 5, background: "var(--bg-elevated)" }}
           >Hủy</button>
           <button
             onClick={handleAdd}
@@ -277,7 +277,7 @@ function Planogram({ section, subsection }: { section: StoreSection; subsection:
   let shortCounter = 0;
 
   return (
-    <div className="flex flex-col h-full overflow-hidden bg-bg-surface">
+    <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden", background: "var(--bg-surface)" }}>
       {/* Header */}
       <div
         className="px-3 py-2.5 border-b border-border flex items-center justify-between flex-shrink-0 gap-2"
@@ -296,9 +296,9 @@ function Planogram({ section, subsection }: { section: StoreSection; subsection:
             <span
               className="text-[8px] font-semibold px-2 py-0.5 rounded-full"
               style={{
-                color: filledSlots > 0 ? accent : "#9A9080",
-                background: filledSlots > 0 ? `${accent}12` : "#F0EDE8",
-                border: `1px solid ${filledSlots > 0 ? `${accent}25` : "#E8E4DE"}`,
+                color: filledSlots > 0 ? accent : "var(--text-muted)",
+                background: filledSlots > 0 ? `${accent}12` : "var(--bg-elevated)",
+                border: `1px solid ${filledSlots > 0 ? `${accent}25` : "var(--border)"}`,
               }}
             >
               {filledSlots}/{totalSlots}
@@ -326,7 +326,7 @@ function Planogram({ section, subsection }: { section: StoreSection; subsection:
 
       {/* Progress bar */}
       {totalSlots > 0 && (
-        <div className="h-0.5 flex-shrink-0" style={{ background: "#EAE6E0" }}>
+        <div className="h-0.5 flex-shrink-0" style={{ background: "var(--border)" }}>
           <div
             className="h-full transition-all duration-500"
             style={{ width: `${fillPct}%`, background: accent, opacity: 0.75 }}
@@ -363,7 +363,7 @@ function Planogram({ section, subsection }: { section: StoreSection; subsection:
                   onClick={() => setShowAddRow(true)}
                   className="flex items-center gap-2 px-3 py-2 text-[9px] font-medium text-text-muted hover:text-gold transition-colors active:opacity-70"
                   style={{
-                    border: "1.5px dashed #DDD8D0",
+                    border: "1.5px dashed var(--border)",
                     borderRadius: 6,
                   }}
                 >
@@ -397,33 +397,33 @@ export default function SectionEditor() {
   };
 
   return (
-    <div className="flex flex-col h-full overflow-hidden bg-bg-base">
+    <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden", background: "var(--bg-base)" }}>
 
       {/* ── Section / subsection picker ─────────────────────────────────── */}
-      <div className="flex items-center border-b border-border bg-bg-surface flex-shrink-0"
-        style={{ boxShadow: "0 1px 0 #EAE6E0", minHeight: 46 }}>
+      <div style={{ display: "flex", alignItems: "center", borderBottom: "1px solid var(--border)", background: "var(--bg-surface)", flexShrink: 0, minHeight: 46 }}>
         <button
           onClick={() => setMobileNavOpen(v => !v)}
-          className="flex-1 min-w-0 flex items-center gap-2.5 text-left active:bg-bg-card transition-colors"
-          style={{ borderLeft: `3px solid ${accent}`, paddingLeft: 12, paddingTop: 10, paddingBottom: 10, paddingRight: 12 }}
+          className="flex-1 min-w-0 flex items-center gap-2.5 text-left transition-colors"
+          style={{
+            paddingLeft: 12, paddingTop: 10, paddingBottom: 10, paddingRight: 12,
+            background: "transparent", border: "none", cursor: "pointer",
+            borderLeft: `2.5px solid ${accent}`,
+          }}
         >
           <div className="min-w-0 flex-1">
-            <p className="text-[7px] tracking-[0.22em] uppercase font-bold truncate" style={{ color: accent }}>
+            <p style={{ fontSize: 7, letterSpacing: "0.22em", textTransform: "uppercase", fontWeight: 700, color: accent, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               {section?.name ?? "Chọn khu vực"}
             </p>
-            <p className="text-[13px] text-text-primary font-medium truncate leading-tight mt-0.5">
+            <p style={{ fontSize: 13, color: "var(--text-primary)", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", lineHeight: 1.3, marginTop: 2 }}>
               {subsection?.name ?? "—"}
             </p>
           </div>
           <motion.span
             animate={{ rotate: mobileNavOpen ? 180 : 0 }}
             transition={{ duration: 0.2 }}
-            className="text-text-muted text-[10px] flex-shrink-0"
+            style={{ fontSize: 9, color: "var(--text-muted)", flexShrink: 0 }}
           >▼</motion.span>
         </button>
-        <div className="hidden md:flex px-4 border-l border-border self-stretch items-center">
-          <p className="text-[7px] tracking-[0.25em] text-text-muted uppercase font-semibold">KHU VỰC</p>
-        </div>
       </div>
 
       {/* ── Layout ──────────────────────────────────────────────────────── */}
@@ -435,20 +435,21 @@ export default function SectionEditor() {
             <motion.div
               initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.15 }}
-              className="absolute left-0 right-0 z-30 overflow-y-auto border-b border-border"
               style={{
+                position: "absolute", left: 0, right: 0, zIndex: 30, overflowY: "auto",
                 top: 54 + 40 + 46,
                 maxHeight: "60vh",
-                background: "#FFFFFF",
-                boxShadow: "0 8px 24px rgba(26,20,16,0.12)",
+                background: "var(--bg-surface)",
+                borderBottom: "1px solid var(--border)",
+                boxShadow: "0 8px 32px rgba(0,0,0,0.18)",
               }}
             >
               {storeSections.map(sec => {
-                const acc = SECTION_ACCENT[sec.sectionType] || "#B8914A";
+                const acc = SECTION_ACCENT[sec.sectionType] || "var(--gold)";
                 return (
                   <div key={sec.id}>
-                    <div className="px-4 py-2 border-b border-border/40" style={{ background: "#F9F7F4" }}>
-                      <p className="text-[9px] tracking-[0.18em] uppercase font-bold" style={{ color: acc }}>
+                    <div style={{ padding: "7px 16px", background: "var(--bg-card)", borderBottom: "1px solid var(--border)" }}>
+                      <p style={{ fontSize: 9, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700, color: acc }}>
                         {sec.name}
                       </p>
                     </div>
@@ -459,20 +460,21 @@ export default function SectionEditor() {
                         <button
                           key={sub.id}
                           onClick={() => handleSelect(sec.id, sub.id)}
-                          className="w-full text-left px-5 py-3 flex items-center justify-between border-b border-border/25 active:bg-bg-card transition-colors"
                           style={{
-                            background: isSelected ? "#F9F7F4" : undefined,
+                            width: "100%", textAlign: "left",
+                            padding: "12px 20px", display: "flex", alignItems: "center", justifyContent: "space-between",
+                            borderBottom: "1px solid var(--border-subtle)",
                             borderLeft: `3px solid ${isSelected ? acc : "transparent"}`,
                             paddingLeft: isSelected ? 17 : 20,
+                            background: isSelected ? "var(--bg-card)" : "transparent",
+                            border: "none", cursor: "pointer", transition: "background 0.1s",
                           }}
                         >
-                          <span className="text-sm"
-                            style={{ color: isSelected ? "#1A1410" : "#9A9080", fontWeight: isSelected ? 600 : 400 }}>
+                          <span style={{ fontSize: 14, color: isSelected ? "var(--text-primary)" : "var(--text-muted)", fontWeight: isSelected ? 600 : 400 }}>
                             {sub.name}
                           </span>
                           {subFilled > 0 && (
-                            <span className="text-[10px] ml-2 flex-shrink-0 font-semibold"
-                              style={{ color: acc }}>
+                            <span style={{ fontSize: 10, marginLeft: 8, flexShrink: 0, fontWeight: 600, color: acc }}>
                               {subFilled}
                             </span>
                           )}

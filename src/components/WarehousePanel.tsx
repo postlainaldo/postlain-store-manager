@@ -59,40 +59,40 @@ function ProductTooltip({ product, rect }: { product: Product; rect: DOMRect }) 
   return (
     <div style={{ position: "fixed", zIndex: 9999, pointerEvents: "none", top, left, minWidth: 220, maxWidth: tooltipW }}>
       <div style={{
-        background: "#FFFFFF", border: "1px solid #DDD8D0",
+        background: "var(--bg-surface)", border: "1px solid var(--border)",
         borderRadius: 12, overflow: "hidden",
-        boxShadow: "0 12px 40px rgba(26,20,16,0.16), 0 2px 8px rgba(26,20,16,0.08)",
+        boxShadow: "var(--shadow-lg)",
       }}>
         <div style={{ height: 5, background: displayColor ?? "#C9A96E" }} />
         <div style={{ padding: "12px 14px" }}>
-          <p style={{ fontSize: 11, fontWeight: 600, color: "#1A1410", lineHeight: 1.35 }}>{product.name}</p>
-          {product.sku && <p style={{ fontSize: 8, color: "#9A9080", marginTop: 3, fontFamily: "monospace", letterSpacing: "0.05em" }}>{product.sku}</p>}
-          <div style={{ marginTop: 10, paddingTop: 8, borderTop: "1px solid #EAE6E0", display: "flex", flexDirection: "column", gap: 6 }}>
+          <p style={{ fontSize: 11, fontWeight: 600, color: "var(--text-primary)", lineHeight: 1.35 }}>{product.name}</p>
+          {product.sku && <p style={{ fontSize: 8, color: "var(--text-muted)", marginTop: 3, fontFamily: "monospace", letterSpacing: "0.05em" }}>{product.sku}</p>}
+          <div style={{ marginTop: 10, paddingTop: 8, borderTop: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 6 }}>
             <Row label="Danh mục" value={product.category} />
             {typeConfig && <Row label="Loại" value={typeConfig.label} />}
             <Row label="Số lượng" value={String(product.quantity)} bold />
             {colorInfo && (
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ fontSize: 8, color: "#9A9080" }}>Màu</span>
+                <span style={{ fontSize: 8, color: "var(--text-muted)" }}>Màu</span>
                 <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
                   <span style={{ width: 12, height: 12, borderRadius: "50%", background: colorInfo.hex, border: "1px solid rgba(0,0,0,0.08)", flexShrink: 0, display: "inline-block" }} />
-                  <span style={{ fontSize: 8, color: "#6A6050" }}>{colorInfo.name}</span>
+                  <span style={{ fontSize: 8, color: "var(--text-secondary)" }}>{colorInfo.name}</span>
                 </span>
               </div>
             )}
             {product.size && <Row label="Size" value={product.size} />}
             {(product.price || product.markdownPrice) && (
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 2, paddingTop: 6, borderTop: "1px solid #EAE6E0" }}>
-                <span style={{ fontSize: 8, color: "#9A9080" }}>Giá</span>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 2, paddingTop: 6, borderTop: "1px solid var(--border)" }}>
+                <span style={{ fontSize: 8, color: "var(--text-muted)" }}>Giá</span>
                 <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  {product.price && <span style={{ fontSize: 8, color: "#9A9080", textDecoration: "line-through" }}>{fmt(product.price)}</span>}
+                  {product.price && <span style={{ fontSize: 8, color: "var(--text-muted)", textDecoration: "line-through" }}>{fmt(product.price)}</span>}
                   {product.markdownPrice && <span style={{ fontSize: 9, color: "#B8914A", fontWeight: 600 }}>{fmt(product.markdownPrice)}</span>}
                 </span>
               </div>
             )}
             {locs.length > 0 && (
-              <div style={{ marginTop: 4, paddingTop: 6, borderTop: "1px solid #EAE6E0" }}>
-                <p style={{ fontSize: 7, color: "#9A9080", letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: 5 }}>VỊ TRÍ</p>
+              <div style={{ marginTop: 4, paddingTop: 6, borderTop: "1px solid var(--border)" }}>
+                <p style={{ fontSize: 7, color: "var(--text-muted)", letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: 5 }}>VỊ TRÍ</p>
                 {locs.map((loc, i) => (
                   <div key={i} style={{ display: "flex", alignItems: "baseline", gap: 5, marginBottom: 3 }}>
                     <span style={{
@@ -104,13 +104,13 @@ function ProductTooltip({ product, rect }: { product: Product; rect: DOMRect }) 
                     }}>
                       {loc.type === "warehouse" ? "KHO" : "TRƯNG BÀY"}
                     </span>
-                    <span style={{ fontSize: 8, color: "#6A6050", fontFamily: "monospace", lineHeight: 1.5 }}>{loc.label}</span>
+                    <span style={{ fontSize: 8, color: "var(--text-secondary)", fontFamily: "monospace", lineHeight: 1.5 }}>{loc.label}</span>
                   </div>
                 ))}
               </div>
             )}
             {product.notes && (
-              <p style={{ fontSize: 8, color: "#9A9080", fontStyle: "italic", marginTop: 4, paddingTop: 6, borderTop: "1px solid #EAE6E0", lineHeight: 1.5 }}>{product.notes}</p>
+              <p style={{ fontSize: 8, color: "var(--text-muted)", fontStyle: "italic", marginTop: 4, paddingTop: 6, borderTop: "1px solid var(--border)", lineHeight: 1.5 }}>{product.notes}</p>
             )}
           </div>
         </div>
@@ -122,8 +122,8 @@ function ProductTooltip({ product, rect }: { product: Product; rect: DOMRect }) 
 function Row({ label, value, bold }: { label: string; value: string; bold?: boolean }) {
   return (
     <div style={{ display: "flex", justifyContent: "space-between" }}>
-      <span style={{ fontSize: 8, color: "#9A9080" }}>{label}</span>
-      <span style={{ fontSize: 8, color: "#1A1410", fontWeight: bold ? 600 : 400 }}>{value}</span>
+      <span style={{ fontSize: 8, color: "var(--text-muted)" }}>{label}</span>
+      <span style={{ fontSize: 8, color: "var(--text-primary)", fontWeight: bold ? 600 : 400 }}>{value}</span>
     </div>
   );
 }
@@ -182,10 +182,10 @@ export default function WarehousePanel() {
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%", background: "#FAFAF8" }}>
+    <div style={{ display: "flex", flexDirection: "column", height: "100%", background: "var(--bg-surface)" }}>
 
       {/* ── Stats strip ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", borderBottom: "1px solid #EAE6E0", background: "#FFFFFF", flexShrink: 0 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", borderBottom: "1px solid var(--border)", background: "var(--bg-surface)", flexShrink: 0 }}>
         {[
           { label: "Sản phẩm", value: products.length, color: "#B8914A" },
           { label: "Tổng SL",  value: totalQty, color: "#5A7898" },
@@ -193,32 +193,32 @@ export default function WarehousePanel() {
         ].map(({ label, value, color }, i) => (
           <div key={label} style={{
             padding: "10px 12px",
-            borderRight: i < 2 ? "1px solid #EAE6E0" : "none",
+            borderRight: i < 2 ? "1px solid var(--border)" : "none",
             display: "flex", flexDirection: "column", gap: 3,
           }}>
-            <p style={{ fontSize: 7, letterSpacing: "0.2em", color: "#9A9080", textTransform: "uppercase", fontWeight: 500 }}>{label}</p>
+            <p style={{ fontSize: 7, letterSpacing: "0.2em", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 500 }}>{label}</p>
             <p style={{ fontSize: 18, fontWeight: 300, lineHeight: 1, color }}>{value}</p>
           </div>
         ))}
       </div>
 
       {/* ── Toolbar ── */}
-      <div style={{ padding: "10px 12px 8px", borderBottom: "1px solid #EAE6E0", background: "#FFFFFF", flexShrink: 0, display: "flex", flexDirection: "column", gap: 8 }}>
+      <div style={{ padding: "10px 12px 8px", borderBottom: "1px solid var(--border)", background: "var(--bg-surface)", flexShrink: 0, display: "flex", flexDirection: "column", gap: 8 }}>
         {/* Search + action buttons */}
         <div style={{ display: "flex", gap: 6 }}>
           <div style={{ position: "relative", flex: 1 }}>
-            <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#9A9080", fontSize: 15, lineHeight: 1, pointerEvents: "none" }}>⌕</span>
+            <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)", fontSize: 15, lineHeight: 1, pointerEvents: "none" }}>⌕</span>
             <input
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Tìm tên, SKU..."
               style={{
                 width: "100%", paddingLeft: 30, paddingRight: 10, paddingTop: 9, paddingBottom: 9,
-                fontSize: 11, color: "#1A1410", background: "#F0EDE8",
-                border: "1px solid #DDD8D0", borderRadius: 7, outline: "none",
+                fontSize: 11, color: "var(--text-primary)", background: "var(--bg-input)",
+                border: "1px solid var(--border)", borderRadius: 7, outline: "none",
               }}
               onFocus={e => (e.currentTarget.style.borderColor = "rgba(184,145,74,0.6)")}
-              onBlur={e => (e.currentTarget.style.borderColor = "#DDD8D0")}
+              onBlur={e => (e.currentTarget.style.borderColor = "var(--border)")}
             />
           </div>
           {/* Import button */}
@@ -226,12 +226,12 @@ export default function WarehousePanel() {
             onClick={() => setShowExcel(true)}
             style={{
               padding: "9px 12px", fontSize: 9, fontWeight: 600, letterSpacing: "0.12em",
-              color: "#6A6050", background: "#F5F2EE", border: "1px solid #DDD8D0",
+              color: "var(--text-secondary)", background: "var(--bg-elevated)", border: "1px solid var(--border)",
               borderRadius: 7, cursor: "pointer", whiteSpace: "nowrap",
               transition: "all 0.12s",
             }}
-            onMouseEnter={e => { const b = e.currentTarget; b.style.background = "#EAE6E0"; }}
-            onMouseLeave={e => { const b = e.currentTarget; b.style.background = "#F5F2EE"; }}
+            onMouseEnter={e => { const b = e.currentTarget; b.style.background = "var(--bg-elevated)"; }}
+            onMouseLeave={e => { const b = e.currentTarget; b.style.background = "var(--bg-elevated)"; }}
           >⊞ IMPORT</button>
           {/* Add button */}
           <button
@@ -261,9 +261,9 @@ export default function WarehousePanel() {
                   padding: "5px 10px", fontSize: 8, fontWeight: 600, letterSpacing: "0.08em",
                   whiteSpace: "nowrap", flexShrink: 0,
                   borderRadius: 6,
-                  border: isActive ? "1px solid rgba(184,145,74,0.4)" : "1px solid #DDD8D0",
-                  background: isActive ? "rgba(184,145,74,0.12)" : "#F0EDE8",
-                  color: isActive ? "#B8914A" : "#9A9080",
+                  border: isActive ? "1px solid rgba(184,145,74,0.4)" : "1px solid var(--border)",
+                  background: isActive ? "rgba(184,145,74,0.12)" : "var(--bg-elevated)",
+                  color: isActive ? "var(--gold)" : "var(--text-muted)",
                   cursor: "pointer", transition: "all 0.1s",
                 }}
               >{cat}</button>
@@ -293,7 +293,7 @@ export default function WarehousePanel() {
                   <button onClick={handleBulkDelete}
                     style={{ padding: "4px 10px", fontSize: 9, color: "white", background: "#EF4444", border: "none", borderRadius: 5, cursor: "pointer", fontWeight: 600 }}>XÁC NHẬN</button>
                   <button onClick={() => setConfirmBulkDelete(false)}
-                    style={{ padding: "4px 10px", fontSize: 9, color: "#9A9080", background: "none", border: "1px solid #DDD8D0", borderRadius: 5, cursor: "pointer" }}>HỦY</button>
+                    style={{ padding: "4px 10px", fontSize: 9, color: "var(--text-muted)", background: "none", border: "1px solid var(--border)", borderRadius: 5, cursor: "pointer" }}>HỦY</button>
                 </div>
               ) : (
                 <button onClick={() => setConfirmBulkDelete(true)}
@@ -314,32 +314,32 @@ export default function WarehousePanel() {
       {filtered.length > 0 && (
         <div style={{
           padding: "7px 14px", borderBottom: "1px solid rgba(220,216,208,0.5)",
-          background: "#FFFFFF", flexShrink: 0,
+          background: "var(--bg-surface)", flexShrink: 0,
           display: "flex", alignItems: "center", gap: 8,
         }}>
           <div
             onClick={toggleAll}
             style={{
               width: 16, height: 16, borderRadius: 4, flexShrink: 0, cursor: "pointer",
-              border: allFilteredChecked ? "1px solid #B8914A" : "1px solid #C8C0B8",
-              background: allFilteredChecked ? "#B8914A" : "transparent",
+              border: allFilteredChecked ? "1px solid var(--gold)" : "1px solid var(--border-strong)",
+              background: allFilteredChecked ? "var(--gold)" : "transparent",
               display: "flex", alignItems: "center", justifyContent: "center",
             }}
           >
             {allFilteredChecked && <span style={{ color: "white", fontSize: 9, lineHeight: 1 }}>✓</span>}
           </div>
-          <span style={{ fontSize: 8, color: "#9A9080", fontWeight: 500, cursor: "pointer" }} onClick={toggleAll}>
+          <span style={{ fontSize: 8, color: "var(--text-muted)", fontWeight: 500, cursor: "pointer" }} onClick={toggleAll}>
             {allFilteredChecked ? "Bỏ chọn tất cả" : `Chọn tất cả (${filtered.length})`}
           </span>
         </div>
       )}
 
       {/* ── Product list ── */}
-      <div style={{ flex: 1, overflowY: "auto", background: "#FFFFFF" }}>
+      <div style={{ flex: 1, overflowY: "auto", background: "var(--bg-surface)" }}>
         {filtered.length === 0 ? (
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: 200, gap: 12 }}>
-            <span style={{ fontSize: 36, opacity: 0.12, color: "#9A9080" }}>◫</span>
-            <p style={{ fontSize: 11, color: "#9A9080" }}>
+            <span style={{ fontSize: 36, opacity: 0.12, color: "var(--text-muted)" }}>◫</span>
+            <p style={{ fontSize: 11, color: "var(--text-muted)" }}>
               {products.length === 0 ? "Kho trống — thêm sản phẩm đầu tiên" : "Không tìm thấy kết quả"}
             </p>
             {products.length === 0 && (
@@ -392,7 +392,7 @@ export default function WarehousePanel() {
                       onClick={() => toggleCheck(p.id)}
                       style={{
                         width: 16, height: 16, borderRadius: 4, flexShrink: 0, cursor: "pointer",
-                        border: isChecked ? "1px solid #EF4444" : "1px solid #C8C0B8",
+                        border: isChecked ? "1px solid #EF4444" : "1px solid var(--border-strong)",
                         background: isChecked ? "#EF4444" : "transparent",
                         display: "flex", alignItems: "center", justifyContent: "center",
                         transition: "all 0.1s",
@@ -406,8 +406,8 @@ export default function WarehousePanel() {
                       onClick={() => !isChecked && selectProduct(isSelected ? null : p)}
                       style={{
                         width: 36, height: 46, borderRadius: 6, flexShrink: 0,
-                        border: "1px solid #EAE6E0",
-                        background: displayColor ? `${displayColor}18` : "#F0EDE8",
+                        border: "1px solid var(--border)",
+                        background: displayColor ? `${displayColor}18` : "var(--bg-elevated)",
                         overflow: "hidden", cursor: "pointer",
                         display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column",
                       }}
@@ -433,14 +433,14 @@ export default function WarehousePanel() {
                     >
                       <p style={{
                         fontSize: 12, fontWeight: 500, lineHeight: 1.3,
-                        color: isSelected ? "#B8914A" : "#1A1410",
+                        color: isSelected ? "var(--gold)" : "var(--text-primary)",
                         overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
                         transition: "color 0.1s",
                       }}>{p.name}</p>
                       <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 3, flexWrap: "wrap" }}>
-                        <span style={{ fontSize: 9, color: "#9A9080" }}>{p.category}</span>
+                        <span style={{ fontSize: 9, color: "var(--text-muted)" }}>{p.category}</span>
                         <span style={{ fontSize: 8, color: "rgba(154,144,128,0.4)" }}>·</span>
-                        <span style={{ fontSize: 9, color: "#9A9080" }}>×{p.quantity}</span>
+                        <span style={{ fontSize: 9, color: "var(--text-muted)" }}>×{p.quantity}</span>
                         {colorInfo && (
                           <span style={{ display: "flex", alignItems: "center", gap: 3 }}>
                             <span style={{ width: 8, height: 8, borderRadius: "50%", background: colorInfo.hex, border: "1px solid rgba(0,0,0,0.08)", display: "inline-block", flexShrink: 0 }} />
@@ -466,12 +466,12 @@ export default function WarehousePanel() {
                       <button
                         onClick={e => { e.stopPropagation(); setEditProduct(p); setShowForm(true); }}
                         style={{
-                          padding: "5px 8px", fontSize: 8, fontWeight: 600, color: "#6A6050",
-                          border: "1px solid #DDD8D0", borderRadius: 5, background: "#F9F7F4", cursor: "pointer",
+                          padding: "5px 8px", fontSize: 8, fontWeight: 600, color: "var(--text-secondary)",
+                          border: "1px solid var(--border)", borderRadius: 5, background: "var(--bg-elevated)", cursor: "pointer",
                           transition: "all 0.1s",
                         }}
-                        onMouseEnter={e => { (e.currentTarget).style.background = "#EAE6E0"; }}
-                        onMouseLeave={e => { (e.currentTarget).style.background = "#F9F7F4"; }}
+                        onMouseEnter={e => { (e.currentTarget).style.background = "var(--bg-card)"; }}
+                        onMouseLeave={e => { (e.currentTarget).style.background = "var(--bg-elevated)"; }}
                       >SỬA</button>
                       <button
                         onClick={e => { e.stopPropagation(); deleteProduct(p.id); }}
@@ -512,7 +512,7 @@ export default function WarehousePanel() {
             </p>
             <button
               onClick={() => selectProduct(null)}
-              style={{ fontSize: 9, color: "#9A9080", background: "none", border: "none", cursor: "pointer", padding: 0, marginTop: 4 }}
+              style={{ fontSize: 9, color: "var(--text-muted)", background: "none", border: "none", cursor: "pointer", padding: 0, marginTop: 4 }}
             >Bỏ chọn (ESC)</button>
           </motion.div>
         )}
