@@ -244,7 +244,7 @@ export default function InventoryPanel() {
           />
         )}
         {showExcel && <ExcelImportModal onClose={() => setShowExcel(false)} />}
-        {showQR && <QRScannerModal onClose={() => setShowQR(false)} />}
+        <QRScannerModal open={showQR} onClose={() => setShowQR(false)} />
       </AnimatePresence>
     </div>
   );

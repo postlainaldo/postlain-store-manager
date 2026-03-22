@@ -1,8 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAllProducts, insertProduct, updateProduct, deleteProduct, deleteProducts } from "@/lib/repo";
+import getDb from "@/lib/database";
 import type { Product } from "@/types";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const sku = req.nextUrl.searchParams.get("sku");
+  if (sku) {
+    const db = getDb();
+    const product = db.prepare("SELECT * FROM products WHERE sku = ? COLLATE NOCASE").get(sku.trim()) as Product | undefined;
+    if (!product) return NextResponse.json(null, { status: 404 });
+    return NextResponse.json(product);
+  }
   return NextResponse.json(getAllProducts());
 }
 

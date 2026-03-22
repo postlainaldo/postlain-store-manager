@@ -4,6 +4,13 @@ import { useEffect, useState } from "react";
 import { useStore } from "@/store/useStore";
 import { RefreshCw } from "lucide-react";
 
+function urlB64ToUint8Array(base64String: string) {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const rawData = atob(base64);
+  return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
+}
+
 export default function Providers({ children }: { children: React.ReactNode }) {
   const [hydrated, setHydrated] = useState(false);
   const [updateReady, setUpdateReady] = useState(false);
@@ -24,7 +31,44 @@ export default function Providers({ children }: { children: React.ReactNode }) {
       state.updateUser("user_admin", { email: "admin", passwordHash: "Aldo@123" });
     }
     state.fetchDbState();
+
+    // Validate current session — if user was deleted from DB, force logout
+    if (state.currentUser) {
+      fetch(`/api/profile?id=${state.currentUser.id}`)
+        .then(r => {
+          if (r.status === 404) {
+            useStore.getState().logout();
+          }
+        })
+        .catch(() => {});
+    }
+
     setHydrated(true);
+
+    // ── Push Notification subscription ───────────────────────────
+    const registerPush = async () => {
+      if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
+      const currentState = useStore.getState();
+      if (!currentState.currentUser) return;
+      const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+      if (!vapidKey) return;
+      try {
+        const perm = await Notification.requestPermission();
+        if (perm !== "granted") return;
+        const reg = await navigator.serviceWorker.ready;
+        const existing = await reg.pushManager.getSubscription();
+        const sub = existing ?? await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlB64ToUint8Array(vapidKey),
+        });
+        await fetch("/api/push/subscribe", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId: currentState.currentUser.id, subscription: sub.toJSON() }),
+        });
+      } catch { /* user denied or browser unsupported */ }
+    };
+    registerPush();
 
     // ── PWA Service Worker update detection ──────────────────────
     if ("serviceWorker" in navigator) {

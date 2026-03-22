@@ -4,10 +4,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, Focus, Box, Settings, LogIn, LogOut,
-  MessageSquare, User,
+  MessageSquare,
 } from "lucide-react";
 import { useStore } from "@/store/useStore";
 import NotificationBanner from "@/components/NotificationBanner";
+import GlobalSearch from "@/components/GlobalSearch";
 
 const NAV_ITEMS = [
   { id: "overview",     label: "Tổng Quan",  href: "/",             icon: LayoutDashboard, exact: true  },
@@ -93,6 +94,7 @@ export default function TopNav() {
 
       {/* ── Right side ───────────────────────────────────── */}
       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+        <GlobalSearch />
         <NotificationBanner />
 
         {currentUser ? (

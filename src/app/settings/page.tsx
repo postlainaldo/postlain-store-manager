@@ -401,7 +401,7 @@ function UsersPanel() {
   const [pwOpen, setPwOpen] = useState<string | null>(null);
   const [newPw, setNewPw] = useState("");
   const [showPw, setShowPw] = useState(false);
-  const [form, setForm] = useState({ name: "", role: "staff" as UserRole, password: "" });
+  const [form, setForm] = useState({ name: "", username: "", role: "staff" as UserRole, password: "" });
 
   const isAdmin = currentUser?.role === "admin";
 
@@ -409,13 +409,13 @@ function UsersPanel() {
   useEffect(() => { load(); }, []);
 
   const handleAdd = async () => {
-    if (!form.name.trim() || !form.password.trim()) return;
+    if (!form.name.trim() || !form.username.trim() || !form.password.trim()) return;
     await fetch("/api/auth", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: form.name.trim(), username: form.name.trim(), password: form.password, role: form.role }),
+      body: JSON.stringify({ name: form.name.trim(), username: form.username.trim(), password: form.password, role: form.role }),
     });
-    setForm({ name: "", role: "staff", password: "" });
+    setForm({ name: "", username: "", role: "staff", password: "" });
     setAddOpen(false);
     load();
   };
@@ -541,10 +541,13 @@ function UsersPanel() {
               </button>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: "8px 0" }}>
-                <p style={{ fontSize: 9, color: "#94a3b8" }}>Tên nhập vào = tên đăng nhập (không phân biệt hoa/thường)</p>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                  <input value={form.name} onChange={e => setForm(v => ({ ...v, name: e.target.value }))} placeholder="Tên đăng nhập"
+                  <input value={form.name} onChange={e => setForm(v => ({ ...v, name: e.target.value }))} placeholder="Họ tên hiển thị"
                     style={{ background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 8, padding: "7px 10px", fontSize: 11, color: "#0c1a2e", outline: "none", fontFamily: "inherit" }} />
+                  <input value={form.username} onChange={e => setForm(v => ({ ...v, username: e.target.value.toLowerCase().replace(/\s/g,"") }))} placeholder="Tên đăng nhập (không dấu)"
+                    style={{ background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 8, padding: "7px 10px", fontSize: 11, color: "#0c1a2e", outline: "none", fontFamily: "inherit" }} />
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                   <input value={form.password} onChange={e => setForm(v => ({ ...v, password: e.target.value }))} type="password" placeholder="Mật khẩu"
                     style={{ background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 8, padding: "7px 10px", fontSize: 11, color: "#0c1a2e", outline: "none", fontFamily: "inherit" }} />
                 </div>

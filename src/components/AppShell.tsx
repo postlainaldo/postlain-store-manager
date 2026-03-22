@@ -4,6 +4,8 @@ import { usePathname } from "next/navigation";
 import TopNav from "@/components/TopNav";
 import BottomNav from "@/components/BottomNav";
 import AuthGuard from "@/components/AuthGuard";
+import GlobalSearch from "@/components/GlobalSearch";
+import NotificationBanner from "@/components/NotificationBanner";
 
 const NO_SHELL_PATHS = ["/login", "/setup", "/install"];
 
@@ -29,6 +31,20 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* Mobile: content scrolls, BottomNav fixed at bottom */}
       <div className="md:hidden flex flex-col w-full bg-bg-base" style={{ height: "100dvh" }}>
+        {/* Mobile top bar */}
+        <div style={{
+          flexShrink: 0,
+          display: "flex", alignItems: "center", gap: 8,
+          padding: "8px 14px",
+          background: "#fff",
+          borderBottom: "1px solid #e0f2fe",
+        }}>
+          <div style={{ flex: 1 }}>
+            <GlobalSearch />
+          </div>
+          <NotificationBanner />
+        </div>
+
         <main
           className="flex-1 overflow-y-auto overflow-x-hidden bg-bg-base"
           style={{ paddingBottom: "calc(64px + env(safe-area-inset-bottom, 0px))" }}

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import getDb from "@/lib/database";
+import { sendPushToAll } from "@/lib/push";
 
 type Notif = { id: string; title: string; body: string; type: string; createdBy: string; createdAt: string; pinned: number };
 
@@ -27,6 +28,9 @@ export async function POST(req: NextRequest) {
   const msgId = `msg_${Date.now()}`;
   db.prepare("INSERT INTO chat_messages (id, roomId, userId, userName, content, createdAt) VALUES (?,?,?,?,?,?)")
     .run(msgId, "room_announce", createdBy ?? "user_admin", "Admin", announceMsg, new Date().toISOString());
+
+  // Send web push notification to all subscribed devices
+  sendPushToAll({ title, body, type: type ?? "info", url: "/chat" }).catch(() => {});
 
   return NextResponse.json({ ok: true, id });
 }

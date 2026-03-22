@@ -46,6 +46,10 @@ function getDb(): Database.Database {
 }
 
 function migrateSchema(db: Database.Database) {
+  // Add deletedAt to chat_messages if not exist
+  const msgCols = (db.prepare("PRAGMA table_info(chat_messages)").all() as { name: string }[]).map(c => c.name);
+  if (!msgCols.includes("deletedAt")) db.exec("ALTER TABLE chat_messages ADD COLUMN deletedAt TEXT");
+
   // Add profile columns to users if not exist
   const cols = (db.prepare("PRAGMA table_info(users)").all() as { name: string }[]).map(c => c.name);
   if (!cols.includes("avatar"))   db.exec("ALTER TABLE users ADD COLUMN avatar TEXT");

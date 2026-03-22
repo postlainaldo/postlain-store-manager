@@ -11,8 +11,9 @@ import ExcelImportModal from "@/components/ExcelImportModal";
 import { useRouter } from "next/navigation";
 import {
   Search, Plus, Upload, Package, Pencil, Trash2,
-  MapPin, X, Warehouse, Eye, CheckSquare, Square,
+  MapPin, X, Warehouse, Eye, CheckSquare, Square, ScanLine,
 } from "lucide-react";
+import QRScannerModal from "@/components/QRScannerModal";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -74,6 +75,7 @@ function ListView() {
   const [hoveredId,     setHoveredId]     = useState<string | null>(null);
   const [selected,      setSelected]      = useState<Set<string>>(new Set());
   const [confirmBulk,   setConfirmBulk]   = useState(false);
+  const [showScanner,   setShowScanner]   = useState(false);
 
   useEffect(() => { fetchProducts(); }, []);
 
@@ -140,6 +142,13 @@ function ListView() {
             </button>
           )}
         </div>
+        <button
+          onClick={() => setShowScanner(true)}
+          className="flex items-center gap-1.5 px-3 h-9 rounded-xl border font-[inherit] cursor-pointer transition-colors"
+          style={{ background: "#ffffff", borderColor: "#bae6fd", fontSize: 10, color: "#0ea5e9", letterSpacing: "0.1em" }}
+        >
+          <ScanLine size={11} strokeWidth={1.5} /> QUÉT MÃ
+        </button>
         <button
           onClick={() => setShowImport(true)}
           className="flex items-center gap-1.5 px-3 h-9 rounded-xl border font-[inherit] cursor-pointer transition-colors hover:border-blue"
@@ -402,6 +411,7 @@ function ListView() {
           onClose={() => setShowImport(false)}
         />
       )}
+      <QRScannerModal open={showScanner} onClose={() => setShowScanner(false)} />
       {/* Single delete confirm */}
       <AnimatePresence>
         {deleteId && (
