@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import { Montserrat } from "next/font/google";
 import Providers from "@/components/Providers";
-import TopNav from "@/components/TopNav";
-import BottomNav from "@/components/BottomNav";
+import AppShell from "@/components/AppShell";
 import "./globals.css";
 
 const montserrat = Montserrat({
@@ -38,20 +37,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className={`${montserrat.variable} font-sans antialiased`}>
         <Providers>
-          <div className="flex flex-col h-screen w-screen overflow-hidden bg-bg-base text-text-primary">
-            {/* Top navigation bar */}
-            <TopNav />
-
-            {/* Main content area */}
-            <main className="flex-1 overflow-y-auto overflow-x-hidden min-w-0 bg-bg-base">
-              <div className="max-w-[1440px] mx-auto px-4 py-5 md:px-8 md:py-6 pb-20 md:pb-8">
-                {children}
-              </div>
-            </main>
-          </div>
-
-          {/* Bottom nav — mobile only */}
-          <BottomNav />
+          <AppShell>{children}</AppShell>
         </Providers>
       </body>
     </html>
