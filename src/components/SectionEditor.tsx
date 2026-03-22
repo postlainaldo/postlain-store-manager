@@ -1,10 +1,9 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useStore } from "@/store/useStore";
 import { StoreSection, StoreSubsection, StoreShelfRow } from "@/types";
-import Product3DViewer from "./Product3DViewer";
 
 const SECTION_ACCENT: Record<string, string> = {
   wall_woman:   "#B8914A",
@@ -402,17 +401,17 @@ export default function SectionEditor() {
 
       {/* ── Section / subsection picker ─────────────────────────────────── */}
       <div className="flex items-center border-b border-border bg-bg-surface flex-shrink-0"
-        style={{ boxShadow: "0 1px 0 #EAE6E0" }}>
+        style={{ boxShadow: "0 1px 0 #EAE6E0", minHeight: 46 }}>
         <button
           onClick={() => setMobileNavOpen(v => !v)}
-          className="flex-1 min-w-0 flex items-center gap-2.5 px-3 py-2.5 text-left active:bg-bg-card transition-colors"
-          style={{ borderLeft: `3px solid ${accent}`, paddingLeft: 12 }}
+          className="flex-1 min-w-0 flex items-center gap-2.5 text-left active:bg-bg-card transition-colors"
+          style={{ borderLeft: `3px solid ${accent}`, paddingLeft: 12, paddingTop: 10, paddingBottom: 10, paddingRight: 12 }}
         >
           <div className="min-w-0 flex-1">
             <p className="text-[7px] tracking-[0.22em] uppercase font-bold truncate" style={{ color: accent }}>
               {section?.name ?? "Chọn khu vực"}
             </p>
-            <p className="text-[12px] text-text-primary font-medium truncate leading-tight mt-0.5">
+            <p className="text-[13px] text-text-primary font-medium truncate leading-tight mt-0.5">
               {subsection?.name ?? "—"}
             </p>
           </div>
@@ -430,70 +429,16 @@ export default function SectionEditor() {
       {/* ── Layout ──────────────────────────────────────────────────────── */}
       <div className="flex flex-1 overflow-hidden min-h-0">
 
-        {/* Desktop sidebar */}
-        <div className="hidden md:flex w-44 flex-shrink-0 border-r border-border overflow-y-auto bg-bg-surface flex-col"
-          style={{ boxShadow: "1px 0 0 #EAE6E0" }}>
-          <div className="flex flex-col divide-y divide-border/40">
-            {storeSections.map(sec => {
-              const acc = SECTION_ACCENT[sec.sectionType] || "#B8914A";
-              const filled = sec.subsections.reduce(
-                (s, sub) => s + sub.rows.reduce((rs, r) => rs + r.products.filter(Boolean).length, 0), 0
-              );
-              return (
-                <div key={sec.id}>
-                  <div className="px-3 py-2 bg-bg-card flex items-center justify-between">
-                    <span className="text-[8px] tracking-[0.18em] font-bold uppercase" style={{ color: acc }}>
-                      {sec.name}
-                    </span>
-                    {filled > 0 && (
-                      <span
-                        className="text-[7px] px-1.5 py-0.5 rounded-full font-semibold"
-                        style={{ color: acc, background: `${acc}14`, border: `1px solid ${acc}25` }}
-                      >{filled}</span>
-                    )}
-                  </div>
-                  {sec.subsections.map(sub => {
-                    const isSelected = selSectionId === sec.id && selSubId === sub.id;
-                    const subFilled = sub.rows.reduce((s, r) => s + r.products.filter(Boolean).length, 0);
-                    return (
-                      <button
-                        key={sub.id}
-                        onClick={() => handleSelect(sec.id, sub.id)}
-                        className="w-full text-left px-4 py-2 flex items-center justify-between text-[10px] transition-colors"
-                        style={{
-                          background: isSelected ? "#F9F7F4" : undefined,
-                          borderLeft: `2.5px solid ${isSelected ? acc : "transparent"}`,
-                          paddingLeft: isSelected ? 13.5 : 16,
-                          color: isSelected ? "#1A1410" : "#9A9080",
-                          fontWeight: isSelected ? 600 : 400,
-                        }}
-                      >
-                        <span className="truncate">{sub.name}</span>
-                        {subFilled > 0 && (
-                          <span className="text-[7px] ml-1 flex-shrink-0 font-semibold"
-                            style={{ color: isSelected ? acc : "#C8C0B8" }}>
-                            {subFilled}
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Mobile dropdown */}
+        {/* Dropdown (all sizes) */}
         <AnimatePresence>
           {mobileNavOpen && (
             <motion.div
               initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.15 }}
-              className="md:hidden absolute left-0 right-0 z-30 overflow-y-auto border-b border-border"
+              className="absolute left-0 right-0 z-30 overflow-y-auto border-b border-border"
               style={{
-                top: 52 + 46,
-                maxHeight: "55vh",
+                top: 54 + 40 + 46,
+                maxHeight: "60vh",
                 background: "#FFFFFF",
                 boxShadow: "0 8px 24px rgba(26,20,16,0.12)",
               }}
@@ -521,8 +466,8 @@ export default function SectionEditor() {
                             paddingLeft: isSelected ? 17 : 20,
                           }}
                         >
-                          <span className={`text-sm font-${isSelected ? "semibold" : "normal"}`}
-                            style={{ color: isSelected ? "#1A1410" : "#9A9080" }}>
+                          <span className="text-sm"
+                            style={{ color: isSelected ? "#1A1410" : "#9A9080", fontWeight: isSelected ? 600 : 400 }}>
                             {sub.name}
                           </span>
                           {subFilled > 0 && (
@@ -574,15 +519,6 @@ export default function SectionEditor() {
           )}
         </div>
 
-        {/* Product 3D viewer — desktop only */}
-        {selectedProduct && (
-          <div
-            className="hidden md:block w-[180px] flex-shrink-0 border-l border-border overflow-hidden"
-            style={{ background: "linear-gradient(180deg, #FFFFFF 0%, #F9F7F4 100%)" }}
-          >
-            <Product3DViewer product={selectedProduct} />
-          </div>
-        )}
       </div>
     </div>
   );

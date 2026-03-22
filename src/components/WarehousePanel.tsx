@@ -14,9 +14,11 @@ function fmt(p?: number) {
   return new Intl.NumberFormat("vi-VN").format(p) + "đ";
 }
 
-function useProductLocations(productId: string) {
+type ProductLoc = { type: "warehouse" | "display"; label: string };
+
+function useProductLocations(productId: string): ProductLoc[] {
   const { warehouseShelves, storeSections } = useStore();
-  const locs: string[] = [];
+  const locs: ProductLoc[] = [];
   for (const shelf of warehouseShelves) {
     for (let ti = 0; ti < shelf.tiers.length; ti++) {
       const tier = shelf.tiers[ti];
@@ -24,7 +26,7 @@ function useProductLocations(productId: string) {
         if (tier[si] === productId) {
           const col = (si % 5) + 1;
           const row = Math.floor(si / 5) + 1;
-          locs.push(`Kho: ${shelf.name} · T${ti + 1} · C${col}R${row}`);
+          locs.push({ type: "warehouse", label: `${shelf.name} · T${ti + 1} · C${col}R${row}` });
         }
       }
     }
@@ -35,7 +37,7 @@ function useProductLocations(productId: string) {
         const row = sub.rows[ri];
         for (let si = 0; si < row.products.length; si++) {
           if (row.products[si] === productId) {
-            locs.push(`Sàn: ${sub.name} · Ngăn ${ri + 1} · Ô ${si + 1}`);
+            locs.push({ type: "display", label: `${sub.name} · #${ri + 1}-${si + 1}` });
           }
         }
       }
@@ -44,92 +46,84 @@ function useProductLocations(productId: string) {
   return locs;
 }
 
-function ProductLocationTag({ productId }: { productId: string }) {
-  const locs = useProductLocations(productId);
-  if (locs.length === 0) return null;
-  return (
-    <div className="mt-1.5 pt-1.5 border-t border-border/40 flex flex-col gap-0.5">
-      <span className="text-[7px] text-text-muted tracking-widest uppercase font-medium">Vị trí</span>
-      {locs.map((loc, i) => (
-        <span key={i} className="text-[8px] text-text-secondary font-mono leading-snug">{loc}</span>
-      ))}
-    </div>
-  );
-}
-
 function ProductTooltip({ product, rect }: { product: Product; rect: DOMRect }) {
   const colorInfo = getProductColorInfo(product.sku);
   const typeConfig = product.productType ? PRODUCT_TYPES[product.productType] : null;
   const displayColor = colorInfo?.hex ?? product.color;
-  const top = Math.max(8, Math.min(rect.top, window.innerHeight - 260));
-  const left = rect.right + 10;
+  const locs = useProductLocations(product.id);
+  const tooltipW = 260;
+  const top = Math.max(8, Math.min(rect.top, window.innerHeight - 300));
+  const spaceRight = window.innerWidth - rect.right - 12;
+  const left = spaceRight >= tooltipW ? rect.right + 12 : rect.left - tooltipW - 8;
 
   return (
-    <div
-      className="fixed z-[9999] pointer-events-none"
-      style={{ top, left, minWidth: 210, maxWidth: 250 }}
-    >
-      <div
-        className="overflow-hidden"
-        style={{
-          background: "#FFFFFF",
-          border: "1px solid #DDD8D0",
-          borderRadius: 10,
-          boxShadow: "0 8px 32px rgba(26,20,16,0.14), 0 2px 8px rgba(26,20,16,0.08)",
-        }}
-      >
-        {/* Color header strip */}
-        <div className="h-2 w-full" style={{ background: displayColor ?? "#C9A96E" }} />
-        <div className="px-3.5 py-3">
-          <p className="text-[10px] font-semibold text-text-primary leading-snug">{product.name}</p>
-          {product.sku && <p className="text-[8px] text-text-muted mt-0.5 font-mono tracking-wider">{product.sku}</p>}
-          <div className="mt-2.5 pt-2 border-t border-border/50 flex flex-col gap-1.5">
-            <div className="flex justify-between">
-              <span className="text-[8px] text-text-muted">Danh mục</span>
-              <span className="text-[8px] text-text-secondary font-medium">{product.category}</span>
-            </div>
-            {typeConfig && (
-              <div className="flex justify-between">
-                <span className="text-[8px] text-text-muted">Loại</span>
-                <span className="text-[8px] text-text-secondary">{typeConfig.label}</span>
-              </div>
-            )}
-            <div className="flex justify-between">
-              <span className="text-[8px] text-text-muted">Số lượng</span>
-              <span className="text-[8px] font-semibold text-text-primary">{product.quantity}</span>
-            </div>
+    <div style={{ position: "fixed", zIndex: 9999, pointerEvents: "none", top, left, minWidth: 220, maxWidth: tooltipW }}>
+      <div style={{
+        background: "#FFFFFF", border: "1px solid #DDD8D0",
+        borderRadius: 12, overflow: "hidden",
+        boxShadow: "0 12px 40px rgba(26,20,16,0.16), 0 2px 8px rgba(26,20,16,0.08)",
+      }}>
+        <div style={{ height: 5, background: displayColor ?? "#C9A96E" }} />
+        <div style={{ padding: "12px 14px" }}>
+          <p style={{ fontSize: 11, fontWeight: 600, color: "#1A1410", lineHeight: 1.35 }}>{product.name}</p>
+          {product.sku && <p style={{ fontSize: 8, color: "#9A9080", marginTop: 3, fontFamily: "monospace", letterSpacing: "0.05em" }}>{product.sku}</p>}
+          <div style={{ marginTop: 10, paddingTop: 8, borderTop: "1px solid #EAE6E0", display: "flex", flexDirection: "column", gap: 6 }}>
+            <Row label="Danh mục" value={product.category} />
+            {typeConfig && <Row label="Loại" value={typeConfig.label} />}
+            <Row label="Số lượng" value={String(product.quantity)} bold />
             {colorInfo && (
-              <div className="flex justify-between items-center">
-                <span className="text-[8px] text-text-muted">Màu</span>
-                <span className="flex items-center gap-1.5">
-                  <span className="w-3 h-3 rounded-full border border-border/50 flex-shrink-0"
-                    style={{ background: colorInfo.hex }} />
-                  <span className="text-[8px] text-text-secondary">{colorInfo.name}</span>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ fontSize: 8, color: "#9A9080" }}>Màu</span>
+                <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <span style={{ width: 12, height: 12, borderRadius: "50%", background: colorInfo.hex, border: "1px solid rgba(0,0,0,0.08)", flexShrink: 0, display: "inline-block" }} />
+                  <span style={{ fontSize: 8, color: "#6A6050" }}>{colorInfo.name}</span>
                 </span>
               </div>
             )}
-            {product.size && (
-              <div className="flex justify-between">
-                <span className="text-[8px] text-text-muted">Size</span>
-                <span className="text-[8px] text-text-secondary">{product.size}</span>
-              </div>
-            )}
+            {product.size && <Row label="Size" value={product.size} />}
             {(product.price || product.markdownPrice) && (
-              <div className="flex justify-between items-center pt-1 mt-0.5 border-t border-border/40">
-                <span className="text-[8px] text-text-muted">Giá</span>
-                <span className="flex items-center gap-1.5">
-                  {product.price && <span className="text-[8px] text-text-muted line-through">{fmt(product.price)}</span>}
-                  {product.markdownPrice && <span className="text-[9px] text-gold font-semibold">{fmt(product.markdownPrice)}</span>}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 2, paddingTop: 6, borderTop: "1px solid #EAE6E0" }}>
+                <span style={{ fontSize: 8, color: "#9A9080" }}>Giá</span>
+                <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  {product.price && <span style={{ fontSize: 8, color: "#9A9080", textDecoration: "line-through" }}>{fmt(product.price)}</span>}
+                  {product.markdownPrice && <span style={{ fontSize: 9, color: "#B8914A", fontWeight: 600 }}>{fmt(product.markdownPrice)}</span>}
                 </span>
+              </div>
+            )}
+            {locs.length > 0 && (
+              <div style={{ marginTop: 4, paddingTop: 6, borderTop: "1px solid #EAE6E0" }}>
+                <p style={{ fontSize: 7, color: "#9A9080", letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: 5 }}>VỊ TRÍ</p>
+                {locs.map((loc, i) => (
+                  <div key={i} style={{ display: "flex", alignItems: "baseline", gap: 5, marginBottom: 3 }}>
+                    <span style={{
+                      fontSize: 6, fontWeight: 800, letterSpacing: "0.12em", flexShrink: 0,
+                      padding: "1px 4px", borderRadius: 3,
+                      background: loc.type === "warehouse" ? "rgba(90,120,152,0.12)" : "rgba(184,145,74,0.12)",
+                      color: loc.type === "warehouse" ? "#5A7898" : "#B8914A",
+                      border: `1px solid ${loc.type === "warehouse" ? "rgba(90,120,152,0.25)" : "rgba(184,145,74,0.25)"}`,
+                    }}>
+                      {loc.type === "warehouse" ? "KHO" : "TRƯNG BÀY"}
+                    </span>
+                    <span style={{ fontSize: 8, color: "#6A6050", fontFamily: "monospace", lineHeight: 1.5 }}>{loc.label}</span>
+                  </div>
+                ))}
               </div>
             )}
             {product.notes && (
-              <p className="text-[8px] text-text-muted italic mt-0.5 pt-1.5 border-t border-border/40 leading-snug">{product.notes}</p>
+              <p style={{ fontSize: 8, color: "#9A9080", fontStyle: "italic", marginTop: 4, paddingTop: 6, borderTop: "1px solid #EAE6E0", lineHeight: 1.5 }}>{product.notes}</p>
             )}
-            <ProductLocationTag productId={product.id} />
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function Row({ label, value, bold }: { label: string; value: string; bold?: boolean }) {
+  return (
+    <div style={{ display: "flex", justifyContent: "space-between" }}>
+      <span style={{ fontSize: 8, color: "#9A9080" }}>{label}</span>
+      <span style={{ fontSize: 8, color: "#1A1410", fontWeight: bold ? 600 : 400 }}>{value}</span>
     </div>
   );
 }
@@ -188,114 +182,126 @@ export default function WarehousePanel() {
   };
 
   return (
-    <div className="flex flex-col h-full" style={{ background: "#F9F7F4" }}>
+    <div style={{ display: "flex", flexDirection: "column", height: "100%", background: "#FAFAF8" }}>
 
-      {/* ── Stats strip ──────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-3 border-b border-border bg-bg-surface flex-shrink-0">
+      {/* ── Stats strip ── */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", borderBottom: "1px solid #EAE6E0", background: "#FFFFFF", flexShrink: 0 }}>
         {[
           { label: "Sản phẩm", value: products.length, color: "#B8914A" },
           { label: "Tổng SL",  value: totalQty, color: "#5A7898" },
           { label: "Giá trị",  value: totalVal > 0 ? new Intl.NumberFormat("vi-VN", { notation: "compact" }).format(totalVal) + "đ" : "—", color: "#6A8868" },
-        ].map(({ label, value, color }) => (
-          <div key={label} className="px-3.5 py-3 border-r border-border last:border-0 flex flex-col gap-0.5">
-            <p className="text-[8px] tracking-[0.22em] text-text-muted uppercase font-medium">{label}</p>
-            <p className="text-lg font-light leading-none mt-1" style={{ color }}>{value}</p>
+        ].map(({ label, value, color }, i) => (
+          <div key={label} style={{
+            padding: "10px 12px",
+            borderRight: i < 2 ? "1px solid #EAE6E0" : "none",
+            display: "flex", flexDirection: "column", gap: 3,
+          }}>
+            <p style={{ fontSize: 7, letterSpacing: "0.2em", color: "#9A9080", textTransform: "uppercase", fontWeight: 500 }}>{label}</p>
+            <p style={{ fontSize: 18, fontWeight: 300, lineHeight: 1, color }}>{value}</p>
           </div>
         ))}
       </div>
 
-      {/* ── Toolbar ──────────────────────────────────────────────────────── */}
-      <div className="px-3 pt-3 pb-2.5 border-b border-border bg-bg-surface flex-shrink-0 flex flex-col gap-2">
+      {/* ── Toolbar ── */}
+      <div style={{ padding: "10px 12px 8px", borderBottom: "1px solid #EAE6E0", background: "#FFFFFF", flexShrink: 0, display: "flex", flexDirection: "column", gap: 8 }}>
         {/* Search + action buttons */}
-        <div className="flex gap-2">
-          <div className="relative flex-1">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted text-sm leading-none select-none">⌕</span>
+        <div style={{ display: "flex", gap: 6 }}>
+          <div style={{ position: "relative", flex: 1 }}>
+            <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#9A9080", fontSize: 15, lineHeight: 1, pointerEvents: "none" }}>⌕</span>
             <input
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Tìm tên, SKU..."
-              className="w-full pl-8 pr-3 py-2 text-[11px] text-text-primary placeholder:text-text-muted transition-colors focus:outline-none"
               style={{
-                background: "#F0EDE8",
-                border: "1px solid #DDD8D0",
-                borderRadius: 6,
+                width: "100%", paddingLeft: 30, paddingRight: 10, paddingTop: 9, paddingBottom: 9,
+                fontSize: 11, color: "#1A1410", background: "#F0EDE8",
+                border: "1px solid #DDD8D0", borderRadius: 7, outline: "none",
               }}
-              onFocus={e => (e.currentTarget.style.borderColor = "rgba(184,145,74,0.55)")}
+              onFocus={e => (e.currentTarget.style.borderColor = "rgba(184,145,74,0.6)")}
               onBlur={e => (e.currentTarget.style.borderColor = "#DDD8D0")}
             />
           </div>
+          {/* Import button */}
           <button
             onClick={() => setShowExcel(true)}
-            className="px-3 py-2 text-[9px] tracking-wider font-medium text-text-muted transition-all active:scale-95"
-            style={{ border: "1px solid #DDD8D0", borderRadius: 6, background: "#F9F7F4" }}
-            title="Import Excel"
-          >
-            ⊞ IMPORT
-          </button>
+            style={{
+              padding: "9px 12px", fontSize: 9, fontWeight: 600, letterSpacing: "0.12em",
+              color: "#6A6050", background: "#F5F2EE", border: "1px solid #DDD8D0",
+              borderRadius: 7, cursor: "pointer", whiteSpace: "nowrap",
+              transition: "all 0.12s",
+            }}
+            onMouseEnter={e => { const b = e.currentTarget; b.style.background = "#EAE6E0"; }}
+            onMouseLeave={e => { const b = e.currentTarget; b.style.background = "#F5F2EE"; }}
+          >⊞ IMPORT</button>
+          {/* Add button */}
           <button
             onClick={() => { setEditProduct(null); setShowForm(true); }}
-            className="px-3 py-2 text-[9px] tracking-wider font-semibold text-white transition-all active:scale-95"
             style={{
-              background: "linear-gradient(135deg, #B8914A 0%, #D4B06E 100%)",
-              borderRadius: 6,
-              boxShadow: "0 2px 8px rgba(184,145,74,0.30)",
+              padding: "9px 14px", fontSize: 9, fontWeight: 700, letterSpacing: "0.12em",
+              color: "#FFFFFF",
+              background: "linear-gradient(135deg,#B8914A,#D4B06E)",
+              border: "none", borderRadius: 7, cursor: "pointer", whiteSpace: "nowrap",
+              boxShadow: "0 2px 10px rgba(184,145,74,0.32)",
+              transition: "all 0.12s",
             }}
-          >
-            + THÊM
-          </button>
+            onMouseEnter={e => { (e.currentTarget).style.boxShadow = "0 4px 16px rgba(184,145,74,0.45)"; }}
+            onMouseLeave={e => { (e.currentTarget).style.boxShadow = "0 2px 10px rgba(184,145,74,0.32)"; }}
+          >+ THÊM</button>
         </div>
 
-        {/* Category filter chips */}
-        <div className="flex gap-1.5 overflow-x-auto pb-0.5 -mx-0.5 px-0.5"
-          style={{ scrollbarWidth: "none" }}>
+        {/* Category chips */}
+        <div style={{ display: "flex", gap: 5, overflowX: "auto", paddingBottom: 2, scrollbarWidth: "none" }}>
           {cats.map(cat => {
             const isActive = filterCat === cat;
             return (
               <button
                 key={cat}
                 onClick={() => setFilterCat(cat)}
-                className="px-2.5 py-1 text-[8px] font-semibold tracking-wider whitespace-nowrap flex-shrink-0 transition-all active:scale-95"
                 style={{
-                  borderRadius: 5,
+                  padding: "5px 10px", fontSize: 8, fontWeight: 600, letterSpacing: "0.08em",
+                  whiteSpace: "nowrap", flexShrink: 0,
+                  borderRadius: 6,
                   border: isActive ? "1px solid rgba(184,145,74,0.4)" : "1px solid #DDD8D0",
                   background: isActive ? "rgba(184,145,74,0.12)" : "#F0EDE8",
                   color: isActive ? "#B8914A" : "#9A9080",
+                  cursor: "pointer", transition: "all 0.1s",
                 }}
-              >
-                {cat}
-              </button>
+              >{cat}</button>
             );
           })}
         </div>
       </div>
 
-      {/* ── Bulk action bar ───────────────────────────────────────────────── */}
+      {/* ── Bulk action bar ── */}
       <AnimatePresence>
         {someChecked && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}
-            className="overflow-hidden flex-shrink-0"
-          >
-            <div
-              className="px-3.5 py-2 border-b flex items-center justify-between"
-              style={{ background: "rgba(220,38,38,0.04)", borderBottomColor: "rgba(220,38,38,0.15)" }}
-            >
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] text-red-600 font-semibold">{checked.size} đã chọn</span>
+          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}
+            style={{ overflow: "hidden", flexShrink: 0 }}>
+            <div style={{
+              padding: "8px 14px", borderBottom: "1px solid rgba(220,38,38,0.15)",
+              background: "rgba(220,38,38,0.04)",
+              display: "flex", alignItems: "center", justifyContent: "space-between",
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 10, color: "#DC2626", fontWeight: 600 }}>{checked.size} đã chọn</span>
                 <button onClick={() => setChecked(new Set())}
-                  className="text-[9px] text-red-400 hover:text-red-600 transition-colors">Bỏ chọn</button>
+                  style={{ fontSize: 9, color: "#F87171", background: "none", border: "none", cursor: "pointer" }}>Bỏ chọn</button>
               </div>
               {confirmBulkDelete ? (
-                <div className="flex items-center gap-2">
-                  <span className="text-[9px] text-red-600">Xóa {checked.size} sản phẩm?</span>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <span style={{ fontSize: 9, color: "#DC2626" }}>Xóa {checked.size} SP?</span>
                   <button onClick={handleBulkDelete}
-                    className="px-2.5 py-1 text-[9px] text-white bg-red-500 rounded-sm transition-all active:scale-95">XÁC NHẬN</button>
+                    style={{ padding: "4px 10px", fontSize: 9, color: "white", background: "#EF4444", border: "none", borderRadius: 5, cursor: "pointer", fontWeight: 600 }}>XÁC NHẬN</button>
                   <button onClick={() => setConfirmBulkDelete(false)}
-                    className="px-2.5 py-1 text-[9px] text-text-muted border border-border rounded-sm transition-all">HỦY</button>
+                    style={{ padding: "4px 10px", fontSize: 9, color: "#9A9080", background: "none", border: "1px solid #DDD8D0", borderRadius: 5, cursor: "pointer" }}>HỦY</button>
                 </div>
               ) : (
                 <button onClick={() => setConfirmBulkDelete(true)}
-                  className="px-3 py-1 text-[9px] text-red-500 border border-red-300/60 rounded-sm hover:bg-red-500 hover:text-white transition-all active:scale-95">
+                  style={{
+                    padding: "5px 12px", fontSize: 9, color: "#EF4444",
+                    border: "1px solid rgba(220,38,38,0.3)", borderRadius: 5,
+                    background: "transparent", cursor: "pointer", fontWeight: 500,
+                  }}>
                   XÓA {checked.size} MÓN
                 </button>
               )}
@@ -304,50 +310,52 @@ export default function WarehousePanel() {
         )}
       </AnimatePresence>
 
-      {/* ── Select-all header ────────────────────────────────────────────── */}
+      {/* ── Select-all ── */}
       {filtered.length > 0 && (
-        <div className="px-3.5 py-2 border-b border-border/50 bg-bg-surface flex items-center gap-2.5 flex-shrink-0">
+        <div style={{
+          padding: "7px 14px", borderBottom: "1px solid rgba(220,216,208,0.5)",
+          background: "#FFFFFF", flexShrink: 0,
+          display: "flex", alignItems: "center", gap: 8,
+        }}>
           <div
             onClick={toggleAll}
-            className="w-3.5 h-3.5 flex items-center justify-center flex-shrink-0 cursor-pointer transition-all"
             style={{
-              borderRadius: 3,
+              width: 16, height: 16, borderRadius: 4, flexShrink: 0, cursor: "pointer",
               border: allFilteredChecked ? "1px solid #B8914A" : "1px solid #C8C0B8",
               background: allFilteredChecked ? "#B8914A" : "transparent",
+              display: "flex", alignItems: "center", justifyContent: "center",
             }}
           >
-            {allFilteredChecked && <span className="text-white text-[8px] leading-none">✓</span>}
+            {allFilteredChecked && <span style={{ color: "white", fontSize: 9, lineHeight: 1 }}>✓</span>}
           </div>
-          <span className="text-[8px] text-text-muted font-medium cursor-pointer" onClick={toggleAll}>
+          <span style={{ fontSize: 8, color: "#9A9080", fontWeight: 500, cursor: "pointer" }} onClick={toggleAll}>
             {allFilteredChecked ? "Bỏ chọn tất cả" : `Chọn tất cả (${filtered.length})`}
           </span>
         </div>
       )}
 
-      {/* ── Product list ──────────────────────────────────────────────────── */}
-      <div className="flex-1 overflow-y-auto bg-bg-surface">
+      {/* ── Product list ── */}
+      <div style={{ flex: 1, overflowY: "auto", background: "#FFFFFF" }}>
         {filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-48 gap-3">
-            <span className="text-3xl opacity-15 text-text-muted">◫</span>
-            <p className="text-[11px] text-text-muted">
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: 200, gap: 12 }}>
+            <span style={{ fontSize: 36, opacity: 0.12, color: "#9A9080" }}>◫</span>
+            <p style={{ fontSize: 11, color: "#9A9080" }}>
               {products.length === 0 ? "Kho trống — thêm sản phẩm đầu tiên" : "Không tìm thấy kết quả"}
             </p>
             {products.length === 0 && (
               <button
                 onClick={() => setShowForm(true)}
-                className="mt-1 px-4 py-2 text-[9px] tracking-wider font-semibold text-white transition-all active:scale-95"
                 style={{
-                  background: "linear-gradient(135deg, #B8914A 0%, #D4B06E 100%)",
-                  borderRadius: 6,
-                  boxShadow: "0 2px 8px rgba(184,145,74,0.25)",
+                  marginTop: 4, padding: "9px 18px", fontSize: 9, fontWeight: 700, letterSpacing: "0.1em",
+                  color: "#FFFFFF", background: "linear-gradient(135deg,#B8914A,#D4B06E)",
+                  border: "none", borderRadius: 7, cursor: "pointer",
+                  boxShadow: "0 2px 10px rgba(184,145,74,0.28)",
                 }}
-              >
-                + THÊM SẢN PHẨM
-              </button>
+              >+ THÊM SẢN PHẨM</button>
             )}
           </div>
         ) : (
-          <div className="divide-y divide-border/40">
+          <div>
             <AnimatePresence>
               {filtered.map((p, i) => {
                 const isSelected = selectedProduct?.id === p.id;
@@ -361,7 +369,7 @@ export default function WarehousePanel() {
                     initial={{ opacity: 0, y: 4 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, x: -10 }}
-                    transition={{ delay: Math.min(i * 0.006, 0.25), duration: 0.18 }}
+                    transition={{ delay: Math.min(i * 0.005, 0.2), duration: 0.16 }}
                     onMouseEnter={e => {
                       if (window.innerWidth >= 768) {
                         const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
@@ -369,103 +377,116 @@ export default function WarehousePanel() {
                       }
                     }}
                     onMouseLeave={() => setHoveredProduct(null)}
-                    className="relative flex items-center gap-2.5 px-3 py-2.5 md:py-2 group transition-colors duration-100"
                     style={{
-                      background: isChecked
-                        ? "rgba(220,38,38,0.04)"
-                        : isSelected
-                        ? "rgba(184,145,74,0.05)"
-                        : undefined,
-                      borderLeft: `2.5px solid ${
-                        isChecked ? "#EF4444" : isSelected ? "#B8914A" : "transparent"
-                      }`,
+                      display: "flex", alignItems: "center", gap: 10,
+                      padding: "10px 12px",
+                      borderBottom: "1px solid rgba(220,216,208,0.35)",
+                      background: isChecked ? "rgba(220,38,38,0.03)" : isSelected ? "rgba(184,145,74,0.04)" : undefined,
+                      borderLeft: `2.5px solid ${isChecked ? "#EF4444" : isSelected ? "#B8914A" : "transparent"}`,
+                      position: "relative", cursor: "default",
+                      minHeight: 52,
                     }}
                   >
                     {/* Checkbox */}
                     <div
                       onClick={() => toggleCheck(p.id)}
-                      className="flex-shrink-0 cursor-pointer transition-all active:scale-90"
                       style={{
-                        width: 14, height: 14, borderRadius: 3,
+                        width: 16, height: 16, borderRadius: 4, flexShrink: 0, cursor: "pointer",
                         border: isChecked ? "1px solid #EF4444" : "1px solid #C8C0B8",
                         background: isChecked ? "#EF4444" : "transparent",
                         display: "flex", alignItems: "center", justifyContent: "center",
+                        transition: "all 0.1s",
                       }}
                     >
-                      {isChecked && <span className="text-white text-[7px] leading-none">✓</span>}
+                      {isChecked && <span style={{ color: "white", fontSize: 9, lineHeight: 1 }}>✓</span>}
                     </div>
 
                     {/* Thumbnail */}
                     <div
                       onClick={() => !isChecked && selectProduct(isSelected ? null : p)}
-                      className="flex-shrink-0 cursor-pointer overflow-hidden"
                       style={{
-                        width: 34, height: 42, borderRadius: 5,
+                        width: 36, height: 46, borderRadius: 6, flexShrink: 0,
                         border: "1px solid #EAE6E0",
                         background: displayColor ? `${displayColor}18` : "#F0EDE8",
+                        overflow: "hidden", cursor: "pointer",
+                        display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column",
                       }}
                     >
                       {p.imagePath ? (
-                        <img src={p.imagePath} alt={p.name} className="w-full h-full object-cover" />
+                        <img src={p.imagePath} alt={p.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                       ) : (
-                        <div className="w-full h-full flex flex-col items-center justify-center gap-0.5">
+                        <>
                           {displayColor && (
-                            <div className="w-3.5 h-3.5 rounded-full border border-white/50 flex-shrink-0"
-                              style={{ background: displayColor }} />
+                            <div style={{ width: 12, height: 12, borderRadius: "50%", background: displayColor, border: "1px solid rgba(255,255,255,0.5)", marginBottom: 2 }} />
                           )}
-                          <span className="text-[9px] font-semibold" style={{ color: displayColor ?? "#B8914A" }}>
+                          <span style={{ fontSize: 10, fontWeight: 700, color: displayColor ?? "#B8914A", lineHeight: 1 }}>
                             {p.name.charAt(0)}
                           </span>
-                        </div>
+                        </>
                       )}
                     </div>
 
                     {/* Info */}
                     <div
-                      className="flex-1 min-w-0 cursor-pointer"
+                      style={{ flex: 1, minWidth: 0, cursor: "pointer" }}
                       onClick={() => !isChecked && selectProduct(isSelected ? null : p)}
                     >
-                      <p className="text-[12px] md:text-[11px] font-medium truncate leading-tight transition-colors"
-                        style={{ color: isSelected ? "#B8914A" : "#1A1410" }}>
-                        {p.name}
-                      </p>
-                      <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                        <span className="text-[10px] md:text-[8px] text-text-muted">{p.category}</span>
-                        <span className="text-[8px] text-text-muted/40">·</span>
-                        <span className="text-[10px] md:text-[8px] text-text-muted">×{p.quantity}</span>
+                      <p style={{
+                        fontSize: 12, fontWeight: 500, lineHeight: 1.3,
+                        color: isSelected ? "#B8914A" : "#1A1410",
+                        overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                        transition: "color 0.1s",
+                      }}>{p.name}</p>
+                      <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 3, flexWrap: "wrap" }}>
+                        <span style={{ fontSize: 9, color: "#9A9080" }}>{p.category}</span>
+                        <span style={{ fontSize: 8, color: "rgba(154,144,128,0.4)" }}>·</span>
+                        <span style={{ fontSize: 9, color: "#9A9080" }}>×{p.quantity}</span>
                         {colorInfo && (
-                          <span className="flex items-center gap-0.5">
-                            <span className="w-2.5 h-2.5 rounded-full border border-border/40 flex-shrink-0"
-                              style={{ background: colorInfo.hex }} />
-                            <span className="text-[8px] text-text-muted/60">{colorInfo.name}</span>
+                          <span style={{ display: "flex", alignItems: "center", gap: 3 }}>
+                            <span style={{ width: 8, height: 8, borderRadius: "50%", background: colorInfo.hex, border: "1px solid rgba(0,0,0,0.08)", display: "inline-block", flexShrink: 0 }} />
+                            <span style={{ fontSize: 8, color: "rgba(154,144,128,0.6)" }}>{colorInfo.name}</span>
                           </span>
                         )}
                       </div>
                       {(p.price || p.markdownPrice) && (
-                        <p className="text-[9px] flex items-center gap-1.5 mt-0.5">
-                          {p.price && <span className="text-text-muted/60 line-through">{fmt(p.price)}</span>}
-                          {p.markdownPrice && <span className="text-gold font-semibold">{fmt(p.markdownPrice)}</span>}
+                        <p style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 3 }}>
+                          {p.price && <span style={{ fontSize: 9, color: "rgba(154,144,128,0.6)", textDecoration: "line-through" }}>{fmt(p.price)}</span>}
+                          {p.markdownPrice && <span style={{ fontSize: 9, color: "#B8914A", fontWeight: 600 }}>{fmt(p.markdownPrice)}</span>}
                         </p>
                       )}
                     </div>
 
                     {/* Hover actions */}
-                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+                    <div className="flex gap-1 opacity-0 group-hover:opacity-100" style={{ display: "flex", gap: 4, flexShrink: 0 }}
+                      onMouseEnter={e => {
+                        const btns = (e.currentTarget as HTMLElement).querySelectorAll("button");
+                        btns.forEach(b => (b as HTMLElement).style.opacity = "1");
+                      }}
+                    >
                       <button
                         onClick={e => { e.stopPropagation(); setEditProduct(p); setShowForm(true); }}
-                        className="px-2 py-1 text-[8px] font-medium text-text-muted transition-all active:scale-95"
-                        style={{ border: "1px solid #DDD8D0", borderRadius: 4, background: "#F9F7F4" }}
+                        style={{
+                          padding: "5px 8px", fontSize: 8, fontWeight: 600, color: "#6A6050",
+                          border: "1px solid #DDD8D0", borderRadius: 5, background: "#F9F7F4", cursor: "pointer",
+                          transition: "all 0.1s",
+                        }}
+                        onMouseEnter={e => { (e.currentTarget).style.background = "#EAE6E0"; }}
+                        onMouseLeave={e => { (e.currentTarget).style.background = "#F9F7F4"; }}
                       >SỬA</button>
                       <button
                         onClick={e => { e.stopPropagation(); deleteProduct(p.id); }}
-                        className="px-2 py-1 text-[8px] font-medium text-red-400 transition-all active:scale-95"
-                        style={{ border: "1px solid rgba(220,38,38,0.2)", borderRadius: 4, background: "rgba(220,38,38,0.04)" }}
+                        style={{
+                          padding: "5px 8px", fontSize: 8, fontWeight: 600, color: "#EF4444",
+                          border: "1px solid rgba(220,38,38,0.2)", borderRadius: 5, background: "rgba(220,38,38,0.04)", cursor: "pointer",
+                          transition: "all 0.1s",
+                        }}
+                        onMouseEnter={e => { (e.currentTarget).style.background = "#EF4444"; (e.currentTarget).style.color = "white"; }}
+                        onMouseLeave={e => { (e.currentTarget).style.background = "rgba(220,38,38,0.04)"; (e.currentTarget).style.color = "#EF4444"; }}
                       >XÓA</button>
                     </div>
 
                     {isSelected && !isChecked && (
-                      <div className="w-1.5 h-1.5 rounded-full bg-gold flex-shrink-0"
-                        style={{ animation: "pulseGold 2s ease-in-out infinite" }} />
+                      <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#B8914A", flexShrink: 0, animation: "pulseGold 2s ease-in-out infinite" }} />
                     )}
                   </motion.div>
                 );
@@ -475,27 +496,24 @@ export default function WarehousePanel() {
         )}
       </div>
 
-      {/* ── Selection hint bar ────────────────────────────────────────────── */}
+      {/* ── Selection hint ── */}
       <AnimatePresence>
         {selectedProduct && (
           <motion.div
             initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 6 }}
-            className="px-4 py-3 border-t flex-shrink-0"
             style={{
-              background: "rgba(184,145,74,0.05)",
-              borderTopColor: "rgba(184,145,74,0.18)",
+              padding: "10px 14px", borderTop: "1px solid rgba(184,145,74,0.18)",
+              background: "rgba(184,145,74,0.05)", flexShrink: 0,
             }}
           >
-            <p className="text-[10px] text-gold leading-snug">
-              <span className="font-semibold">{selectedProduct.name}</span>
-              <span className="opacity-60 ml-1">— chuyển sang SÀN TRƯNG BÀY để đặt vào kệ</span>
+            <p style={{ fontSize: 10, color: "#B8914A", lineHeight: 1.4 }}>
+              <span style={{ fontWeight: 600 }}>{selectedProduct.name}</span>
+              <span style={{ opacity: 0.6, marginLeft: 4 }}>— chuyển sang kệ để đặt</span>
             </p>
             <button
               onClick={() => selectProduct(null)}
-              className="text-[9px] text-text-muted hover:text-text-secondary mt-1 transition-colors"
-            >
-              Bỏ chọn (ESC)
-            </button>
+              style={{ fontSize: 9, color: "#9A9080", background: "none", border: "none", cursor: "pointer", padding: 0, marginTop: 4 }}
+            >Bỏ chọn (ESC)</button>
           </motion.div>
         )}
       </AnimatePresence>
