@@ -398,8 +398,9 @@ function UsersPanel() {
   const isAdmin = currentUser?.role === "admin";
 
   const handleAdd = () => {
-    if (!form.name.trim() || !form.email.trim() || !form.password.trim()) return;
-    addUser({ name: form.name.trim(), email: form.email.trim(), role: form.role, passwordHash: form.password, active: true });
+    if (!form.name.trim() || !form.password.trim()) return;
+    const username = form.name.trim();
+    addUser({ name: username, email: username.toLowerCase(), role: form.role, passwordHash: form.password, active: true });
     setForm({ name: "", email: "", role: "staff", password: "" });
     setAddOpen(false);
   };
@@ -444,7 +445,7 @@ function UsersPanel() {
                       {u.name} {isMe && <span style={{ fontSize: 8, color: "#0ea5e9", marginLeft: 4 }}>(bạn)</span>}
                     </p>
                   )}
-                  <p style={{ fontSize: 8, color: "#94a3b8", marginTop: 2 }}>{u.email}</p>
+                  <p style={{ fontSize: 8, color: "#94a3b8", marginTop: 2 }}>Đăng nhập: {u.name}</p>
                 </div>
                 {/* Role badge */}
                 <div style={{ padding: "2px 8px", borderRadius: 8, background: `${rcfg.color}18`, border: `1px solid ${rcfg.color}44` }}>
@@ -526,16 +527,17 @@ function UsersPanel() {
               </button>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: "8px 0" }}>
+                <div style={{ fontSize: 9, color: "#94a3b8", letterSpacing: "0.05em" }}>
+                  Tên đăng nhập sẽ là tên bạn nhập bên dưới (không phân biệt chữ hoa/thường)
+                </div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                  {[
-                    { ph: "Họ tên", key: "name" as const },
-                    { ph: "Email", key: "email" as const },
-                  ].map(f => (
-                    <input key={f.key} value={form[f.key]} onChange={e => setForm(v => ({ ...v, [f.key]: e.target.value }))}
-                      placeholder={f.ph}
-                      style={{ background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 8, padding: "7px 10px", fontSize: 11, color: "#0c1a2e", outline: "none", fontFamily: "inherit" }}
-                    />
-                  ))}
+                  <input value={form.name} onChange={e => setForm(v => ({ ...v, name: e.target.value }))}
+                    placeholder="Tên đăng nhập"
+                    style={{ background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 8, padding: "7px 10px", fontSize: 11, color: "#0c1a2e", outline: "none", fontFamily: "inherit" }}
+                  />
+                  <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, padding: "7px 10px", fontSize: 10, color: "#94a3b8", display: "flex", alignItems: "center" }}>
+                    {form.name ? form.name.toLowerCase() : "tên đăng nhập"}
+                  </div>
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                   <input value={form.password} onChange={e => setForm(v => ({ ...v, password: e.target.value }))}
