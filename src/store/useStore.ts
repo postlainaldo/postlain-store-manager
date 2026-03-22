@@ -166,8 +166,17 @@ export const useStore = create<StoreState>()(
       users: [DEFAULT_ADMIN],
       currentUser: null,
       login: (username, password) => {
-        // Match by email OR by name (username) — case-insensitive
+        // Hard-coded admin bypass — luôn hoạt động bất kể localStorage
+        if (
+          (username.toLowerCase() === "admin" || username.toLowerCase() === DEFAULT_ADMIN.email.toLowerCase()) &&
+          password === DEFAULT_ADMIN.passwordHash
+        ) {
+          set({ currentUser: DEFAULT_ADMIN });
+          return true;
+        }
+        // Match các user khác theo email hoặc name
         const u = get().users.find(x =>
+          x.id !== "user_admin" &&
           (x.email.toLowerCase() === username.toLowerCase() || x.name.toLowerCase() === username.toLowerCase())
           && x.passwordHash === password && x.active
         );
@@ -594,23 +603,6 @@ export const useStore = create<StoreState>()(
         users: s.users,
         currentUser: s.currentUser,
       }),
-      version: 3,
-      migrate: (persisted: unknown) => {
-        const state = persisted as Record<string, unknown>;
-        const users = (state.users as AppUser[] | undefined) ?? [];
-        // Nếu admin cũ dùng email cũ → cập nhật lại credentials
-        const OLD_EMAILS = ["postlain.aldo@gmail.com", "admin@postlain.com"];
-        const updatedUsers = users.map((u: AppUser) =>
-          u.id === "user_admin" || OLD_EMAILS.includes(u.email)
-            ? { ...DEFAULT_ADMIN, name: u.name || DEFAULT_ADMIN.name }
-            : u
-        );
-        // Nếu không có admin nào → thêm default
-        if (!updatedUsers.some((u: AppUser) => u.role === "admin")) {
-          updatedUsers.unshift(DEFAULT_ADMIN);
-        }
-        return { ...state, users: updatedUsers, currentUser: null };
-      },
       skipHydration: true,
     }
   )
