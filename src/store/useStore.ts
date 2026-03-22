@@ -168,17 +168,31 @@ export const useStore = create<StoreState>()(
       login: (username, password) => {
         // Hard-coded admin bypass — luôn hoạt động bất kể localStorage
         if (
-          (username.toLowerCase() === "admin" || username.toLowerCase() === DEFAULT_ADMIN.email.toLowerCase()) &&
+          username.toLowerCase() === "admin" &&
           password === DEFAULT_ADMIN.passwordHash
         ) {
           set({ currentUser: DEFAULT_ADMIN });
           return true;
         }
-        // Match các user khác theo email hoặc name
-        const u = get().users.find(x =>
+
+        // Đọc users từ localStorage trực tiếp để tránh vấn đề rehydrate chưa xong
+        let allUsers: AppUser[] = get().users;
+        try {
+          const raw = localStorage.getItem("postlain-store-v2");
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (parsed?.state?.users?.length) {
+              allUsers = parsed.state.users;
+            }
+          }
+        } catch { /* dùng get().users nếu parse lỗi */ }
+
+        const u = allUsers.find(x =>
           x.id !== "user_admin" &&
-          (x.email.toLowerCase() === username.toLowerCase() || x.name.toLowerCase() === username.toLowerCase())
-          && x.passwordHash === password && x.active
+          (x.email.toLowerCase() === username.toLowerCase() ||
+           x.name.toLowerCase() === username.toLowerCase()) &&
+          x.passwordHash === password &&
+          x.active
         );
         if (u) { set({ currentUser: u }); return true; }
         return false;
