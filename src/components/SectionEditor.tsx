@@ -21,7 +21,6 @@ const ROW_LABEL: Record<string, string> = {
   image: "TRANH",
 };
 
-// ─── Slot ─────────────────────────────────────────────────────────────────────
 const CAT_COLORS: Record<string, string> = {
   "Giày nữ": "#C49A6C", "Giày nam": "#5A7888", "Bốt nữ": "#C4A080",
   "Bốt nam": "#6A8094", "Sandal nữ": "#D4A090", "Sandal nam": "#8890C4",
@@ -30,6 +29,7 @@ const CAT_COLORS: Record<string, string> = {
   "Trang sức": "#B8A045",
 };
 
+// ─── Slot ─────────────────────────────────────────────────────────────────────
 function Slot({ productId, sectionId, subsectionId, rowIndex, slotIndex }: {
   productId: string | null; sectionId: string; subsectionId: string;
   rowIndex: number; slotIndex: number;
@@ -51,33 +51,46 @@ function Slot({ productId, sectionId, subsectionId, rowIndex, slotIndex }: {
     <div
       onClick={handleClick}
       title={product ? `${product.name} — tap để gỡ` : isPlacementMode ? "Tap để đặt" : ""}
-      className={`relative flex-shrink-0 rounded-sm border transition-all select-none overflow-hidden
-        ${(canPlace || canRemove) ? "cursor-pointer active:scale-95" : "cursor-default"}
-        ${product ? "border-transparent shadow-sm"
-          : isPlacementMode ? "border-blue-300/70 bg-blue-50 animate-pulse"
-          : "border-border bg-bg-elevated"}
-      `}
+      className={`relative flex-shrink-0 overflow-hidden select-none transition-all duration-100 ${
+        (canPlace || canRemove) ? "cursor-pointer active:scale-95" : "cursor-default"
+      } ${canPlace ? "slot-placement-pulse" : ""}`}
       style={{
-        width: "clamp(36px, 8vw, 46px)",
-        height: "clamp(46px, 10vw, 56px)",
-        background: product ? `${catColor}18` : undefined,
-        borderColor: product ? `${catColor}60` : undefined,
+        width: "clamp(34px, 7.5vw, 44px)",
+        height: "clamp(44px, 9.5vw, 54px)",
+        borderRadius: 5,
+        border: product
+          ? `1px solid ${catColor}55`
+          : isPlacementMode
+          ? "1px solid rgba(99,179,237,0.55)"
+          : "1px solid #E8E4DE",
+        background: product
+          ? `${catColor}16`
+          : isPlacementMode
+          ? "rgba(235,248,255,0.7)"
+          : "#F8F6F2",
+        boxShadow: product ? `0 1px 4px ${catColor}20` : "none",
       }}
     >
       {product && (
         <>
-          <div className="absolute top-0 left-0 right-0 h-1" style={{ background: catColor || "#B8914A" }} />
+          <div
+            className="absolute top-0 left-0 right-0"
+            style={{ height: 3, background: catColor || "#B8914A" }}
+          />
           {product.imagePath ? (
             <img src={product.imagePath} alt={product.name} className="w-full h-full object-cover" />
           ) : (
             <div className="w-full h-full flex items-center justify-center pt-1">
-              <span style={{ fontSize: 13, fontWeight: 600, color: catColor || "#B8914A" }}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: catColor || "#B8914A" }}>
                 {product.name.charAt(0).toUpperCase()}
               </span>
             </div>
           )}
-          <div className="absolute inset-0 bg-red-50/0 active:bg-red-50/80 transition-colors flex items-center justify-center opacity-0 active:opacity-100">
-            <span className="text-red-500 text-base leading-none">×</span>
+          <div
+            className="absolute inset-0 flex items-center justify-center opacity-0 active:opacity-100 transition-opacity"
+            style={{ background: "rgba(220,38,38,0.10)" }}
+          >
+            <span style={{ color: "#EF4444", fontSize: 16, fontWeight: 700 }}>×</span>
           </div>
         </>
       )}
@@ -98,9 +111,16 @@ function ShelfRowView({ row, rowIndex, sectionId, subsectionId, shelfNumber, sho
   if (row.type === "image") {
     return (
       <div className="flex items-center gap-2 py-1">
-        <span className="text-[8px] tracking-widest text-text-muted w-6 text-right flex-shrink-0">{shelfNumber || ""}</span>
-        <div className="h-9 flex-1 min-w-0 border border-dashed border-border rounded-sm flex items-center justify-center bg-bg-elevated">
-          <span className="text-[9px] text-text-muted tracking-widest">IMAGE PANEL</span>
+        <span className="text-[7px] text-text-muted w-5 text-right flex-shrink-0">{shelfNumber || ""}</span>
+        <div
+          className="h-9 flex-1 min-w-0 flex items-center justify-center"
+          style={{
+            border: "1.5px dashed #DDD8D0",
+            borderRadius: 5,
+            background: "#F8F6F2",
+          }}
+        >
+          <span className="text-[8px] text-text-muted tracking-widest font-medium">IMAGE PANEL</span>
         </div>
       </div>
     );
@@ -110,7 +130,7 @@ function ShelfRowView({ row, rowIndex, sectionId, subsectionId, shelfNumber, sho
 
   return (
     <div className={`flex items-end gap-1.5 group py-0.5 ${alignRight ? "flex-row-reverse" : ""}`}>
-      <span className={`text-[8px] text-text-muted w-6 flex-shrink-0 pb-1.5 ${alignRight ? "text-left" : "text-right"}`}>
+      <span className={`text-[7px] text-text-muted w-5 flex-shrink-0 pb-1.5 ${alignRight ? "text-left" : "text-right"}`}>
         {shelfNumber}
       </span>
       <div className="flex flex-col">
@@ -121,26 +141,29 @@ function ShelfRowView({ row, rowIndex, sectionId, subsectionId, shelfNumber, sho
           ))}
         </div>
         {/* Shelf board */}
-        <div className="mt-0.5 h-1 rounded-sm"
+        <div
+          className="mt-0.5 rounded-sm"
           style={{
+            height: 4,
             background: isShort
-              ? "linear-gradient(90deg,#C8A880,#E8C898,#C8A880)"
-              : "linear-gradient(90deg,#C8C0B8,#E0D8D0,#C8C0B8)",
+              ? "linear-gradient(90deg, #C8A880, #E8C898, #C8A880)"
+              : "linear-gradient(90deg, #C8C0B8, #E0D8D0, #C8C0B8)",
+            boxShadow: "0 1px 2px rgba(26,20,16,0.08)",
           }}
         />
       </div>
-      <div className={`flex flex-col gap-0.5 flex-shrink-0 pb-1 ${alignRight ? "mr-0.5 items-end" : "ml-0.5 items-start"}`}>
-        <span className={`text-[7px] tracking-wider font-semibold ${isShort ? "text-[#B8914A]" : "text-text-muted/70"}`}>
+      <div className={`flex flex-col gap-0.5 flex-shrink-0 pb-1.5 ${alignRight ? "mr-0.5 items-end" : "ml-0.5 items-start"}`}>
+        <span className={`text-[7px] tracking-wider font-bold ${isShort ? "text-[#B8914A]" : "text-text-muted/60"}`}>
           {ROW_LABEL[row.type]}
         </span>
         {filledCount > 0 && (
-          <span className="text-[7px] text-gold">{filledCount}/{row.products.length}</span>
+          <span className="text-[7px] text-gold font-medium">{filledCount}/{row.products.length}</span>
         )}
         {onRemove && (
-          <button onClick={onRemove}
-            className="text-[8px] text-text-muted/30 hover:text-red-400 active:text-red-500 transition-colors mt-0.5 opacity-0 group-hover:opacity-100">
-            ×
-          </button>
+          <button
+            onClick={onRemove}
+            className="text-[8px] text-text-muted/30 hover:text-red-400 transition-colors mt-0.5 opacity-0 group-hover:opacity-100"
+          >×</button>
         )}
       </div>
     </div>
@@ -170,38 +193,70 @@ function AddRowForm({ sectionId, subsectionId, onDone }: {
       exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.15 }}
       className="overflow-hidden"
     >
-      <div className="mt-3 p-3 border border-dashed border-gold/40 rounded-sm bg-gold/4 flex flex-wrap items-center gap-3">
+      <div
+        className="mt-3 p-3 flex flex-wrap items-center gap-3"
+        style={{
+          border: "1.5px dashed rgba(184,145,74,0.35)",
+          borderRadius: 8,
+          background: "rgba(184,145,74,0.04)",
+        }}
+      >
         <div className="flex gap-1">
           {(["long", "short", "image"] as const).map(t => (
-            <button key={t} onClick={() => setType(t)}
-              className={`px-3 py-1.5 text-[9px] tracking-[0.12em] rounded-sm border transition-all ${
-                type === t ? "bg-gold text-white border-gold font-medium" : "border-border text-text-muted hover:border-gold/50"
-              }`}>
+            <button
+              key={t}
+              onClick={() => setType(t)}
+              className="px-3 py-1.5 text-[9px] tracking-[0.12em] font-semibold transition-all active:scale-95"
+              style={{
+                borderRadius: 5,
+                border: type === t ? "1px solid rgba(184,145,74,0.5)" : "1px solid #DDD8D0",
+                background: type === t ? "rgba(184,145,74,0.12)" : "#F9F7F4",
+                color: type === t ? "#B8914A" : "#9A9080",
+              }}
+            >
               {t === "long" ? "DÀI" : t === "short" ? "NGẮN" : "TRANH"}
             </button>
           ))}
         </div>
         {type !== "image" && (
           <label className="flex items-center gap-2">
-            <span className="text-[9px] text-text-muted">Số ngăn:</span>
-            <input type="number" min={1} max={20} value={slots}
+            <span className="text-[9px] text-text-muted font-medium">Số ngăn:</span>
+            <input
+              type="number" min={1} max={20} value={slots}
               onChange={e => setSlots(Math.max(1, Math.min(20, Number(e.target.value))))}
-              className="w-12 px-2 py-1 text-[10px] text-center border border-border rounded-sm bg-bg-base focus:outline-none focus:border-gold/60 text-text-primary" />
+              className="w-12 px-2 py-1 text-[10px] text-center text-text-primary focus:outline-none"
+              style={{
+                border: "1px solid #DDD8D0", borderRadius: 5,
+                background: "#F0EDE8",
+              }}
+              onFocus={e => (e.currentTarget.style.borderColor = "rgba(184,145,74,0.5)")}
+              onBlur={e => (e.currentTarget.style.borderColor = "#DDD8D0")}
+            />
           </label>
         )}
         {type !== "image" && (
           <div className="flex gap-0.5">
             {Array.from({ length: Math.min(slots, 12) }).map((_, i) => (
-              <div key={i} style={{ width: 12, height: 16, borderRadius: 2, border: "1px solid #D8D0C8", background: "#F8F5F0" }} />
+              <div key={i} style={{ width: 11, height: 15, borderRadius: 2, border: "1px solid #DDD8D0", background: "#F8F6F2" }} />
             ))}
-            {slots > 12 && <span className="text-[8px] text-text-muted self-end">+{slots - 12}</span>}
+            {slots > 12 && <span className="text-[8px] text-text-muted self-end ml-0.5">+{slots - 12}</span>}
           </div>
         )}
         <div className="flex gap-1.5 ml-auto">
-          <button onClick={onDone}
-            className="px-3 py-1.5 text-[9px] text-text-muted border border-border rounded-sm">Hủy</button>
-          <button onClick={handleAdd}
-            className="px-3 py-1.5 text-[9px] text-white bg-gold rounded-sm font-medium">+ Thêm</button>
+          <button
+            onClick={onDone}
+            className="px-3 py-1.5 text-[9px] font-medium text-text-muted transition-all active:scale-95"
+            style={{ border: "1px solid #DDD8D0", borderRadius: 5, background: "#F9F7F4" }}
+          >Hủy</button>
+          <button
+            onClick={handleAdd}
+            className="px-3 py-1.5 text-[9px] font-semibold text-white transition-all active:scale-95"
+            style={{
+              background: "linear-gradient(135deg, #B8914A 0%, #D4B06E 100%)",
+              borderRadius: 5,
+              boxShadow: "0 2px 6px rgba(184,145,74,0.25)",
+            }}
+          >+ Thêm</button>
         </div>
       </div>
     </motion.div>
@@ -217,46 +272,66 @@ function Planogram({ section, subsection }: { section: StoreSection; subsection:
   const totalSlots = subsection.rows.reduce((s, r) => s + r.products.length, 0);
   const filledSlots = subsection.rows.reduce((s, r) => s + r.products.filter(Boolean).length, 0);
   const accent = SECTION_ACCENT[section.sectionType] || "#B8914A";
+  const fillPct = totalSlots > 0 ? (filledSlots / totalSlots) * 100 : 0;
 
   let shelfCounter = 0;
   let shortCounter = 0;
 
   return (
     <div className="flex flex-col h-full overflow-hidden bg-bg-surface">
-      {/* Compact header */}
-      <div className="px-3 py-2 border-b border-border flex items-center justify-between flex-shrink-0 gap-2"
-        style={{ borderLeftWidth: 3, borderLeftColor: accent, paddingLeft: 10 }}>
+      {/* Header */}
+      <div
+        className="px-3 py-2.5 border-b border-border flex items-center justify-between flex-shrink-0 gap-2"
+        style={{ borderLeftWidth: 3, borderLeftColor: accent, paddingLeft: 12 }}
+      >
         <div className="min-w-0">
-          <p className="text-[8px] tracking-[0.18em] uppercase font-medium truncate" style={{ color: accent }}>
+          <p className="text-[7px] tracking-[0.22em] uppercase font-bold truncate" style={{ color: accent }}>
             {section.name}
           </p>
-          <p className="text-text-primary text-sm font-light truncate leading-tight">{subsection.name}</p>
+          <p className="text-text-primary text-[13px] font-medium truncate leading-tight mt-0.5">
+            {subsection.name}
+          </p>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
-          <span className="text-[9px]" style={{ color: filledSlots > 0 ? accent : "#9A9080" }}>
-            {filledSlots}/{totalSlots}
-          </span>
+          {totalSlots > 0 && (
+            <span
+              className="text-[8px] font-semibold px-2 py-0.5 rounded-full"
+              style={{
+                color: filledSlots > 0 ? accent : "#9A9080",
+                background: filledSlots > 0 ? `${accent}12` : "#F0EDE8",
+                border: `1px solid ${filledSlots > 0 ? `${accent}25` : "#E8E4DE"}`,
+              }}
+            >
+              {filledSlots}/{totalSlots}
+            </span>
+          )}
           {confirmClear ? (
             <div className="flex items-center gap-1">
-              <button onClick={() => { clearSubsection(section.id, subsection.id); setConfirmClear(false); }}
-                className="px-2 py-1 text-[8px] text-red-500 border border-red-300 rounded-sm">OK</button>
-              <button onClick={() => setConfirmClear(false)}
-                className="px-2 py-1 text-[8px] text-text-muted border border-border rounded-sm">Hủy</button>
+              <button
+                onClick={() => { clearSubsection(section.id, subsection.id); setConfirmClear(false); }}
+                className="px-2 py-1 text-[8px] text-white bg-red-500 rounded-sm active:scale-95"
+              >OK</button>
+              <button
+                onClick={() => setConfirmClear(false)}
+                className="px-2 py-1 text-[8px] text-text-muted border border-border rounded-sm"
+              >Hủy</button>
             </div>
           ) : (
-            <button onClick={() => setConfirmClear(true)}
-              className="text-[8px] text-text-muted/50 hover:text-red-400 transition-colors px-1 py-1">
-              Xóa
-            </button>
+            <button
+              onClick={() => setConfirmClear(true)}
+              className="text-[8px] text-text-muted/40 hover:text-red-400 transition-colors px-1 py-1"
+            >Xóa tất cả</button>
           )}
         </div>
       </div>
 
       {/* Progress bar */}
       {totalSlots > 0 && (
-        <div className="h-0.5 flex-shrink-0 bg-border overflow-hidden">
-          <div className="h-full transition-all duration-500"
-            style={{ width: `${(filledSlots / totalSlots) * 100}%`, background: accent, opacity: 0.7 }} />
+        <div className="h-0.5 flex-shrink-0" style={{ background: "#EAE6E0" }}>
+          <div
+            className="h-full transition-all duration-500"
+            style={{ width: `${fillPct}%`, background: accent, opacity: 0.75 }}
+          />
         </div>
       )}
 
@@ -267,26 +342,34 @@ function Planogram({ section, subsection }: { section: StoreSection; subsection:
             if (row.type !== "image") shelfCounter++;
             const si = row.type === "short" ? shortCounter++ : undefined;
             return (
-              <ShelfRowView key={ri} row={row} rowIndex={ri}
+              <ShelfRowView
+                key={ri} row={row} rowIndex={ri}
                 sectionId={section.id} subsectionId={subsection.id}
                 shelfNumber={row.type !== "image" ? shelfCounter : 0}
                 shortIndex={si}
-                onRemove={() => removeSubsectionRow(section.id, subsection.id, ri)} />
+                onRemove={() => removeSubsectionRow(section.id, subsection.id, ri)}
+              />
             );
           })}
 
-          {/* Add row */}
           <div className="mt-3">
             <AnimatePresence mode="wait">
               {showAddRow ? (
                 <AddRowForm key="form" sectionId={section.id} subsectionId={subsection.id}
                   onDone={() => setShowAddRow(false)} />
               ) : (
-                <motion.button key="btn"
+                <motion.button
+                  key="btn"
                   initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                   onClick={() => setShowAddRow(true)}
-                  className="flex items-center gap-1.5 px-3 py-2 text-[9px] text-text-muted border border-dashed border-border hover:border-gold/50 hover:text-gold rounded-sm transition-all active:opacity-70">
-                  + Thêm ngăn
+                  className="flex items-center gap-2 px-3 py-2 text-[9px] font-medium text-text-muted hover:text-gold transition-colors active:opacity-70"
+                  style={{
+                    border: "1.5px dashed #DDD8D0",
+                    borderRadius: 6,
+                  }}
+                >
+                  <span style={{ fontSize: 14, lineHeight: 1 }}>+</span>
+                  <span className="tracking-wider">Thêm ngăn kệ</span>
                 </motion.button>
               )}
             </AnimatePresence>
@@ -317,37 +400,40 @@ export default function SectionEditor() {
   return (
     <div className="flex flex-col h-full overflow-hidden bg-bg-base">
 
-      {/* ── Mobile: section/sub picker row ── */}
-      <div className="flex items-center border-b border-border bg-bg-surface flex-shrink-0">
-        {/* Current selection button — tap opens dropdown */}
+      {/* ── Section / subsection picker ─────────────────────────────────── */}
+      <div className="flex items-center border-b border-border bg-bg-surface flex-shrink-0"
+        style={{ boxShadow: "0 1px 0 #EAE6E0" }}>
         <button
           onClick={() => setMobileNavOpen(v => !v)}
-          className="flex-1 min-w-0 flex items-center gap-2 px-3 py-2.5 text-left active:bg-bg-card transition-colors"
-          style={{ borderLeft: `3px solid ${accent}`, paddingLeft: 10 }}
+          className="flex-1 min-w-0 flex items-center gap-2.5 px-3 py-2.5 text-left active:bg-bg-card transition-colors"
+          style={{ borderLeft: `3px solid ${accent}`, paddingLeft: 12 }}
         >
           <div className="min-w-0 flex-1">
-            <p className="text-[7px] tracking-[0.18em] uppercase font-medium truncate" style={{ color: accent }}>
+            <p className="text-[7px] tracking-[0.22em] uppercase font-bold truncate" style={{ color: accent }}>
               {section?.name ?? "Chọn khu vực"}
             </p>
-            <p className="text-[12px] text-text-primary font-light truncate leading-tight">
+            <p className="text-[12px] text-text-primary font-medium truncate leading-tight mt-0.5">
               {subsection?.name ?? "—"}
             </p>
           </div>
-          <span className="text-text-muted text-xs flex-shrink-0">{mobileNavOpen ? "▲" : "▼"}</span>
+          <motion.span
+            animate={{ rotate: mobileNavOpen ? 180 : 0 }}
+            transition={{ duration: 0.2 }}
+            className="text-text-muted text-[10px] flex-shrink-0"
+          >▼</motion.span>
         </button>
-
-        {/* Desktop: sidebar button label */}
-        <div className="hidden md:flex px-3 border-l border-border">
-          <p className="text-[8px] tracking-[0.2em] text-text-muted uppercase">Khu vực</p>
+        <div className="hidden md:flex px-4 border-l border-border self-stretch items-center">
+          <p className="text-[7px] tracking-[0.25em] text-text-muted uppercase font-semibold">KHU VỰC</p>
         </div>
       </div>
 
-      {/* ── Dropdown nav (mobile) or sidebar (desktop) ── */}
+      {/* ── Layout ──────────────────────────────────────────────────────── */}
       <div className="flex flex-1 overflow-hidden min-h-0">
 
         {/* Desktop sidebar */}
-        <div className="hidden md:flex w-44 flex-shrink-0 border-r border-border overflow-y-auto bg-bg-surface flex-col">
-          <div className="flex flex-col overflow-y-auto divide-y divide-border/50">
+        <div className="hidden md:flex w-44 flex-shrink-0 border-r border-border overflow-y-auto bg-bg-surface flex-col"
+          style={{ boxShadow: "1px 0 0 #EAE6E0" }}>
+          <div className="flex flex-col divide-y divide-border/40">
             {storeSections.map(sec => {
               const acc = SECTION_ACCENT[sec.sectionType] || "#B8914A";
               const filled = sec.subsections.reduce(
@@ -355,23 +441,40 @@ export default function SectionEditor() {
               );
               return (
                 <div key={sec.id}>
-                  <div className="px-3 py-2 border-b border-border/30 flex items-center justify-between">
-                    <span className="text-[8px] tracking-[0.15em] font-medium uppercase" style={{ color: acc }}>
+                  <div className="px-3 py-2 bg-bg-card flex items-center justify-between">
+                    <span className="text-[8px] tracking-[0.18em] font-bold uppercase" style={{ color: acc }}>
                       {sec.name}
                     </span>
-                    {filled > 0 && <span className="text-[7px] text-gold">{filled}</span>}
+                    {filled > 0 && (
+                      <span
+                        className="text-[7px] px-1.5 py-0.5 rounded-full font-semibold"
+                        style={{ color: acc, background: `${acc}14`, border: `1px solid ${acc}25` }}
+                      >{filled}</span>
+                    )}
                   </div>
                   {sec.subsections.map(sub => {
                     const isSelected = selSectionId === sec.id && selSubId === sub.id;
                     const subFilled = sub.rows.reduce((s, r) => s + r.products.filter(Boolean).length, 0);
                     return (
-                      <button key={sub.id} onClick={() => handleSelect(sec.id, sub.id)}
-                        className={`w-full text-left px-4 py-2 flex items-center justify-between text-[10px] transition-all ${
-                          isSelected ? "text-text-primary bg-bg-card" : "text-text-muted hover:bg-bg-card/60"
-                        }`}
-                        style={isSelected ? { borderLeft: `2px solid ${acc}`, paddingLeft: 14 } : { borderLeft: "2px solid transparent" }}>
+                      <button
+                        key={sub.id}
+                        onClick={() => handleSelect(sec.id, sub.id)}
+                        className="w-full text-left px-4 py-2 flex items-center justify-between text-[10px] transition-colors"
+                        style={{
+                          background: isSelected ? "#F9F7F4" : undefined,
+                          borderLeft: `2.5px solid ${isSelected ? acc : "transparent"}`,
+                          paddingLeft: isSelected ? 13.5 : 16,
+                          color: isSelected ? "#1A1410" : "#9A9080",
+                          fontWeight: isSelected ? 600 : 400,
+                        }}
+                      >
                         <span className="truncate">{sub.name}</span>
-                        {subFilled > 0 && <span className="text-[7px] ml-1 flex-shrink-0" style={{ color: isSelected ? acc : "#9A9080" }}>{subFilled}</span>}
+                        {subFilled > 0 && (
+                          <span className="text-[7px] ml-1 flex-shrink-0 font-semibold"
+                            style={{ color: isSelected ? acc : "#C8C0B8" }}>
+                            {subFilled}
+                          </span>
+                        )}
                       </button>
                     );
                   })}
@@ -381,31 +484,53 @@ export default function SectionEditor() {
           </div>
         </div>
 
-        {/* Mobile dropdown overlay */}
+        {/* Mobile dropdown */}
         <AnimatePresence>
           {mobileNavOpen && (
             <motion.div
               initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.15 }}
-              className="md:hidden absolute left-0 right-0 z-30 bg-bg-surface border-b border-border shadow-lg overflow-y-auto"
-              style={{ top: 88, maxHeight: "55vh" }}
+              className="md:hidden absolute left-0 right-0 z-30 overflow-y-auto border-b border-border"
+              style={{
+                top: 52 + 46,
+                maxHeight: "55vh",
+                background: "#FFFFFF",
+                boxShadow: "0 8px 24px rgba(26,20,16,0.12)",
+              }}
             >
               {storeSections.map(sec => {
                 const acc = SECTION_ACCENT[sec.sectionType] || "#B8914A";
                 return (
                   <div key={sec.id}>
-                    <div className="px-4 py-2 bg-bg-card border-b border-border/40">
-                      <p className="text-[9px] tracking-[0.15em] uppercase font-medium" style={{ color: acc }}>{sec.name}</p>
+                    <div className="px-4 py-2 border-b border-border/40" style={{ background: "#F9F7F4" }}>
+                      <p className="text-[9px] tracking-[0.18em] uppercase font-bold" style={{ color: acc }}>
+                        {sec.name}
+                      </p>
                     </div>
                     {sec.subsections.map(sub => {
                       const isSelected = selSectionId === sec.id && selSubId === sub.id;
                       const subFilled = sub.rows.reduce((s, r) => s + r.products.filter(Boolean).length, 0);
                       return (
-                        <button key={sub.id} onClick={() => handleSelect(sec.id, sub.id)}
-                          className={`w-full text-left px-5 py-3 flex items-center justify-between border-b border-border/30 active:bg-bg-card transition-colors ${isSelected ? "bg-bg-card" : ""}`}
-                          style={isSelected ? { borderLeft: `3px solid ${acc}`, paddingLeft: 17 } : { borderLeft: "3px solid transparent" }}>
-                          <span className={`text-sm ${isSelected ? "text-text-primary font-medium" : "text-text-muted"}`}>{sub.name}</span>
-                          {subFilled > 0 && <span className="text-[10px] ml-2 flex-shrink-0" style={{ color: acc }}>{subFilled}</span>}
+                        <button
+                          key={sub.id}
+                          onClick={() => handleSelect(sec.id, sub.id)}
+                          className="w-full text-left px-5 py-3 flex items-center justify-between border-b border-border/25 active:bg-bg-card transition-colors"
+                          style={{
+                            background: isSelected ? "#F9F7F4" : undefined,
+                            borderLeft: `3px solid ${isSelected ? acc : "transparent"}`,
+                            paddingLeft: isSelected ? 17 : 20,
+                          }}
+                        >
+                          <span className={`text-sm font-${isSelected ? "semibold" : "normal"}`}
+                            style={{ color: isSelected ? "#1A1410" : "#9A9080" }}>
+                            {sub.name}
+                          </span>
+                          {subFilled > 0 && (
+                            <span className="text-[10px] ml-2 flex-shrink-0 font-semibold"
+                              style={{ color: acc }}>
+                              {subFilled}
+                            </span>
+                          )}
                         </button>
                       );
                     })}
@@ -419,27 +544,42 @@ export default function SectionEditor() {
         {/* Main content */}
         <div className="flex-1 overflow-hidden flex flex-col min-w-0 relative">
           {/* Selected product banner */}
-          {selectedProduct && (
-            <div className="px-3 py-2 border-b border-gold/20 bg-gold/5 flex-shrink-0 flex items-center gap-2">
-              <div className="w-1.5 h-1.5 rounded-full bg-gold animate-pulse flex-shrink-0" />
-              <p className="text-[10px] text-gold truncate">
-                <span className="font-medium">{selectedProduct.name}</span>
-                <span className="ml-1 opacity-70">— tap ô trống để đặt</span>
-              </p>
-            </div>
-          )}
+          <AnimatePresence>
+            {selectedProduct && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}
+                className="overflow-hidden flex-shrink-0"
+              >
+                <div
+                  className="px-3 py-2 flex items-center gap-2 border-b"
+                  style={{ background: "rgba(184,145,74,0.05)", borderBottomColor: "rgba(184,145,74,0.18)" }}
+                >
+                  <div className="w-1.5 h-1.5 rounded-full bg-gold flex-shrink-0"
+                    style={{ animation: "pulseGold 2s ease-in-out infinite" }} />
+                  <p className="text-[10px] text-gold truncate">
+                    <span className="font-semibold">{selectedProduct.name}</span>
+                    <span className="ml-1 opacity-60">— tap ô trống để đặt</span>
+                  </p>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           {section && subsection ? (
             <Planogram section={section} subsection={subsection} />
           ) : (
-            <div className="flex-1 flex items-center justify-center text-text-muted text-xs">
-              Chọn khu vực ở trên
+            <div className="flex-1 flex items-center justify-center">
+              <p className="text-[11px] text-text-muted">Chọn khu vực ở trên</p>
             </div>
           )}
         </div>
 
         {/* Product 3D viewer — desktop only */}
         {selectedProduct && (
-          <div className="hidden md:block w-[188px] flex-shrink-0 border-l border-border overflow-hidden">
+          <div
+            className="hidden md:block w-[180px] flex-shrink-0 border-l border-border overflow-hidden"
+            style={{ background: "linear-gradient(180deg, #FFFFFF 0%, #F9F7F4 100%)" }}
+          >
             <Product3DViewer product={selectedProduct} />
           </div>
         )}
