@@ -15,11 +15,18 @@ import fs from "fs";
 
 // ─── Singleton ────────────────────────────────────────────────────────────────
 
-const DB_PATH = path.join(process.cwd(), "data", "postlain.db");
+// Vercel serverless: dùng /tmp (ephemeral nhưng đủ dùng trong session)
+// Local dev: dùng ./data/postlain.db (persistent)
+const isVercel = process.env.VERCEL === "1";
+const DB_PATH = isVercel
+  ? "/tmp/postlain.db"
+  : path.join(process.cwd(), "data", "postlain.db");
 
-// Ensure data directory exists
-const dataDir = path.dirname(DB_PATH);
-if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
+// Ensure data directory exists (không cần tạo /tmp, đã có sẵn trên Vercel)
+if (!isVercel) {
+  const dataDir = path.dirname(DB_PATH);
+  if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
+}
 
 // Module-level singleton (Next.js hot-reload safe via globalThis cache)
 declare global {

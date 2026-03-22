@@ -11,7 +11,8 @@
     "docker:build": "docker compose build",
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down",
-    "docker:logs": "docker compose logs -f postlain-store"
+    "docker:logs": "docker compose logs -f postlain-store",
+    "postinstall": "node node_modules/better-sqlite3/scripts/build-release.js 2>/dev/null || true"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
