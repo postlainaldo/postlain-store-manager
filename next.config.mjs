@@ -6,7 +6,7 @@ const withPWA = withPWAInit({
   aggressiveFrontEndNavCaching: true,
   reloadOnOnline: true,
   swMinify: true,
-  disable: false, // Để true nếu muốn tắt PWA khi đang code ở localhost
+  disable: false,
   workboxOptions: {
     disableDevLogs: true,
   },
