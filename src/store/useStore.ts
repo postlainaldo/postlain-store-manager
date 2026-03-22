@@ -594,6 +594,23 @@ export const useStore = create<StoreState>()(
         users: s.users,
         currentUser: s.currentUser,
       }),
+      version: 3,
+      migrate: (persisted: unknown) => {
+        const state = persisted as Record<string, unknown>;
+        const users = (state.users as AppUser[] | undefined) ?? [];
+        // Nếu admin cũ dùng email cũ → cập nhật lại credentials
+        const OLD_EMAILS = ["postlain.aldo@gmail.com", "admin@postlain.com"];
+        const updatedUsers = users.map((u: AppUser) =>
+          u.id === "user_admin" || OLD_EMAILS.includes(u.email)
+            ? { ...DEFAULT_ADMIN, name: u.name || DEFAULT_ADMIN.name }
+            : u
+        );
+        // Nếu không có admin nào → thêm default
+        if (!updatedUsers.some((u: AppUser) => u.role === "admin")) {
+          updatedUsers.unshift(DEFAULT_ADMIN);
+        }
+        return { ...state, users: updatedUsers, currentUser: null };
+      },
       skipHydration: true,
     }
   )

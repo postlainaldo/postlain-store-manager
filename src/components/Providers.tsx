@@ -9,13 +9,13 @@ export default function Providers({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     useStore.persist.rehydrate();
 
-    // Migrate default admin credentials if old email is still present
+    // Đảm bảo admin mặc định luôn dùng credentials hiện tại
     const state = useStore.getState();
     const adminUser = state.users.find(u => u.id === "user_admin");
-    if (adminUser && adminUser.email !== "postlain.aldo@gmail.com") {
+    if (adminUser && (adminUser.email !== "admin" || adminUser.passwordHash !== "Aldo@123")) {
       state.updateUser("user_admin", {
-        email: "postlain.aldo@gmail.com",
-        passwordHash: "Lucii@1108",
+        email: "admin",
+        passwordHash: "Aldo@123",
       });
     }
 
