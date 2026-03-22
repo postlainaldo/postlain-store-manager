@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useRef, useCallback, useEffect } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import * as XLSX from "xlsx";
 import { useStore } from "@/store/useStore";
 import { ExcelRow } from "@/types";
 import { resolveCategory, parseVietnamesePrice } from "@/lib/categoryMapping";
+import { X, FileSpreadsheet, Plus } from "lucide-react";
 
 interface Props { onClose: () => void; }
 
@@ -62,26 +63,17 @@ const FIELD_MAP: Record<string, string> = {
   "remarks": "notes", "comment": "notes",
 };
 
-// Normalize: lowercase, collapse spaces, strip invisible chars
 function normalizeKey(key: string): string {
-  return key
-    .toLowerCase()
-    .replace(/\s+/g, " ")     // collapse multiple spaces
-    .replace(/[\u200B-\u200D\uFEFF]/g, "") // strip zero-width chars
-    .trim();
+  return key.toLowerCase().replace(/\s+/g, " ").replace(/[\u200B-\u200D\uFEFF]/g, "").trim();
 }
 
-// Fuzzy fallback: strip all spaces and slashes for partial matching
 function fuzzyField(key: string): string | null {
   const norm = normalizeKey(key);
-  // Direct lookup
   if (FIELD_MAP[norm]) return FIELD_MAP[norm];
-  // Try stripping spaces inside
   const compact = norm.replace(/\s/g, "");
   for (const [k, v] of Object.entries(FIELD_MAP)) {
     if (k.replace(/\s/g, "") === compact) return v;
   }
-  // Contains-based fallback for common keywords
   if (/tên|ten|name/.test(norm) && !/danh|loại|loai/.test(norm)) return "name";
   if (/danh\s*m[uụ]c|category|nhóm|nhom/.test(norm)) return "category";
   if (/s[oố]\s*l[uư][oợ]ng|quantity|qty|t[oồ]n/.test(norm)) return "quantity";
@@ -116,11 +108,16 @@ const fmtVND = (v: unknown) => {
   return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(n);
 };
 
+// ─── File entry ───────────────────────────────────────────────────────────────
+interface FileEntry {
+  name: string;
+  rows: ExcelRow[];
+}
+
 export default function ExcelImportModal({ onClose }: Props) {
-  const { importProducts, fetchProducts } = useStore();
-  const [rows, setRows] = useState<ExcelRow[]>([]);
+  const { fetchProducts } = useStore();
+  const [files, setFiles] = useState<FileEntry[]>([]);
   const [dragging, setDragging] = useState(false);
-  const [filename, setFilename] = useState("");
   const [importing, setImporting] = useState(false);
   const [result, setResult] = useState<{ updated: number; inserted: number } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -131,23 +128,42 @@ export default function ExcelImportModal({ onClose }: Props) {
     return () => window.removeEventListener("keydown", handleKey);
   }, [onClose]);
 
-  const parseFile = useCallback((file: File) => {
-    setFilename(file.name);
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const data = new Uint8Array(e.target!.result as ArrayBuffer);
-      const wb = XLSX.read(data, { type: "array" });
-      const sheet = wb.Sheets[wb.SheetNames[0]];
-      const raw = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet);
-      setRows(raw.map(mapRow));
-    };
-    reader.readAsArrayBuffer(file);
+  const parseFiles = useCallback((fileList: File[]) => {
+    fileList.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const data = new Uint8Array(e.target!.result as ArrayBuffer);
+        const wb = XLSX.read(data, { type: "array" });
+        const sheet = wb.Sheets[wb.SheetNames[0]];
+        const raw = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet);
+        const rows = raw.map(mapRow);
+        setFiles(prev => {
+          // Replace if same filename, else append
+          const exists = prev.findIndex(f => f.name === file.name);
+          if (exists >= 0) {
+            const next = [...prev];
+            next[exists] = { name: file.name, rows };
+            return next;
+          }
+          return [...prev, { name: file.name, rows }];
+        });
+      };
+      reader.readAsArrayBuffer(file);
+    });
   }, []);
 
+  const removeFile = (name: string) => {
+    setFiles(prev => prev.filter(f => f.name !== name));
+  };
+
+  // Merge all files' rows
+  const allRows = files.flatMap(f => f.rows);
+
   const handleImport = async () => {
+    if (!allRows.length) return;
     setImporting(true);
     const now = new Date().toISOString();
-    const validRows = rows.map((r) => ({
+    const validRows = allRows.map((r) => ({
       id: `prod_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
       name:          String(r.name || "Sản phẩm"),
       category:      String(r.category || "Khác"),
@@ -171,7 +187,7 @@ export default function ExcelImportModal({ onClose }: Props) {
       setResult({ updated: data.updated, inserted: data.inserted });
     }
     setImporting(false);
-    setTimeout(onClose, 2000);
+    setTimeout(onClose, 2200);
   };
 
   const HEADERS = ["name", "category", "quantity", "price", "markdown", "sku"];
@@ -180,11 +196,10 @@ export default function ExcelImportModal({ onClose }: Props) {
     price: "Giá gốc", markdown: "Giá giảm", sku: "SKU",
   };
 
-  // Count how many rows have each field populated
-  const fieldCoverage = rows.length > 0
+  const fieldCoverage = allRows.length > 0
     ? HEADERS.map(h => ({
         h,
-        pct: Math.round(rows.filter(r => r[h] != null && r[h] !== "").length / rows.length * 100),
+        pct: Math.round(allRows.filter(r => r[h] != null && r[h] !== "").length / allRows.length * 100),
       }))
     : [];
 
@@ -192,10 +207,13 @@ export default function ExcelImportModal({ onClose }: Props) {
     <motion.div className="fixed inset-0 z-50 flex items-center justify-center"
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-      <motion.div className="relative z-10 w-full max-w-4xl bg-white border border-border rounded shadow-2xl max-h-[90vh] flex flex-col"
-        initial={{ opacity: 0, y: 24, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }}
-        exit={{ opacity: 0, y: 24, scale: 0.97 }} transition={{ type: "spring", bounce: 0.15, duration: 0.4 }}>
-
+      <motion.div
+        className="relative z-10 w-full max-w-4xl bg-white border border-border rounded shadow-2xl max-h-[90vh] flex flex-col"
+        initial={{ opacity: 0, y: 24, scale: 0.97 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 24, scale: 0.97 }}
+        transition={{ type: "spring", bounce: 0.15, duration: 0.4 }}
+      >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-5 border-b border-border flex-shrink-0">
           <div>
@@ -206,35 +224,68 @@ export default function ExcelImportModal({ onClose }: Props) {
         </div>
 
         <div className="flex-1 overflow-auto p-6 space-y-4">
+
           {/* Drop Zone */}
           <div
-            className={`relative border-2 border-dashed rounded p-8 flex flex-col items-center justify-center gap-3 cursor-pointer transition-all ${
-              dragging ? "border-gold bg-gold/5" : rows.length > 0 ? "border-gold/40 bg-bg-card" : "border-border hover:border-gold/50 bg-bg-card"
+            className={`relative border-2 border-dashed rounded p-6 flex flex-col items-center justify-center gap-2 cursor-pointer transition-all ${
+              dragging ? "border-gold bg-gold/5" : "border-border hover:border-gold/50 bg-bg-card"
             }`}
             onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
             onDragLeave={() => setDragging(false)}
-            onDrop={(e) => { e.preventDefault(); setDragging(false); const f = e.dataTransfer.files[0]; if (f) parseFile(f); }}
+            onDrop={(e) => {
+              e.preventDefault(); setDragging(false);
+              const dropped = Array.from(e.dataTransfer.files).filter(f => /\.(xlsx|xls|csv)$/i.test(f.name));
+              if (dropped.length) parseFiles(dropped);
+            }}
             onClick={() => fileRef.current?.click()}
           >
-            {rows.length > 0 ? (
-              <>
-                <span className="text-gold text-2xl">✓</span>
-                <p className="text-text-primary text-sm font-medium">{filename}</p>
-                <p className="text-text-muted text-xs">{rows.length} sản phẩm đã đọc</p>
-              </>
-            ) : (
-              <>
-                <span className="text-3xl text-text-muted">⊕</span>
-                <p className="text-text-primary text-sm">Kéo thả file Excel vào đây hoặc click để chọn</p>
-                <p className="text-text-muted text-xs">Hỗ trợ .xlsx, .xls, .csv · Tự động nhận diện mã MH/MC · Đọc cả giá gốc và giá giảm</p>
-              </>
-            )}
-            <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" className="hidden"
-              onChange={(e) => e.target.files?.[0] && parseFile(e.target.files[0])} />
+            <Plus size={20} className="text-text-muted" />
+            <p className="text-text-primary text-sm">Kéo thả hoặc click để chọn file</p>
+            <p className="text-text-muted text-xs">Hỗ trợ nhiều file · .xlsx, .xls, .csv</p>
+            <input
+              ref={fileRef} type="file" accept=".xlsx,.xls,.csv" multiple className="hidden"
+              onChange={(e) => {
+                const picked = Array.from(e.target.files ?? []);
+                if (picked.length) parseFiles(picked);
+                e.target.value = "";
+              }}
+            />
           </div>
 
-          {/* Format hint */}
-          {rows.length === 0 && (
+          {/* File list */}
+          <AnimatePresence>
+            {files.length > 0 && (
+              <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} className="space-y-2">
+                <p className="text-[9px] tracking-[0.2em] text-text-muted uppercase">Files đã chọn</p>
+                <div className="flex flex-col gap-1.5">
+                  {files.map(f => (
+                    <div key={f.name}
+                      className="flex items-center gap-3 px-3 py-2 rounded-lg border border-border bg-bg-card">
+                      <FileSpreadsheet size={13} className="text-gold flex-shrink-0" />
+                      <span className="flex-1 text-xs text-text-primary truncate">{f.name}</span>
+                      <span className="text-[9px] text-text-muted bg-white border border-border rounded px-1.5 py-0.5 flex-shrink-0">
+                        {f.rows.length} SP
+                      </span>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); removeFile(f.name); }}
+                        className="w-5 h-5 rounded flex items-center justify-center hover:bg-red-50 flex-shrink-0"
+                      >
+                        <X size={10} className="text-red-400" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                {files.length > 1 && (
+                  <p className="text-[9px] text-text-muted">
+                    Tổng: <span className="text-gold font-semibold">{allRows.length} sản phẩm</span> từ {files.length} file
+                  </p>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Format hint (empty state) */}
+          {files.length === 0 && (
             <div className="bg-bg-card border border-border rounded p-4">
               <p className="text-[10px] tracking-[0.15em] text-text-muted uppercase mb-3">Cột nhận diện tự động</p>
               <div className="flex flex-wrap gap-2">
@@ -246,16 +297,15 @@ export default function ExcelImportModal({ onClose }: Props) {
                 ))}
               </div>
               <p className="text-[9px] text-text-muted mt-3">
-                Mã MH12001–MH12006, MH13001–MH13018, MC14001–MC14092 được tự động chuyển sang tiếng Việt.
-                Cả giá gốc và giá giảm đều được lưu.
+                Sản phẩm mới → thêm đầy đủ · Sản phẩm cũ (trùng SKU/tên) → chỉ cập nhật số lượng.
+                Mã MH/MC tự động dịch sang tiếng Việt.
               </p>
             </div>
           )}
 
-          {/* Coverage bar + Preview */}
-          {rows.length > 0 && (
+          {/* Coverage + preview */}
+          {allRows.length > 0 && (
             <>
-              {/* Field coverage indicator */}
               <div className="grid grid-cols-6 gap-2">
                 {fieldCoverage.map(({ h, pct }) => (
                   <div key={h} className="flex flex-col gap-1">
@@ -271,7 +321,6 @@ export default function ExcelImportModal({ onClose }: Props) {
                 ))}
               </div>
 
-              {/* Preview table */}
               <div className="overflow-auto rounded border border-border">
                 <table className="w-full text-sm">
                   <thead>
@@ -284,7 +333,7 @@ export default function ExcelImportModal({ onClose }: Props) {
                     </tr>
                   </thead>
                   <tbody>
-                    {rows.slice(0, 15).map((row, i) => (
+                    {allRows.slice(0, 15).map((row, i) => (
                       <tr key={i} className="border-b border-border/40 hover:bg-bg-card transition-colors">
                         {HEADERS.map((h) => (
                           <td key={h} className="px-3 py-2 text-text-secondary text-xs max-w-[180px] truncate">
@@ -305,10 +354,10 @@ export default function ExcelImportModal({ onClose }: Props) {
                         ))}
                       </tr>
                     ))}
-                    {rows.length > 15 && (
+                    {allRows.length > 15 && (
                       <tr>
                         <td colSpan={HEADERS.length} className="px-3 py-2 text-text-muted text-xs text-center italic">
-                          … và {rows.length - 15} sản phẩm nữa
+                          … và {allRows.length - 15} sản phẩm nữa
                         </td>
                       </tr>
                     )}
@@ -316,15 +365,15 @@ export default function ExcelImportModal({ onClose }: Props) {
                 </table>
               </div>
 
-              {/* Summary note */}
               <p className="text-[10px] text-text-muted">
-                Cả giá gốc và giá giảm sẽ được lưu cùng lúc vào mỗi sản phẩm.
+                Sản phẩm trùng SKU/tên → chỉ cập nhật số lượng. Sản phẩm mới → thêm đầy đủ thông tin.
               </p>
             </>
           )}
         </div>
 
-        {rows.length > 0 && (
+        {/* Footer */}
+        {allRows.length > 0 && (
           <div className="flex gap-3 px-6 py-4 border-t border-border flex-shrink-0 bg-bg-card">
             <button onClick={onClose}
               className="flex-1 py-2.5 text-sm tracking-wider text-text-secondary border border-border hover:border-border-strong hover:text-text-primary rounded transition-all">
@@ -333,8 +382,10 @@ export default function ExcelImportModal({ onClose }: Props) {
             <button onClick={handleImport} disabled={importing || !!result}
               className="flex-1 py-2.5 text-sm tracking-wider font-medium bg-gold hover:bg-gold-light text-white rounded transition-all disabled:opacity-50">
               {result
-                ? `✓ +${result.inserted} mới · cập nhật ${result.updated}`
-                : importing ? "ĐANG XỬ LÝ..." : `IMPORT ${rows.length} SẢN PHẨM`}
+                ? `✓ +${result.inserted} mới · ${result.updated} cập nhật SL`
+                : importing
+                ? "ĐANG XỬ LÝ..."
+                : `IMPORT ${allRows.length} SẢN PHẨM`}
             </button>
           </div>
         )}

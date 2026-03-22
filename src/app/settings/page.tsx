@@ -1,13 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Store, Bell, Palette, Users, Database, Shield,
   ChevronRight, Check, ToggleLeft, ToggleRight,
   Plus, Trash2, Pencil, Warehouse, X, Eye, EyeOff,
   Download, Upload, RefreshCw, Lock, Key, UserPlus,
-  Crown, UserCheck, User,
+  Crown, UserCheck, User, Smartphone,
 } from "lucide-react";
 import { useStore } from "@/store/useStore";
 import type { UserRole, AppUser } from "@/store/useStore";
@@ -570,11 +571,67 @@ function UsersPanel() {
 // ─── Data Panel ───────────────────────────────────────────────────────────────
 
 function DataPanel() {
-  const { products, storeSections, warehouseShelves } = useStore();
+  const { products, storeSections, warehouseShelves, importProducts } = useStore();
   const [exporting, setExporting] = useState(false);
+  const [importing, setImporting] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const [importResult, setImportResult] = useState<{ inserted: number; updated: number } | null>(null);
 
-  const flash = (m: string) => { setMsg(m); setTimeout(() => setMsg(null), 2500); };
+  const flash = (m: string) => { setMsg(m); setTimeout(() => setMsg(null), 3000); };
+
+  const handleImportExcel = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = "";
+    setImporting(true);
+    setImportResult(null);
+    try {
+      const XLSX = await import("xlsx");
+      const data = await file.arrayBuffer();
+      const wb = XLSX.read(data, { type: "array" });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows: Record<string, string | number>[] = XLSX.utils.sheet_to_json(ws, { defval: "" });
+
+      // Map các cột Excel → Product fields
+      const mapped = rows.map(r => ({
+        id: `prod_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        name:          String(r["Tên sản phẩm"] ?? r["name"] ?? "").trim(),
+        sku:           String(r["SKU"]          ?? r["sku"]  ?? "").trim() || undefined,
+        category:      String(r["Danh mục"]     ?? r["category"] ?? "").trim(),
+        productType:   String(r["Loại"]         ?? r["productType"] ?? "").trim() || undefined,
+        quantity:      Number(r["Số lượng"]     ?? r["quantity"] ?? 0),
+        price:         r["Giá"]       ? Number(r["Giá"])       : undefined,
+        markdownPrice: r["Giá Sale"]  ? Number(r["Giá Sale"])  : undefined,
+        color:         String(r["Màu"]          ?? r["color"] ?? "").trim() || undefined,
+        size:          String(r["Kích cỡ"]      ?? r["size"]  ?? "").trim() || undefined,
+        notes:         String(r["Ghi chú"]      ?? r["notes"] ?? "").trim() || undefined,
+        createdAt:     new Date().toISOString(),
+        updatedAt:     new Date().toISOString(),
+      })).filter(p => p.name);
+
+      if (!mapped.length) { flash("File không có dữ liệu hợp lệ"); setImporting(false); return; }
+
+      // Gọi API bulk — server tự phân biệt mới/cũ
+      const res = await fetch("/api/products/bulk", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(mapped),
+      });
+      if (res.ok) {
+        const { inserted, updated } = await res.json();
+        setImportResult({ inserted, updated });
+        // Refresh store
+        const allRes = await fetch("/api/products");
+        if (allRes.ok) useStore.getState().setProducts(await allRes.json());
+        flash(`Nhập thành công: ${inserted} mới, ${updated} cập nhật SL`);
+      } else {
+        flash("Lỗi nhập dữ liệu từ server");
+      }
+    } catch (err) {
+      flash("Không đọc được file Excel");
+    }
+    setImporting(false);
+  };
 
   const exportProducts = async () => {
     setExporting(true);
@@ -695,9 +752,29 @@ function DataPanel() {
         })}
       </Card>
       <Card title="NHẬP DỮ LIỆU">
+        {importResult && (
+          <div style={{ margin: "8px 20px 0", padding: "8px 14px", borderRadius: 8, background: "rgba(14,165,233,0.08)", border: "1px solid rgba(14,165,233,0.25)", fontSize: 9, color: "#0ea5e9", display: "flex", gap: 16 }}>
+            <span>✦ Mới thêm: <b>{importResult.inserted}</b></span>
+            <span>✦ Cập nhật SL: <b>{importResult.updated}</b></span>
+          </div>
+        )}
         <div style={{ padding: "10px 20px", display: "flex", alignItems: "center", gap: 12 }}>
-          <div style={{ width: 34, height: 34, borderRadius: 10, background: "rgba(100,116,139,0.1)", border: "1px solid rgba(100,116,139,0.3)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-            <Upload size={14} style={{ color: "#64748b" }} />
+          <div style={{ width: 34, height: 34, borderRadius: 10, background: "rgba(14,165,233,0.08)", border: "1px solid rgba(14,165,233,0.25)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <Upload size={14} style={{ color: "#0ea5e9" }} />
+          </div>
+          <div style={{ flex: 1 }}>
+            <p style={{ fontSize: 11, color: "#0c1a2e" }}>Nhập sản phẩm từ Excel</p>
+            <p style={{ fontSize: 8, color: "#94a3b8", marginTop: 2 }}>Sản phẩm mới → thêm đầy đủ · Sản phẩm cũ (trùng SKU/tên) → chỉ cập nhật số lượng</p>
+          </div>
+          <label style={{ padding: "6px 14px", borderRadius: 8, border: "1px solid rgba(14,165,233,0.5)", background: "rgba(14,165,233,0.08)", color: "#0ea5e9", fontSize: 9, fontWeight: 700, cursor: importing ? "not-allowed" : "pointer", fontFamily: "inherit", opacity: importing ? 0.6 : 1, whiteSpace: "nowrap" }}>
+            {importing ? "..." : "NHẬP"}
+            <input type="file" accept=".xlsx,.xls,.csv" onChange={handleImportExcel} style={{ display: "none" }} disabled={importing} />
+          </label>
+        </div>
+        <Divider />
+        <div style={{ padding: "10px 20px", display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ width: 34, height: 34, borderRadius: 10, background: "rgba(100,116,139,0.08)", border: "1px solid rgba(100,116,139,0.25)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <RefreshCw size={14} style={{ color: "#64748b" }} />
           </div>
           <div style={{ flex: 1 }}>
             <p style={{ fontSize: 11, color: "#0c1a2e" }}>Khôi phục từ backup</p>
@@ -870,6 +947,21 @@ export default function SettingsPage() {
               </div>
             );
           })}
+          <div style={{ height: 1, background: "#e0f2fe" }} />
+          <Link href="/install" style={{ textDecoration: "none" }}>
+            <div
+              style={{ width: "100%", padding: "10px 14px", display: "flex", alignItems: "center", gap: 10, background: "transparent", cursor: "pointer" }}
+              onMouseEnter={e => ((e.currentTarget as HTMLDivElement).style.background = "#f0f9ff")}
+              onMouseLeave={e => ((e.currentTarget as HTMLDivElement).style.background = "transparent")}
+            >
+              <Smartphone size={12} strokeWidth={1.5} style={{ flexShrink: 0, color: "#C9A55A" }} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ fontSize: 11, color: "#334e68", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Cài Đặt App</p>
+                <p style={{ fontSize: 8, color: "#94a3b8", marginTop: 2 }}>Cài PWA lên màn hình chính</p>
+              </div>
+              <ChevronRight size={9} style={{ color: "#C9A55A", flexShrink: 0 }} />
+            </div>
+          </Link>
         </motion.div>
 
         {/* Panel */}

@@ -8,7 +8,19 @@ export default function Providers({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     useStore.persist.rehydrate();
-    // Give Zustand one tick to apply the persisted state before rendering
+
+    // Migrate default admin credentials if old email is still present
+    const state = useStore.getState();
+    const adminUser = state.users.find(u => u.id === "user_admin");
+    if (adminUser && adminUser.email !== "postlain.aldo@gmail.com") {
+      state.updateUser("user_admin", {
+        email: "postlain.aldo@gmail.com",
+        passwordHash: "Lucii@1108",
+      });
+    }
+
+    // Load fresh DB state (products + warehouse placements) after hydration
+    state.fetchDbState();
     setHydrated(true);
   }, []);
 

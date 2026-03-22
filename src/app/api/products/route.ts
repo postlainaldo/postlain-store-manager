@@ -1,41 +1,30 @@
 import { NextRequest, NextResponse } from "next/server";
-import { readProducts, writeProducts } from "@/lib/db";
-import { Product } from "@/types";
+import { getAllProducts, insertProduct, updateProduct, deleteProduct, deleteProducts } from "@/lib/repo";
+import type { Product } from "@/types";
 
 export async function GET() {
-  return NextResponse.json(readProducts());
+  return NextResponse.json(getAllProducts());
 }
 
 export async function POST(req: NextRequest) {
   const product: Product = await req.json();
-  const products = readProducts();
-  products.push(product);
-  writeProducts(products);
-  return NextResponse.json(product, { status: 201 });
+  const saved = insertProduct(product);
+  return NextResponse.json(saved, { status: 201 });
 }
 
 export async function PUT(req: NextRequest) {
   const updated: Product = await req.json();
-  const products = readProducts();
-  const idx = products.findIndex((p) => p.id === updated.id);
-  if (idx === -1)
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
-  products[idx] = { ...products[idx], ...updated, updatedAt: new Date().toISOString() };
-  writeProducts(products);
-  return NextResponse.json(products[idx]);
+  const result = updateProduct(updated);
+  if (!result) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  return NextResponse.json(result);
 }
 
 export async function DELETE(req: NextRequest) {
   const body = await req.json();
-  // Bulk delete: { ids: string[] }
   if (Array.isArray(body.ids)) {
-    const idSet = new Set<string>(body.ids);
-    const products = readProducts().filter((p) => !idSet.has(p.id));
-    writeProducts(products);
+    deleteProducts(body.ids);
     return NextResponse.json({ deleted: body.ids.length });
   }
-  // Single delete: { id: string }
-  const products = readProducts().filter((p) => p.id !== body.id);
-  writeProducts(products);
+  deleteProduct(body.id);
   return NextResponse.json({ success: true });
 }

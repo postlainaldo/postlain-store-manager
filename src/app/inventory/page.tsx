@@ -11,7 +11,7 @@ import ExcelImportModal from "@/components/ExcelImportModal";
 import { useRouter } from "next/navigation";
 import {
   Search, Plus, Upload, Package, Pencil, Trash2,
-  MapPin, X, Warehouse, Eye,
+  MapPin, X, Warehouse, Eye, CheckSquare, Square,
 } from "lucide-react";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -66,12 +66,14 @@ function ListView() {
   } = useStore();
   const router = useRouter();
 
-  const [search,       setSearch]       = useState("");
-  const [editProduct,  setEditProduct]  = useState<Product | null>(null);
-  const [showAdd,      setShowAdd]      = useState(false);
-  const [showImport,   setShowImport]   = useState(false);
-  const [deleteId,     setDeleteId]     = useState<string | null>(null);
-  const [hoveredId,    setHoveredId]    = useState<string | null>(null);
+  const [search,        setSearch]        = useState("");
+  const [editProduct,   setEditProduct]   = useState<Product | null>(null);
+  const [showAdd,       setShowAdd]       = useState(false);
+  const [showImport,    setShowImport]    = useState(false);
+  const [deleteId,      setDeleteId]      = useState<string | null>(null);
+  const [hoveredId,     setHoveredId]     = useState<string | null>(null);
+  const [selected,      setSelected]      = useState<Set<string>>(new Set());
+  const [confirmBulk,   setConfirmBulk]   = useState(false);
 
   useEffect(() => { fetchProducts(); }, []);
 
@@ -84,6 +86,37 @@ function ListView() {
     ),
     [products, search]
   );
+
+  const allSelected = filtered.length > 0 && filtered.every(p => selected.has(p.id));
+  const someSelected = selected.size > 0;
+
+  const toggleSelect = (id: string) => {
+    setSelected(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const toggleAll = () => {
+    if (allSelected) {
+      setSelected(new Set());
+    } else {
+      setSelected(new Set(filtered.map(p => p.id)));
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    const ids = Array.from(selected);
+    await fetch("/api/products", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ids }),
+    });
+    await fetchProducts();
+    setSelected(new Set());
+    setConfirmBulk(false);
+  };
 
   return (
     <div className="flex flex-col gap-4">
@@ -123,6 +156,37 @@ function ListView() {
         </button>
       </div>
 
+      {/* Bulk action bar */}
+      <AnimatePresence>
+        {someSelected && (
+          <motion.div
+            initial={{ opacity: 0, y: -6, height: 0 }}
+            animate={{ opacity: 1, y: 0, height: "auto" }}
+            exit={{ opacity: 0, y: -6, height: 0 }}
+            className="flex items-center gap-3 px-4 rounded-xl overflow-hidden"
+            style={{ background: "rgba(220,38,38,0.06)", border: "1px solid rgba(220,38,38,0.25)", minHeight: 40 }}
+          >
+            <span style={{ fontSize: 10, color: "#dc2626", fontWeight: 600 }}>
+              Đã chọn {selected.size} sản phẩm
+            </span>
+            <div style={{ flex: 1 }} />
+            <button
+              onClick={() => setSelected(new Set())}
+              style={{ fontSize: 9, color: "#64748b", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}
+            >
+              Bỏ chọn
+            </button>
+            <button
+              onClick={() => setConfirmBulk(true)}
+              className="flex items-center gap-1.5 px-3 h-7 rounded-lg border font-[inherit] cursor-pointer"
+              style={{ background: "#dc2626", borderColor: "#b91c1c", color: "#fff", fontSize: 9, letterSpacing: "0.08em" }}
+            >
+              <Trash2 size={10} /> XOÁ {selected.size} MỤC
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Table — desktop */}
       <div
         className="hidden md:block rounded-2xl border overflow-hidden"
@@ -131,8 +195,15 @@ function ListView() {
         {/* Header */}
         <div
           className="grid px-5 items-center border-b"
-          style={{ gridTemplateColumns: "2fr 1fr 0.8fr 0.8fr 1fr 0.7fr", height: 36, borderColor: "#e0f2fe", background: "#f0f9ff" }}
+          style={{ gridTemplateColumns: "28px 2fr 1fr 0.8fr 0.8fr 1fr 0.7fr", height: 36, borderColor: "#e0f2fe", background: "#f0f9ff" }}
         >
+          {/* Select all checkbox */}
+          <button onClick={toggleAll} style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center" }}>
+            {allSelected
+              ? <CheckSquare size={13} style={{ color: "#0ea5e9" }} />
+              : <Square size={13} style={{ color: "#bae6fd" }} />
+            }
+          </button>
           {["Sản Phẩm", "Danh Mục", "SKU", "SL", "Giá", ""].map(h => (
             <span key={h} className="font-bold uppercase tracking-[0.2em]" style={{ fontSize: 8, color: "#64748b" }}>{h}</span>
           ))}
@@ -149,6 +220,7 @@ function ListView() {
           const inWarehouse = warehouseShelves.some(sh =>
             sh.tiers.some(t => t.includes(p.id))
           );
+          const isSel = selected.has(p.id);
           return (
             <div
               key={p.id}
@@ -156,13 +228,23 @@ function ListView() {
               onMouseLeave={() => setHoveredId(null)}
               className="grid px-5 items-center border-b last:border-0"
               style={{
-                gridTemplateColumns: "2fr 1fr 0.8fr 0.8fr 1fr auto",
+                gridTemplateColumns: "28px 2fr 1fr 0.8fr 0.8fr 1fr auto",
                 height: 48,
                 borderColor: "#e0f2fe",
-                background: isHov ? "rgba(14,165,233,0.04)" : "transparent",
+                background: isSel ? "rgba(220,38,38,0.04)" : isHov ? "rgba(14,165,233,0.04)" : "transparent",
                 transition: "background 0.12s",
               }}
             >
+              {/* Row checkbox */}
+              <button
+                onClick={() => toggleSelect(p.id)}
+                style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center" }}
+              >
+                {isSel
+                  ? <CheckSquare size={13} style={{ color: "#dc2626" }} />
+                  : <Square size={13} style={{ color: isHov ? "#bae6fd" : "transparent" }} />
+                }
+              </button>
               <div className="flex items-center gap-2 overflow-hidden">
                 {p.color && <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: p.color }} />}
                 <div className="overflow-hidden">

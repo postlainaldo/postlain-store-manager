@@ -131,6 +131,9 @@ interface StoreState {
   removeZone: (id: string) => void;
   updateZone: (id: string, changes: Partial<LayoutZone>) => void;
 
+  // ── DB sync ───────────────────────────────────────────────────────────────
+  fetchDbState: () => Promise<void>;
+
   // ── Warehouse actions ─────────────────────────────────────────────────────
   placeInWarehouse: (
     shelfId: string,
@@ -149,9 +152,9 @@ interface StoreState {
 const DEFAULT_ADMIN: AppUser = {
   id: "user_admin",
   name: "Admin",
-  email: "admin@postlain.com",
+  email: "postlain.aldo@gmail.com",
   role: "admin",
-  passwordHash: "1234",
+  passwordHash: "Lucii@1108",
   createdAt: new Date().toISOString(),
   active: true,
 };
@@ -327,7 +330,7 @@ export const useStore = create<StoreState>()(
       clearShelfLayout: () => set({ shelfLayout: {} }),
 
       // ── Store floor actions ───────────────────────────────────────────────
-      placeInSection: (sectionId, subsectionId, rowIndex, slotIndex, productId) =>
+      placeInSection: (sectionId, subsectionId, rowIndex, slotIndex, productId) => {
         set((s) => ({
           selectedProduct: productId ? null : s.selectedProduct,
           storeSections: s.storeSections.map((sec) => {
@@ -346,7 +349,19 @@ export const useStore = create<StoreState>()(
               }),
             };
           }),
-        })),
+        }));
+        fetch("/api/placements", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            shelfId: sectionId,
+            tier: rowIndex,
+            position: slotIndex,
+            label: subsectionId,
+            productId,
+          }),
+        }).catch(() => {});
+      },
 
       clearSubsection: (sectionId, subsectionId) =>
         set((s) => ({
@@ -463,8 +478,20 @@ export const useStore = create<StoreState>()(
           },
         })),
 
+      // ── DB sync ───────────────────────────────────────────────────────────
+      fetchDbState: async () => {
+        try {
+          const res = await fetch("/api/state");
+          if (!res.ok) return;
+          const { products, warehouseShelves } = await res.json();
+          set({ products, warehouseShelves });
+        } catch {
+          // silently fail (e.g. during static export)
+        }
+      },
+
       // ── Warehouse actions ─────────────────────────────────────────────────
-      placeInWarehouse: (shelfId, tierIndex, slotIndex, productId) =>
+      placeInWarehouse: (shelfId, tierIndex, slotIndex, productId) => {
         set((s) => ({
           selectedProduct: productId ? null : s.selectedProduct,
           warehouseShelves: s.warehouseShelves.map((shelf) => {
@@ -477,7 +504,13 @@ export const useStore = create<StoreState>()(
             });
             return { ...shelf, tiers };
           }),
-        })),
+        }));
+        fetch("/api/placements", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ shelfId, tier: tierIndex, position: slotIndex, productId }),
+        }).catch(() => {});
+      },
 
       clearWarehouseTier: (shelfId, tierIndex) =>
         set((s) => ({
