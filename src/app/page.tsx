@@ -103,7 +103,7 @@ export default function Home() {
             <p className="text-[8px] tracking-[0.3em] text-gold uppercase font-medium">SẢN PHẨM</p>
             <span className="text-[8px] text-text-muted">{products.length} mặt hàng</span>
           </div>
-          <div className="flex-1 overflow-hidden">
+          <div className="flex-1 overflow-hidden min-h-0">
             <WarehousePanel />
           </div>
         </div>
@@ -148,7 +148,7 @@ export default function Home() {
 
             {/* KHO DỰ TRỮ */}
             {activeTab === "warehouse" && (
-              <motion.div key="warehouse" className="flex-1 overflow-hidden h-full w-full min-h-0"
+              <motion.div key="warehouse" className="flex-1 flex flex-col overflow-hidden h-full w-full min-h-0"
                 initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                 transition={{ duration: 0.13 }}>
 
@@ -164,7 +164,7 @@ export default function Home() {
                   </div>
                 )}
 
-                <div className="flex-1 overflow-hidden h-full">
+                <div className="flex-1 overflow-hidden min-h-0">
                   <WarehouseShelfEditor />
                 </div>
               </motion.div>
@@ -185,7 +185,7 @@ export default function Home() {
 
       {/* ── Bottom nav — mobile only ────────────────────────────────────────── */}
       <nav className="md:hidden flex-shrink-0 border-t border-border bg-bg-surface"
-        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+        style={{ paddingBottom: "max(env(safe-area-inset-bottom), 4px)" }}>
         <div className="flex">
           {(["products", "display", "warehouse", "shelf"] as MainTab[]).map(tab => {
             const meta = TAB_META[tab];
@@ -193,7 +193,7 @@ export default function Home() {
             return (
               <button key={tab}
                 onClick={() => setActiveTab(tab)}
-                className="flex-1 flex flex-col items-center justify-center py-2.5 gap-1 transition-all active:opacity-70"
+                className="relative flex-1 flex flex-col items-center justify-center py-2.5 gap-1 transition-all active:opacity-70"
                 style={{ minHeight: 52 }}>
                 <span className="text-base leading-none transition-colors"
                   style={{ color: isActive ? meta.color : "#9A9080" }}>
@@ -204,7 +204,7 @@ export default function Home() {
                   {meta.short}
                 </span>
                 {isActive && (
-                  <div className="absolute bottom-0 h-0.5 w-8 rounded-t-full"
+                  <div className="absolute top-0 left-1/2 -translate-x-1/2 h-0.5 w-8 rounded-b-full"
                     style={{ background: meta.color }} />
                 )}
               </button>

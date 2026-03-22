@@ -18,10 +18,24 @@
 
 html, body {
   height: 100%;
+  /* Use dvh when available so mobile browser chrome doesn't shrink content */
+  height: 100dvh;
   background: #F5F2EE;
   color: #1A1410;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* Prevent bounce/overscroll in PWA standalone mode */
+  overscroll-behavior: none;
+  overflow: hidden;
+}
+
+/* PWA standalone: ensure viewport fills properly */
+@media (display-mode: standalone) {
+  html, body {
+    height: 100dvh;
+    position: fixed;
+    width: 100%;
+  }
 }
 
 ::-webkit-scrollbar { width: 5px; height: 5px; }

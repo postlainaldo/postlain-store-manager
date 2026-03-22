@@ -63,6 +63,76 @@ function ProductLocationTag({ productId }: { productId: string }) {
   );
 }
 
+// Fixed-position tooltip rendered via portal approach using state
+function ProductTooltip({ product, rect }: { product: Product; rect: DOMRect }) {
+  const colorInfo = getProductColorInfo(product.sku);
+  const typeConfig = product.productType ? PRODUCT_TYPES[product.productType] : null;
+  const displayColor = colorInfo?.hex ?? product.color;
+
+  // Position to the right of the hovered row
+  const top = Math.max(8, rect.top);
+  const left = rect.right + 8;
+
+  return (
+    <div
+      className="fixed z-[9999] pointer-events-none"
+      style={{ top, left, minWidth: 200, maxWidth: 240 }}
+    >
+      <div className="bg-white border border-border rounded-lg shadow-xl overflow-hidden">
+        <div className="h-2 w-full" style={{ background: displayColor ?? "#C9A96E" }} />
+        <div className="px-3 py-2.5">
+          <p className="text-[10px] font-medium text-text-primary leading-snug">{product.name}</p>
+          {product.sku && <p className="text-[8px] text-text-muted mt-0.5 font-mono">{product.sku}</p>}
+          <div className="mt-2 pt-2 border-t border-border/50 flex flex-col gap-1">
+            <div className="flex justify-between">
+              <span className="text-[8px] text-text-muted">Danh mục</span>
+              <span className="text-[8px] text-text-secondary">{product.category}</span>
+            </div>
+            {typeConfig && (
+              <div className="flex justify-between">
+                <span className="text-[8px] text-text-muted">Loại</span>
+                <span className="text-[8px] text-text-secondary">{typeConfig.label}</span>
+              </div>
+            )}
+            <div className="flex justify-between">
+              <span className="text-[8px] text-text-muted">Số lượng</span>
+              <span className="text-[8px] font-medium text-text-primary">{product.quantity}</span>
+            </div>
+            {colorInfo && (
+              <div className="flex justify-between items-center">
+                <span className="text-[8px] text-text-muted">Màu</span>
+                <span className="flex items-center gap-1">
+                  <span className="w-3 h-3 rounded-full border border-border/50" style={{ background: colorInfo.hex }} />
+                  <span className="text-[8px] text-text-secondary">{colorInfo.name} ({colorInfo.code})</span>
+                </span>
+              </div>
+            )}
+            {product.size && (
+              <div className="flex justify-between">
+                <span className="text-[8px] text-text-muted">Size</span>
+                <span className="text-[8px] text-text-secondary">{product.size}</span>
+              </div>
+            )}
+            {(product.price || product.markdownPrice) && (
+              <div className="flex justify-between items-center mt-0.5 pt-1.5 border-t border-border/50">
+                <span className="text-[8px] text-text-muted">Giá</span>
+                <span className="flex items-center gap-1.5">
+                  {product.price && <span className="text-[8px] text-text-muted line-through">{fmt(product.price)}</span>}
+                  {product.markdownPrice && <span className="text-[9px] text-gold font-medium">{fmt(product.markdownPrice)}</span>}
+                </span>
+              </div>
+            )}
+            {product.notes && (
+              <p className="text-[8px] text-text-muted italic mt-1 pt-1 border-t border-border/50 leading-snug">{product.notes}</p>
+            )}
+            <ProductLocationTag productId={product.id} />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function WarehousePanel() {
   const { products, deleteProduct, fetchProducts, selectedProduct, selectProduct } = useStore();
   const [search, setSearch] = useState("");
@@ -72,6 +142,7 @@ export default function WarehousePanel() {
   const [showExcel, setShowExcel] = useState(false);
   const [checked, setChecked] = useState<Set<string>>(new Set());
   const [confirmBulkDelete, setConfirmBulkDelete] = useState(false);
+  const [hoveredProduct, setHoveredProduct] = useState<{ product: Product; rect: DOMRect } | null>(null);
 
   useEffect(() => { fetchProducts(); }, []);
 
@@ -260,6 +331,13 @@ export default function WarehousePanel() {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, x: -12 }}
                     transition={{ delay: Math.min(i * 0.008, 0.3), duration: 0.2 }}
+                    onMouseEnter={e => {
+                      if (window.innerWidth >= 768) {
+                        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                        setHoveredProduct({ product: p, rect });
+                      }
+                    }}
+                    onMouseLeave={() => setHoveredProduct(null)}
                     className={`relative flex items-center gap-2.5 px-3 py-3 md:py-2.5 transition-all duration-150 group border-l-2 ${
                       isChecked
                         ? "bg-red-50/60 border-l-red-300"
@@ -324,62 +402,6 @@ export default function WarehousePanel() {
                       ) : null}
                     </div>
 
-                    {/* Hover tooltip card — desktop only (hidden on touch screens) */}
-                    <div className="hidden md:block absolute left-full top-0 ml-2 z-50 pointer-events-none opacity-0 group-hover:opacity-100 transition-all duration-200 translate-x-1 group-hover:translate-x-0 min-w-[200px]">
-                      <div className="bg-white border border-border rounded-lg shadow-xl overflow-hidden">
-                        {/* Color header */}
-                        <div className="h-2 w-full" style={{ background: displayColor ?? "#C9A96E" }} />
-                        <div className="px-3 py-2.5">
-                          <p className="text-[10px] font-medium text-text-primary leading-snug">{p.name}</p>
-                          {p.sku && <p className="text-[8px] text-text-muted mt-0.5 font-mono">{p.sku}</p>}
-                          <div className="mt-2 pt-2 border-t border-border/50 flex flex-col gap-1">
-                            <div className="flex justify-between">
-                              <span className="text-[8px] text-text-muted">Danh mục</span>
-                              <span className="text-[8px] text-text-secondary">{p.category}</span>
-                            </div>
-                            {typeConfig && (
-                              <div className="flex justify-between">
-                                <span className="text-[8px] text-text-muted">Loại</span>
-                                <span className="text-[8px] text-text-secondary">{typeConfig.label}</span>
-                              </div>
-                            )}
-                            <div className="flex justify-between">
-                              <span className="text-[8px] text-text-muted">Số lượng</span>
-                              <span className="text-[8px] font-medium text-text-primary">{p.quantity}</span>
-                            </div>
-                            {colorInfo && (
-                              <div className="flex justify-between items-center">
-                                <span className="text-[8px] text-text-muted">Màu</span>
-                                <span className="flex items-center gap-1">
-                                  <span className="w-3 h-3 rounded-full border border-border/50" style={{ background: colorInfo.hex }} />
-                                  <span className="text-[8px] text-text-secondary">{colorInfo.name} ({colorInfo.code})</span>
-                                </span>
-                              </div>
-                            )}
-                            {p.size && (
-                              <div className="flex justify-between">
-                                <span className="text-[8px] text-text-muted">Size</span>
-                                <span className="text-[8px] text-text-secondary">{p.size}</span>
-                              </div>
-                            )}
-                            {(p.price || p.markdownPrice) && (
-                              <div className="flex justify-between items-center mt-0.5 pt-1.5 border-t border-border/50">
-                                <span className="text-[8px] text-text-muted">Giá</span>
-                                <span className="flex items-center gap-1.5">
-                                  {p.price && <span className="text-[8px] text-text-muted line-through">{fmt(p.price)}</span>}
-                                  {p.markdownPrice && <span className="text-[9px] text-gold font-medium">{fmt(p.markdownPrice)}</span>}
-                                </span>
-                              </div>
-                            )}
-                            {p.notes && (
-                              <p className="text-[8px] text-text-muted italic mt-1 pt-1 border-t border-border/50 leading-snug">{p.notes}</p>
-                            )}
-                            <ProductLocationTag productId={p.id} />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
                     {/* Actions */}
                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
                       <button onClick={e => { e.stopPropagation(); setEditProduct(p); setShowForm(true); }}
@@ -423,6 +445,9 @@ export default function WarehousePanel() {
         {showForm && <ProductFormModal product={editProduct} onClose={() => { setShowForm(false); setEditProduct(null); }} />}
         {showExcel && <ExcelImportModal onClose={() => setShowExcel(false)} />}
       </AnimatePresence>
+
+      {/* Fixed tooltip — escapes overflow:hidden parent */}
+      {hoveredProduct && <ProductTooltip product={hoveredProduct.product} rect={hoveredProduct.rect} />}
     </div>
   );
 }
