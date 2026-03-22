@@ -14,14 +14,21 @@ import { useStore } from "@/store/useStore";
 import type { UserRole, AppUser } from "@/store/useStore";
 
 const SECTIONS = [
-  { id: "store",    label: "Thông Tin Cửa Hàng", icon: Store,     desc: "Tên, địa chỉ, liên hệ"     },
-  { id: "shelves",  label: "Quản Lý Kệ Kho",      icon: Warehouse, desc: "Thêm, xoá, đổi tên kệ"     },
-  { id: "notify",   label: "Thông Báo",            icon: Bell,      desc: "Cảnh báo tồn kho, báo cáo" },
-  { id: "display",  label: "Giao Diện",            icon: Palette,   desc: "Bố cục, hoạt ảnh, theme"   },
-  { id: "users",    label: "Người Dùng",           icon: Users,     desc: "Phân quyền truy cập"        },
-  { id: "data",     label: "Dữ Liệu & Xuất File",  icon: Database,  desc: "Sao lưu, export Excel"      },
-  { id: "security", label: "Bảo Mật",              icon: Shield,    desc: "Mật khẩu, xác thực"         },
+  { id: "store",    label: "Thông Tin Cửa Hàng", icon: Store,     desc: "Tên, địa chỉ, liên hệ",     minRole: "manager" },
+  { id: "shelves",  label: "Quản Lý Kệ Kho",      icon: Warehouse, desc: "Thêm, xoá, đổi tên kệ",     minRole: "manager" },
+  { id: "notify",   label: "Thông Báo",            icon: Bell,      desc: "Cảnh báo tồn kho, báo cáo", minRole: "manager" },
+  { id: "display",  label: "Giao Diện",            icon: Palette,   desc: "Bố cục, hoạt ảnh, theme",   minRole: "staff"   },
+  { id: "users",    label: "Người Dùng",           icon: Users,     desc: "Phân quyền truy cập",        minRole: "admin"   },
+  { id: "data",     label: "Dữ Liệu & Xuất File",  icon: Database,  desc: "Sao lưu, export Excel",      minRole: "manager" },
+  { id: "security", label: "Bảo Mật",              icon: Shield,    desc: "Mật khẩu, xác thực",         minRole: "staff"   },
 ] as const;
+
+type SectionMinRole = typeof SECTIONS[number]["minRole"];
+
+function hasAccess(userRole: string | undefined, minRole: SectionMinRole): boolean {
+  const rank: Record<string, number> = { staff: 0, manager: 1, admin: 2 };
+  return (rank[userRole ?? "staff"] ?? 0) >= (rank[minRole] ?? 0);
+}
 
 type SectionId = typeof SECTIONS[number]["id"];
 
@@ -788,7 +795,7 @@ function DataPanel() {
 // ─── Security Panel ───────────────────────────────────────────────────────────
 
 function SecurityPanel() {
-  const { currentUser, changePassword, logout } = useStore();
+  const { currentUser, logout } = useStore();
   const [oldPw, setOldPw] = useState("");
   const [newPw, setNewPw] = useState("");
   const [confirmPw, setConfirmPw] = useState("");
@@ -800,12 +807,23 @@ function SecurityPanel() {
     setMsg({ type, text }); setTimeout(() => setMsg(null), 3000);
   };
 
-  const handleChange = () => {
+  const handleChange = async () => {
     if (!currentUser) return;
-    if (oldPw !== currentUser.passwordHash) { flash("err", "Mật khẩu hiện tại không đúng"); return; }
     if (newPw.length < 4) { flash("err", "Mật khẩu mới phải ít nhất 4 ký tự"); return; }
     if (newPw !== confirmPw) { flash("err", "Xác nhận mật khẩu không khớp"); return; }
-    changePassword(currentUser.id, newPw);
+    // Verify old password via API
+    const check = await fetch("/api/auth", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: currentUser.email, password: oldPw }),
+    });
+    if (!check.ok) { flash("err", "Mật khẩu hiện tại không đúng"); return; }
+    // Update password
+    await fetch("/api/auth", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: currentUser.id, name: currentUser.name, username: currentUser.email, role: currentUser.role, active: true, password: newPw }),
+    });
     setOldPw(""); setNewPw(""); setConfirmPw("");
     flash("ok", "Đã đổi mật khẩu thành công");
   };
@@ -880,18 +898,34 @@ function SecurityPanel() {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function SettingsPage() {
-  const [active, setActive] = useState<SectionId>("store");
+  const currentUser = useStore(s => s.currentUser);
   const storeName = useStore(s => s.storeName);
   const brandName = storeName.split("—")[0]?.trim() || storeName;
+  const role = currentUser?.role ?? "staff";
+
+  const visibleSections = SECTIONS.filter(s => hasAccess(role, s.minRole));
+  const defaultSection = visibleSections[0]?.id ?? "security";
+  const [active, setActive] = useState<SectionId>(defaultSection);
+
+  // Nếu section đang active không có quyền → chuyển về section đầu tiên được phép
+  const activeSection = visibleSections.find(s => s.id === active) ? active : defaultSection;
 
   function renderPanel() {
-    if (active === "store")    return <StorePanel />;
-    if (active === "shelves")  return <ShelvesPanel />;
-    if (active === "notify")   return <NotifyPanel />;
-    if (active === "display")  return <DisplayPanel />;
-    if (active === "users")    return <UsersPanel />;
-    if (active === "data")     return <DataPanel />;
-    if (active === "security") return <SecurityPanel />;
+    if (!hasAccess(role, SECTIONS.find(s => s.id === activeSection)?.minRole ?? "admin")) {
+      return (
+        <div style={{ padding: "24px", borderRadius: 14, border: "1px solid rgba(201,165,90,0.3)", background: "rgba(201,165,90,0.06)", fontSize: 11, color: "#92712a", display: "flex", alignItems: "center", gap: 10 }}>
+          <Lock size={14} style={{ color: "#C9A55A", flexShrink: 0 }} />
+          Bạn không có quyền truy cập mục này.
+        </div>
+      );
+    }
+    if (activeSection === "store")    return <StorePanel />;
+    if (activeSection === "shelves")  return <ShelvesPanel />;
+    if (activeSection === "notify")   return <NotifyPanel />;
+    if (activeSection === "display")  return <DisplayPanel />;
+    if (activeSection === "users")    return <UsersPanel />;
+    if (activeSection === "data")     return <DataPanel />;
+    if (activeSection === "security") return <SecurityPanel />;
     return null;
   }
 
@@ -916,18 +950,20 @@ export default function SettingsPage() {
         >
           {SECTIONS.map((s, i) => {
             const Icon = s.icon;
-            const isA  = active === s.id;
+            const allowed = hasAccess(role, s.minRole);
+            const isA  = activeSection === s.id;
             return (
               <div key={s.id}>
                 <button
-                  onClick={() => setActive(s.id)}
+                  onClick={() => allowed && setActive(s.id)}
                   style={{
                     width: "100%", padding: "10px 14px", display: "flex", alignItems: "center", gap: 10,
                     background: isA ? "rgba(14,165,233,0.06)" : "transparent",
                     border: "none", borderLeft: `2px solid ${isA ? "#0ea5e9" : "transparent"}`,
-                    cursor: "pointer", fontFamily: "inherit", textAlign: "left",
+                    cursor: allowed ? "pointer" : "default", fontFamily: "inherit", textAlign: "left",
+                    opacity: allowed ? 1 : 0.4,
                   }}
-                  onMouseEnter={e => { if (!isA) e.currentTarget.style.background = "#f0f9ff"; }}
+                  onMouseEnter={e => { if (!isA && allowed) e.currentTarget.style.background = "#f0f9ff"; }}
                   onMouseLeave={e => { if (!isA) e.currentTarget.style.background = "transparent"; }}
                 >
                   <Icon size={12} strokeWidth={1.5} style={{ flexShrink: 0, color: isA ? "#0ea5e9" : "#94a3b8" }} />
@@ -935,7 +971,10 @@ export default function SettingsPage() {
                     <p style={{ fontSize: 11, color: isA ? "#0c1a2e" : "#334e68", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.label}</p>
                     <p style={{ fontSize: 8, color: "#94a3b8", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.desc}</p>
                   </div>
-                  <ChevronRight size={9} style={{ color: isA ? "#94a3b8" : "#bae6fd", flexShrink: 0 }} />
+                  {allowed
+                    ? <ChevronRight size={9} style={{ color: isA ? "#94a3b8" : "#bae6fd", flexShrink: 0 }} />
+                    : <Lock size={9} style={{ color: "#bae6fd", flexShrink: 0 }} />
+                  }
                 </button>
                 {i < SECTIONS.length - 1 && <div style={{ height: 1, background: "#e0f2fe" }} />}
               </div>
