@@ -384,30 +384,61 @@ const ROLE_CFG: Record<UserRole, { label: string; color: string; icon: React.FC<
   staff:   { label: "Nhân Viên", color: "#64748b", icon: User    },
 };
 
+type DbUser = { id: string; name: string; username: string; role: string; active: number };
+
 function UsersPanel() {
-  const { users, currentUser, addUser, updateUser, removeUser, changePassword } = useStore();
+  const { currentUser } = useStore();
+  const [dbUsers, setDbUsers] = useState<DbUser[]>([]);
   const [addOpen, setAddOpen] = useState(false);
-  const [editId,  setEditId]  = useState<string | null>(null);
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const [pwOpen, setPwOpen] = useState<string | null>(null);
   const [newPw, setNewPw] = useState("");
   const [showPw, setShowPw] = useState(false);
-  // New user form
-  const [form, setForm] = useState({ name: "", email: "", role: "staff" as UserRole, password: "" });
+  const [form, setForm] = useState({ name: "", role: "staff" as UserRole, password: "" });
 
   const isAdmin = currentUser?.role === "admin";
 
-  const handleAdd = () => {
+  const load = () => fetch("/api/auth").then(r => r.json()).then(setDbUsers).catch(() => {});
+  useEffect(() => { load(); }, []);
+
+  const handleAdd = async () => {
     if (!form.name.trim() || !form.password.trim()) return;
-    const username = form.name.trim();
-    addUser({ name: username, email: username.toLowerCase(), role: form.role, passwordHash: form.password, active: true });
-    setForm({ name: "", email: "", role: "staff", password: "" });
+    await fetch("/api/auth", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: form.name.trim(), username: form.name.trim(), password: form.password, role: form.role }),
+    });
+    setForm({ name: "", role: "staff", password: "" });
     setAddOpen(false);
+    load();
   };
 
-  const handleChangePw = (uid: string) => {
+  const handleToggleActive = async (u: DbUser) => {
+    await fetch("/api/auth", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: u.id, name: u.name, username: u.username, role: u.role, active: !u.active }),
+    });
+    load();
+  };
+
+  const handleDelete = async (id: string) => {
+    await fetch("/api/auth", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    });
+    setConfirmId(null);
+    load();
+  };
+
+  const handleChangePw = async (uid: string, username: string, name: string, role: string) => {
     if (!newPw.trim()) return;
-    changePassword(uid, newPw.trim());
+    await fetch("/api/auth", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: uid, name, username, role, active: true, password: newPw.trim() }),
+    });
     setNewPw(""); setPwOpen(null);
   };
 
@@ -418,62 +449,44 @@ function UsersPanel() {
           Chỉ Admin mới có quyền quản lý người dùng.
         </div>
       )}
-      <Card title={`NGƯỜI DÙNG · ${users.length}`}>
-        {users.map((u, i) => {
-          const rcfg = ROLE_CFG[u.role];
+      <Card title={`NGƯỜI DÙNG · ${dbUsers.length}`}>
+        {dbUsers.map((u, i) => {
+          const role = (u.role in ROLE_CFG ? u.role : "staff") as UserRole;
+          const rcfg = ROLE_CFG[role];
           const RIcon = rcfg.icon;
           const isMe = currentUser?.id === u.id;
+          const isActive = u.active === 1;
           return (
             <div key={u.id}>
               {i > 0 && <Divider />}
               <div style={{ padding: "10px 20px", display: "flex", alignItems: "center", gap: 10 }}>
-                {/* Avatar */}
                 <div style={{ width: 32, height: 32, borderRadius: "50%", background: `${rcfg.color}22`, border: `1.5px solid ${rcfg.color}66`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                   <RIcon size={13} style={{ color: rcfg.color }} />
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  {editId === u.id && isAdmin ? (
-                    <input
-                      autoFocus value={u.name}
-                      onChange={e => updateUser(u.id, { name: e.target.value })}
-                      onBlur={() => setEditId(null)}
-                      onKeyDown={e => e.key === "Enter" && setEditId(null)}
-                      style={{ fontSize: 11, color: "#0c1a2e", background: "#f0f9ff", border: "1px solid #0ea5e9", borderRadius: 6, padding: "3px 8px", outline: "none", fontFamily: "inherit", width: "100%" }}
-                    />
-                  ) : (
-                    <p style={{ fontSize: 11, fontWeight: 600, color: "#0c1a2e" }}>
-                      {u.name} {isMe && <span style={{ fontSize: 8, color: "#0ea5e9", marginLeft: 4 }}>(bạn)</span>}
-                    </p>
-                  )}
-                  <p style={{ fontSize: 8, color: "#94a3b8", marginTop: 2 }}>Đăng nhập: {u.name}</p>
+                  <p style={{ fontSize: 11, fontWeight: 600, color: "#0c1a2e" }}>
+                    {u.name} {isMe && <span style={{ fontSize: 8, color: "#0ea5e9", marginLeft: 4 }}>(bạn)</span>}
+                  </p>
+                  <p style={{ fontSize: 8, color: "#94a3b8", marginTop: 2 }}>Đăng nhập: {u.username}</p>
                 </div>
-                {/* Role badge */}
                 <div style={{ padding: "2px 8px", borderRadius: 8, background: `${rcfg.color}18`, border: `1px solid ${rcfg.color}44` }}>
                   <span style={{ fontSize: 7.5, fontWeight: 700, color: rcfg.color, letterSpacing: "0.08em" }}>{rcfg.label}</span>
                 </div>
-                {/* Active toggle */}
                 {isAdmin && !isMe && (
-                  <button
-                    onClick={() => updateUser(u.id, { active: !u.active })}
-                    style={{ fontSize: 7.5, padding: "2px 8px", borderRadius: 8, border: `1px solid ${u.active ? "#10b981" : "#94a3b8"}`, background: "transparent", color: u.active ? "#10b981" : "#94a3b8", cursor: "pointer", fontFamily: "inherit" }}
-                  >
-                    {u.active ? "Hoạt động" : "Tắt"}
+                  <button onClick={() => handleToggleActive(u)}
+                    style={{ fontSize: 7.5, padding: "2px 8px", borderRadius: 8, border: `1px solid ${isActive ? "#10b981" : "#94a3b8"}`, background: "transparent", color: isActive ? "#10b981" : "#94a3b8", cursor: "pointer", fontFamily: "inherit" }}>
+                    {isActive ? "Hoạt động" : "Tắt"}
                   </button>
                 )}
-                {/* Actions */}
                 {isAdmin && (
                   <div style={{ display: "flex", gap: 4 }}>
-                    <button onClick={() => setEditId(u.id)}
-                      style={{ width: 26, height: 26, borderRadius: 7, border: "1px solid #bae6fd", background: "#f0f9ff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <Pencil size={10} style={{ color: "#0ea5e9" }} />
-                    </button>
                     <button onClick={() => { setPwOpen(u.id); setNewPw(""); setShowPw(false); }}
                       style={{ width: 26, height: 26, borderRadius: 7, border: "1px solid #bae6fd", background: "#f0f9ff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
                       <Key size={10} style={{ color: "#C9A55A" }} />
                     </button>
                     {!isMe && (confirmId === u.id ? (
                       <>
-                        <button onClick={() => { removeUser(u.id); setConfirmId(null); }}
+                        <button onClick={() => handleDelete(u.id)}
                           style={{ padding: "0 8px", height: 26, borderRadius: 7, border: "none", background: "#dc2626", color: "#fff", fontSize: 8, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>XOÁ</button>
                         <button onClick={() => setConfirmId(null)}
                           style={{ width: 26, height: 26, borderRadius: 7, border: "1px solid #bae6fd", background: "#f0f9ff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -489,26 +502,20 @@ function UsersPanel() {
                   </div>
                 )}
               </div>
-              {/* Inline change password */}
               {pwOpen === u.id && (
                 <div style={{ padding: "8px 20px 12px", display: "flex", alignItems: "center", gap: 8, background: "#f0f9ff", borderTop: "1px solid #e0f2fe" }}>
                   <Key size={11} style={{ color: "#C9A55A", flexShrink: 0 }} />
                   <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 6, background: "#ffffff", border: "1px solid #bae6fd", borderRadius: 8, padding: "0 10px", height: 30 }}>
-                    <input
-                      type={showPw ? "text" : "password"}
-                      value={newPw} onChange={e => setNewPw(e.target.value)}
+                    <input type={showPw ? "text" : "password"} value={newPw} onChange={e => setNewPw(e.target.value)}
                       placeholder="Mật khẩu mới..."
-                      onKeyDown={e => e.key === "Enter" && handleChangePw(u.id)}
-                      style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: 11, fontFamily: "inherit", color: "#0c1a2e" }}
-                    />
+                      onKeyDown={e => e.key === "Enter" && handleChangePw(u.id, u.username, u.name, u.role)}
+                      style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: 11, fontFamily: "inherit", color: "#0c1a2e" }} />
                     <button onClick={() => setShowPw(v => !v)} style={{ background: "none", border: "none", cursor: "pointer", display: "flex" }}>
                       {showPw ? <EyeOff size={10} style={{ color: "#94a3b8" }} /> : <Eye size={10} style={{ color: "#94a3b8" }} />}
                     </button>
                   </div>
-                  <button onClick={() => handleChangePw(u.id)}
-                    style={{ padding: "0 12px", height: 30, borderRadius: 8, border: "none", background: "#C9A55A", color: "#fff", fontSize: 9, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-                    LƯU
-                  </button>
+                  <button onClick={() => handleChangePw(u.id, u.username, u.name, u.role)}
+                    style={{ padding: "0 12px", height: 30, borderRadius: 8, border: "none", background: "#C9A55A", color: "#fff", fontSize: 9, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>LƯU</button>
                   <button onClick={() => setPwOpen(null)}
                     style={{ width: 30, height: 30, borderRadius: 8, border: "1px solid #bae6fd", background: "#ffffff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
                     <X size={10} style={{ color: "#94a3b8" }} />
@@ -519,7 +526,7 @@ function UsersPanel() {
           );
         })}
         {isAdmin && (
-          <div style={{ padding: "8px 20px", borderTop: users.length > 0 ? "1px solid #e0f2fe" : "none" }}>
+          <div style={{ padding: "8px 20px", borderTop: dbUsers.length > 0 ? "1px solid #e0f2fe" : "none" }}>
             {!addOpen ? (
               <button onClick={() => setAddOpen(true)}
                 style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 8, border: "1px dashed #bae6fd", background: "transparent", cursor: "pointer", fontFamily: "inherit", fontSize: 9, color: "#0ea5e9", letterSpacing: "0.1em" }}>
@@ -527,39 +534,24 @@ function UsersPanel() {
               </button>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: "8px 0" }}>
-                <div style={{ fontSize: 9, color: "#94a3b8", letterSpacing: "0.05em" }}>
-                  Tên đăng nhập sẽ là tên bạn nhập bên dưới (không phân biệt chữ hoa/thường)
+                <p style={{ fontSize: 9, color: "#94a3b8" }}>Tên nhập vào = tên đăng nhập (không phân biệt hoa/thường)</p>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                  <input value={form.name} onChange={e => setForm(v => ({ ...v, name: e.target.value }))} placeholder="Tên đăng nhập"
+                    style={{ background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 8, padding: "7px 10px", fontSize: 11, color: "#0c1a2e", outline: "none", fontFamily: "inherit" }} />
+                  <input value={form.password} onChange={e => setForm(v => ({ ...v, password: e.target.value }))} type="password" placeholder="Mật khẩu"
+                    style={{ background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 8, padding: "7px 10px", fontSize: 11, color: "#0c1a2e", outline: "none", fontFamily: "inherit" }} />
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                  <input value={form.name} onChange={e => setForm(v => ({ ...v, name: e.target.value }))}
-                    placeholder="Tên đăng nhập"
-                    style={{ background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 8, padding: "7px 10px", fontSize: 11, color: "#0c1a2e", outline: "none", fontFamily: "inherit" }}
-                  />
-                  <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, padding: "7px 10px", fontSize: 10, color: "#94a3b8", display: "flex", alignItems: "center" }}>
-                    {form.name ? form.name.toLowerCase() : "tên đăng nhập"}
-                  </div>
-                </div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                  <input value={form.password} onChange={e => setForm(v => ({ ...v, password: e.target.value }))}
-                    type="password" placeholder="Mật khẩu"
-                    style={{ background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 8, padding: "7px 10px", fontSize: 11, color: "#0c1a2e", outline: "none", fontFamily: "inherit" }}
-                  />
                   <select value={form.role} onChange={e => setForm(v => ({ ...v, role: e.target.value as UserRole }))}
                     style={{ background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 8, padding: "7px 10px", fontSize: 11, color: "#0c1a2e", outline: "none", fontFamily: "inherit" }}>
                     <option value="staff">Nhân Viên</option>
                     <option value="manager">Quản Lý</option>
                     <option value="admin">Admin</option>
                   </select>
-                </div>
-                <div style={{ display: "flex", gap: 8 }}>
-                  <button onClick={handleAdd}
-                    style={{ padding: "7px 16px", borderRadius: 8, border: "none", background: "#0ea5e9", color: "#fff", fontSize: 9, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-                    THÊM
-                  </button>
-                  <button onClick={() => setAddOpen(false)}
-                    style={{ padding: "7px 16px", borderRadius: 8, border: "1px solid #bae6fd", background: "transparent", color: "#64748b", fontSize: 9, cursor: "pointer", fontFamily: "inherit" }}>
-                    HUỶ
-                  </button>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button onClick={handleAdd} style={{ flex: 1, padding: "7px", borderRadius: 8, border: "none", background: "#0ea5e9", color: "#fff", fontSize: 9, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>THÊM</button>
+                    <button onClick={() => setAddOpen(false)} style={{ flex: 1, padding: "7px", borderRadius: 8, border: "1px solid #bae6fd", background: "transparent", color: "#64748b", fontSize: 9, cursor: "pointer", fontFamily: "inherit" }}>HUỶ</button>
+                  </div>
                 </div>
               </div>
             )}

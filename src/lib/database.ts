@@ -90,11 +90,26 @@ function initSchema(db: Database.Database) {
       updatedAt TEXT NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS users (
+      id           TEXT PRIMARY KEY,
+      name         TEXT NOT NULL,
+      username     TEXT NOT NULL UNIQUE,
+      passwordHash TEXT NOT NULL,
+      role         TEXT NOT NULL DEFAULT 'staff',
+      active       INTEGER NOT NULL DEFAULT 1,
+      createdAt    TEXT NOT NULL
+    );
+
+    -- Default admin (chỉ insert nếu chưa có)
+    INSERT OR IGNORE INTO users (id, name, username, passwordHash, role, active, createdAt)
+    VALUES ('user_admin', 'Admin', 'admin', 'Aldo@123', 'admin', 1, datetime('now'));
+
     CREATE INDEX IF NOT EXISTS idx_products_category ON products(category);
     CREATE INDEX IF NOT EXISTS idx_products_sku      ON products(sku);
     CREATE INDEX IF NOT EXISTS idx_slots_shelf       ON slots(shelfId);
     CREATE INDEX IF NOT EXISTS idx_placements_prod   ON placements(productId);
     CREATE INDEX IF NOT EXISTS idx_placements_slot   ON placements(slotId);
+    CREATE INDEX IF NOT EXISTS idx_users_username    ON users(username);
   `);
 }
 

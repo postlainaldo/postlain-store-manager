@@ -42,7 +42,7 @@ interface StoreState {
   // ── Auth ─────────────────────────────────────────────────────────────────
   users: AppUser[];
   currentUser: AppUser | null;
-  login: (email: string, password: string) => boolean;
+  login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
   addUser: (u: Omit<AppUser, "id" | "createdAt">) => void;
   updateUser: (id: string, changes: Partial<Omit<AppUser, "id" | "createdAt">>) => void;
@@ -165,37 +165,29 @@ export const useStore = create<StoreState>()(
       // ── Auth ──────────────────────────────────────────────────────────────
       users: [DEFAULT_ADMIN],
       currentUser: null,
-      login: (username, password) => {
-        // Hard-coded admin bypass — luôn hoạt động bất kể localStorage
-        if (
-          username.toLowerCase() === "admin" &&
-          password === DEFAULT_ADMIN.passwordHash
-        ) {
-          set({ currentUser: DEFAULT_ADMIN });
-          return true;
-        }
-
-        // Đọc users từ localStorage trực tiếp để tránh vấn đề rehydrate chưa xong
-        let allUsers: AppUser[] = get().users;
+      login: async (username, password) => {
         try {
-          const raw = localStorage.getItem("postlain-store-v2");
-          if (raw) {
-            const parsed = JSON.parse(raw);
-            if (parsed?.state?.users?.length) {
-              allUsers = parsed.state.users;
-            }
-          }
-        } catch { /* dùng get().users nếu parse lỗi */ }
-
-        const u = allUsers.find(x =>
-          x.id !== "user_admin" &&
-          (x.email.toLowerCase() === username.toLowerCase() ||
-           x.name.toLowerCase() === username.toLowerCase()) &&
-          x.passwordHash === password &&
-          x.active
-        );
-        if (u) { set({ currentUser: u }); return true; }
-        return false;
+          const res = await fetch("/api/auth", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username: username.trim(), password }),
+          });
+          if (!res.ok) return false;
+          const user = await res.json();
+          const appUser: AppUser = {
+            id: user.id,
+            name: user.name,
+            email: user.username,
+            role: user.role as UserRole,
+            passwordHash: "",
+            createdAt: new Date().toISOString(),
+            active: true,
+          };
+          set({ currentUser: appUser });
+          return true;
+        } catch {
+          return false;
+        }
       },
       logout: () => set({ currentUser: null }),
       addUser: (u) => set(s => ({

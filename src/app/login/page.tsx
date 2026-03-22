@@ -26,7 +26,7 @@ export default function LoginPage() {
     // Small delay for feel
     await new Promise(r => setTimeout(r, 320));
 
-    const ok = login(email.trim(), password);
+    const ok = await login(email.trim(), password);
     if (ok) {
       setSuccess(true);
       await new Promise(r => setTimeout(r, 420));
