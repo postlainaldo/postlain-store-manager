@@ -523,10 +523,28 @@ export const useStore = create<StoreState>()(
         try {
           const res = await fetch("/api/state");
           if (!res.ok) return;
-          const { products, warehouseShelves } = await res.json();
-          set({ products, warehouseShelves });
+          const { products, warehouseShelves, displayPlacements } = await res.json();
+
+          // Merge displayPlacements back into storeSections
+          const state = get();
+          const sections = state.storeSections.map(sec => ({
+            ...sec,
+            subsections: sec.subsections.map(sub => {
+              const subMap = displayPlacements?.[sec.id]?.[sub.id];
+              if (!subMap) return sub;
+              const rows = sub.rows.map((row, ri) => {
+                const rowMap = subMap[ri];
+                if (!rowMap) return row;
+                const products = row.products.map((_, si) => rowMap[si] ?? null);
+                return { ...row, products };
+              });
+              return { ...sub, rows };
+            }),
+          }));
+
+          set({ products, warehouseShelves, storeSections: sections });
         } catch {
-          // silently fail (e.g. during static export)
+          // silently fail
         }
       },
 

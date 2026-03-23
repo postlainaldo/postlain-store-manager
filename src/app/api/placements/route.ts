@@ -14,6 +14,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { getWarehouseMap, getDisplayMap, getOrCreateSlot, setPlacement, getAllPlacements } from "@/lib/repo";
+import { notifyClients } from "./stream/route";
 
 export async function GET() {
   const warehouse = getWarehouseMap();
@@ -39,6 +40,9 @@ export async function POST(req: NextRequest) {
 
   const slotId = getOrCreateSlot(shelfId, tier, position, label);
   setPlacement(slotId, productId);
+
+  // Notify all SSE clients so every browser tab / device refreshes instantly
+  notifyClients({ type: "placement", shelfId, tier, position, label, productId, slotId });
 
   return NextResponse.json({ ok: true, slotId });
 }
