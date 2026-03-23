@@ -17,6 +17,11 @@ npm-debug.log*
 .next/
 out/
 
+# PWA service worker (generated at build time by next-pwa, not committed)
+public/sw.js
+public/swe-worker-*.js
+public/workbox-*.js
+
 # Vercel
 .vercel
 

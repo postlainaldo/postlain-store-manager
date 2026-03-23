@@ -58,13 +58,17 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
         {/* Content */}
         {isFullHeight ? (
-          /* Full-height pages (chat, visual-board): fill all space between top bar and bottom nav */
+          /* Full-height pages (chat, visual-board): fill space between top bar and bottom nav */
           <div style={{
             flex: 1,
+            minHeight: 0,
             overflow: "hidden",
-            paddingBottom: "calc(60px + env(safe-area-inset-bottom, 0px))",
             display: "flex",
             flexDirection: "column",
+            paddingTop: 10,
+            paddingLeft: 12,
+            paddingRight: 12,
+            paddingBottom: "calc(68px + env(safe-area-inset-bottom, 0px))",
           }}>
             {children}
           </div>

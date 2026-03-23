@@ -1306,9 +1306,9 @@ function DisplayTab({
         />
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", flex: 1, gap: 10, minWidth: 0, minHeight: 0 }}>
-        {/* Stats chips */}
-        <div style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", flexDirection: "column", flex: 1, gap: 8, minWidth: 0, minHeight: 0 }}>
+        {/* Stats chips — hidden on mobile to save vertical space */}
+        <div className="hidden md:flex" style={{ flexShrink: 0, alignItems: "center", gap: 8, flexWrap: "wrap" }}>
           {[
             { icon: Eye,        val: displayIds.size, unit: "trưng bày", color: "#C9A55A" },
             { icon: LayoutGrid, val: totalSlots,       unit: "tổng ô",   color: "#94a3b8" },
@@ -1328,25 +1328,29 @@ function DisplayTab({
               </div>
             );
           })}
+        </div>
+
+        {/* Selected chip */}
+        <AnimatePresence>
           {selectedPid && (
             <motion.div
-              initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
+              initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }}
               style={{
-                display: "flex", alignItems: "center", gap: 6,
+                flexShrink: 0, display: "flex", alignItems: "center", gap: 6,
                 padding: "7px 14px", borderRadius: 12,
                 background: "rgba(201,165,90,0.10)", border: "1px solid rgba(201,165,90,0.4)",
               }}
             >
               <Check size={11} style={{ color: "#C9A55A" }} />
-              <span style={{ fontSize: 10, color: "#C9A55A", fontWeight: 600 }}>
+              <span style={{ fontSize: 10, color: "#C9A55A", fontWeight: 600, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {products.find(p => p.id === selectedPid)?.name ?? "..."} · Nhấn ô trống để đặt
               </span>
-              <button onClick={() => setSelectedPid(null)} style={{ background: "none", border: "none", cursor: "pointer", display: "flex" }}>
+              <button onClick={() => setSelectedPid(null)} style={{ background: "none", border: "none", cursor: "pointer", display: "flex", flexShrink: 0 }}>
                 <X size={10} style={{ color: "#C9A55A" }} />
               </button>
             </motion.div>
           )}
-        </div>
+        </AnimatePresence>
 
         {/* Section navigator */}
         {storeSections.length > 0 && (
@@ -1534,20 +1538,20 @@ function WarehouseTab({
         />
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", flex: 1, gap: 10, minWidth: 0, minHeight: 0 }}>
-        {/* Search + stats */}
-        <div style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", flexDirection: "column", flex: 1, gap: 8, minWidth: 0, minHeight: 0 }}>
+        {/* Search bar (always shown) + stats chips (desktop only) */}
+        <div style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 8 }}>
           <div style={{
-            flex: 1, minWidth: 180,
+            flex: 1,
             display: "flex", alignItems: "center", gap: 8,
             background: "#ffffff", border: "1px solid #bae6fd",
-            borderRadius: 12, padding: "0 14px", height: 40,
+            borderRadius: 12, padding: "0 14px", height: 38,
           }}>
             <Search size={13} style={{ color: "#94a3b8" }} strokeWidth={1.5} />
             <input
               value={wSearch}
               onChange={e => setWSearch(e.target.value)}
-              placeholder="Tìm SKU hoặc tên để highlight vị trí..."
+              placeholder="Tìm SKU, tên sản phẩm..."
               style={{
                 flex: 1, background: "transparent", border: "none", outline: "none",
                 fontSize: 12, color: "#0c1a2e", fontFamily: "inherit",
@@ -1559,39 +1563,44 @@ function WarehouseTab({
               </button>
             )}
           </div>
+          {/* Stats — desktop only */}
           {[
-            { label: "Tổng SKU",  val: products.length,                    color: "#0c1a2e" },
-            { label: "Trong Kho", val: warehouseIds.size,                   color: "#0ea5e9" },
-            { label: "Chưa Xếp", val: products.length - warehouseIds.size, color: "#C9A55A" },
+            { label: "SKU",   val: products.length,                    color: "#0c1a2e" },
+            { label: "Kho",   val: warehouseIds.size,                   color: "#0ea5e9" },
+            { label: "Chưa",  val: products.length - warehouseIds.size, color: "#C9A55A" },
           ].map(s => (
-            <div key={s.label} style={{
-              display: "flex", alignItems: "center", gap: 6,
-              padding: "0 14px", height: 40, borderRadius: 12,
-              background: "#ffffff", border: "1px solid #bae6fd",
+            <div key={s.label} className="hidden md:flex" style={{
+              alignItems: "center", gap: 4,
+              padding: "0 12px", height: 38, borderRadius: 12,
+              background: "#ffffff", border: "1px solid #bae6fd", flexShrink: 0,
             }}>
-              <span style={{ fontSize: 15, fontWeight: 700, color: s.color }}>{s.val}</span>
+              <span style={{ fontSize: 14, fontWeight: 700, color: s.color }}>{s.val}</span>
               <span style={{ fontSize: 9, color: "#64748b" }}>{s.label}</span>
             </div>
           ))}
+        </div>
+
+        {/* Selected product chip */}
+        <AnimatePresence>
           {selectedPid && (
             <motion.div
-              initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
+              initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }}
               style={{
-                display: "flex", alignItems: "center", gap: 6,
-                padding: "0 14px", height: 40, borderRadius: 12,
+                flexShrink: 0, display: "flex", alignItems: "center", gap: 6,
+                padding: "7px 14px", borderRadius: 12,
                 background: "rgba(201,165,90,0.10)", border: "1px solid rgba(201,165,90,0.4)",
               }}
             >
               <Check size={11} style={{ color: "#C9A55A" }} />
-              <span style={{ fontSize: 10, color: "#C9A55A", fontWeight: 600 }}>
-                {products.find(p => p.id === selectedPid)?.name ?? "..."} · Nhấn ô trống
+              <span style={{ fontSize: 10, color: "#C9A55A", fontWeight: 600, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {products.find(p => p.id === selectedPid)?.name ?? "..."} · Nhấn ô trống để xếp
               </span>
-              <button onClick={() => setSelectedPid(null)} style={{ background: "none", border: "none", cursor: "pointer", display: "flex" }}>
+              <button onClick={() => setSelectedPid(null)} style={{ background: "none", border: "none", cursor: "pointer", display: "flex", flexShrink: 0 }}>
                 <X size={10} style={{ color: "#C9A55A" }} />
               </button>
             </motion.div>
           )}
-        </div>
+        </AnimatePresence>
 
         {/* Highlight banner */}
         <AnimatePresence>
