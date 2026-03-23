@@ -1,0 +1,601 @@
+/**
+ * Postlain Store Manager — Database Adapter
+ *
+ * Abstracts over SQLite (local dev) and Supabase PostgreSQL (Vercel).
+ * All API routes should use these functions instead of calling getDb() directly.
+ *
+ * WHY: SQLite /tmp on Vercel resets on cold starts → data loss.
+ *      Supabase provides persistent PostgreSQL storage for free.
+ */
+
+import { IS_SUPABASE, getSupabase } from "./supabase";
+import getDb from "./database";
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+export type DBUser = {
+  id: string;
+  name: string;
+  username: string;
+  passwordHash: string;
+  role: string;
+  active: number;
+  createdAt: string;
+  avatar?: string | null;
+  status?: string | null;
+  bio?: string | null;
+  phone?: string | null;
+  fullName?: string | null;
+};
+
+export type DBProduct = {
+  id: string;
+  name: string;
+  sku?: string | null;
+  category: string;
+  productType?: string | null;
+  quantity: number;
+  price?: number | null;
+  markdownPrice?: number | null;
+  color?: string | null;
+  size?: string | null;
+  imagePath?: string | null;
+  notes?: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type DBMessage = {
+  id: string;
+  roomId: string;
+  userId: string;
+  userName: string;
+  content: string;
+  createdAt: string;
+  deletedAt?: string | null;
+  mediaUrl?: string | null;
+  mediaType?: string | null;
+  replyToId?: string | null;
+  reactions?: string | null;
+};
+
+export type DBRoom = {
+  id: string;
+  name: string;
+  type: string;
+  createdBy: string;
+  createdAt: string;
+};
+
+export type DBNotification = {
+  id: string;
+  title: string;
+  body: string;
+  type: string;
+  createdBy: string;
+  createdAt: string;
+  pinned: number;
+};
+
+export type DBMovement = {
+  id: string;
+  productId?: string | null;
+  productName: string;
+  variant: string;
+  type: string;
+  fromLoc?: string | null;
+  toLoc?: string | null;
+  qty: number;
+  byUser: string;
+  createdAt: string;
+};
+
+export type DBPushSub = {
+  id: string;
+  userId: string;
+  endpoint: string;
+  p256dh: string;
+  auth: string;
+  createdAt: string;
+};
+
+// ─── Schema Init (Supabase) ───────────────────────────────────────────────────
+
+let supabaseInited = false;
+
+export async function ensureSupabaseSchema() {
+  if (!IS_SUPABASE || supabaseInited) return;
+  supabaseInited = true;
+  const sb = getSupabase();
+
+  // Use Supabase's rpc to run raw SQL for schema creation
+  // Tables created via SQL editor in Supabase dashboard or this init call
+  const createSQL = `
+    CREATE TABLE IF NOT EXISTS users (
+      id           TEXT PRIMARY KEY,
+      name         TEXT NOT NULL,
+      username     TEXT NOT NULL UNIQUE,
+      "passwordHash" TEXT NOT NULL,
+      role         TEXT NOT NULL DEFAULT 'staff',
+      active       INTEGER NOT NULL DEFAULT 1,
+      "createdAt"  TEXT NOT NULL,
+      avatar       TEXT,
+      status       TEXT DEFAULT 'online',
+      bio          TEXT DEFAULT '',
+      phone        TEXT DEFAULT '',
+      "fullName"   TEXT DEFAULT ''
+    );
+
+    INSERT INTO users (id, name, username, "passwordHash", role, active, "createdAt")
+    VALUES ('user_admin', 'Admin', 'admin', 'Aldo@123', 'admin', 1, NOW()::TEXT)
+    ON CONFLICT (id) DO NOTHING;
+
+    CREATE TABLE IF NOT EXISTS products (
+      id            TEXT PRIMARY KEY,
+      name          TEXT NOT NULL,
+      sku           TEXT UNIQUE,
+      category      TEXT NOT NULL DEFAULT '',
+      "productType" TEXT,
+      quantity      INTEGER NOT NULL DEFAULT 0,
+      price         REAL,
+      "markdownPrice" REAL,
+      color         TEXT,
+      size          TEXT,
+      "imagePath"   TEXT,
+      notes         TEXT,
+      "createdAt"   TEXT NOT NULL,
+      "updatedAt"   TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS chat_rooms (
+      id         TEXT PRIMARY KEY,
+      name       TEXT NOT NULL,
+      type       TEXT NOT NULL DEFAULT 'channel',
+      "createdBy" TEXT NOT NULL,
+      "createdAt" TEXT NOT NULL
+    );
+
+    INSERT INTO chat_rooms (id, name, type, "createdBy", "createdAt")
+    VALUES ('room_general', 'Chung', 'channel', 'user_admin', NOW()::TEXT)
+    ON CONFLICT (id) DO NOTHING;
+
+    INSERT INTO chat_rooms (id, name, type, "createdBy", "createdAt")
+    VALUES ('room_announce', 'Thông Báo', 'announce', 'user_admin', NOW()::TEXT)
+    ON CONFLICT (id) DO NOTHING;
+
+    CREATE TABLE IF NOT EXISTS chat_messages (
+      id          TEXT PRIMARY KEY,
+      "roomId"    TEXT NOT NULL REFERENCES chat_rooms(id) ON DELETE CASCADE,
+      "userId"    TEXT NOT NULL,
+      "userName"  TEXT NOT NULL,
+      content     TEXT NOT NULL DEFAULT '',
+      "createdAt" TEXT NOT NULL,
+      "deletedAt" TEXT,
+      "mediaUrl"  TEXT,
+      "mediaType" TEXT,
+      "replyToId" TEXT,
+      reactions   TEXT DEFAULT '{}'
+    );
+    CREATE INDEX IF NOT EXISTS idx_chat_msg_room ON chat_messages("roomId", "createdAt" DESC);
+
+    CREATE TABLE IF NOT EXISTS notifications (
+      id          TEXT PRIMARY KEY,
+      title       TEXT NOT NULL,
+      body        TEXT NOT NULL,
+      type        TEXT NOT NULL DEFAULT 'info',
+      "createdBy" TEXT NOT NULL,
+      "createdAt" TEXT NOT NULL,
+      pinned      INTEGER NOT NULL DEFAULT 0
+    );
+    CREATE INDEX IF NOT EXISTS idx_notif_created ON notifications("createdAt" DESC);
+
+    CREATE TABLE IF NOT EXISTS push_subs (
+      id          TEXT PRIMARY KEY,
+      "userId"    TEXT NOT NULL,
+      endpoint    TEXT NOT NULL UNIQUE,
+      p256dh      TEXT NOT NULL,
+      auth        TEXT NOT NULL,
+      "createdAt" TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS movements (
+      id            TEXT PRIMARY KEY,
+      "productId"   TEXT,
+      "productName" TEXT NOT NULL,
+      variant       TEXT NOT NULL DEFAULT '',
+      type          TEXT NOT NULL,
+      "fromLoc"     TEXT,
+      "toLoc"       TEXT,
+      qty           INTEGER NOT NULL DEFAULT 0,
+      "byUser"      TEXT NOT NULL DEFAULT '',
+      "createdAt"   TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_movements_created ON movements("createdAt" DESC);
+  `;
+
+  try {
+    await sb.rpc("exec_sql", { sql: createSQL });
+  } catch {
+    // rpc may not exist — tables likely already created via Supabase dashboard
+    // This is a best-effort init; tables must be created manually if this fails
+  }
+}
+
+// ─── Users ────────────────────────────────────────────────────────────────────
+
+export async function dbGetUsers(): Promise<DBUser[]> {
+  if (IS_SUPABASE) {
+    const sb = getSupabase();
+    const { data } = await sb
+      .from("users")
+      .select("id, name, username, role, active, createdAt, avatar, status, bio, phone, fullName")
+      .order("createdAt");
+    return (data ?? []) as DBUser[];
+  }
+  return getDb().prepare("SELECT id, name, username, role, active, createdAt, avatar, status, bio, phone, fullName FROM users ORDER BY createdAt").all() as DBUser[];
+}
+
+export async function dbGetUserByCredentials(username: string, password: string): Promise<DBUser | null> {
+  if (IS_SUPABASE) {
+    const sb = getSupabase();
+    const { data } = await sb
+      .from("users")
+      .select("id, name, username, role, active")
+      .eq("username", username.toLowerCase())
+      .eq("passwordHash", password)
+      .single();
+    return data as DBUser | null;
+  }
+  return getDb().prepare(
+    "SELECT id, name, username, role, active FROM users WHERE username = ? AND passwordHash = ? COLLATE NOCASE"
+  ).get(username.trim().toLowerCase(), password) as DBUser | null;
+}
+
+export async function dbGetUserById(id: string): Promise<DBUser | null> {
+  if (IS_SUPABASE) {
+    const sb = getSupabase();
+    const { data } = await sb.from("users").select("*").eq("id", id).single();
+    return data as DBUser | null;
+  }
+  return getDb().prepare("SELECT * FROM users WHERE id = ?").get(id) as DBUser | null;
+}
+
+export async function dbCreateUser(user: {
+  id: string; name: string; username: string; password: string;
+  role: string; createdAt: string;
+}): Promise<void> {
+  if (IS_SUPABASE) {
+    const sb = getSupabase();
+    await sb.from("users").insert({
+      id: user.id, name: user.name, username: user.username.toLowerCase(),
+      passwordHash: user.password, role: user.role, active: 1, createdAt: user.createdAt,
+    });
+    return;
+  }
+  getDb().prepare(
+    "INSERT INTO users (id, name, username, passwordHash, role, active, createdAt) VALUES (?,?,?,?,?,?,?)"
+  ).run(user.id, user.name, user.username.toLowerCase(), user.password, user.role, 1, user.createdAt);
+}
+
+export async function dbUpdateUser(id: string, fields: {
+  name?: string; username?: string; password?: string; role?: string; active?: number;
+  avatar?: string; status?: string; bio?: string; phone?: string; fullName?: string;
+}): Promise<void> {
+  if (IS_SUPABASE) {
+    const sb = getSupabase();
+    const update: Record<string, unknown> = {};
+    if (fields.name !== undefined) update.name = fields.name;
+    if (fields.username !== undefined) update.username = fields.username.toLowerCase();
+    if (fields.password !== undefined) update.passwordHash = fields.password;
+    if (fields.role !== undefined) update.role = fields.role;
+    if (fields.active !== undefined) update.active = fields.active;
+    if (fields.avatar !== undefined) update.avatar = fields.avatar;
+    if (fields.status !== undefined) update.status = fields.status;
+    if (fields.bio !== undefined) update.bio = fields.bio;
+    if (fields.phone !== undefined) update.phone = fields.phone;
+    if (fields.fullName !== undefined) update.fullName = fields.fullName;
+    await sb.from("users").update(update).eq("id", id);
+    return;
+  }
+  const db = getDb();
+  if (fields.password) {
+    db.prepare("UPDATE users SET name=?, username=?, passwordHash=?, role=?, active=? WHERE id=?")
+      .run(fields.name, fields.username?.toLowerCase(), fields.password, fields.role, fields.active ?? 1, id);
+  } else {
+    const sets: string[] = [];
+    const vals: unknown[] = [];
+    if (fields.name !== undefined) { sets.push("name=?"); vals.push(fields.name); }
+    if (fields.username !== undefined) { sets.push("username=?"); vals.push(fields.username.toLowerCase()); }
+    if (fields.role !== undefined) { sets.push("role=?"); vals.push(fields.role); }
+    if (fields.active !== undefined) { sets.push("active=?"); vals.push(fields.active); }
+    if (fields.avatar !== undefined) { sets.push("avatar=?"); vals.push(fields.avatar); }
+    if (fields.status !== undefined) { sets.push("status=?"); vals.push(fields.status); }
+    if (fields.bio !== undefined) { sets.push("bio=?"); vals.push(fields.bio); }
+    if (fields.phone !== undefined) { sets.push("phone=?"); vals.push(fields.phone); }
+    if (fields.fullName !== undefined) { sets.push("fullName=?"); vals.push(fields.fullName); }
+    if (sets.length) {
+      vals.push(id);
+      db.prepare(`UPDATE users SET ${sets.join(",")} WHERE id=?`).run(...vals);
+    }
+  }
+}
+
+export async function dbDeleteUser(id: string): Promise<void> {
+  if (IS_SUPABASE) {
+    await getSupabase().from("users").delete().eq("id", id);
+    return;
+  }
+  getDb().prepare("DELETE FROM users WHERE id = ?").run(id);
+}
+
+// ─── Products ─────────────────────────────────────────────────────────────────
+
+export async function dbGetProducts(): Promise<DBProduct[]> {
+  if (IS_SUPABASE) {
+    const { data } = await getSupabase().from("products").select("*").order("createdAt");
+    return (data ?? []) as DBProduct[];
+  }
+  return getDb().prepare("SELECT * FROM products ORDER BY createdAt").all() as DBProduct[];
+}
+
+export async function dbGetProductBySku(sku: string): Promise<DBProduct | null> {
+  if (IS_SUPABASE) {
+    const { data } = await getSupabase()
+      .from("products").select("*").ilike("sku", sku.trim()).single();
+    return data as DBProduct | null;
+  }
+  return getDb().prepare("SELECT * FROM products WHERE sku = ? COLLATE NOCASE").get(sku.trim()) as DBProduct | null;
+}
+
+export async function dbUpsertProduct(p: DBProduct): Promise<DBProduct> {
+  if (IS_SUPABASE) {
+    const { data } = await getSupabase()
+      .from("products")
+      .upsert({ ...p }, { onConflict: "id" })
+      .select()
+      .single();
+    return data as DBProduct;
+  }
+  const db = getDb();
+  db.prepare(`
+    INSERT OR REPLACE INTO products
+      (id,name,sku,category,productType,quantity,price,markdownPrice,color,size,imagePath,notes,createdAt,updatedAt)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+  `).run(p.id, p.name, p.sku ?? null, p.category, p.productType ?? null, p.quantity,
+    p.price ?? null, p.markdownPrice ?? null, p.color ?? null, p.size ?? null,
+    p.imagePath ?? null, p.notes ?? null, p.createdAt, p.updatedAt);
+  return p;
+}
+
+export async function dbDeleteProduct(id: string): Promise<void> {
+  if (IS_SUPABASE) {
+    await getSupabase().from("products").delete().eq("id", id);
+    return;
+  }
+  getDb().prepare("DELETE FROM products WHERE id = ?").run(id);
+}
+
+export async function dbDeleteProducts(ids: string[]): Promise<void> {
+  if (IS_SUPABASE) {
+    await getSupabase().from("products").delete().in("id", ids);
+    return;
+  }
+  const stmt = getDb().prepare("DELETE FROM products WHERE id = ?");
+  for (const id of ids) stmt.run(id);
+}
+
+// ─── Chat Rooms ───────────────────────────────────────────────────────────────
+
+export async function dbGetRooms(): Promise<(DBRoom & { lastMessage: unknown; messageCount: number })[]> {
+  if (IS_SUPABASE) {
+    const sb = getSupabase();
+    const { data: rooms } = await sb.from("chat_rooms").select("*").order("createdAt");
+    if (!rooms) return [];
+    const result = await Promise.all(rooms.map(async (r) => {
+      const { data: last } = await sb
+        .from("chat_messages")
+        .select("content, userName, createdAt, mediaType")
+        .eq("roomId", r.id)
+        .is("deletedAt", null)
+        .order("createdAt", { ascending: false })
+        .limit(1)
+        .single();
+      const { count } = await sb
+        .from("chat_messages")
+        .select("*", { count: "exact", head: true })
+        .eq("roomId", r.id)
+        .is("deletedAt", null);
+      return { ...r, lastMessage: last ?? null, messageCount: count ?? 0 };
+    }));
+    return result;
+  }
+  const db = getDb();
+  const rooms = db.prepare("SELECT * FROM chat_rooms ORDER BY createdAt").all() as DBRoom[];
+  return rooms.map(r => {
+    const last = db.prepare(
+      "SELECT content, userName, createdAt, mediaType FROM chat_messages WHERE roomId=? AND deletedAt IS NULL ORDER BY createdAt DESC LIMIT 1"
+    ).get(r.id);
+    const { cnt } = db.prepare("SELECT COUNT(*) as cnt FROM chat_messages WHERE roomId=? AND deletedAt IS NULL").get(r.id) as { cnt: number };
+    return { ...r, lastMessage: last ?? null, messageCount: cnt };
+  });
+}
+
+export async function dbGetMessages(roomId: string, since?: string): Promise<DBMessage[]> {
+  if (IS_SUPABASE) {
+    const sb = getSupabase();
+    let q = sb.from("chat_messages").select("*").eq("roomId", roomId).order("createdAt").limit(80);
+    if (since) q = q.gt("createdAt", since);
+    const { data } = await q;
+    return (data ?? []) as DBMessage[];
+  }
+  const db = getDb();
+  if (since) {
+    return db.prepare("SELECT * FROM chat_messages WHERE roomId=? AND createdAt > ? ORDER BY createdAt ASC LIMIT 80").all(roomId, since) as DBMessage[];
+  }
+  return db.prepare("SELECT * FROM chat_messages WHERE roomId=? ORDER BY createdAt ASC LIMIT 80").all(roomId) as DBMessage[];
+}
+
+export async function dbInsertMessage(msg: {
+  id: string; roomId: string; userId: string; userName: string;
+  content: string; mediaUrl?: string | null; mediaType?: string | null;
+  replyToId?: string | null; createdAt: string;
+}): Promise<void> {
+  if (IS_SUPABASE) {
+    await getSupabase().from("chat_messages").insert({
+      id: msg.id, roomId: msg.roomId, userId: msg.userId, userName: msg.userName,
+      content: msg.content, mediaUrl: msg.mediaUrl ?? null, mediaType: msg.mediaType ?? null,
+      replyToId: msg.replyToId ?? null, createdAt: msg.createdAt,
+    });
+    return;
+  }
+  getDb().prepare(`
+    INSERT INTO chat_messages (id, roomId, userId, userName, content, mediaUrl, mediaType, replyToId, createdAt)
+    VALUES (?,?,?,?,?,?,?,?,?)
+  `).run(msg.id, msg.roomId, msg.userId, msg.userName, msg.content,
+    msg.mediaUrl ?? null, msg.mediaType ?? null, msg.replyToId ?? null, msg.createdAt);
+}
+
+export async function dbRoomExists(roomId: string): Promise<boolean> {
+  if (IS_SUPABASE) {
+    const { data } = await getSupabase().from("chat_rooms").select("id").eq("id", roomId).single();
+    return !!data;
+  }
+  return !!getDb().prepare("SELECT id FROM chat_rooms WHERE id=?").get(roomId);
+}
+
+export async function dbCreateRoom(id: string, name: string, type: string, createdBy: string, createdAt: string): Promise<void> {
+  if (IS_SUPABASE) {
+    await getSupabase().from("chat_rooms").insert({ id, name, type, createdBy, createdAt });
+    return;
+  }
+  getDb().prepare("INSERT INTO chat_rooms (id, name, type, createdBy, createdAt) VALUES (?,?,?,?,?)")
+    .run(id, name, type, createdBy, createdAt);
+}
+
+export async function dbDeleteRoom(roomId: string): Promise<void> {
+  if (IS_SUPABASE) {
+    await getSupabase().from("chat_rooms").delete().eq("id", roomId);
+    return;
+  }
+  getDb().prepare("DELETE FROM chat_rooms WHERE id=?").run(roomId);
+}
+
+export async function dbSoftDeleteMessage(msgId: string, deletedAt: string): Promise<{ found: boolean }> {
+  if (IS_SUPABASE) {
+    const { data: msg } = await getSupabase().from("chat_messages").select("userId").eq("id", msgId).single();
+    if (!msg) return { found: false };
+    await getSupabase().from("chat_messages")
+      .update({ content: "[Tin nhắn đã bị xóa]", deletedAt })
+      .eq("id", msgId);
+    return { found: true };
+  }
+  const msg = getDb().prepare("SELECT userId FROM chat_messages WHERE id=?").get(msgId) as { userId: string } | undefined;
+  if (!msg) return { found: false };
+  getDb().prepare("UPDATE chat_messages SET content=?, deletedAt=? WHERE id=?")
+    .run("[Tin nhắn đã bị xóa]", deletedAt, msgId);
+  return { found: true };
+}
+
+export async function dbGetMessageSender(msgId: string): Promise<{ userId: string } | null> {
+  if (IS_SUPABASE) {
+    const { data } = await getSupabase().from("chat_messages").select("userId").eq("id", msgId).single();
+    return data as { userId: string } | null;
+  }
+  return getDb().prepare("SELECT userId FROM chat_messages WHERE id=?").get(msgId) as { userId: string } | null;
+}
+
+export async function dbUpdateReactions(msgId: string, reactions: string): Promise<void> {
+  if (IS_SUPABASE) {
+    await getSupabase().from("chat_messages").update({ reactions }).eq("id", msgId);
+    return;
+  }
+  getDb().prepare("UPDATE chat_messages SET reactions=? WHERE id=?").run(reactions, msgId);
+}
+
+export async function dbGetUserRole(userId: string): Promise<string | null> {
+  if (IS_SUPABASE) {
+    const { data } = await getSupabase().from("users").select("role").eq("id", userId).single();
+    return (data as { role: string } | null)?.role ?? null;
+  }
+  const u = getDb().prepare("SELECT role FROM users WHERE id=?").get(userId) as { role: string } | undefined;
+  return u?.role ?? null;
+}
+
+// ─── Notifications ────────────────────────────────────────────────────────────
+
+export async function dbGetNotifications(): Promise<DBNotification[]> {
+  if (IS_SUPABASE) {
+    const { data } = await getSupabase().from("notifications").select("*").order("createdAt", { ascending: false }).limit(50);
+    return (data ?? []) as DBNotification[];
+  }
+  return getDb().prepare("SELECT * FROM notifications ORDER BY createdAt DESC LIMIT 50").all() as DBNotification[];
+}
+
+export async function dbInsertNotification(n: DBNotification): Promise<void> {
+  if (IS_SUPABASE) {
+    await getSupabase().from("notifications").insert(n);
+    return;
+  }
+  getDb().prepare(
+    "INSERT INTO notifications (id, title, body, type, createdBy, createdAt, pinned) VALUES (?,?,?,?,?,?,?)"
+  ).run(n.id, n.title, n.body, n.type, n.createdBy, n.createdAt, n.pinned);
+}
+
+export async function dbDeleteNotification(id: string): Promise<void> {
+  if (IS_SUPABASE) {
+    await getSupabase().from("notifications").delete().eq("id", id);
+    return;
+  }
+  getDb().prepare("DELETE FROM notifications WHERE id=?").run(id);
+}
+
+// ─── Movements ────────────────────────────────────────────────────────────────
+
+export async function dbGetMovements(limit = 50): Promise<DBMovement[]> {
+  if (IS_SUPABASE) {
+    const { data } = await getSupabase().from("movements").select("*")
+      .order("createdAt", { ascending: false }).limit(limit);
+    return (data ?? []) as DBMovement[];
+  }
+  return getDb().prepare("SELECT * FROM movements ORDER BY createdAt DESC LIMIT ?").all(limit) as DBMovement[];
+}
+
+export async function dbInsertMovement(m: DBMovement): Promise<void> {
+  if (IS_SUPABASE) {
+    await getSupabase().from("movements").insert(m);
+    return;
+  }
+  getDb().prepare(
+    "INSERT INTO movements (id,productId,productName,variant,type,fromLoc,toLoc,qty,byUser,createdAt) VALUES (?,?,?,?,?,?,?,?,?,?)"
+  ).run(m.id, m.productId ?? null, m.productName, m.variant, m.type,
+    m.fromLoc ?? null, m.toLoc ?? null, m.qty, m.byUser, m.createdAt);
+}
+
+// ─── Push Subscriptions ───────────────────────────────────────────────────────
+
+export async function dbGetPushSubs(): Promise<DBPushSub[]> {
+  if (IS_SUPABASE) {
+    const { data } = await getSupabase().from("push_subs").select("*");
+    return (data ?? []) as DBPushSub[];
+  }
+  return getDb().prepare("SELECT * FROM push_subs").all() as DBPushSub[];
+}
+
+export async function dbUpsertPushSub(sub: DBPushSub): Promise<void> {
+  if (IS_SUPABASE) {
+    await getSupabase().from("push_subs").upsert(sub, { onConflict: "endpoint" });
+    return;
+  }
+  getDb().prepare(`
+    INSERT OR REPLACE INTO push_subs (id, userId, endpoint, p256dh, auth, createdAt)
+    VALUES (?,?,?,?,?,?)
+  `).run(sub.id, sub.userId, sub.endpoint, sub.p256dh, sub.auth, sub.createdAt);
+}
+
+export async function dbDeletePushSub(endpoint: string): Promise<void> {
+  if (IS_SUPABASE) {
+    await getSupabase().from("push_subs").delete().eq("endpoint", endpoint);
+    return;
+  }
+  getDb().prepare("DELETE FROM push_subs WHERE endpoint = ?").run(endpoint);
+}

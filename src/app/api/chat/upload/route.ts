@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { writeFileSync, mkdirSync, existsSync } from "fs";
-import { join, extname } from "path";
+import { IS_SUPABASE, getSupabase } from "@/lib/supabase";
+import { extname } from "path";
 
 const ALLOWED_IMAGES = [".jpg", ".jpeg", ".png", ".gif", ".webp"];
 const ALLOWED_FILES  = [".pdf", ".doc", ".docx", ".xls", ".xlsx", ".txt", ".zip"];
@@ -22,12 +22,49 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Loại file không được hỗ trợ" }, { status: 415 });
   }
 
+  const filename = `chat_${Date.now()}_${Math.random().toString(36).slice(2, 7)}${ext}`;
+  const buffer = Buffer.from(await file.arrayBuffer());
+
+  if (IS_SUPABASE) {
+    // Upload to Supabase Storage (persistent)
+    const sb = getSupabase();
+    const { error } = await sb.storage
+      .from("chat-media")
+      .upload(filename, buffer, {
+        contentType: file.type || (isImage ? "image/jpeg" : "application/octet-stream"),
+        upsert: false,
+      });
+
+    if (error) {
+      // Bucket may not exist yet — try creating it
+      await sb.storage.createBucket("chat-media", { public: true });
+      const { error: err2 } = await sb.storage
+        .from("chat-media")
+        .upload(filename, buffer, {
+          contentType: file.type || (isImage ? "image/jpeg" : "application/octet-stream"),
+          upsert: false,
+        });
+      if (err2) {
+        return NextResponse.json({ error: "Upload thất bại: " + err2.message }, { status: 500 });
+      }
+    }
+
+    const { data: { publicUrl } } = sb.storage.from("chat-media").getPublicUrl(filename);
+
+    return NextResponse.json({
+      url: publicUrl,
+      name: file.name,
+      mediaType: isImage ? "image" : "file",
+      size: file.size,
+    });
+  }
+
+  // Local dev: write to public/chat/
+  const { writeFileSync, mkdirSync, existsSync } = await import("fs");
+  const { join } = await import("path");
   const dir = join(process.cwd(), "public", "chat");
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
-
-  const filename = `chat_${Date.now()}_${Math.random().toString(36).slice(2, 7)}${ext}`;
-  const filepath = join(dir, filename);
-  writeFileSync(filepath, Buffer.from(await file.arrayBuffer()));
+  writeFileSync(join(dir, filename), buffer);
 
   return NextResponse.json({
     url: `/chat/${filename}`,

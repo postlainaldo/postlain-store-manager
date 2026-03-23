@@ -932,72 +932,84 @@ export default function SettingsPage() {
     return null;
   }
 
+  const [mobileShowPanel, setMobileShowPanel] = useState(false);
+
+  const handleMobileSelect = (id: SectionId) => {
+    setActive(id);
+    setMobileShowPanel(true);
+  };
+
+  const SidebarContent = () => (
+    <>
+      {SECTIONS.map((s, i) => {
+        const Icon = s.icon;
+        const allowed = hasAccess(role, s.minRole);
+        const isA = activeSection === s.id;
+        return (
+          <div key={s.id}>
+            <button
+              onClick={() => { if (allowed) { setActive(s.id); setMobileShowPanel(true); } }}
+              style={{
+                width: "100%", padding: "10px 14px", display: "flex", alignItems: "center", gap: 10,
+                background: isA ? "rgba(14,165,233,0.06)" : "transparent",
+                border: "none", borderLeft: `2px solid ${isA ? "#0ea5e9" : "transparent"}`,
+                cursor: allowed ? "pointer" : "default", fontFamily: "inherit", textAlign: "left",
+                opacity: allowed ? 1 : 0.4,
+              }}
+              onMouseEnter={e => { if (!isA && allowed) e.currentTarget.style.background = "#f0f9ff"; }}
+              onMouseLeave={e => { if (!isA) e.currentTarget.style.background = "transparent"; }}
+            >
+              <Icon size={12} strokeWidth={1.5} style={{ flexShrink: 0, color: isA ? "#0ea5e9" : "#94a3b8" }} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ fontSize: 11, color: isA ? "#0c1a2e" : "#334e68", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.label}</p>
+                <p style={{ fontSize: 8, color: "#94a3b8", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.desc}</p>
+              </div>
+              {allowed
+                ? <ChevronRight size={9} style={{ color: isA ? "#94a3b8" : "#bae6fd", flexShrink: 0 }} />
+                : <Lock size={9} style={{ color: "#bae6fd", flexShrink: 0 }} />
+              }
+            </button>
+            {i < SECTIONS.length - 1 && <div style={{ height: 1, background: "#e0f2fe" }} />}
+          </div>
+        );
+      })}
+      <div style={{ height: 1, background: "#e0f2fe" }} />
+      <Link href="/install" style={{ textDecoration: "none" }}>
+        <div
+          style={{ width: "100%", padding: "10px 14px", display: "flex", alignItems: "center", gap: 10, background: "transparent", cursor: "pointer" }}
+          onMouseEnter={e => ((e.currentTarget as HTMLDivElement).style.background = "#f0f9ff")}
+          onMouseLeave={e => ((e.currentTarget as HTMLDivElement).style.background = "transparent")}
+        >
+          <Smartphone size={12} strokeWidth={1.5} style={{ flexShrink: 0, color: "#C9A55A" }} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p style={{ fontSize: 11, color: "#334e68" }}>Cài Đặt App</p>
+            <p style={{ fontSize: 8, color: "#94a3b8", marginTop: 2 }}>Cài PWA lên màn hình chính</p>
+          </div>
+          <ChevronRight size={9} style={{ color: "#C9A55A", flexShrink: 0 }} />
+        </div>
+      </Link>
+    </>
+  );
+
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
 
       {/* Header */}
       <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.28 }}>
         <p style={{ fontSize: 9, fontWeight: 700, color: "#94a3b8", letterSpacing: "0.38em" }}>
           QUẢN LÝ CỬA HÀNG · {brandName.toUpperCase()}
         </p>
-        <h1 style={{ fontSize: 26, fontWeight: 300, color: "#0c1a2e", marginTop: 4 }}>Cài Đặt</h1>
+        <h1 style={{ fontSize: 22, fontWeight: 300, color: "#0c1a2e", marginTop: 4 }}>Cài Đặt</h1>
       </motion.div>
 
-      {/* Body */}
-      <div style={{ display: "flex", gap: 20, alignItems: "flex-start" }}>
-
-        {/* Sidebar nav */}
+      {/* ── DESKTOP layout: sidebar + panel side-by-side ───────────────────── */}
+      <div className="hidden md:flex" style={{ gap: 20, alignItems: "flex-start" }}>
+        {/* Sidebar */}
         <motion.div
           initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.08 }}
           style={{ width: 200, flexShrink: 0, borderRadius: 14, border: "1px solid #bae6fd", background: "#ffffff", overflow: "hidden" }}
         >
-          {SECTIONS.map((s, i) => {
-            const Icon = s.icon;
-            const allowed = hasAccess(role, s.minRole);
-            const isA  = activeSection === s.id;
-            return (
-              <div key={s.id}>
-                <button
-                  onClick={() => allowed && setActive(s.id)}
-                  style={{
-                    width: "100%", padding: "10px 14px", display: "flex", alignItems: "center", gap: 10,
-                    background: isA ? "rgba(14,165,233,0.06)" : "transparent",
-                    border: "none", borderLeft: `2px solid ${isA ? "#0ea5e9" : "transparent"}`,
-                    cursor: allowed ? "pointer" : "default", fontFamily: "inherit", textAlign: "left",
-                    opacity: allowed ? 1 : 0.4,
-                  }}
-                  onMouseEnter={e => { if (!isA && allowed) e.currentTarget.style.background = "#f0f9ff"; }}
-                  onMouseLeave={e => { if (!isA) e.currentTarget.style.background = "transparent"; }}
-                >
-                  <Icon size={12} strokeWidth={1.5} style={{ flexShrink: 0, color: isA ? "#0ea5e9" : "#94a3b8" }} />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontSize: 11, color: isA ? "#0c1a2e" : "#334e68", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.label}</p>
-                    <p style={{ fontSize: 8, color: "#94a3b8", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.desc}</p>
-                  </div>
-                  {allowed
-                    ? <ChevronRight size={9} style={{ color: isA ? "#94a3b8" : "#bae6fd", flexShrink: 0 }} />
-                    : <Lock size={9} style={{ color: "#bae6fd", flexShrink: 0 }} />
-                  }
-                </button>
-                {i < SECTIONS.length - 1 && <div style={{ height: 1, background: "#e0f2fe" }} />}
-              </div>
-            );
-          })}
-          <div style={{ height: 1, background: "#e0f2fe" }} />
-          <Link href="/install" style={{ textDecoration: "none" }}>
-            <div
-              style={{ width: "100%", padding: "10px 14px", display: "flex", alignItems: "center", gap: 10, background: "transparent", cursor: "pointer" }}
-              onMouseEnter={e => ((e.currentTarget as HTMLDivElement).style.background = "#f0f9ff")}
-              onMouseLeave={e => ((e.currentTarget as HTMLDivElement).style.background = "transparent")}
-            >
-              <Smartphone size={12} strokeWidth={1.5} style={{ flexShrink: 0, color: "#C9A55A" }} />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ fontSize: 11, color: "#334e68", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Cài Đặt App</p>
-                <p style={{ fontSize: 8, color: "#94a3b8", marginTop: 2 }}>Cài PWA lên màn hình chính</p>
-              </div>
-              <ChevronRight size={9} style={{ color: "#C9A55A", flexShrink: 0 }} />
-            </div>
-          </Link>
+          <SidebarContent />
         </motion.div>
 
         {/* Panel */}
@@ -1011,6 +1023,42 @@ export default function SettingsPage() {
             {renderPanel()}
           </motion.div>
         </AnimatePresence>
+      </div>
+
+      {/* ── MOBILE layout: list → drill-in panel ───────────────────────────── */}
+      <div className="md:hidden">
+        {!mobileShowPanel ? (
+          /* Section list */
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+            style={{ borderRadius: 14, border: "1px solid #bae6fd", background: "#ffffff", overflow: "hidden" }}
+          >
+            <SidebarContent />
+          </motion.div>
+        ) : (
+          /* Panel with back button */
+          <div>
+            <button
+              onClick={() => setMobileShowPanel(false)}
+              style={{
+                display: "flex", alignItems: "center", gap: 6, background: "none", border: "none",
+                cursor: "pointer", padding: "6px 0 12px", fontFamily: "inherit",
+              }}
+            >
+              <ChevronRight size={13} style={{ color: "#0ea5e9", transform: "rotate(180deg)" }} />
+              <span style={{ fontSize: 11, color: "#0ea5e9", fontWeight: 600 }}>Quay lại</span>
+            </button>
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={active}
+                initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}
+                transition={{ duration: 0.16 }}
+              >
+                {renderPanel()}
+              </motion.div>
+            </AnimatePresence>
+          </div>
+        )}
       </div>
     </div>
   );

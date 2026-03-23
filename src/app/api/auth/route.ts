@@ -1,48 +1,41 @@
 import { NextRequest, NextResponse } from "next/server";
-import getDb from "@/lib/database";
+import {
+  dbGetUsers, dbGetUserByCredentials, dbGetUserById,
+  dbCreateUser, dbUpdateUser, dbDeleteUser,
+} from "@/lib/dbAdapter";
 
 // POST /api/auth — login
 export async function POST(req: NextRequest) {
   const { username, password } = await req.json();
   if (!username || !password) return NextResponse.json({ error: "Missing fields" }, { status: 400 });
 
-  const db = getDb();
-  const user = db.prepare(
-    "SELECT id, name, username, role, active FROM users WHERE username = ? AND passwordHash = ? COLLATE NOCASE"
-  ).get(username.trim().toLowerCase(), password) as { id: string; name: string; username: string; role: string; active: number } | undefined;
-
+  const user = await dbGetUserByCredentials(username, password);
   if (!user || !user.active) return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
 
   return NextResponse.json({ id: user.id, name: user.name, username: user.username, role: user.role });
 }
 
-// GET /api/auth — list users (admin only, no passwords)
+// GET /api/auth — list users (no passwords)
 export async function GET() {
-  const db = getDb();
-  const users = db.prepare("SELECT id, name, username, role, active, createdAt FROM users ORDER BY createdAt").all();
+  const users = await dbGetUsers();
   return NextResponse.json(users);
 }
 
 // PUT /api/auth — add or update user
 export async function PUT(req: NextRequest) {
   const { id, name, username, password, role, active } = await req.json();
-  const db = getDb();
   const now = new Date().toISOString();
 
   if (id) {
-    // Update existing
-    if (password) {
-      db.prepare("UPDATE users SET name=?, username=?, passwordHash=?, role=?, active=? WHERE id=?")
-        .run(name, username.toLowerCase(), password, role, active ? 1 : 0, id);
-    } else {
-      db.prepare("UPDATE users SET name=?, username=?, role=?, active=? WHERE id=?")
-        .run(name, username.toLowerCase(), role, active ? 1 : 0, id);
-    }
+    await dbUpdateUser(id, {
+      name, username,
+      ...(password ? { password } : {}),
+      role, active: active ? 1 : 0,
+    });
   } else {
-    // Insert new
+    if (!password) return NextResponse.json({ error: "Password required" }, { status: 400 });
     const newId = `user_${Date.now()}`;
-    db.prepare("INSERT INTO users (id, name, username, passwordHash, role, active, createdAt) VALUES (?,?,?,?,?,?,?)")
-      .run(newId, name, username.toLowerCase(), password, role, 1, now);
+    await dbCreateUser({ id: newId, name, username, password, role, createdAt: now });
   }
 
   return NextResponse.json({ ok: true });
@@ -52,7 +45,15 @@ export async function PUT(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   const { id } = await req.json();
   if (id === "user_admin") return NextResponse.json({ error: "Cannot delete admin" }, { status: 400 });
-  const db = getDb();
-  db.prepare("DELETE FROM users WHERE id = ?").run(id);
+  await dbDeleteUser(id);
   return NextResponse.json({ ok: true });
+}
+
+// PATCH /api/auth — validate session (check user still exists)
+export async function PATCH(req: NextRequest) {
+  const { id } = await req.json();
+  if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
+  const user = await dbGetUserById(id);
+  if (!user || !user.active) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  return NextResponse.json({ id: user.id, name: user.name, role: user.role });
 }

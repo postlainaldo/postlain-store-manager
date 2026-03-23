@@ -11,11 +11,12 @@
 
 import { NextResponse } from "next/server";
 import getDb from "@/lib/database";
-import { getAllProducts, getAllShelves } from "@/lib/repo";
+import { getAllShelves } from "@/lib/repo";
+import { dbGetProducts } from "@/lib/dbAdapter";
 
 export async function GET() {
   const db = getDb();
-  const products = getAllProducts();
+  const products = await dbGetProducts();
   const shelves  = getAllShelves();
 
   // ── Build warehouseShelves in the shape WarehouseShelf expects ──────────────

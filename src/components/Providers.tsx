@@ -50,8 +50,11 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     // ── Validate current session ─────────────────────────────────
     // If the logged-in user was deleted from DB, force logout
     if (state.currentUser) {
-      fetch(`/api/profile?id=${state.currentUser.id}`)
-        .then(r => { if (r.status === 404) useStore.getState().logout(); })
+      fetch("/api/auth", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: state.currentUser.id }),
+      }).then(r => { if (r.status === 404) useStore.getState().logout(); })
         .catch(() => {});
     }
 

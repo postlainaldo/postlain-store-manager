@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import getDb from "@/lib/database";
+import { dbUpsertPushSub, dbDeletePushSub } from "@/lib/dbAdapter";
 import { randomUUID } from "crypto";
 
 export async function POST(req: NextRequest) {
@@ -7,26 +7,20 @@ export async function POST(req: NextRequest) {
   if (!userId || !subscription?.endpoint) {
     return NextResponse.json({ error: "Invalid subscription" }, { status: 400 });
   }
-  const db = getDb();
-  const now = new Date().toISOString();
-  db.prepare(`
-    INSERT INTO push_subs (id, userId, endpoint, p256dh, auth, createdAt)
-    VALUES (?, ?, ?, ?, ?, ?)
-    ON CONFLICT(endpoint) DO UPDATE SET userId=excluded.userId, p256dh=excluded.p256dh, auth=excluded.auth
-  `).run(
-    randomUUID(),
+  await dbUpsertPushSub({
+    id: randomUUID(),
     userId,
-    subscription.endpoint,
-    subscription.keys?.p256dh ?? "",
-    subscription.keys?.auth ?? "",
-    now
-  );
+    endpoint: subscription.endpoint,
+    p256dh: subscription.keys?.p256dh ?? "",
+    auth: subscription.keys?.auth ?? "",
+    createdAt: new Date().toISOString(),
+  });
   return NextResponse.json({ success: true });
 }
 
 export async function DELETE(req: NextRequest) {
   const { endpoint } = await req.json();
   if (!endpoint) return NextResponse.json({ error: "Missing endpoint" }, { status: 400 });
-  getDb().prepare("DELETE FROM push_subs WHERE endpoint = ?").run(endpoint);
+  await dbDeletePushSub(endpoint);
   return NextResponse.json({ success: true });
 }

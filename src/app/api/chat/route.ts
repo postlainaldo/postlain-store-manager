@@ -1,44 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
-import getDb from "@/lib/database";
-
-type Room = { id: string; name: string; type: string; createdBy: string; createdAt: string };
-type Message = {
-  id: string; roomId: string; userId: string; userName: string;
-  content: string; createdAt: string;
-  deletedAt?: string | null;
-  mediaUrl?: string | null;
-  mediaType?: string | null;
-  replyToId?: string | null;
-  reactions?: string | null;
-};
+import {
+  dbGetRooms, dbGetMessages, dbInsertMessage, dbRoomExists,
+  dbCreateRoom, dbDeleteRoom, dbSoftDeleteMessage,
+  dbGetMessageSender, dbUpdateReactions, dbGetUserRole,
+} from "@/lib/dbAdapter";
 
 // GET /api/chat?rooms=1            — list rooms with last message + count
 // GET /api/chat?roomId=xxx         — messages in room (latest 80)
 // GET /api/chat?roomId=xxx&since=iso — messages after timestamp
 export async function GET(req: NextRequest) {
-  const db = getDb();
   const { searchParams } = req.nextUrl;
 
   if (searchParams.get("rooms")) {
-    const rooms = db.prepare("SELECT * FROM chat_rooms ORDER BY createdAt").all() as Room[];
-    const result = rooms.map(r => {
-      const last = db.prepare(
-        "SELECT content, userName, createdAt, mediaType FROM chat_messages WHERE roomId=? AND deletedAt IS NULL ORDER BY createdAt DESC LIMIT 1"
-      ).get(r.id) as { content: string; userName: string; createdAt: string; mediaType?: string } | undefined;
-      const count = (db.prepare("SELECT COUNT(*) as cnt FROM chat_messages WHERE roomId=? AND deletedAt IS NULL").get(r.id) as { cnt: number }).cnt;
-      return { ...r, lastMessage: last ?? null, messageCount: count };
-    });
+    const result = await dbGetRooms();
     return NextResponse.json(result);
   }
 
   const roomId = searchParams.get("roomId");
   if (!roomId) return NextResponse.json({ error: "Missing roomId" }, { status: 400 });
 
-  const since = searchParams.get("since");
-  const msgs = since
-    ? db.prepare("SELECT * FROM chat_messages WHERE roomId=? AND createdAt > ? ORDER BY createdAt ASC LIMIT 80").all(roomId, since) as Message[]
-    : db.prepare("SELECT * FROM chat_messages WHERE roomId=? ORDER BY createdAt ASC LIMIT 80").all(roomId) as Message[];
-
+  const since = searchParams.get("since") ?? undefined;
+  const msgs = await dbGetMessages(roomId, since);
   return NextResponse.json(msgs);
 }
 
@@ -46,19 +28,21 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const { roomId, userId, userName, content, mediaUrl, mediaType, replyToId } = await req.json();
   if (!roomId || !userId) return NextResponse.json({ error: "Missing fields" }, { status: 400 });
-  // Must have text content OR media
   if (!content?.trim() && !mediaUrl) return NextResponse.json({ error: "Empty message" }, { status: 400 });
 
-  const db = getDb();
-  const room = db.prepare("SELECT id FROM chat_rooms WHERE id=?").get(roomId);
-  if (!room) return NextResponse.json({ error: "Room not found" }, { status: 404 });
+  const exists = await dbRoomExists(roomId);
+  if (!exists) return NextResponse.json({ error: "Room not found" }, { status: 404 });
 
   const id = `msg_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
   const now = new Date().toISOString();
-  db.prepare(`
-    INSERT INTO chat_messages (id, roomId, userId, userName, content, mediaUrl, mediaType, replyToId, createdAt)
-    VALUES (?,?,?,?,?,?,?,?,?)
-  `).run(id, roomId, userId, userName, (content ?? "").trim(), mediaUrl ?? null, mediaType ?? null, replyToId ?? null, now);
+  await dbInsertMessage({
+    id, roomId, userId, userName,
+    content: (content ?? "").trim(),
+    mediaUrl: mediaUrl ?? null,
+    mediaType: mediaType ?? null,
+    replyToId: replyToId ?? null,
+    createdAt: now,
+  });
 
   return NextResponse.json({ ok: true, id, createdAt: now });
 }
@@ -67,10 +51,9 @@ export async function POST(req: NextRequest) {
 export async function PUT(req: NextRequest) {
   const { name, type, createdBy } = await req.json();
   if (!name?.trim()) return NextResponse.json({ error: "Missing name" }, { status: 400 });
-  const db = getDb();
   const id = `room_${Date.now()}`;
-  db.prepare("INSERT INTO chat_rooms (id, name, type, createdBy, createdAt) VALUES (?,?,?,?,?)")
-    .run(id, name.trim(), type ?? "channel", createdBy ?? "user_admin", new Date().toISOString());
+  const now = new Date().toISOString();
+  await dbCreateRoom(id, name.trim(), type ?? "channel", createdBy ?? "user_admin", now);
   return NextResponse.json({ ok: true, id });
 }
 
@@ -78,22 +61,24 @@ export async function PUT(req: NextRequest) {
 export async function PATCH(req: NextRequest) {
   const { msgId, userId, action, reactions } = await req.json();
   if (!msgId) return NextResponse.json({ error: "Missing msgId" }, { status: 400 });
-  const db = getDb();
 
   if (action === "react" && reactions !== undefined) {
-    db.prepare("UPDATE chat_messages SET reactions=? WHERE id=?").run(JSON.stringify(reactions), msgId);
+    await dbUpdateReactions(msgId, JSON.stringify(reactions));
     return NextResponse.json({ ok: true });
   }
 
-  // Soft delete
-  const msg = db.prepare("SELECT userId FROM chat_messages WHERE id=?").get(msgId) as { userId: string } | undefined;
+  // Soft delete — check ownership or admin
+  const msg = await dbGetMessageSender(msgId);
   if (!msg) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  const user = db.prepare("SELECT role FROM users WHERE id=?").get(userId) as { role: string } | undefined;
-  const isAdmin = user?.role === "admin" || user?.role === "manager";
-  if (msg.userId !== userId && !isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  db.prepare("UPDATE chat_messages SET content=?, deletedAt=? WHERE id=?")
-    .run("[Tin nhắn đã bị xóa]", new Date().toISOString(), msgId);
+  const role = await dbGetUserRole(userId);
+  const isAdmin = role === "admin" || role === "manager";
+  if (msg.userId !== userId && !isAdmin) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const { found } = await dbSoftDeleteMessage(msgId, new Date().toISOString());
+  if (!found) return NextResponse.json({ error: "Not found" }, { status: 404 });
   return NextResponse.json({ ok: true });
 }
 
@@ -103,6 +88,6 @@ export async function DELETE(req: NextRequest) {
   if (roomId === "room_general" || roomId === "room_announce") {
     return NextResponse.json({ error: "Cannot delete default rooms" }, { status: 400 });
   }
-  getDb().prepare("DELETE FROM chat_rooms WHERE id=?").run(roomId);
+  await dbDeleteRoom(roomId);
   return NextResponse.json({ ok: true });
 }
