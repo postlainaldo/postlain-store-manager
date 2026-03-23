@@ -34,7 +34,7 @@ function Slot({ productId, sectionId, subsectionId, rowIndex, slotIndex }: {
   rowIndex: number; slotIndex: number;
 }) {
   const { products, selectedProduct, placeInSection } = useStore();
-  const product = productId ? products.find(p => p.id === productId) : null;
+  const product = productId && typeof productId === "string" ? products.find(p => p.id === productId) ?? null : null;
   const isPlacementMode = !!selectedProduct;
   const canPlace = isPlacementMode && !product;
   const canRemove = !isPlacementMode && !!product;

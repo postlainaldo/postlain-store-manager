@@ -306,7 +306,7 @@ export default function OverviewPage() {
             </div>
 
             <div style={{ maxHeight: 280, overflowY: "auto" }}>
-              {products.slice(0, 12).map((p) => (
+              {products.filter(Boolean).slice(0, 12).map((p) => (
                 <div
                   key={p.id}
                   className="grid px-5 items-center gap-3 border-b border-border last:border-0 product-row"

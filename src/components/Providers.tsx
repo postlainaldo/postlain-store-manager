@@ -21,17 +21,19 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     // IMPORTANT: We no longer wipe localStorage on version bump because
     // that was deleting all user/settings data. Instead we do a targeted
     // migration if needed.
-    const CURRENT_VERSION = "4";
+    const CURRENT_VERSION = "5";
     const storedVersion = localStorage.getItem("postlain-auth-version");
     if (storedVersion !== CURRENT_VERSION) {
-      // Only clear layout/shelf caches, NOT users or currentUser
+      // Migrate: keep user/settings, clear volatile display/warehouse data
+      // (storeSections/warehouseShelves are now DB-sourced; stale local data
+      //  can contain objects instead of string IDs which crashes ProductCard)
       try {
         const raw = localStorage.getItem("postlain-store-v2");
         if (raw) {
           const parsed = JSON.parse(raw);
-          // Keep: currentUser, storeName, store settings, UI settings
-          // Remove only large volatile data that might be stale
           delete parsed?.state?.shelfLayout;
+          delete parsed?.state?.storeSections;
+          delete parsed?.state?.warehouseShelves;
           localStorage.setItem("postlain-store-v2", JSON.stringify(parsed));
         }
       } catch { /* ignore parse errors */ }

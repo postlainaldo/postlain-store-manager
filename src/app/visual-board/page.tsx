@@ -852,7 +852,7 @@ function SectionView({ section, products, selectedPid, highlightPid, onPlace, on
                     </span>
                     <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
                       {row.products.map((pid, si) => {
-                        const p = pid ? products.find(x => x.id === pid) ?? null : null;
+                        const p = pid && typeof pid === "string" ? products.find(x => x.id === pid) ?? null : null;
                         if (p) return (
                           <ProductCard key={si} product={p} size={slotSize}
                             highlight={pid === highlightPid}
@@ -1097,7 +1097,7 @@ function ShelfView({ shelf, products, selectedPid, highlightPid, onPlace, onScan
             <span style={{ fontSize: 8, fontWeight: 600, color: "#94a3b8", width: 38, textAlign: "right", flexShrink: 0, paddingTop: 10 }}>{TIER_LABELS[ti]}</span>
             <div style={{ display: "grid", gridTemplateColumns: `repeat(${COLS}, 52px)`, gap: 4 }}>
               {tier.map((pid, si) => {
-                const p = pid ? products.find(x => x.id === pid) ?? null : null;
+                const p = pid && typeof pid === "string" ? products.find(x => x.id === pid) ?? null : null;
                 const isHighlit = !!pid && pid === highlightPid;
                 if (p) return (
                   <ProductCard key={si} product={p} size={52} highlight={isHighlit}
