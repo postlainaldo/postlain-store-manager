@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useStore } from "@/store/useStore";
 import { RefreshCw } from "lucide-react";
+import SplashScreen from "@/components/SplashScreen";
 
 function urlB64ToUint8Array(base64String: string) {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
@@ -118,6 +119,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <>
+      <SplashScreen />
       {children}
 
       {/* PWA update toast */}

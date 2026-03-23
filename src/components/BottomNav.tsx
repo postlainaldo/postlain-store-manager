@@ -3,16 +3,16 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  LayoutDashboard, Focus, Box, Settings, MessageSquare, UserCircle,
+  LayoutDashboard, Focus, Box, MessageSquare, UserCircle,
 } from "lucide-react";
 import { useStore } from "@/store/useStore";
 
 const NAV_ITEMS = [
-  { id: "overview",     label: "Tổng Quan", href: "/",             icon: LayoutDashboard, exact: true  },
-  { id: "inventory",    label: "Dữ Liệu",   href: "/inventory",    icon: Box,             exact: false },
-  { id: "chat",         label: "Chat",       href: "/chat",         icon: MessageSquare,   exact: false },
-  { id: "settings",     label: "Cài Đặt",   href: "/settings",     icon: Settings,        exact: false },
-  { id: "profile",      label: "Hồ Sơ",     href: "/profile",      icon: UserCircle,      exact: false },
+  { id: "overview",      label: "Tổng Quan", href: "/",             icon: LayoutDashboard, exact: true  },
+  { id: "inventory",     label: "Dữ Liệu",   href: "/inventory",    icon: Box,             exact: false },
+  { id: "chat",          label: "Chat",       href: "/chat",         icon: MessageSquare,   exact: false },
+  { id: "visual-board",  label: "Trưng Bày",  href: "/visual-board", icon: Focus,           exact: false },
+  { id: "profile",       label: "Hồ Sơ",      href: "/profile",      icon: UserCircle,      exact: false },
 ] as const;
 
 export default function BottomNav() {
