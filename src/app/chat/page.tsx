@@ -8,7 +8,7 @@ import {
   Send, Hash, Megaphone, Plus, Trash2,
   Crown, UserCheck, User, Circle, X, Check,
   Smile, ChevronLeft, Paperclip, Image as ImageIcon,
-  File as FileIcon, Download, Reply,
+  File as FileIcon, Download, Reply, Pencil, Settings2,
 } from "lucide-react";
 import { useStore } from "@/store/useStore";
 
@@ -16,6 +16,7 @@ import { useStore } from "@/store/useStore";
 
 type Room = {
   id: string; name: string; type: string;
+  icon?: string | null; color?: string | null;
   lastMessage: { content: string; userName: string; createdAt: string; mediaType?: string } | null;
   messageCount: number;
 };
@@ -23,6 +24,7 @@ type Message = {
   id: string; roomId: string; userId: string;
   userName: string; content: string; createdAt: string;
   deletedAt?: string | null;
+  editedAt?: string | null;
   mediaUrl?: string | null;
   mediaType?: string | null;  // "image" | "file"
   replyToId?: string | null;
@@ -137,13 +139,15 @@ function MediaContent({ msg, isMe }: { msg: Message; isMe: boolean }) {
 
 // ─── Message Bubble ───────────────────────────────────────────────────────────
 
-function MsgBubble({ msg, isMe, showHeader, members, onDelete, onReply, onReact, canDelete, replyTo }: {
+function MsgBubble({ msg, isMe, showHeader, members, onDelete, onReply, onReact, onEdit, canDelete, replyTo, roomColor }: {
   msg: Message; isMe: boolean; showHeader: boolean;
   members: Member[]; canDelete: boolean;
   replyTo?: Message | null;
+  roomColor?: string | null;
   onDelete: (id: string) => void;
   onReply: (msg: Message) => void;
   onReact: (msgId: string, emoji: string) => void;
+  onEdit: (msg: Message) => void;
 }) {
   const [hover, setHover] = useState(false);
   const [showReact, setShowReact] = useState(false);
@@ -155,8 +159,15 @@ function MsgBubble({ msg, isMe, showHeader, members, onDelete, onReply, onReact,
   let reactions: Record<string, string[]> = {};
   try { if (msg.reactions) reactions = JSON.parse(msg.reactions); } catch { /* */ }
 
+  const senderRole = members.find(m => m.id === msg.userId)?.role ?? "staff";
+  const isAdminSender = senderRole === "admin" || senderRole === "manager";
+
   const bubbleStyle = (own: boolean, deleted: boolean): React.CSSProperties => ({
-    background: deleted ? "rgba(100,116,139,0.07)" : own ? "#0ea5e9" : "#f0f9ff",
+    background: deleted
+      ? "rgba(100,116,139,0.07)"
+      : own
+        ? (roomColor && isAdminSender ? roomColor : "#0ea5e9")
+        : "#f0f9ff",
     border: deleted ? "1px solid rgba(100,116,139,0.18)" : own ? "none" : "1px solid #e0f2fe",
     borderRadius: own ? "14px 14px 2px 14px" : "2px 14px 14px 14px",
     padding: "9px 13px",
@@ -214,6 +225,14 @@ function MsgBubble({ msg, isMe, showHeader, members, onDelete, onReply, onReact,
             </AnimatePresence>
           </div>
 
+          {/* Edit (own message or admin, not deleted) */}
+          {canDelete && (
+            <button onClick={() => { onEdit(msg); setHover(false); }}
+              style={{ ...iconBtn }}>
+              <Pencil size={10} style={{ color: "#64748b" }} />
+            </button>
+          )}
+
           {/* Delete */}
           {canDelete && (
             <button onClick={() => { onDelete(msg.id); setHover(false); }}
@@ -262,7 +281,12 @@ function MsgBubble({ msg, isMe, showHeader, members, onDelete, onReply, onReact,
       onMouseEnter={() => setHover(true)} onMouseLeave={() => { setHover(false); setShowReact(false); }}>
       <ActionBar />
       <div style={{ maxWidth: "74%" }}>
-        {showHeader && <p style={{ fontSize: 8, color: "#94a3b8", textAlign: "right", marginBottom: 3 }}>{formatTime(msg.createdAt)}</p>}
+        {showHeader && (
+          <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 5, marginBottom: 3 }}>
+            <span style={{ fontSize: 8, color: "#b0c4d8" }}>{formatTime(msg.createdAt)}</span>
+            {msg.editedAt && <span style={{ fontSize: 7.5, color: "#94a3b8", fontStyle: "italic" }}>đã chỉnh sửa</span>}
+          </div>
+        )}
         <div style={bubbleStyle(true, isDeleted)}>
           <ReplyPreview />
           {msg.content && <p style={textStyle(true, isDeleted)}>{msg.content}</p>}
@@ -286,6 +310,7 @@ function MsgBubble({ msg, isMe, showHeader, members, onDelete, onReply, onReact,
             <span style={{ fontSize: 10, fontWeight: 700, color: "#0c1a2e" }}>{msg.userName}</span>
             <RIcon size={8} style={{ color: rcfg.color }} />
             <span style={{ fontSize: 8, color: "#b0c4d8" }}>{formatTime(msg.createdAt)}</span>
+            {msg.editedAt && <span style={{ fontSize: 7.5, color: "#94a3b8", fontStyle: "italic" }}>đã chỉnh sửa</span>}
           </div>
         )}
         <div style={bubbleStyle(false, isDeleted)}>
@@ -366,6 +391,12 @@ export default function ChatPage() {
   const [replyTo, setReplyTo] = useState<Message | null>(null);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [editingMsg, setEditingMsg] = useState<Message | null>(null);
+  const [editContent, setEditContent] = useState("");
+  const [roomSettingsOpen, setRoomSettingsOpen] = useState(false);
+  const [roomSettingsIcon, setRoomSettingsIcon] = useState("");
+  const [roomSettingsColor, setRoomSettingsColor] = useState("");
+  const [roomSettingsName, setRoomSettingsName] = useState("");
 
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -476,8 +507,9 @@ export default function ChatPage() {
     setInput("");
     if (inputRef.current) inputRef.current.style.height = "auto";
 
+    const optId = `opt_${Date.now()}`;
     const optimistic: Message = {
-      id: `opt_${Date.now()}`,
+      id: optId,
       roomId: activeRoom.id,
       userId: currentUser.id,
       userName: currentUser.name,
@@ -489,18 +521,27 @@ export default function ChatPage() {
     setMessages(prev => [...prev, optimistic]);
     setReplyTo(null);
 
-    await fetch("/api/chat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        roomId: activeRoom.id,
-        userId: currentUser.id,
-        userName: currentUser.name,
-        content,
-        mediaUrl, mediaType,
-        replyToId: replyTo?.id ?? null,
-      }),
-    }).catch(() => {});
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          roomId: activeRoom.id,
+          userId: currentUser.id,
+          userName: currentUser.name,
+          content,
+          mediaUrl, mediaType,
+          replyToId: replyTo?.id ?? null,
+        }),
+      });
+      if (res.ok) {
+        const { id: realId, createdAt } = await res.json() as { id: string; createdAt: string };
+        // Replace optimistic message with real ID so SSE dedup works correctly
+        setMessages(prev => prev.map(m =>
+          m.id === optId ? { ...m, id: realId, createdAt } : m
+        ));
+      }
+    } catch { /* keep optimistic */ }
 
     setSending(false);
     inputRef.current?.focus();
@@ -565,6 +606,63 @@ export default function ChatPage() {
     });
     if (activeRoom?.id === roomId) setActiveRoom(rooms.find(r => r.id !== roomId) ?? null);
     setRooms(prev => prev.filter(r => r.id !== roomId));
+  };
+
+  const handleEditMsg = async (msg: Message) => {
+    setEditingMsg(msg);
+    setEditContent(msg.content);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingMsg || !currentUser || !editContent.trim()) return;
+    const trimmed = editContent.trim();
+    setMessages(prev => prev.map(m =>
+      m.id === editingMsg.id ? { ...m, content: trimmed, editedAt: new Date().toISOString() } : m
+    ));
+    setEditingMsg(null);
+    setEditContent("");
+    await fetch("/api/chat", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ msgId: editingMsg.id, userId: currentUser.id, action: "edit", content: trimmed }),
+    }).catch(() => {});
+  };
+
+  const handleOpenRoomSettings = () => {
+    if (!activeRoom) return;
+    setRoomSettingsName(activeRoom.name);
+    setRoomSettingsIcon(activeRoom.icon ?? "");
+    setRoomSettingsColor(activeRoom.color ?? "");
+    setRoomSettingsOpen(true);
+  };
+
+  const handleSaveRoomSettings = async () => {
+    if (!activeRoom || !currentUser) return;
+    await fetch("/api/chat", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        roomId: activeRoom.id,
+        userId: currentUser.id,
+        action: "updateRoom",
+        name: roomSettingsName.trim() || activeRoom.name,
+        icon: roomSettingsIcon,
+        color: roomSettingsColor,
+      }),
+    }).catch(() => {});
+    setActiveRoom(prev => prev ? {
+      ...prev,
+      name: roomSettingsName.trim() || prev.name,
+      icon: roomSettingsIcon,
+      color: roomSettingsColor,
+    } : null);
+    setRooms(prev => prev.map(r => r.id === activeRoom.id ? {
+      ...r,
+      name: roomSettingsName.trim() || r.name,
+      icon: roomSettingsIcon,
+      color: roomSettingsColor,
+    } : r));
+    setRoomSettingsOpen(false);
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -746,9 +844,17 @@ export default function ChatPage() {
                     )}
                   </div>
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
                   <Circle size={6} style={{ color: "#10b981", fill: "#10b981" }} />
                   <span style={{ fontSize: 8.5, color: "#64748b", whiteSpace: "nowrap" }}>{onlineMembers.length} online</span>
+                  {isAdmin && (
+                    <button onClick={handleOpenRoomSettings}
+                      style={{ width: 26, height: 26, borderRadius: 7, border: "1px solid #e0f2fe", background: "#f8fafc", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
+                      title="Cài đặt kênh"
+                    >
+                      <Settings2 size={11} style={{ color: "#64748b" }} />
+                    </button>
+                  )}
                 </div>
               </>
             ) : (
@@ -786,8 +892,10 @@ export default function ChatPage() {
                     onDelete={handleDeleteMsg}
                     onReply={setReplyTo}
                     onReact={handleReact}
+                    onEdit={handleEditMsg}
                     canDelete={msg.userId === currentUser?.id || isAdmin}
                     replyTo={msg.replyToId ? (msgMap.get(msg.replyToId) ?? null) : null}
+                    roomColor={activeRoom?.color}
                   />
                 </motion.div>
               );
@@ -797,8 +905,49 @@ export default function ChatPage() {
             <div ref={bottomRef} />
           </div>
 
+          {/* Edit message bar */}
+          {editingMsg && (
+            <div style={{ padding: "8px 16px", borderTop: "1px solid #e0f2fe", background: "rgba(14,165,233,0.04)", flexShrink: 0 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
+                <Pencil size={10} style={{ color: "#0ea5e9" }} />
+                <span style={{ fontSize: 9, color: "#0ea5e9", fontWeight: 600 }}>Chỉnh sửa tin nhắn</span>
+                <button onClick={() => { setEditingMsg(null); setEditContent(""); }}
+                  style={{ background: "none", border: "none", cursor: "pointer", marginLeft: "auto" }}>
+                  <X size={11} style={{ color: "#94a3b8" }} />
+                </button>
+              </div>
+              <div style={{ display: "flex", gap: 6 }}>
+                <textarea
+                  autoFocus
+                  value={editContent}
+                  onChange={e => setEditContent(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSaveEdit(); }
+                    if (e.key === "Escape") { setEditingMsg(null); setEditContent(""); }
+                  }}
+                  rows={1}
+                  style={{
+                    flex: 1, fontSize: 12, color: "#0c1a2e", fontFamily: "inherit",
+                    background: "#fff", border: "1px solid #bae6fd", borderRadius: 10,
+                    padding: "8px 12px", outline: "none", resize: "none", lineHeight: 1.5,
+                    maxHeight: 100, overflowY: "auto",
+                  }}
+                  onInput={e => {
+                    const t = e.currentTarget;
+                    t.style.height = "auto";
+                    t.style.height = Math.min(t.scrollHeight, 100) + "px";
+                  }}
+                />
+                <button onClick={handleSaveEdit}
+                  style={{ width: 34, height: 34, borderRadius: 10, border: "none", background: "#0ea5e9", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}>
+                  <Check size={13} style={{ color: "#fff" }} />
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Input area */}
-          <div style={{ padding: "8px 16px 12px", borderTop: "1px solid #e0f2fe", flexShrink: 0 }}>
+          <div style={{ padding: "8px 16px 12px", borderTop: editingMsg ? "none" : "1px solid #e0f2fe", flexShrink: 0 }}>
             {isReadOnly ? (
               <div style={{ padding: "10px 14px", borderRadius: 10, background: "rgba(201,165,90,0.06)", border: "1px solid rgba(201,165,90,0.2)", display: "flex", alignItems: "center", gap: 8 }}>
                 <Megaphone size={12} style={{ color: "#C9A55A" }} />
@@ -884,6 +1033,99 @@ export default function ChatPage() {
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
       `}</style>
+
+      {/* Room settings modal */}
+      <AnimatePresence>
+        {roomSettingsOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            style={{
+              position: "fixed", inset: 0, background: "rgba(12,26,46,0.45)",
+              display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100,
+            }}
+            onClick={() => setRoomSettingsOpen(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.92, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.92 }}
+              transition={{ duration: 0.15 }}
+              onClick={e => e.stopPropagation()}
+              style={{
+                background: "#fff", borderRadius: 16, padding: "24px 24px 20px",
+                width: 340, boxShadow: "0 8px 40px rgba(12,26,46,0.18)",
+                border: "1px solid #e0f2fe",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
+                <p style={{ fontSize: 14, fontWeight: 700, color: "#0c1a2e" }}>Cài đặt kênh</p>
+                <button onClick={() => setRoomSettingsOpen(false)} style={{ background: "none", border: "none", cursor: "pointer" }}>
+                  <X size={14} style={{ color: "#94a3b8" }} />
+                </button>
+              </div>
+
+              {/* Name */}
+              <div style={{ marginBottom: 14 }}>
+                <p style={{ fontSize: 9.5, fontWeight: 700, color: "#64748b", letterSpacing: "0.1em", marginBottom: 6 }}>TÊN KÊNH</p>
+                <input
+                  value={roomSettingsName}
+                  onChange={e => setRoomSettingsName(e.target.value)}
+                  placeholder="Tên kênh..."
+                  style={{ width: "100%", fontSize: 12, color: "#0c1a2e", fontFamily: "inherit", background: "#f8fafc", border: "1px solid #e0f2fe", borderRadius: 8, padding: "8px 12px", outline: "none", boxSizing: "border-box" }}
+                />
+              </div>
+
+              {/* Icon */}
+              <div style={{ marginBottom: 14 }}>
+                <p style={{ fontSize: 9.5, fontWeight: 700, color: "#64748b", letterSpacing: "0.1em", marginBottom: 6 }}>ICON (emoji)</p>
+                <input
+                  value={roomSettingsIcon}
+                  onChange={e => setRoomSettingsIcon(e.target.value)}
+                  placeholder="Nhập emoji, ví dụ: 💬 🔔 📢"
+                  maxLength={4}
+                  style={{ width: "100%", fontSize: 18, fontFamily: "inherit", background: "#f8fafc", border: "1px solid #e0f2fe", borderRadius: 8, padding: "8px 12px", outline: "none", boxSizing: "border-box" }}
+                />
+              </div>
+
+              {/* Color */}
+              <div style={{ marginBottom: 20 }}>
+                <p style={{ fontSize: 9.5, fontWeight: 700, color: "#64748b", letterSpacing: "0.1em", marginBottom: 8 }}>MÀU NỀN (tin nhắn admin)</p>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
+                  {["", "#0ea5e9", "#8b5cf6", "#10b981", "#f59e0b", "#ef4444", "#ec4899", "#0c1a2e"].map(c => (
+                    <button key={c || "none"} onClick={() => setRoomSettingsColor(c)}
+                      style={{
+                        width: 28, height: 28, borderRadius: "50%", border: roomSettingsColor === c ? "2.5px solid #0c1a2e" : "1.5px solid #e0f2fe",
+                        background: c || "#f1f5f9", cursor: "pointer", flexShrink: 0,
+                      }}
+                      title={c || "Mặc định"}
+                    />
+                  ))}
+                </div>
+                {roomSettingsColor && (
+                  <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                    <div style={{ width: 20, height: 20, borderRadius: "50%", background: roomSettingsColor, border: "1px solid #e0f2fe" }} />
+                    <span style={{ fontSize: 10, color: "#64748b" }}>{roomSettingsColor}</span>
+                    <button onClick={() => setRoomSettingsColor("")} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 9, color: "#94a3b8" }}>Xóa</button>
+                  </div>
+                )}
+              </div>
+
+              <div style={{ display: "flex", gap: 8 }}>
+                <button onClick={() => setRoomSettingsOpen(false)}
+                  style={{ flex: 1, padding: "9px", borderRadius: 9, border: "1px solid #e0f2fe", background: "#f8fafc", fontSize: 11, color: "#64748b", cursor: "pointer", fontFamily: "inherit" }}>
+                  Hủy
+                </button>
+                <button onClick={handleSaveRoomSettings}
+                  style={{ flex: 1, padding: "9px", borderRadius: 9, border: "none", background: "#0ea5e9", fontSize: 11, color: "#fff", cursor: "pointer", fontWeight: 600, fontFamily: "inherit" }}>
+                  Lưu
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

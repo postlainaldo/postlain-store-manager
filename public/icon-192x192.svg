@@ -1,0 +1,21 @@
+<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192' width='192' height='192'>
+  <defs>
+    <linearGradient id='bg' x1='0' y1='0' x2='1' y2='1'>
+      <stop offset='0%' stop-color='#0c1a2e'/>
+      <stop offset='100%' stop-color='#1e3a5f'/>
+    </linearGradient>
+    <linearGradient id='gold' x1='0' y1='0' x2='0' y2='1'>
+      <stop offset='0%' stop-color='#F0D080'/>
+      <stop offset='35%' stop-color='#C9A55A'/>
+      <stop offset='65%' stop-color='#C9A55A'/>
+      <stop offset='100%' stop-color='#8B6520'/>
+    </linearGradient>
+    <filter id='s3d' x='-5%' y='-5%' width='120%' height='130%'>
+      <feDropShadow dx='1.92' dy='3.84' stdDeviation='2.88' flood-color='#000' flood-opacity='0.6'/>
+    </filter>
+  </defs>
+  <rect width='192' height='192' rx='34.56' fill='url(#bg)'/>
+  <rect x='3.84' y='3.84' width='184.32' height='184.32' rx='30.72' fill='none' stroke='#C9A55A' stroke-width='4.800000000000001' opacity='0.5'/>
+  <text x='96' y='130.56' text-anchor='middle' font-family='Georgia,serif' font-weight='700' font-size='90' fill='url(#gold)' filter='url(#s3d)' letter-spacing='4'>ADL</text>
+  <text x='95.03999999999999' y='127.68' text-anchor='middle' font-family='Georgia,serif' font-weight='700' font-size='90' fill='#fff' opacity='0.12' letter-spacing='4'>ADL</text>
+</svg>

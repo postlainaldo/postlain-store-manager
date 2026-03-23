@@ -57,9 +57,33 @@ export async function PUT(req: NextRequest) {
   return NextResponse.json({ ok: true, id });
 }
 
-// PATCH /api/chat — soft delete a message OR update reactions
+// PATCH /api/chat — soft delete / edit message / update reactions / update room
 export async function PATCH(req: NextRequest) {
-  const { msgId, userId, action, reactions } = await req.json();
+  const { msgId, roomId, userId, action, reactions, content, icon, color, name } = await req.json();
+
+  // ── Room customization (admin only) ──────────────────────────────────────
+  if (roomId && action === "updateRoom") {
+    const role = await dbGetUserRole(userId);
+    if (role !== "admin" && role !== "manager") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+    const { IS_SUPABASE, getSupabase } = await import("@/lib/supabase");
+    const getDb = (await import("@/lib/database")).default;
+    if (IS_SUPABASE) {
+      const upd: Record<string, string> = {};
+      if (name !== undefined) upd.name = name;
+      if (icon !== undefined) upd.icon = icon;
+      if (color !== undefined) upd.color = color;
+      await getSupabase().from("chat_rooms").update(upd).eq("id", roomId);
+    } else {
+      const db = getDb();
+      if (name !== undefined) db.prepare("UPDATE chat_rooms SET name=? WHERE id=?").run(name, roomId);
+      if (icon !== undefined) db.prepare("UPDATE chat_rooms SET icon=? WHERE id=?").run(icon, roomId);
+      if (color !== undefined) db.prepare("UPDATE chat_rooms SET color=? WHERE id=?").run(color, roomId);
+    }
+    return NextResponse.json({ ok: true });
+  }
+
   if (!msgId) return NextResponse.json({ error: "Missing msgId" }, { status: 400 });
 
   if (action === "react" && reactions !== undefined) {
@@ -67,7 +91,26 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ ok: true });
   }
 
-  // Soft delete — check ownership or admin
+  // ── Edit message ──────────────────────────────────────────────────────────
+  if (action === "edit" && content !== undefined) {
+    const msg = await dbGetMessageSender(msgId);
+    if (!msg) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    const role = await dbGetUserRole(userId);
+    const isAdmin = role === "admin" || role === "manager";
+    if (msg.userId !== userId && !isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+    const { IS_SUPABASE, getSupabase } = await import("@/lib/supabase");
+    const getDb = (await import("@/lib/database")).default;
+    const now = new Date().toISOString();
+    if (IS_SUPABASE) {
+      await getSupabase().from("chat_messages").update({ content: content.trim(), editedAt: now }).eq("id", msgId);
+    } else {
+      getDb().prepare("UPDATE chat_messages SET content=?, editedAt=? WHERE id=?").run(content.trim(), now, msgId);
+    }
+    return NextResponse.json({ ok: true });
+  }
+
+  // ── Soft delete ───────────────────────────────────────────────────────────
   const msg = await dbGetMessageSender(msgId);
   if (!msg) return NextResponse.json({ error: "Not found" }, { status: 404 });
 

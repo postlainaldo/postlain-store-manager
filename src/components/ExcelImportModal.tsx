@@ -119,7 +119,7 @@ export default function ExcelImportModal({ onClose }: Props) {
   const [files, setFiles] = useState<FileEntry[]>([]);
   const [dragging, setDragging] = useState(false);
   const [importing, setImporting] = useState(false);
-  const [result, setResult] = useState<{ updated: number; inserted: number } | null>(null);
+  const [result, setResult] = useState<{ updated: number; inserted: number; deleted: number } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -184,7 +184,7 @@ export default function ExcelImportModal({ onClose }: Props) {
     if (res.ok) {
       const data = await res.json();
       await fetchProducts();
-      setResult({ updated: data.updated, inserted: data.inserted });
+      setResult({ updated: data.updated ?? 0, inserted: data.inserted ?? 0, deleted: data.deleted ?? 0 });
     }
     setImporting(false);
     setTimeout(onClose, 2200);
@@ -382,7 +382,7 @@ export default function ExcelImportModal({ onClose }: Props) {
             <button onClick={handleImport} disabled={importing || !!result}
               className="flex-1 py-2.5 text-sm tracking-wider font-medium bg-gold hover:bg-gold-light text-white rounded transition-all disabled:opacity-50">
               {result
-                ? `✓ +${result.inserted} mới · ${result.updated} cập nhật SL`
+                ? `✓ +${result.inserted} mới · ${result.updated} cập nhật · ${result.deleted} xóa`
                 : importing
                 ? "ĐANG XỬ LÝ..."
                 : `IMPORT ${allRows.length} SẢN PHẨM`}

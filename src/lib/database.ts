@@ -160,6 +160,12 @@ function migrateSchema(db: Database.Database) {
   if (!msgCols.includes("mediaType")) db.exec("ALTER TABLE chat_messages ADD COLUMN mediaType TEXT");
   if (!msgCols.includes("replyToId")) db.exec("ALTER TABLE chat_messages ADD COLUMN replyToId TEXT");
   if (!msgCols.includes("reactions")) db.exec("ALTER TABLE chat_messages ADD COLUMN reactions TEXT DEFAULT '{}'");
+  if (!msgCols.includes("editedAt"))  db.exec("ALTER TABLE chat_messages ADD COLUMN editedAt TEXT");
+
+  // chat_rooms: incremental column additions
+  const roomCols = colNames(db, "chat_rooms");
+  if (!roomCols.includes("icon"))    db.exec("ALTER TABLE chat_rooms ADD COLUMN icon TEXT DEFAULT ''");
+  if (!roomCols.includes("color"))   db.exec("ALTER TABLE chat_rooms ADD COLUMN color TEXT DEFAULT ''");
 
   // ── notifications + push subscriptions ─────────────────────────────────────
   db.exec(`

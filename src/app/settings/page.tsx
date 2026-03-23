@@ -622,12 +622,12 @@ function DataPanel() {
         body: JSON.stringify(mapped),
       });
       if (res.ok) {
-        const { inserted, updated } = await res.json();
+        const { inserted, updated, deleted } = await res.json();
         setImportResult({ inserted, updated });
         // Refresh store
         const allRes = await fetch("/api/products");
         if (allRes.ok) useStore.getState().setProducts(await allRes.json());
-        flash(`Nhập thành công: ${inserted} mới, ${updated} cập nhật SL`);
+        flash(`Nhập thành công: ${inserted} mới, ${updated} cập nhật SL, ${deleted} xóa`);
       } else {
         flash("Lỗi nhập dữ liệu từ server");
       }
