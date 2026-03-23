@@ -1,6 +1,11 @@
 /// <reference lib="webworker" />
 declare const self: ServiceWorkerGlobalScope;
 
+// ─── Skip Waiting (auto-update) ───────────────────────────────────────────────
+self.addEventListener("message", (event: ExtendableMessageEvent) => {
+  if (event.data?.type === "SKIP_WAITING") self.skipWaiting();
+});
+
 // ─── Push Notifications ───────────────────────────────────────────────────────
 
 self.addEventListener("push", (event: PushEvent) => {
@@ -11,8 +16,8 @@ self.addEventListener("push", (event: PushEvent) => {
   const title = payload.title ?? "Postlain";
   const options: NotificationOptions = {
     body: payload.body ?? "",
-    icon: "/icons/icon-192x192.png",
-    badge: "/icons/icon-96x96.png",
+    icon: "/icon-192x192.png",
+    badge: "/favicon-32x32.png",
     data: { url: payload.url ?? "/" },
     vibrate: [200, 100, 200],
   };
