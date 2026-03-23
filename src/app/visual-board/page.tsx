@@ -91,23 +91,34 @@ const ProductCard = memo(function ProductCard({
           width: "100%", height: "100%",
           display: "flex", flexDirection: "column",
           alignItems: "center", justifyContent: "center",
-          gap: 2, padding: 3,
+          gap: isSmall ? 1 : 2, padding: isSmall ? 2 : 4,
         }}>
           {product.color && (
             <div style={{
-              width: isSmall ? 10 : 14, height: isSmall ? 10 : 14,
+              width: isSmall ? 8 : 12, height: isSmall ? 8 : 12,
               borderRadius: "50%", background: product.color,
               border: "1.5px solid rgba(255,255,255,0.6)", flexShrink: 0,
             }} />
           )}
+          {/* Short name (first word or 2 chars) */}
           <span style={{
-            fontSize: isSmall ? 7 : 8, fontWeight: 700, color: cc,
-            textAlign: "center", lineHeight: 1.2,
-            overflow: "hidden", textOverflow: "ellipsis",
+            fontSize: isSmall ? 6.5 : 7.5, fontWeight: 700, color: cc,
+            textAlign: "center", lineHeight: 1.15,
             maxWidth: "100%", wordBreak: "break-all",
+            overflow: "hidden",
           }}>
-            {product.sku ? product.sku.slice(-5) : product.name.slice(0, isSmall ? 3 : 5)}
+            {product.name.split(" ")[0].slice(0, isSmall ? 4 : 6)}
           </span>
+          {/* SKU last 4 chars */}
+          {product.sku && (
+            <span style={{
+              fontSize: isSmall ? 5.5 : 6.5, fontWeight: 500, color: `${cc}aa`,
+              textAlign: "center", lineHeight: 1,
+              maxWidth: "100%",
+            }}>
+              {product.sku.slice(-4)}
+            </span>
+          )}
         </div>
       )}
 
@@ -1111,6 +1122,9 @@ function ShelfView({ shelf, products, selectedPid, highlightPid, onPlace, onScan
 function useRealtimeSync(onRefresh: () => void) {
   const [online, setOnline] = useState(true);
   const esRef = useRef<EventSource | null>(null);
+  // Keep a stable ref so SSE/poll closures always call the latest callback
+  const refreshRef = useRef(onRefresh);
+  useEffect(() => { refreshRef.current = onRefresh; });
 
   useEffect(() => {
     let retryTimer: ReturnType<typeof setTimeout>;
@@ -1121,7 +1135,7 @@ function useRealtimeSync(onRefresh: () => void) {
       esRef.current = es;
 
       es.onopen = () => setOnline(true);
-      es.onmessage = () => { onRefresh(); };
+      es.onmessage = () => { refreshRef.current(); };
       es.onerror = () => {
         setOnline(false);
         es.close();
@@ -1131,7 +1145,7 @@ function useRealtimeSync(onRefresh: () => void) {
 
     connect();
     // Fallback polling every 15s
-    const poll = setInterval(onRefresh, 15_000);
+    const poll = setInterval(() => refreshRef.current(), 15_000);
 
     return () => {
       esRef.current?.close();

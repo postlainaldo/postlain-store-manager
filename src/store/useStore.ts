@@ -390,11 +390,13 @@ export const useStore = create<StoreState>()(
             };
           }),
         }));
+        const sectionName = get().storeSections.find(s => s.id === sectionId)?.name ?? sectionId;
         fetch("/api/placements", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             shelfId: sectionId,
+            shelfName: sectionName,
             tier: rowIndex,
             position: slotIndex,
             label: subsectionId,
@@ -523,10 +525,15 @@ export const useStore = create<StoreState>()(
         try {
           const res = await fetch("/api/state");
           if (!res.ok) return;
-          const { products, warehouseShelves, displayPlacements } = await res.json();
+          const { products, warehouseShelves: dbWarehouse, displayPlacements } = await res.json() as {
+            products: Product[];
+            warehouseShelves: WarehouseShelf[];
+            displayPlacements: Record<string, Record<string, Record<number, Record<number, string>>>>;
+          };
+
+          const state = get();
 
           // Merge displayPlacements back into storeSections
-          const state = get();
           const sections = state.storeSections.map(sec => ({
             ...sec,
             subsections: sec.subsections.map(sub => {
@@ -535,14 +542,26 @@ export const useStore = create<StoreState>()(
               const rows = sub.rows.map((row, ri) => {
                 const rowMap = subMap[ri];
                 if (!rowMap) return row;
-                const products = row.products.map((_, si) => rowMap[si] ?? null);
-                return { ...row, products };
+                const newProducts = row.products.map((_, si) => rowMap[si] ?? null);
+                return { ...row, products: newProducts };
               });
               return { ...sub, rows };
             }),
           }));
 
-          set({ products, warehouseShelves, storeSections: sections });
+          // Merge DB warehouse placements into existing Zustand shelves
+          // (DB returns only shelves it knows; Zustand may have more from persist)
+          const dbWarehouseMap = new Map(dbWarehouse.map(s => [s.id, s]));
+          const mergedWarehouse = state.warehouseShelves.map(shelf => {
+            const dbShelf = dbWarehouseMap.get(shelf.id);
+            if (!dbShelf) return shelf;
+            return { ...shelf, tiers: dbShelf.tiers };
+          });
+          // Also add any DB shelves not present in Zustand (newly added from another client)
+          const zustandIds = new Set(state.warehouseShelves.map(s => s.id));
+          const newShelves = dbWarehouse.filter(s => !zustandIds.has(s.id));
+
+          set({ products, storeSections: sections, warehouseShelves: [...mergedWarehouse, ...newShelves] });
         } catch {
           // silently fail
         }
@@ -563,10 +582,11 @@ export const useStore = create<StoreState>()(
             return { ...shelf, tiers };
           }),
         }));
+        const shelfName = get().warehouseShelves.find(s => s.id === shelfId)?.name ?? shelfId;
         fetch("/api/placements", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ shelfId, tier: tierIndex, position: slotIndex, productId }),
+          body: JSON.stringify({ shelfId, shelfName, tier: tierIndex, position: slotIndex, productId }),
         }).catch(() => {});
       },
 
