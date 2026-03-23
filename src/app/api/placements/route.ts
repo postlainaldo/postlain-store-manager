@@ -14,7 +14,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { getWarehouseMap, getDisplayMap, getOrCreateSlot, setPlacement, getAllPlacements, upsertShelf } from "@/lib/repo";
-import { notifyClients } from "./stream/route";
+import { notifyClients } from "@/lib/sseClients";
 import getDb from "@/lib/database";
 
 export async function GET() {
