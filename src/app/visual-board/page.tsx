@@ -42,16 +42,53 @@ const ALL_CATEGORIES = [
 
 function catColor(cat: string) { return CAT_DOT[cat] ?? "#64748b"; }
 
+// ─── Barcode fuzzy match ──────────────────────────────────────────────────────
+// Strips or pads leading zeros to match barcodes that differ only in zero-padding
+function findProductByCode(products: Product[], code: string): Product | null {
+  const raw = code.trim();
+
+  // 1. Exact SKU match (case-insensitive)
+  let match = products.find(p => p.sku && p.sku.trim().toLowerCase() === raw.toLowerCase());
+  if (match) return match;
+
+  // 2. Exact name match
+  match = products.find(p => p.name.toLowerCase() === raw.toLowerCase());
+  if (match) return match;
+
+  // 3. Numeric fuzzy: strip all leading zeros from both sides, compare
+  const norm = raw.replace(/^0+/, "") || "0";
+  match = products.find(p => {
+    if (!p.sku) return false;
+    const skuNorm = p.sku.trim().replace(/^0+/, "") || "0";
+    return skuNorm === norm;
+  });
+  if (match) return match;
+
+  // 4. Substring SKU match (barcode contains more info, SKU is inside)
+  match = products.find(p => p.sku && raw.toLowerCase().includes(p.sku.trim().toLowerCase()));
+  if (match) return match;
+
+  // 5. SKU is a prefix of the scanned code (e.g. SKU "12345" vs code "12345-01")
+  match = products.find(p => p.sku && raw.toLowerCase().startsWith(p.sku.trim().toLowerCase()));
+  if (match) return match;
+
+  return null;
+}
+
 // ─── QR Scan Modal ────────────────────────────────────────────────────────────
 
 function QRScanModal({
   open,
   onClose,
   onScan,
+  slotLabel,
+  notFoundCode,
 }: {
   open: boolean;
   onClose: () => void;
   onScan: (code: string) => void;
+  slotLabel?: string;
+  notFoundCode?: string | null;
 }) {
   const [scanning, setScanning] = useState(false);
   const [scannedValue, setScannedValue] = useState<string | null>(null);
@@ -93,28 +130,70 @@ function QRScanModal({
   useEffect(() => {
     if (!scanning) return;
     let raf: number;
+    let zxingReader: { decodeFromVideoElement: (el: HTMLVideoElement) => Promise<{ getText(): string }> } | null = null;
+    let jsQRFn: ((data: Uint8ClampedArray, w: number, h: number) => { data: string } | null) | null = null;
+
+    // Init detectors once
+    const initDetectors = async () => {
+      try {
+        const { BrowserMultiFormatReader } = await import("@zxing/browser");
+        zxingReader = new BrowserMultiFormatReader() as unknown as typeof zxingReader;
+      } catch { /* not available */ }
+      try {
+        const mod = await import("jsqr");
+        jsQRFn = mod.default as unknown as typeof jsQRFn;
+      } catch { /* not available */ }
+    };
+
+    // Build native BarcodeDetector if available
+    type NativeDetector = { detect: (v: HTMLVideoElement) => Promise<{ rawValue: string }[]> };
+    let nativeDetector: NativeDetector | null = null;
+    try {
+      if (typeof window !== "undefined" && "BarcodeDetector" in window) {
+        const BD = (window as unknown as { BarcodeDetector: new (o: { formats: string[] }) => NativeDetector }).BarcodeDetector;
+        nativeDetector = new BD({ formats: ["qr_code","ean_13","ean_8","code_128","code_39","upc_a","upc_e","data_matrix","aztec"] });
+      }
+    } catch { /* not available */ }
+
     const tick = async () => {
       if (!videoRef.current || !canvasRef.current) return;
       const video = videoRef.current;
       const canvas = canvasRef.current;
-      if (video.readyState === video.HAVE_ENOUGH_DATA) {
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        const ctx = canvas.getContext("2d")!;
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        try {
-          const jsQR = (await import("jsqr")).default;
-          const code = jsQR(imageData.data, imageData.width, imageData.height);
-          if (code) {
-            handleScan(code.data);
-            return;
+
+      if (video.readyState >= video.HAVE_ENOUGH_DATA) {
+        // 1. Native BarcodeDetector
+        if (nativeDetector) {
+          try {
+            const results = await nativeDetector.detect(video);
+            if (results.length > 0) { handleScan(results[0].rawValue); return; }
+          } catch { /* ignore */ }
+        }
+
+        // 2. zxing (all formats, all browsers)
+        if (zxingReader) {
+          try {
+            const result = await zxingReader.decodeFromVideoElement(video);
+            if (result) { handleScan(result.getText()); return; }
+          } catch { /* NotFoundException = no barcode, normal */ }
+        }
+
+        // 3. jsqr canvas fallback (QR only)
+        if (jsQRFn) {
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+          const ctx = canvas.getContext("2d");
+          if (ctx) {
+            ctx.drawImage(video, 0, 0);
+            const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const code = jsQRFn(img.data, img.width, img.height);
+            if (code) { handleScan(code.data); return; }
           }
-        } catch { /* jsQR not available */ }
+        }
       }
       raf = requestAnimationFrame(tick);
     };
-    raf = requestAnimationFrame(tick);
+
+    initDetectors().then(() => { raf = requestAnimationFrame(tick); });
     return () => cancelAnimationFrame(raf);
   }, [scanning, handleScan]);
 
@@ -126,6 +205,11 @@ function QRScanModal({
       setErrorMsg(null);
     }
   }, [open, stopScan]);
+
+  // When parent signals not found, clear scannedValue to show warning instead of green tick
+  useEffect(() => {
+    if (notFoundCode) setScannedValue(null);
+  }, [notFoundCode]);
 
   return (
     <AnimatePresence>
@@ -170,7 +254,9 @@ function QRScanModal({
                 </div>
                 <div>
                   <p style={{ fontSize: 13, fontWeight: 700, color: "#0c1a2e" }}>Quét QR / Barcode</p>
-                  <p style={{ fontSize: 10, color: "#64748b", marginTop: 1 }}>Hướng camera vào mã sản phẩm</p>
+                  <p style={{ fontSize: 10, color: slotLabel ? "#C9A55A" : "#64748b", marginTop: 1, fontWeight: slotLabel ? 600 : 400 }}>
+                    {slotLabel ? `→ Đặt vào ${slotLabel}` : "Hướng camera vào mã sản phẩm"}
+                  </p>
                 </div>
               </div>
               <button
@@ -266,6 +352,22 @@ function QRScanModal({
                 }}>
                   <AlertCircle size={14} style={{ color: "#dc2626", flexShrink: 0 }} />
                   <p style={{ fontSize: 11, color: "#dc2626" }}>{errorMsg}</p>
+                </div>
+              )}
+
+              {/* Not found warning */}
+              {notFoundCode && !scanning && (
+                <div style={{
+                  display: "flex", alignItems: "flex-start", gap: 8,
+                  padding: "10px 14px", borderRadius: 10, marginTop: 12,
+                  background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.3)",
+                }}>
+                  <AlertCircle size={14} style={{ color: "#f59e0b", flexShrink: 0, marginTop: 1 }} />
+                  <div>
+                    <p style={{ fontSize: 11, color: "#92400e", fontWeight: 600 }}>Không tìm thấy sản phẩm</p>
+                    <p style={{ fontSize: 10, color: "#b45309", marginTop: 2 }}>Mã: <span style={{ fontFamily: "monospace" }}>{notFoundCode}</span></p>
+                    <p style={{ fontSize: 9, color: "#94a3b8", marginTop: 2 }}>Kiểm tra lại SKU trong dữ liệu hoặc quét lại mã khác</p>
+                  </div>
                 </div>
               )}
 
@@ -375,16 +477,12 @@ function PoolPanel({
   const accentColor = mode === "display" ? "#C9A55A" : "#10b981";
 
   const handleQrScan = useCallback((code: string) => {
-    const match = products.find(p =>
-      (p.sku ?? "").toLowerCase() === code.toLowerCase() ||
-      p.name.toLowerCase().includes(code.toLowerCase())
-    );
+    const match = findProductByCode(products, code);
     if (match) {
       onSelect(match.id);
       setQrOpen(false);
-    } else {
-      // keep modal open briefly so user sees the "not found" state
     }
+    // if not found, keep modal open so user sees scanned value and can retry
   }, [products, onSelect]);
 
   const placedCount = assignedIds.size;
@@ -751,7 +849,7 @@ function MobilePickerSheet({
 // ─── Display Board: Store Slot ────────────────────────────────────────────────
 
 function StoreSlot({
-  pid, sId, subId, ri, si, onPlace, onRemove, highlightPid, products, selectedPid,
+  pid, sId, subId, ri, si, onPlace, onRemove, highlightPid, products, selectedPid, onScanToPlace,
 }: {
   pid: string | null; sId: string; subId: string; ri: number; si: number;
   onPlace: (sId: string, subId: string, ri: number, si: number) => void;
@@ -759,6 +857,7 @@ function StoreSlot({
   highlightPid: string | null;
   products: Product[];
   selectedPid: string | null;
+  onScanToPlace?: (sId: string, subId: string, ri: number, si: number) => void;
 }) {
   const [hov, setHov] = useState(false);
   const slotRef = useRef<HTMLDivElement>(null);
@@ -768,6 +867,7 @@ function StoreSlot({
   const isHighlit = !!pid && pid === highlightPid;
   const isEmpty = !pid;
   const canPlace = isEmpty && !!selectedPid;
+  const canScan  = isEmpty && !selectedPid && !!onScanToPlace;
 
   useEffect(() => {
     if (!isHighlit) return;
@@ -781,22 +881,28 @@ function StoreSlot({
     return (
       <div
         ref={slotRef}
-        onClick={() => canPlace && onPlace(sId, subId, ri, si)}
+        onClick={() => {
+          if (canPlace) onPlace(sId, subId, ri, si);
+          else if (canScan) onScanToPlace!(sId, subId, ri, si);
+        }}
         onMouseEnter={() => setHov(true)}
         onMouseLeave={() => setHov(false)}
         style={{
           width: 48, height: 48, borderRadius: 10,
-          border: `1.5px dashed ${canPlace && hov ? "#C9A55A" : canPlace ? "#0ea5e9" : "#bae6fd"}`,
-          background: canPlace && hov ? "rgba(201,165,90,0.12)" : canPlace ? "rgba(14,165,233,0.06)" : "#f0f9ff",
+          border: `1.5px dashed ${canPlace && hov ? "#C9A55A" : canPlace ? "#0ea5e9" : canScan && hov ? "#C9A55A" : "#bae6fd"}`,
+          background: canPlace && hov ? "rgba(201,165,90,0.12)" : canPlace ? "rgba(14,165,233,0.06)" : canScan && hov ? "rgba(201,165,90,0.08)" : "#f0f9ff",
           display: "flex", alignItems: "center", justifyContent: "center",
-          cursor: canPlace ? "pointer" : "default",
+          cursor: canPlace || canScan ? "pointer" : "default",
           transition: "all 0.12s",
           touchAction: "manipulation",
         }}
+        title={canScan ? "Quét QR để đặt sản phẩm" : undefined}
       >
         {canPlace
           ? <div style={{ width: 10, height: 10, borderRadius: "50%", background: hov ? "#C9A55A" : "#0ea5e9", opacity: 0.8 }} />
-          : <Package size={10} style={{ color: "#bae6fd" }} />
+          : canScan && hov
+            ? <ScanLine size={12} style={{ color: "#C9A55A" }} />
+            : <Package size={10} style={{ color: "#bae6fd" }} />
         }
       </div>
     );
@@ -880,13 +986,14 @@ function StoreSlot({
 // ─── Display Board: SubBlock ──────────────────────────────────────────────────
 
 const SubBlock = memo(function SubBlock({
-  section, subIdx, highlightPid, products, selectedPid, onPlace, placeInSection,
+  section, subIdx, highlightPid, products, selectedPid, onPlace, placeInSection, onScanToPlace,
 }: {
   section: StoreSection; subIdx: number; highlightPid: string | null;
   products: Product[];
   selectedPid: string | null;
   onPlace: (sId: string, subId: string, ri: number, si: number) => void;
   placeInSection: (sId: string, subId: string, ri: number, si: number, pid: string | null) => void;
+  onScanToPlace?: (sId: string, subId: string, ri: number, si: number) => void;
 }) {
   const sub = section.subsections[subIdx];
   const cfg = ZONE_CFG[section.sectionType] ?? { color: "#0ea5e9" };
@@ -932,6 +1039,7 @@ const SubBlock = memo(function SubBlock({
                   selectedPid={selectedPid}
                   onPlace={onPlace}
                   onRemove={() => placeInSection(section.id, sub.id, ri, si, null)}
+                  onScanToPlace={onScanToPlace}
                 />
               ))}
             </div>
@@ -945,13 +1053,14 @@ const SubBlock = memo(function SubBlock({
 // ─── Display Board: SectionGroup ─────────────────────────────────────────────
 
 const SectionGroup = memo(function SectionGroup({
-  section, highlightPid, products, selectedPid, onPlace, placeInSection,
+  section, highlightPid, products, selectedPid, onPlace, placeInSection, onScanToPlace,
 }: {
   section: StoreSection; highlightPid: string | null;
   products: Product[];
   selectedPid: string | null;
   onPlace: (sId: string, subId: string, ri: number, si: number) => void;
   placeInSection: (sId: string, subId: string, ri: number, si: number, pid: string | null) => void;
+  onScanToPlace?: (sId: string, subId: string, ri: number, si: number) => void;
 }) {
   const [open, setOpen] = useState(true);
   const cfg = ZONE_CFG[section.sectionType] ?? { color: "#0ea5e9" };
@@ -984,6 +1093,7 @@ const SectionGroup = memo(function SectionGroup({
                   selectedPid={selectedPid}
                   onPlace={onPlace}
                   placeInSection={placeInSection}
+                  onScanToPlace={onScanToPlace}
                 />
               ))}
             </div>
@@ -1001,7 +1111,7 @@ const COLS = 5;
 
 function WBin({
   shelfId, ti, si, pid, products, highlightPid, selectedPid,
-  onPlace, onRemove,
+  onPlace, onRemove, onScanToPlace,
 }: {
   shelfId: string; ti: number; si: number;
   pid: string | null; products: Product[];
@@ -1009,6 +1119,7 @@ function WBin({
   selectedPid: string | null;
   onPlace: (shelfId: string, ti: number, si: number) => void;
   onRemove: () => void;
+  onScanToPlace?: (shelfId: string, ti: number, si: number) => void;
 }) {
   const [hov, setHov] = useState(false);
   const binRef = useRef<HTMLDivElement>(null);
@@ -1016,6 +1127,7 @@ function WBin({
   const isHighlit = !!pid && pid === highlightPid;
   const cc        = p ? catColor(p.category) : "transparent";
   const canPlace  = !pid && !!selectedPid;
+  const canScan   = !pid && !selectedPid && !!onScanToPlace;
 
   useEffect(() => {
     if (!isHighlit) return;
@@ -1028,12 +1140,14 @@ function WBin({
   const borderColor = isHighlit ? "#C9A55A"
     : canPlace && hov ? "#C9A55A"
     : canPlace ? "#0ea5e9"
+    : canScan && hov ? "#C9A55A"
     : pid ? `${cc}88`
     : "#bae6fd";
 
   const bgColor = isHighlit ? "rgba(201,165,90,0.28)"
     : canPlace && hov ? "rgba(201,165,90,0.12)"
     : canPlace ? "rgba(14,165,233,0.06)"
+    : canScan && hov ? "rgba(201,165,90,0.08)"
     : pid ? (p?.color ? `${p.color}22` : `${cc}18`)
     : "#f0f9ff";
 
@@ -1042,13 +1156,17 @@ function WBin({
       ref={binRef}
       onMouseEnter={() => setHov(true)}
       onMouseLeave={() => setHov(false)}
-      onClick={() => { if (canPlace) onPlace(shelfId, ti, si); }}
+      onClick={() => {
+        if (canPlace) onPlace(shelfId, ti, si);
+        else if (canScan) onScanToPlace!(shelfId, ti, si);
+      }}
       className={isHighlit ? "slot-highlight" : undefined}
+      title={canScan ? "Quét QR để đặt sản phẩm" : undefined}
       style={{
         width: 52, height: 52, borderRadius: 9,
         border: `1.5px ${pid ? "solid" : "dashed"} ${borderColor}`,
         background: bgColor,
-        position: "relative", cursor: canPlace || pid ? "pointer" : "default",
+        position: "relative", cursor: canPlace || pid || canScan ? "pointer" : "default",
         display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
         gap: 2, overflow: "hidden",
         transition: "all 0.12s",
@@ -1090,6 +1208,8 @@ function WBin({
         </>
       ) : canPlace ? (
         <div style={{ width: 10, height: 10, borderRadius: "50%", background: hov ? "#C9A55A" : "#0ea5e9", opacity: 0.8 }} />
+      ) : canScan && hov ? (
+        <ScanLine size={14} style={{ color: "#C9A55A" }} />
       ) : null}
 
       {/* Tooltip */}
@@ -1152,12 +1272,13 @@ function WBin({
 const SLOTS_PER_TIER = 25;
 
 function ShelfCard({
-  shelf, products, highlightPid, selectedPid, onPlaceSlot, onRemoveSlot,
+  shelf, products, highlightPid, selectedPid, onPlaceSlot, onRemoveSlot, onScanToPlace,
 }: {
   shelf: WarehouseShelf; products: Product[]; highlightPid: string | null;
   selectedPid: string | null;
   onPlaceSlot: (shelfId: string, ti: number, si: number) => void;
   onRemoveSlot: (shelfId: string, ti: number, si: number) => void;
+  onScanToPlace?: (shelfId: string, ti: number, si: number) => void;
 }) {
   const [open, setOpen] = useState(true);
   const filled     = shelf.tiers.reduce((s, t) => s + t.filter(Boolean).length, 0);
@@ -1237,6 +1358,7 @@ function ShelfCard({
                         selectedPid={selectedPid}
                         onPlace={onPlaceSlot}
                         onRemove={() => onRemoveSlot(shelf.id, ti, si)}
+                        onScanToPlace={onScanToPlace}
                       />
                     ))}
                   </div>
@@ -1252,6 +1374,10 @@ function ShelfCard({
 
 // ─── Display Board tab ────────────────────────────────────────────────────────
 
+// Pending slot for QR-to-place
+type PendingSlot = { sId: string; subId: string; ri: number; si: number; label: string } | null;
+type PendingWSlot = { shelfId: string; ti: number; si: number; label: string } | null;
+
 function DisplayTab({
   products, storeSections, placeInSection, highlightPid,
 }: {
@@ -1263,6 +1389,9 @@ function DisplayTab({
   const [sectionIdx, setSectionIdx] = useState(0);
   const [selectedPid, setSelectedPid] = useState<string | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [slotQrOpen, setSlotQrOpen] = useState(false);
+  const [pendingSlot, setPendingSlot] = useState<PendingSlot>(null);
+  const [slotQrNotFound, setSlotQrNotFound] = useState<string | null>(null);
 
   const displayIds = useMemo(() => {
     const ids = new Set<string>();
@@ -1293,8 +1422,40 @@ function DisplayTab({
     setSelectedPid(null);
   }, [selectedPid, placeInSection]);
 
+  // Open QR scanner targeted at a specific slot
+  const handleScanToPlace = useCallback((sId: string, subId: string, ri: number, si: number) => {
+    // Find human-readable label
+    const sec = storeSections.find(s => s.id === sId);
+    const sub = sec?.subsections.find(s => s.id === subId);
+    const label = sub ? `${sub.name} · Hàng ${ri + 1}, Ô ${si + 1}` : `Ô ${si + 1}`;
+    setPendingSlot({ sId, subId, ri, si, label });
+    setSlotQrOpen(true);
+  }, [storeSections]);
+
+  const handleSlotQrScan = useCallback((code: string) => {
+    if (!pendingSlot) return;
+    const match = findProductByCode(products, code);
+    if (match) {
+      placeInSection(pendingSlot.sId, pendingSlot.subId, pendingSlot.ri, pendingSlot.si, match.id);
+      setSlotQrOpen(false);
+      setPendingSlot(null);
+      setSlotQrNotFound(null);
+    } else {
+      setSlotQrNotFound(code);
+    }
+  }, [pendingSlot, products, placeInSection]);
+
   return (
     <div style={{ display: "flex", gap: 14, flex: 1, minHeight: 0 }}>
+      {/* Slot-targeted QR modal */}
+      <QRScanModal
+        open={slotQrOpen}
+        onClose={() => { setSlotQrOpen(false); setPendingSlot(null); setSlotQrNotFound(null); }}
+        onScan={handleSlotQrScan}
+        slotLabel={pendingSlot?.label}
+        notFoundCode={slotQrNotFound}
+      />
+
       {/* Desktop pool panel */}
       <div className="hidden md:flex">
         <PoolPanel
@@ -1411,6 +1572,7 @@ function DisplayTab({
                   selectedPid={selectedPid}
                   onPlace={handlePlace}
                   placeInSection={placeInSection}
+                  onScanToPlace={handleScanToPlace}
                 />
               </motion.div>
             ) : (
@@ -1472,10 +1634,13 @@ function WarehouseTab({
   placeInWarehouse: (shelfId: string, ti: number, si: number, pid: string | null) => void;
   highlightPid: string | null;
 }) {
-  const [wSearch,     setWSearch]     = useState("");
-  const [selectedPid, setSelectedPid] = useState<string | null>(null);
-  const [shelfIdx,    setShelfIdx]    = useState(0);
-  const [sheetOpen,   setSheetOpen]   = useState(false);
+  const [wSearch,      setWSearch]      = useState("");
+  const [selectedPid,  setSelectedPid]  = useState<string | null>(null);
+  const [shelfIdx,     setShelfIdx]     = useState(0);
+  const [sheetOpen,    setSheetOpen]    = useState(false);
+  const [slotQrOpen,    setSlotQrOpen]    = useState(false);
+  const [pendingWSlot,  setPendingWSlot]  = useState<PendingWSlot>(null);
+  const [slotQrNotFound, setSlotQrNotFound] = useState<string | null>(null);
 
   const warehouseIds = useMemo(() => {
     const ids = new Set<string>();
@@ -1512,6 +1677,26 @@ function WarehouseTab({
     placeInWarehouse(shelfId, ti, si, null);
   }, [placeInWarehouse]);
 
+  const handleScanToPlace = useCallback((shelfId: string, ti: number, si: number) => {
+    const shelf = warehouseShelves.find(s => s.id === shelfId);
+    const label = shelf ? `${shelf.name} · ${TIER_LABELS_W[ti]}, Ô ${si + 1}` : `Ô ${si + 1}`;
+    setPendingWSlot({ shelfId, ti, si, label });
+    setSlotQrOpen(true);
+  }, [warehouseShelves]);
+
+  const handleSlotQrScan = useCallback((code: string) => {
+    if (!pendingWSlot) return;
+    const match = findProductByCode(products, code);
+    if (match) {
+      placeInWarehouse(pendingWSlot.shelfId, pendingWSlot.ti, pendingWSlot.si, match.id);
+      setSlotQrOpen(false);
+      setPendingWSlot(null);
+      setSlotQrNotFound(null);
+    } else {
+      setSlotQrNotFound(code);
+    }
+  }, [pendingWSlot, products, placeInWarehouse]);
+
   const allShelves = warehouseShelves;
   const clampedIdx = Math.min(shelfIdx, Math.max(0, allShelves.length - 1));
   const currentShelf = allShelves[clampedIdx] ?? null;
@@ -1527,6 +1712,15 @@ function WarehouseTab({
 
   return (
     <div style={{ display: "flex", gap: 14, flex: 1, minHeight: 0 }}>
+      {/* Slot-targeted QR modal */}
+      <QRScanModal
+        open={slotQrOpen}
+        onClose={() => { setSlotQrOpen(false); setPendingWSlot(null); setSlotQrNotFound(null); }}
+        onScan={handleSlotQrScan}
+        slotLabel={pendingWSlot?.label}
+        notFoundCode={slotQrNotFound}
+      />
+
       {/* Desktop pool panel */}
       <div className="hidden md:flex">
         <PoolPanel
@@ -1684,6 +1878,7 @@ function WarehouseTab({
                   shelf={currentShelf} products={products}
                   highlightPid={effectivePid} selectedPid={selectedPid}
                   onPlaceSlot={handlePlace} onRemoveSlot={onRemoveSlot}
+                  onScanToPlace={handleScanToPlace}
                 />
               </motion.div>
             ) : (
