@@ -60,27 +60,35 @@ export async function GET() {
   const countAll  = await jrpc("stock.quant","search_count",[[["location_id","child_of",2027]]]);
   const countPos  = await jrpc("stock.quant","search_count",[[["location_id","child_of",2027],["quantity",">",0]]]);
 
-  // Get 5 sample quants with qty > 0 — show exact JSON
+  // Count with new filter (no type=product, exclude service + bad categories)
+  const countFiltered = await jrpc("stock.quant","search_count",[[
+    ["location_id","child_of",2027],
+    ["quantity",">",0],
+    ["product_id.categ_id.name","not ilike","bao bi"],
+    ["product_id.categ_id.name","not ilike","packaging"],
+    ["product_id.categ_id.name","not ilike","gwp"],
+    ["product_id.categ_id.name","not ilike","gift"],
+    ["product_id.categ_id.name","not ilike","shoe care"],
+    ["product_id.type","!=","service"],
+  ]]);
+
+  // Get 10 sample quants with qty > 0 — show product type
   const sample = await jrpc("stock.quant","search_read",
     [[["location_id","child_of",2027],["quantity",">",0]]],
-    {fields:["product_id","quantity","reserved_quantity","location_id"],limit:5}
+    {fields:["product_id","quantity","reserved_quantity","location_id"],limit:10}
   );
 
-  // Count with on_hand filter
-  const countOnHand = await jrpc("stock.quant","search_count",
-    [[["location_id","child_of",2027],["on_hand","=",true]]]
-  );
-
-  // Try product.product with location context
-  const prodSample = await jrpc("product.product","search_read",
-    [[["active","=",true]]],
-    {fields:["id","default_code","name","qty_available"],limit:5,context:{lang:"vi_VN",location:2027}}
+  // Get product types for sample IDs
+  const sampleIds = (sample as {product_id:[number,string]}[]).map(q=>q.product_id[0]);
+  const sampleProducts = await jrpc("product.product","search_read",
+    [[["id","in",sampleIds]]],
+    {fields:["id","default_code","name","type","categ_id"],limit:10}
   );
 
   return Response.json({
     uid, cookie: cookie?"set":"missing",
-    countAll, countPos, countOnHand,
+    countAll, countPos, countFiltered,
     quantSample: sample,
-    productSampleWithContext: prodSample,
+    sampleProducts,
   });
 }

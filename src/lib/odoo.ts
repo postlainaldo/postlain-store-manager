@@ -215,7 +215,7 @@ export async function fetchOdooProducts(limit = 0): Promise<(OdooProduct & { qty
   const productFields = ["id", "default_code", "name", "list_price", "categ_id", "description_sale"];
 
   // Step 1: get all quants at 47GDL location
-  // Filter: storable products only (type=product), exclude consumables/services
+  // Filter: all quants at 47GDL with qty > 0, exclude non-sellable categories
   const allQuants: OdooQuant[] = [];
   let qOffset = 0;
   while (true) {
@@ -224,11 +224,12 @@ export async function fetchOdooProducts(limit = 0): Promise<(OdooProduct & { qty
       [[
         ["location_id", "child_of", LOCATION_47GDL],
         ["quantity", ">", 0],
-        ["product_id.type", "=", "product"],          // storable only, excludes services/consumables
         ["product_id.categ_id.name", "not ilike", "bao bi"],
         ["product_id.categ_id.name", "not ilike", "packaging"],
         ["product_id.categ_id.name", "not ilike", "gwp"],
         ["product_id.categ_id.name", "not ilike", "gift"],
+        ["product_id.categ_id.name", "not ilike", "shoe care"],
+        ["product_id.type", "!=", "service"],
       ]],
       { fields: ["product_id", "quantity", "reserved_quantity"], limit: PAGE, offset: qOffset }
     ) as OdooQuant[];
