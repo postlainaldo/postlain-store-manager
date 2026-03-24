@@ -1218,7 +1218,7 @@ export default function VisualBoardPage() {
       {/* Subtab switcher */}
       <div style={{ flexShrink: 0, display: "flex", gap: 4, background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 14, padding: 4, alignSelf: "flex-start" }}>
         {([
-          { key: "display" as const,   label: "TRƯNG BÀY", icon: Eye,       color: "#0ea5e9" },
+          { key: "display" as const,   label: "VỊ TRÍ",    icon: Eye,       color: "#0ea5e9" },
           { key: "warehouse" as const, label: "KHO HÀNG",  icon: Warehouse, color: "#10b981" },
         ]).map(({ key, label, icon: Icon, color }) => (
           <button key={key} onClick={() => setSubtab(key)}
