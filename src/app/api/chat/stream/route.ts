@@ -35,6 +35,20 @@ export async function GET(req: NextRequest) {
           } else {
             send({ type: "ping" });
           }
+          // Broadcast typing indicators from global map
+          const typingMap = (globalThis as Record<string, unknown>).__typingMap as Map<string, { userName: string; expires: number }> | undefined;
+          if (typingMap) {
+            const now = Date.now();
+            const active: string[] = [];
+            for (const [key, val] of typingMap) {
+              if (key.startsWith(`${roomId}:`) && val.expires > now) {
+                active.push(val.userName);
+              } else if (val.expires <= now) {
+                typingMap.delete(key);
+              }
+            }
+            send({ type: "typing", data: active });
+          }
         } catch { /* DB error — keep polling */ }
       };
 

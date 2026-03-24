@@ -3,11 +3,14 @@ import {
   dbGetRooms, dbGetMessages, dbInsertMessage, dbRoomExists,
   dbCreateRoom, dbDeleteRoom, dbSoftDeleteMessage,
   dbGetMessageSender, dbUpdateReactions, dbGetUserRole,
+  dbPinMessage, dbGetPinnedMessages, dbSearchMessages,
 } from "@/lib/dbAdapter";
 
-// GET /api/chat?rooms=1            — list rooms with last message + count
-// GET /api/chat?roomId=xxx         — messages in room (latest 80)
+// GET /api/chat?rooms=1             — list rooms with last message + count
+// GET /api/chat?roomId=xxx          — messages in room (latest 80)
 // GET /api/chat?roomId=xxx&since=iso — messages after timestamp
+// GET /api/chat?roomId=xxx&search=q — search messages by content
+// GET /api/chat?roomId=xxx&pinned=1 — pinned messages in room
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
 
@@ -19,13 +22,40 @@ export async function GET(req: NextRequest) {
   const roomId = searchParams.get("roomId");
   if (!roomId) return NextResponse.json({ error: "Missing roomId" }, { status: 400 });
 
+  if (searchParams.get("pinned")) {
+    const msgs = await dbGetPinnedMessages(roomId);
+    return NextResponse.json(msgs);
+  }
+
+  const search = searchParams.get("search");
+  if (search?.trim()) {
+    const msgs = await dbSearchMessages(roomId, search.trim());
+    return NextResponse.json(msgs);
+  }
+
   const since = searchParams.get("since") ?? undefined;
   const msgs = await dbGetMessages(roomId, since);
   return NextResponse.json(msgs);
 }
 
 // POST /api/chat — send message (text or media)
+// POST /api/chat/typing — broadcast typing indicator (handled inline below via ?typing=1)
 export async function POST(req: NextRequest) {
+  const { searchParams } = req.nextUrl;
+
+  // ── Typing indicator ────────────────────────────────────────────────────────
+  if (searchParams.get("typing")) {
+    const { roomId, userId, userName } = await req.json();
+    if (!roomId || !userId) return NextResponse.json({ ok: false });
+    // Store typing event in a transient global map (process-local; good enough for same-instance SSE)
+    const key = `${roomId}:${userId}`;
+    const typingMap = (globalThis as Record<string, unknown>).__typingMap as Map<string, { userName: string; expires: number }> | undefined;
+    const map = typingMap ?? new Map<string, { userName: string; expires: number }>();
+    (globalThis as Record<string, unknown>).__typingMap = map;
+    map.set(key, { userName, expires: Date.now() + 4000 });
+    return NextResponse.json({ ok: true });
+  }
+
   const { roomId, userId, userName, content, mediaUrl, mediaType, replyToId } = await req.json();
   if (!roomId || !userId) return NextResponse.json({ error: "Missing fields" }, { status: 400 });
   if (!content?.trim() && !mediaUrl) return NextResponse.json({ error: "Empty message" }, { status: 400 });
@@ -57,9 +87,9 @@ export async function PUT(req: NextRequest) {
   return NextResponse.json({ ok: true, id });
 }
 
-// PATCH /api/chat — soft delete / edit message / update reactions / update room
+// PATCH /api/chat — soft delete / edit message / update reactions / update room / pin
 export async function PATCH(req: NextRequest) {
-  const { msgId, roomId, userId, action, reactions, content, icon, color, name } = await req.json();
+  const { msgId, roomId, userId, action, reactions, content, icon, color, name, pin } = await req.json();
 
   // ── Room customization (admin only) ──────────────────────────────────────
   if (roomId && action === "updateRoom") {
@@ -88,6 +118,16 @@ export async function PATCH(req: NextRequest) {
 
   if (action === "react" && reactions !== undefined) {
     await dbUpdateReactions(msgId, JSON.stringify(reactions));
+    return NextResponse.json({ ok: true });
+  }
+
+  // ── Pin / unpin (admin/manager only) ──────────────────────────────────────
+  if (action === "pin") {
+    const role = await dbGetUserRole(userId);
+    if (role !== "admin" && role !== "manager") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+    await dbPinMessage(msgId, userId, pin === true);
     return NextResponse.json({ ok: true });
   }
 

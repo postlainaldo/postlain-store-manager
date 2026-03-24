@@ -161,6 +161,8 @@ function migrateSchema(db: Database.Database) {
   if (!msgCols.includes("replyToId")) db.exec("ALTER TABLE chat_messages ADD COLUMN replyToId TEXT");
   if (!msgCols.includes("reactions")) db.exec("ALTER TABLE chat_messages ADD COLUMN reactions TEXT DEFAULT '{}'");
   if (!msgCols.includes("editedAt"))  db.exec("ALTER TABLE chat_messages ADD COLUMN editedAt TEXT");
+  if (!msgCols.includes("pinnedAt"))  db.exec("ALTER TABLE chat_messages ADD COLUMN pinnedAt TEXT");
+  if (!msgCols.includes("pinnedBy"))  db.exec("ALTER TABLE chat_messages ADD COLUMN pinnedBy TEXT");
 
   // chat_rooms: incremental column additions
   const roomCols = colNames(db, "chat_rooms");

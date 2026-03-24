@@ -53,10 +53,13 @@ export type DBMessage = {
   content: string;
   createdAt: string;
   deletedAt?: string | null;
+  editedAt?: string | null;
   mediaUrl?: string | null;
   mediaType?: string | null;
   replyToId?: string | null;
   reactions?: string | null;
+  pinnedAt?: string | null;
+  pinnedBy?: string | null;
 };
 
 export type DBRoom = {
@@ -171,12 +174,18 @@ export async function ensureSupabaseSchema() {
       content     TEXT NOT NULL DEFAULT '',
       "createdAt" TEXT NOT NULL,
       "deletedAt" TEXT,
+      "editedAt"  TEXT,
       "mediaUrl"  TEXT,
       "mediaType" TEXT,
       "replyToId" TEXT,
-      reactions   TEXT DEFAULT '{}'
+      reactions   TEXT DEFAULT '{}',
+      "pinnedAt"  TEXT,
+      "pinnedBy"  TEXT
     );
     CREATE INDEX IF NOT EXISTS idx_chat_msg_room ON chat_messages("roomId", "createdAt" DESC);
+    ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS "editedAt" TEXT;
+    ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS "pinnedAt" TEXT;
+    ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS "pinnedBy" TEXT;
 
     CREATE TABLE IF NOT EXISTS notifications (
       id          TEXT PRIMARY KEY,
@@ -581,6 +590,49 @@ export async function dbGetUserRole(userId: string): Promise<string | null> {
   }
   const u = getDb().prepare("SELECT role FROM users WHERE id=?").get(userId) as { role: string } | undefined;
   return u?.role ?? null;
+}
+
+export async function dbPinMessage(msgId: string, userId: string, pin: boolean): Promise<void> {
+  const now = pin ? new Date().toISOString() : null;
+  const pinnedBy = pin ? userId : null;
+  if (IS_SUPABASE) {
+    await getSupabase().from("chat_messages").update({ pinnedAt: now, pinnedBy }).eq("id", msgId);
+    return;
+  }
+  getDb().prepare("UPDATE chat_messages SET pinnedAt=?, pinnedBy=? WHERE id=?").run(now, pinnedBy, msgId);
+}
+
+export async function dbGetPinnedMessages(roomId: string): Promise<DBMessage[]> {
+  if (IS_SUPABASE) {
+    const { data } = await getSupabase()
+      .from("chat_messages")
+      .select("*")
+      .eq("roomId", roomId)
+      .not("pinnedAt", "is", null)
+      .order("pinnedAt");
+    return (data ?? []) as DBMessage[];
+  }
+  return getDb().prepare(
+    "SELECT * FROM chat_messages WHERE roomId=? AND pinnedAt IS NOT NULL ORDER BY pinnedAt ASC"
+  ).all(roomId) as DBMessage[];
+}
+
+export async function dbSearchMessages(roomId: string, query: string): Promise<DBMessage[]> {
+  const q = `%${query}%`;
+  if (IS_SUPABASE) {
+    const { data } = await getSupabase()
+      .from("chat_messages")
+      .select("*")
+      .eq("roomId", roomId)
+      .is("deletedAt", null)
+      .ilike("content", q)
+      .order("createdAt")
+      .limit(50);
+    return (data ?? []) as DBMessage[];
+  }
+  return getDb().prepare(
+    "SELECT * FROM chat_messages WHERE roomId=? AND deletedAt IS NULL AND content LIKE ? ORDER BY createdAt ASC LIMIT 50"
+  ).all(roomId, q) as DBMessage[];
 }
 
 // ─── Notifications ────────────────────────────────────────────────────────────

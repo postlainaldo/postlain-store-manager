@@ -66,9 +66,14 @@ export default function OverviewPage() {
 
   const [movements, setMovements] = useState<Movement[]>([]);
   const [movLoading, setMovLoading] = useState(true);
+  const [productsLoading, setProductsLoading] = useState(products.length === 0);
 
   // ── Fetch products & movements on mount ────────────────────────────────
-  useEffect(() => { fetchProducts(); }, []);
+  useEffect(() => {
+    setProductsLoading(true);
+    fetchProducts().finally(() => setProductsLoading(false));
+    useStore.getState().fetchDbState();
+  }, []);
 
   const loadMovements = useCallback(async () => {
     setMovLoading(true);
@@ -121,7 +126,7 @@ export default function OverviewPage() {
     {
       id: "on-display",
       label: "Đang Trưng Bày",
-      sublabel: "Sản phẩm trên kệ cửa hàng",
+      sublabel: storeSections.length === 0 ? "Chưa đồng bộ vị trí" : "Sản phẩm trên kệ cửa hàng",
       value: fmt(onDisplayCount),
       unit: "sản phẩm",
       icon: Eye,
@@ -131,7 +136,7 @@ export default function OverviewPage() {
     {
       id: "warehouse",
       label: "Trong Kho",
-      sublabel: "Vị trí đang có hàng",
+      sublabel: warehouseShelves.length === 0 ? "Chưa đồng bộ kho" : "Vị trí đang có hàng",
       value: fmt(warehouseTotal),
       unit: "vị trí",
       icon: Package,
@@ -222,6 +227,7 @@ export default function OverviewPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {STATS.map((stat, i) => {
           const Icon = stat.icon;
+          const isZeroPlaceholder = productsLoading && stat.value === "0";
           return (
             <motion.div
               key={stat.id}
@@ -256,12 +262,17 @@ export default function OverviewPage() {
 
               {/* Value */}
               <div className="flex items-baseline gap-1.5">
-                <span className="font-light" style={{ fontSize: 28, color: "#0c1a2e", letterSpacing: "0.01em", lineHeight: 1 }}>
-                  {stat.value}
-                </span>
-                <span className="font-medium tracking-widest" style={{ fontSize: 7.5, color: stat.color }}>
-                  {stat.unit}
-                </span>
+                {isZeroPlaceholder
+                  ? <div className="skeleton" style={{ width: 60, height: 28, borderRadius: 6 }} />
+                  : <>
+                      <span className="font-light" style={{ fontSize: 28, color: "#0c1a2e", letterSpacing: "0.01em", lineHeight: 1 }}>
+                        {stat.value}
+                      </span>
+                      <span className="font-medium tracking-widest" style={{ fontSize: 7.5, color: stat.color }}>
+                        {stat.unit}
+                      </span>
+                    </>
+                }
               </div>
 
               {/* Sublabel */}
@@ -275,7 +286,7 @@ export default function OverviewPage() {
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 md:gap-6">
 
         {/* Product list — takes 3/5 on desktop */}
-        {products.length > 0 && (
+        {(products.length > 0 || productsLoading) && (
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
@@ -306,6 +317,14 @@ export default function OverviewPage() {
             </div>
 
             <div style={{ maxHeight: 280, overflowY: "auto" }}>
+              {productsLoading && products.length === 0 && Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="grid px-5 items-center gap-3 border-b border-border" style={{ gridTemplateColumns: "2fr 1fr 0.7fr 0.7fr", height: 44 }}>
+                  <div className="skeleton" style={{ height: 10, width: "70%", borderRadius: 4 }} />
+                  <div className="skeleton" style={{ height: 10, width: "60%", borderRadius: 4 }} />
+                  <div className="skeleton" style={{ height: 10, width: "50%", borderRadius: 4 }} />
+                  <div className="skeleton" style={{ height: 10, width: "30%", borderRadius: 4 }} />
+                </div>
+              ))}
               {products.filter(Boolean).slice(0, 12).map((p) => (
                 <div
                   key={p.id}
