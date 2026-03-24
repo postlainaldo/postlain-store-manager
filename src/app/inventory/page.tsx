@@ -68,29 +68,49 @@ function ListView() {
   } = useStore();
   const router = useRouter();
 
-  const [search,        setSearch]        = useState("");
-  const [editProduct,   setEditProduct]   = useState<Product | null>(null);
-  const [showAdd,       setShowAdd]       = useState(false);
-  const [showImport,    setShowImport]    = useState(false);
-  const [deleteId,      setDeleteId]      = useState<string | null>(null);
-  const [hoveredId,     setHoveredId]     = useState<string | null>(null);
-  const [selected,      setSelected]      = useState<Set<string>>(new Set());
-  const [confirmBulk,   setConfirmBulk]   = useState(false);
-  const [showScanner,   setShowScanner]   = useState(false);
-  const [odooSyncing,   setOdooSyncing]   = useState(false);
-  const [odooMsg,       setOdooMsg]       = useState<string | null>(null);
+  const [search,          setSearch]        = useState("");
+  const [filterCategory,  setFilterCat]     = useState("");
+  const [editProduct,     setEditProduct]   = useState<Product | null>(null);
+  const [showAdd,         setShowAdd]       = useState(false);
+  const [showImport,      setShowImport]    = useState(false);
+  const [deleteId,        setDeleteId]      = useState<string | null>(null);
+  const [hoveredId,       setHoveredId]     = useState<string | null>(null);
+  const [selected,        setSelected]      = useState<Set<string>>(new Set());
+  const [confirmBulk,     setConfirmBulk]   = useState(false);
+  const [showScanner,     setShowScanner]   = useState(false);
+  const [odooSyncing,     setOdooSyncing]   = useState(false);
+  const [odooMsg,         setOdooMsg]       = useState<string | null>(null);
 
   useEffect(() => { fetchProducts(); }, []);
 
+  const categories = useMemo(() => {
+    const cats = new Set(products.map(p => p.category));
+    return Array.from(cats).sort();
+  }, [products]);
+
   const filtered = useMemo(() =>
-    products.filter(p =>
-      !search
-        || p.name.toLowerCase().includes(search.toLowerCase())
-        || (p.sku ?? "").toLowerCase().includes(search.toLowerCase())
-        || p.category.toLowerCase().includes(search.toLowerCase())
-    ),
-    [products, search]
+    products.filter(p => {
+      if (filterCategory && p.category !== filterCategory) return false;
+      if (!search) return true;
+      const q = search.toLowerCase();
+      return (
+        p.name.toLowerCase().includes(q)
+        || (p.sku ?? "").toLowerCase().includes(q)
+        || p.category.toLowerCase().includes(q)
+        || (p.color ?? "").includes(q)
+        || (p.size ?? "").toLowerCase().includes(q)
+        || (p.notes ?? "").toLowerCase().includes(q)
+      );
+    }),
+    [products, search, filterCategory]
   );
+
+  // Parse MC code from notes field (stored as "MC: MC14003 | Season: FW25")
+  function parseMC(notes?: string | null): string | null {
+    if (!notes) return null;
+    const m = notes.match(/MC:\s*(MC\d+)/);
+    return m ? m[1] : null;
+  }
 
   const allSelected = filtered.length > 0 && filtered.every(p => selected.has(p.id));
   const someSelected = selected.size > 0;
@@ -174,6 +194,16 @@ function ListView() {
             </button>
           )}
         </div>
+        {/* Category filter */}
+        <select
+          value={filterCategory}
+          onChange={e => setFilterCat(e.target.value)}
+          className="h-9 rounded-xl border px-3 font-[inherit] cursor-pointer"
+          style={{ background: filterCategory ? "#f0f9ff" : "#ffffff", borderColor: filterCategory ? "#0ea5e9" : "#bae6fd", fontSize: 10, color: filterCategory ? "#0ea5e9" : "#64748b", minWidth: 120 }}
+        >
+          <option value="">Tất cả danh mục</option>
+          {categories.map(c => <option key={c} value={c}>{c}</option>)}
+        </select>
         <button
           onClick={() => setShowScanner(true)}
           className="flex items-center gap-1.5 px-3 h-9 rounded-xl border font-[inherit] cursor-pointer transition-colors"
@@ -258,17 +288,16 @@ function ListView() {
       >
         {/* Header */}
         <div
-          className="grid px-5 items-center border-b"
-          style={{ gridTemplateColumns: "28px 2fr 1fr 0.8fr 0.8fr 1fr 0.7fr", height: 36, borderColor: "#e0f2fe", background: "#f0f9ff" }}
+          className="grid px-4 items-center border-b"
+          style={{ gridTemplateColumns: "28px 2fr 55px 115px 72px 88px 88px 50px 44px 104px", height: 36, borderColor: "#e0f2fe", background: "#f0f9ff" }}
         >
-          {/* Select all checkbox */}
           <button onClick={toggleAll} style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center" }}>
             {allSelected
               ? <CheckSquare size={13} style={{ color: "#0ea5e9" }} />
               : <Square size={13} style={{ color: "#bae6fd" }} />
             }
           </button>
-          {["Sản Phẩm", "Danh Mục", "SKU", "SL", "Giá", ""].map(h => (
+          {["Tên SP", "Màu", "Barcode", "MC", "Full Price", "Giá Sale", "Size", "SL", ""].map(h => (
             <span key={h} className="font-bold uppercase tracking-[0.2em]" style={{ fontSize: 8, color: "#64748b" }}>{h}</span>
           ))}
         </div>
@@ -285,124 +314,108 @@ function ListView() {
             sh.tiers.some(t => t.includes(p.id))
           );
           const isSel = selected.has(p.id);
+          const mc = parseMC(p.notes);
           return (
             <div
               key={p.id}
               onMouseEnter={() => setHoveredId(p.id)}
               onMouseLeave={() => setHoveredId(null)}
-              className="grid px-5 items-center border-b last:border-0"
+              className="grid px-4 items-center border-b last:border-0"
               style={{
-                gridTemplateColumns: "28px 2fr 1fr 0.8fr 0.8fr 1fr auto",
-                height: 48,
+                gridTemplateColumns: "28px 2fr 55px 115px 72px 88px 88px 50px 44px 104px",
+                minHeight: 44,
                 borderColor: "#e0f2fe",
                 background: isSel ? "rgba(220,38,38,0.04)" : isHov ? "rgba(14,165,233,0.04)" : "transparent",
                 transition: "background 0.12s",
               }}
             >
-              {/* Row checkbox */}
-              <button
-                onClick={() => toggleSelect(p.id)}
-                style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center" }}
-              >
+              {/* Checkbox */}
+              <button onClick={() => toggleSelect(p.id)} style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center" }}>
                 {isSel
                   ? <CheckSquare size={13} style={{ color: "#dc2626" }} />
                   : <Square size={13} style={{ color: isHov ? "#bae6fd" : "transparent" }} />
                 }
               </button>
-              <div className="flex items-center gap-2 overflow-hidden">
-                {p.color && <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: p.color }} />}
-                <div className="overflow-hidden">
-                  <p className="font-semibold truncate" style={{ fontSize: 11, color: "#0c1a2e" }}>{p.name}</p>
-                  {loc && (
-                    <p className="flex items-center gap-0.5" style={{ fontSize: 8, color: "#0ea5e9", marginTop: 1 }}>
-                      <MapPin size={7} /> {loc}
-                    </p>
-                  )}
-                </div>
+
+              {/* Tên SP */}
+              <div className="overflow-hidden pr-2">
+                <p className="font-semibold truncate" style={{ fontSize: 11, color: "#0c1a2e" }}>{p.name}</p>
+                {loc && (
+                  <p className="flex items-center gap-0.5" style={{ fontSize: 8, color: "#0ea5e9", marginTop: 1 }}>
+                    <MapPin size={7} /> {loc}
+                  </p>
+                )}
               </div>
-              <span style={{ fontSize: 9, color: "#64748b" }}>{p.category}</span>
-              <span className="font-mono" style={{ fontSize: 9, color: "#64748b" }}>{p.sku ?? "—"}</span>
+
+              {/* Màu — 3-digit color code */}
+              <span className="font-mono font-semibold" style={{ fontSize: 10, color: p.color ? "#0c1a2e" : "#cbd5e1" }}>
+                {p.color ?? "—"}
+              </span>
+
+              {/* Barcode (SKU) */}
+              <span className="font-mono truncate" style={{ fontSize: 9, color: "#64748b" }}>{p.sku ?? "—"}</span>
+
+              {/* MC */}
+              <span className="font-mono" style={{ fontSize: 9, color: mc ? "#0ea5e9" : "#cbd5e1" }}>
+                {mc ?? "—"}
+              </span>
+
+              {/* Full Price */}
+              <span style={{ fontSize: 9, color: "#334e68" }}>{fmtPrice(p.price)}</span>
+
+              {/* Giá Sale */}
+              <span style={{ fontSize: 9, color: p.markdownPrice ? "#dc2626" : "#cbd5e1" }}>
+                {p.markdownPrice ? fmtPrice(p.markdownPrice) : "—"}
+              </span>
+
+              {/* Size */}
+              <span style={{ fontSize: 10, color: p.size ? "#0c1a2e" : "#cbd5e1" }}>{p.size ?? "—"}</span>
+
+              {/* QTY */}
               <span className="font-semibold" style={{ fontSize: 12, color: p.quantity === 0 ? "#dc2626" : p.quantity < 5 ? "#C9A55A" : "#0c1a2e" }}>
                 {p.quantity}
               </span>
-              <span style={{ fontSize: 9, color: "#334e68" }}>{fmtPrice(p.price)}</span>
 
-              {/* Action group */}
-              <div className="flex items-center gap-1.5 justify-end">
-                <AnimatePresence>
-                  {isHov && (
-                    <motion.div
-                      initial={{ opacity: 0, x: 6 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: 6 }}
-                      transition={{ duration: 0.12 }}
-                      className="flex items-center gap-1"
-                    >
-                      {/* Xem Trưng Bày */}
-                      <button
-                        onClick={() => navigateToBoard(router, p.id, "display")}
-                        title={inDisplay ? "Xem vị trí Trưng Bày" : "Chưa xếp vào kệ trưng bày"}
-                        className="flex items-center gap-1 px-2 h-6 rounded-lg border cursor-pointer transition-all"
-                        style={{
-                          background:  inDisplay ? "rgba(201,165,90,0.10)" : "#f0f9ff",
-                          borderColor: inDisplay ? "rgba(201,165,90,0.45)" : "#bae6fd",
-                          fontSize:    8,
-                          color:       inDisplay ? "#C9A55A" : "#94a3b8",
-                          fontFamily:  "inherit",
-                          letterSpacing: "0.08em",
-                          fontWeight:  inDisplay ? 700 : 400,
-                          whiteSpace:  "nowrap",
-                        }}
-                      >
-                        <Eye size={8} />
-                        TRƯNG BÀY
-                      </button>
-                      {/* Xem Kho */}
-                      <button
-                        onClick={() => navigateToBoard(router, p.id, "warehouse")}
-                        title={inWarehouse ? "Xem vị trí Kho" : "Chưa xếp vào kho"}
-                        className="flex items-center gap-1 px-2 h-6 rounded-lg border cursor-pointer transition-all"
-                        style={{
-                          background:  inWarehouse ? "rgba(14,165,233,0.10)" : "#f0f9ff",
-                          borderColor: inWarehouse ? "rgba(14,165,233,0.45)" : "#bae6fd",
-                          fontSize:    8,
-                          color:       inWarehouse ? "#0ea5e9" : "#94a3b8",
-                          fontFamily:  "inherit",
-                          letterSpacing: "0.08em",
-                          fontWeight:  inWarehouse ? 700 : 400,
-                          whiteSpace:  "nowrap",
-                        }}
-                      >
-                        <Warehouse size={8} />
-                        KHO
-                      </button>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-                <AnimatePresence>
-                  {isHov && (
-                    <motion.div
-                      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                      transition={{ duration: 0.12 }}
-                      className="flex items-center gap-1"
-                    >
-                      <button
-                        onClick={() => setEditProduct(p)}
-                        className="w-6 h-6 rounded-lg border flex items-center justify-center cursor-pointer"
-                        style={{ background: "#f0f9ff", borderColor: "#bae6fd" }}
-                      >
-                        <Pencil size={9} style={{ color: "#0ea5e9" }} />
-                      </button>
-                      <button
-                        onClick={() => setDeleteId(p.id)}
-                        className="w-6 h-6 rounded-lg border flex items-center justify-center cursor-pointer"
-                        style={{ background: "#f0f9ff", borderColor: "#bae6fd" }}
-                      >
-                        <Trash2 size={9} style={{ color: "#dc2626" }} />
-                      </button>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+              {/* Actions — fixed width, no layout shift */}
+              <div className="flex items-center gap-1 justify-end" style={{ width: 104 }}>
+                <button
+                  onClick={() => navigateToBoard(router, p.id, "display")}
+                  title={inDisplay ? "Xem vị trí Trưng Bày" : "Chưa xếp vào kệ trưng bày"}
+                  className="flex items-center justify-center h-6 rounded-lg border cursor-pointer transition-all"
+                  style={{
+                    width: 28,
+                    background:  inDisplay ? "rgba(201,165,90,0.10)" : isHov ? "#f0f9ff" : "transparent",
+                    borderColor: inDisplay ? "rgba(201,165,90,0.45)" : isHov ? "#bae6fd" : "transparent",
+                  }}
+                >
+                  <Eye size={9} style={{ color: inDisplay ? "#C9A55A" : isHov ? "#94a3b8" : "transparent" }} />
+                </button>
+                <button
+                  onClick={() => navigateToBoard(router, p.id, "warehouse")}
+                  title={inWarehouse ? "Xem vị trí Kho" : "Chưa xếp vào kho"}
+                  className="flex items-center justify-center h-6 rounded-lg border cursor-pointer transition-all"
+                  style={{
+                    width: 28,
+                    background:  inWarehouse ? "rgba(14,165,233,0.10)" : isHov ? "#f0f9ff" : "transparent",
+                    borderColor: inWarehouse ? "rgba(14,165,233,0.45)" : isHov ? "#bae6fd" : "transparent",
+                  }}
+                >
+                  <Warehouse size={9} style={{ color: inWarehouse ? "#0ea5e9" : isHov ? "#94a3b8" : "transparent" }} />
+                </button>
+                <button
+                  onClick={() => setEditProduct(p)}
+                  className="flex items-center justify-center w-6 h-6 rounded-lg border cursor-pointer transition-all"
+                  style={{ background: isHov ? "#f0f9ff" : "transparent", borderColor: isHov ? "#bae6fd" : "transparent" }}
+                >
+                  <Pencil size={9} style={{ color: isHov ? "#0ea5e9" : "transparent" }} />
+                </button>
+                <button
+                  onClick={() => setDeleteId(p.id)}
+                  className="flex items-center justify-center w-6 h-6 rounded-lg border cursor-pointer transition-all"
+                  style={{ background: isHov ? "#f0f9ff" : "transparent", borderColor: isHov ? "#fecaca" : "transparent" }}
+                >
+                  <Trash2 size={9} style={{ color: isHov ? "#dc2626" : "transparent" }} />
+                </button>
               </div>
             </div>
           );

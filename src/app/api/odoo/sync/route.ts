@@ -2,56 +2,110 @@ import { NextRequest, NextResponse } from "next/server";
 import { fetchOdooProducts, testOdooConnection } from "@/lib/odoo";
 import { dbBulkUpsertProducts, dbDeleteAllProducts } from "@/lib/dbAdapter";
 import type { DBProduct } from "@/lib/dbAdapter";
-import { resolveCategory } from "@/lib/categoryMapping";
+import { MC_MAP } from "@/lib/categoryMapping";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 60; // seconds — Vercel Pro/Hobby max
+export const maxDuration = 60;
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+// ─── Odoo name parser ─────────────────────────────────────────────────────────
+//
+// Odoo product name format examples:
+//   "[747544361470] ETIENE (MC14003) SS26 (6-)"   → barcode, name, mc, season, size
+//   "NATHANIEL (MC14021) FW25"                     → name, mc, season (no barcode, no size)
+//   "REGEAN (MC14064) FW25"
+//
+// Pattern: optional [barcode]  PRODUCTNAME  (MCxxxxx)  SEASON  optional (size)
+
+interface ParsedOdooName {
+  cleanName: string;   // Just the product name e.g. "ETIENE"
+  mc: string | null;   // e.g. "MC14003"
+  season: string | null; // e.g. "SS26", "FW25"
+  size: string | null;   // e.g. "6-", "38", "M"
+}
+
+function parseOdooName(raw: string): ParsedOdooName {
+  const s = raw.trim();
+  // Remove leading [barcode]
+  const withoutBarcode = s.replace(/^\[\d+\]\s*/, "");
+  // Match: NAME (MCxxxxx) SEASON optional (size)
+  const m = withoutBarcode.match(
+    /^(.+?)\s+\(MC(\d+)\)\s+([A-Z]{2}\d{2})(?:\s+\(([^)]+)\))?/
+  );
+  if (m) {
+    return {
+      cleanName: m[1].trim(),
+      mc: `MC${m[2]}`,
+      season: m[3],
+      size: m[4] ?? null,
+    };
+  }
+  // Fallback: no MC in name
+  return { cleanName: withoutBarcode.trim(), mc: null, season: null, size: null };
+}
+
+// ─── Color extraction from barcode ────────────────────────────────────────────
+//
+// ALDO barcode (12 digits): [brand 4] [cat 2] [color 3] [sizeVariant 3]
+// e.g. 055804696959 → color = "696"
+// Works for barcodes starting with 0558 or 8558
+
+function extractColorCode(barcode: string | null | false): string | null {
+  if (!barcode) return null;
+  const b = String(barcode).replace(/\D/g, ""); // digits only
+  if (b.length === 12) return b.slice(6, 9);
+  if (b.length === 13) return b.slice(7, 10); // 13-digit with leading check digit
+  return null;
+}
+
+// ─── Map MC → Vietnamese category ─────────────────────────────────────────────
+
+function mcToCategory(mc: string | null): { category: string; productType?: string } {
+  if (!mc) return { category: "Khác" };
+  const entry = MC_MAP[mc];
+  if (entry) return { category: entry.category, productType: entry.productType };
+  return { category: "Khác" };
+}
+
+// ─── Map Odoo product → DBProduct ─────────────────────────────────────────────
 
 type OdooSyncProduct = Awaited<ReturnType<typeof fetchOdooProducts>>[number];
 
-/** Map Odoo product → Postlain DBProduct */
 function mapProduct(op: OdooSyncProduct): DBProduct {
   const now = new Date().toISOString();
 
-  // SKU: use default_code if set, else fallback to "ODOO-{id}"
+  const parsed = parseOdooName(op.name);
+  const mc = parsed.mc;
+  const { category, productType } = mcToCategory(mc);
+
+  // Color: extract 3-digit color code from default_code (barcode)
+  const colorCode = extractColorCode(op.default_code);
+
+  // Size from parsed Odoo name
+  const size = parsed.size;
+
+  // SKU = default_code (barcode) if available, else ODOO-{id}
   const sku = op.default_code ? String(op.default_code).trim() : `ODOO-${op.id}`;
 
-  // Category: try resolving from SKU (MC code) first, then Odoo category name
-  let category = "Khác";
-  let productType: string | undefined;
-
-  const fromSku = sku ? resolveCategory(sku) : null;
-  if (fromSku && fromSku.category !== sku) {
-    // resolveCategory returned a known mapping
-    category = fromSku.category;
-    productType = fromSku.productType;
-  } else if (op.categ_id) {
-    // fallback: use Odoo category name
-    const catName = op.categ_id[1] ?? "";
-    category = catName || "Khác";
-  }
-
-  // Price: Odoo list_price is in VND for ALDO VN
+  // Price in VND
   const price = op.list_price > 0 ? op.list_price : undefined;
 
-  // Stable ID: use "odoo-{id}" so re-syncing upserts correctly
-  const id = `odoo-${op.id}`;
-
   return {
-    id,
-    name: op.name,
+    id: `odoo-${op.id}`,
+    name: parsed.cleanName,   // clean name e.g. "ETIENE" not "[747544361470] ETIENE (MC14003) SS26 (6-)"
     sku,
     category,
     productType: productType ?? null,
     quantity: op.qty_47gdl ?? 0,
     price: price ?? null,
     markdownPrice: null,
-    color: null,
-    size: null,
+    color: colorCode,          // 3-digit color code e.g. "696"
+    size: size,                // shoe size e.g. "6-", "38"
     imagePath: null,
-    notes: op.description_sale ? String(op.description_sale) : null,
+    notes: [
+      mc ? `MC: ${mc}` : null,
+      parsed.season ? `Season: ${parsed.season}` : null,
+      op.description_sale ? String(op.description_sale) : null,
+    ].filter(Boolean).join(" | ") || null,
     createdAt: now,
     updatedAt: now,
   };
@@ -62,40 +116,30 @@ function mapProduct(op: OdooSyncProduct): DBProduct {
 export async function GET() {
   try {
     if (!process.env.ODOO_URL) {
-      return NextResponse.json(
-        { ok: false, error: "ODOO_URL env var not set" },
-        { status: 400 }
-      );
+      return NextResponse.json({ ok: false, error: "ODOO_URL env var not set" }, { status: 400 });
     }
     const info = await testOdooConnection();
     return NextResponse.json({ ok: true, ...info });
   } catch (err) {
-    return NextResponse.json(
-      { ok: false, error: String(err) },
-      { status: 502 }
-    );
+    return NextResponse.json({ ok: false, error: String(err) }, { status: 502 });
   }
 }
 
-// ─── POST /api/odoo/sync — run full sync ─────────────────────────────────────
+// ─── POST /api/odoo/sync — run full sync ──────────────────────────────────────
 
 export async function POST(req: NextRequest) {
   try {
     if (!process.env.ODOO_URL) {
-      return NextResponse.json(
-        { ok: false, error: "ODOO_URL env var not set" },
-        { status: 400 }
-      );
+      return NextResponse.json({ ok: false, error: "ODOO_URL env var not set" }, { status: 400 });
     }
 
-    // Optional body: { dryRun: true, limit: 50 }
     let dryRun = false;
     let limit = 0;
     try {
       const body = await req.json();
       dryRun = !!body?.dryRun;
       if (typeof body?.limit === "number") limit = body.limit;
-    } catch { /* no body — that's fine */ }
+    } catch { /* no body */ }
 
     const odooProducts = await fetchOdooProducts(limit);
     const mapped = odooProducts.map(mapProduct);
@@ -116,9 +160,6 @@ export async function POST(req: NextRequest) {
     });
   } catch (err) {
     console.error("[odoo/sync] error:", err);
-    return NextResponse.json(
-      { ok: false, error: String(err) },
-      { status: 502 }
-    );
+    return NextResponse.json({ ok: false, error: String(err) }, { status: 502 });
   }
 }
