@@ -1,21 +1,21 @@
 /**
  * Odoo JSON-RPC 2.0 client
  *
- * Authenticates with ODOO_USERNAME + ODOO_API_KEY (API key replaces password).
- * All calls go to /web/dataset/call_kw using the session UID obtained via
- * /web/session/authenticate.
+ * Authenticates with ODOO_USERNAME + ODOO_PASSWORD (password login).
+ * ODOO_API_KEY is used as password if set, otherwise falls back to ODOO_PASSWORD.
  *
  * Env vars required:
  *   ODOO_URL      e.g. https://aldo-erp.vti-cl.com
  *   ODOO_DB       e.g. aldo_vn_prod
  *   ODOO_USERNAME e.g. sm47@vti-cl.com
- *   ODOO_API_KEY  API key from user profile
+ *   ODOO_API_KEY  password (rename this var to ODOO_PASSWORD if you prefer)
  */
 
-const ODOO_URL      = process.env.ODOO_URL      ?? "";
-const ODOO_DB       = process.env.ODOO_DB        ?? "";
-const ODOO_USERNAME = process.env.ODOO_USERNAME  ?? "";
-const ODOO_API_KEY  = process.env.ODOO_API_KEY   ?? "";
+const ODOO_URL      = process.env.ODOO_URL       ?? "";
+const ODOO_DB       = process.env.ODOO_DB         ?? "";
+const ODOO_USERNAME = process.env.ODOO_USERNAME   ?? "";
+// Accept either ODOO_API_KEY or ODOO_PASSWORD — whichever is set
+const ODOO_PASSWORD = process.env.ODOO_API_KEY    ?? process.env.ODOO_PASSWORD ?? "";
 
 // ─── Low-level JSON-RPC ───────────────────────────────────────────────────────
 
@@ -48,7 +48,7 @@ async function getUid(): Promise<number> {
   const result = await rpc("/web/session/authenticate", {
     db: ODOO_DB,
     login: ODOO_USERNAME,
-    password: ODOO_API_KEY,
+    password: ODOO_PASSWORD,
   });
   const uid = (result as { uid?: number })?.uid;
   if (!uid) throw new Error("Odoo auth failed — check ODOO_USERNAME and ODOO_API_KEY");
