@@ -110,16 +110,17 @@ function parseValue(xml: string, pos: number): [unknown, number] {
   }
   // <struct>
   if (rest.startsWith("<struct>")) {
-    const structStart = pos + 8;
-    const structEnd   = findClose(xml, "<struct>", "</struct>", structStart);
-    const body = xml.slice(structStart, structEnd - 9); // trim </struct>
+    const structOpen  = pos; // points at <struct>
+    const structEnd   = findClose(xml, "<struct>", "</struct>", pos + 8);
+    // structEnd is index just after </struct>
     const obj: Record<string, unknown> = {};
-    let cur = 0;
-    while (true) {
-      const ms = body.indexOf("<member>", cur);
-      if (ms === -1) break;
-      const me = body.indexOf("</member>", ms);
-      const chunk = body.slice(ms + 8, me);
+    let cur = pos + 8; // inside struct
+    const structClose = structEnd - 9; // start of </struct>
+    while (cur < structClose) {
+      const ms = xml.indexOf("<member>", cur);
+      if (ms === -1 || ms >= structClose) break;
+      const me = findClose(xml, "<member>", "</member>", ms + 8);
+      const chunk = xml.slice(ms + 8, me - 9); // content of <member>
       const nameStart = chunk.indexOf("<name>") + 6;
       const nameEnd   = chunk.indexOf("</name>");
       const name = chunk.slice(nameStart, nameEnd);
@@ -128,8 +129,9 @@ function parseValue(xml: string, pos: number): [unknown, number] {
         const [v] = parseValue(chunk, vi);
         obj[name] = v;
       }
-      cur = me + 9;
+      cur = me;
     }
+    void structOpen; // suppress unused warning
     return [obj, xml.indexOf("</value>", structEnd) + 8];
   }
   // bare string (no type tag)
