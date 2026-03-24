@@ -1335,35 +1335,44 @@ export async function dbBulkUpsertPosOrderLines(lines: DBPosOrderLine[]): Promis
   tx(lines);
 }
 
-export async function dbGetPosSummary(dateFrom: string): Promise<{
-  totalRevenue: number; orderCount: number; avgOrderValue: number;
+export async function dbGetPosSummary(dateFrom: string, dateTo?: string): Promise<{
+  totalRevenue: number; orderCount: number; avgOrderValue: number; qtyTotal: number;
 }> {
   if (IS_SUPABASE) {
-    const { data } = await getSupabase()
+    let q = getSupabase()
       .from("pos_orders")
-      .select("amountTotal")
+      .select("amountTotal,lineCount")
       .in("state", ["done", "paid", "invoiced"])
       .gte("createdAt", dateFrom);
-    const rows = (data ?? []) as { amountTotal: number }[];
+    if (dateTo) q = q.lte("createdAt", dateTo);
+    const { data } = await q;
+    const rows = (data ?? []) as { amountTotal: number; lineCount: number }[];
     const totalRevenue = rows.reduce((s, r) => s + r.amountTotal, 0);
-    return { totalRevenue, orderCount: rows.length, avgOrderValue: rows.length ? totalRevenue / rows.length : 0 };
+    const qtyTotal = rows.reduce((s, r) => s + (r.lineCount ?? 0), 0);
+    return { totalRevenue, orderCount: rows.length, avgOrderValue: rows.length ? totalRevenue / rows.length : 0, qtyTotal };
   }
+  const where = dateTo
+    ? "state IN ('done','paid','invoiced') AND createdAt >= ? AND createdAt <= ?"
+    : "state IN ('done','paid','invoiced') AND createdAt >= ?";
+  const params = dateTo ? [dateFrom, dateTo] : [dateFrom];
   const r = getDb().prepare(
-    "SELECT COALESCE(SUM(amountTotal),0) as rev, COUNT(*) as cnt FROM pos_orders WHERE state IN ('done','paid','invoiced') AND createdAt >= ?"
-  ).get(dateFrom) as { rev: number; cnt: number };
-  return { totalRevenue: r.rev, orderCount: r.cnt, avgOrderValue: r.cnt ? r.rev / r.cnt : 0 };
+    `SELECT COALESCE(SUM(amountTotal),0) as rev, COUNT(*) as cnt, COALESCE(SUM(lineCount),0) as qty FROM pos_orders WHERE ${where}`
+  ).get(...params) as { rev: number; cnt: number; qty: number };
+  return { totalRevenue: r.rev, orderCount: r.cnt, avgOrderValue: r.cnt ? r.rev / r.cnt : 0, qtyTotal: r.qty };
 }
 
-export async function dbGetTopProducts(dateFrom: string, limit = 10): Promise<{
+export async function dbGetTopProducts(dateFrom: string, limit = 10, dateTo?: string): Promise<{
   productName: string; sku: string | null; totalQty: number; totalRevenue: number;
 }[]> {
   if (IS_SUPABASE) {
     // Supabase can't do GROUP BY via JS client easily — fetch lines and aggregate
-    const { data: orders } = await getSupabase()
+    let oq = getSupabase()
       .from("pos_orders")
       .select("id")
       .in("state", ["done", "paid", "invoiced"])
       .gte("createdAt", dateFrom);
+    if (dateTo) oq = oq.lte("createdAt", dateTo);
+    const { data: orders } = await oq;
     const orderIds = (orders ?? []).map((o: { id: string }) => o.id);
     if (!orderIds.length) return [];
     const CHUNK = 200;
@@ -1392,4 +1401,98 @@ export async function dbGetTopProducts(dateFrom: string, limit = 10): Promise<{
     WHERE o.state IN ('done','paid','invoiced') AND o.createdAt >= ?
     GROUP BY l.productName ORDER BY totalQty DESC LIMIT ?
   `).all(dateFrom, limit) as { productName: string; sku: string | null; totalQty: number; totalRevenue: number }[];
+}
+
+// ─── Daily Reports ────────────────────────────────────────────────────────────
+
+export type DBDailyReport = {
+  id: string;
+  date: string;          // YYYY-MM-DD
+  shift: "start" | "end";
+  revTotal: number;
+  revCash: number;
+  revCard: number;
+  revTransfer: number;
+  revVnpay: number;
+  revMomo: number;
+  revUrbox: number;
+  revNinja: number;
+  revOther: number;
+  revHB: number;
+  revSC: number;
+  revACC: number;
+  traffic: number;
+  bills: number;
+  qtyTotal: number;
+  conversion: number;
+  aov: number;
+  ipt: number;
+  targetDay: number;
+  note: string;
+  preparedBy: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export async function dbGetDailyReports(limit = 60): Promise<DBDailyReport[]> {
+  if (IS_SUPABASE) {
+    const { data } = await getSupabase()
+      .from("daily_reports")
+      .select("*")
+      .order("date", { ascending: false })
+      .order("shift", { ascending: false })
+      .limit(limit);
+    return (data ?? []) as DBDailyReport[];
+  }
+  return getDb().prepare(
+    "SELECT * FROM daily_reports ORDER BY date DESC, shift DESC LIMIT ?"
+  ).all(limit) as DBDailyReport[];
+}
+
+export async function dbGetDailyReportByDate(date: string, shift: string): Promise<DBDailyReport | null> {
+  if (IS_SUPABASE) {
+    const { data } = await getSupabase()
+      .from("daily_reports")
+      .select("*")
+      .eq("date", date)
+      .eq("shift", shift)
+      .maybeSingle();
+    return (data as DBDailyReport | null);
+  }
+  return getDb().prepare(
+    "SELECT * FROM daily_reports WHERE date=? AND shift=?"
+  ).get(date, shift) as DBDailyReport | null;
+}
+
+export async function dbUpsertDailyReport(r: DBDailyReport): Promise<void> {
+  if (IS_SUPABASE) {
+    await getSupabase()
+      .from("daily_reports")
+      .upsert(r, { onConflict: "id" });
+    return;
+  }
+  const db = getDb();
+  db.prepare(`
+    INSERT INTO daily_reports
+      (id,date,shift,revTotal,revCash,revCard,revTransfer,revVnpay,revMomo,revUrbox,revNinja,revOther,
+       revHB,revSC,revACC,traffic,bills,qtyTotal,conversion,aov,ipt,targetDay,note,preparedBy,createdAt,updatedAt)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+    ON CONFLICT(id) DO UPDATE SET
+      revTotal=excluded.revTotal, revCash=excluded.revCash, revCard=excluded.revCard,
+      revTransfer=excluded.revTransfer, revVnpay=excluded.revVnpay, revMomo=excluded.revMomo,
+      revUrbox=excluded.revUrbox, revNinja=excluded.revNinja, revOther=excluded.revOther,
+      revHB=excluded.revHB, revSC=excluded.revSC, revACC=excluded.revACC,
+      traffic=excluded.traffic, bills=excluded.bills, qtyTotal=excluded.qtyTotal,
+      conversion=excluded.conversion, aov=excluded.aov, ipt=excluded.ipt,
+      targetDay=excluded.targetDay, note=excluded.note, preparedBy=excluded.preparedBy,
+      updatedAt=excluded.updatedAt
+  `).run(
+    r.id, r.date, r.shift,
+    r.revTotal, r.revCash, r.revCard, r.revTransfer, r.revVnpay, r.revMomo, r.revUrbox, r.revNinja, r.revOther,
+    r.revHB, r.revSC, r.revACC,
+    r.traffic, r.bills, r.qtyTotal,
+    r.conversion, r.aov, r.ipt,
+    r.targetDay, r.note, r.preparedBy,
+    r.createdAt, r.updatedAt
+  );
 }

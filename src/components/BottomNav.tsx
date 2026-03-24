@@ -3,16 +3,17 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  LayoutDashboard, Focus, Box, MessageSquare, UserCircle, ShoppingBag,
+  LayoutDashboard, Focus, Box, MessageSquare, UserCircle, ShoppingBag, ClipboardList,
 } from "lucide-react";
 import { useStore } from "@/store/useStore";
 
-// Same order as TopNav — Chat replaced by Profile (profile is in TopNav header on desktop)
+// Same order as TopNav — Profile appended for mobile
 const NAV_ITEMS = [
   { id: "overview",     label: "Tổng Quan", href: "/",             icon: LayoutDashboard, exact: true  },
   { id: "visual-board", label: "Vị Trí",    href: "/visual-board", icon: Focus,           exact: false },
   { id: "inventory",    label: "Dữ Liệu",   href: "/inventory",    icon: Box,             exact: false },
   { id: "sales",        label: "Bán Hàng",  href: "/sales",        icon: ShoppingBag,     exact: false },
+  { id: "report",       label: "Báo Cáo",   href: "/report",       icon: ClipboardList,   exact: false },
   { id: "chat",         label: "Chat",       href: "/chat",         icon: MessageSquare,   exact: false },
   { id: "profile",      label: "Hồ Sơ",     href: "/profile",      icon: UserCircle,      exact: false },
 ] as const;

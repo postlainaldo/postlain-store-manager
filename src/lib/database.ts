@@ -273,6 +273,44 @@ function migrateSchema(db: Database.Database) {
     CREATE INDEX IF NOT EXISTS idx_pos_lines_order ON pos_order_lines(orderId);
     CREATE INDEX IF NOT EXISTS idx_pos_lines_product ON pos_order_lines(productId);
   `);
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS daily_reports (
+      id          TEXT PRIMARY KEY,
+      date        TEXT NOT NULL,
+      shift       TEXT NOT NULL DEFAULT 'end',
+      -- Revenue from POS (auto-filled)
+      revTotal    REAL NOT NULL DEFAULT 0,
+      revCash     REAL NOT NULL DEFAULT 0,
+      revCard     REAL NOT NULL DEFAULT 0,
+      revTransfer REAL NOT NULL DEFAULT 0,
+      revVnpay    REAL NOT NULL DEFAULT 0,
+      revMomo     REAL NOT NULL DEFAULT 0,
+      revUrbox    REAL NOT NULL DEFAULT 0,
+      revNinja    REAL NOT NULL DEFAULT 0,
+      revOther    REAL NOT NULL DEFAULT 0,
+      -- Category breakdown
+      revHB       REAL NOT NULL DEFAULT 0,
+      revSC       REAL NOT NULL DEFAULT 0,
+      revACC      REAL NOT NULL DEFAULT 0,
+      -- Traffic & conversion (manual input)
+      traffic     INTEGER NOT NULL DEFAULT 0,
+      bills       INTEGER NOT NULL DEFAULT 0,
+      qtyTotal    INTEGER NOT NULL DEFAULT 0,
+      -- Calculated (stored for history)
+      conversion  REAL NOT NULL DEFAULT 0,
+      aov         REAL NOT NULL DEFAULT 0,
+      ipt         REAL NOT NULL DEFAULT 0,
+      -- Daily target
+      targetDay   REAL NOT NULL DEFAULT 0,
+      -- Notes
+      note        TEXT NOT NULL DEFAULT '',
+      preparedBy  TEXT NOT NULL DEFAULT '',
+      createdAt   TEXT NOT NULL,
+      updatedAt   TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_daily_reports_date ON daily_reports(date);
+  `);
 }
 
 function colNames(db: Database.Database, table: string): string[] {

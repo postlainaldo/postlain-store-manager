@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, Focus, Box, LogIn, LogOut,
-  MessageSquare, ShoppingBag,
+  MessageSquare, ShoppingBag, ClipboardList,
 } from "lucide-react";
 import { useStore } from "@/store/useStore";
 import NotificationBanner from "@/components/NotificationBanner";
@@ -15,6 +15,7 @@ const NAV_ITEMS = [
   { id: "visual-board", label: "Vị Trí",     href: "/visual-board", icon: Focus,           exact: false },
   { id: "inventory",    label: "Dữ Liệu",    href: "/inventory",    icon: Box,             exact: false },
   { id: "sales",        label: "Bán Hàng",   href: "/sales",        icon: ShoppingBag,     exact: false },
+  { id: "report",       label: "Báo Cáo",    href: "/report",       icon: ClipboardList,   exact: false },
   { id: "chat",         label: "Chat",        href: "/chat",         icon: MessageSquare,   exact: false },
 ] as const;
 

@@ -72,13 +72,44 @@ export async function GET() {
       )
     `;
 
+    await sql`
+      CREATE TABLE IF NOT EXISTS daily_reports (
+        id            TEXT PRIMARY KEY,
+        date          TEXT NOT NULL,
+        shift         TEXT NOT NULL DEFAULT 'end',
+        "revTotal"    DOUBLE PRECISION NOT NULL DEFAULT 0,
+        "revCash"     DOUBLE PRECISION NOT NULL DEFAULT 0,
+        "revCard"     DOUBLE PRECISION NOT NULL DEFAULT 0,
+        "revTransfer" DOUBLE PRECISION NOT NULL DEFAULT 0,
+        "revVnpay"    DOUBLE PRECISION NOT NULL DEFAULT 0,
+        "revMomo"     DOUBLE PRECISION NOT NULL DEFAULT 0,
+        "revUrbox"    DOUBLE PRECISION NOT NULL DEFAULT 0,
+        "revNinja"    DOUBLE PRECISION NOT NULL DEFAULT 0,
+        "revOther"    DOUBLE PRECISION NOT NULL DEFAULT 0,
+        "revHB"       DOUBLE PRECISION NOT NULL DEFAULT 0,
+        "revSC"       DOUBLE PRECISION NOT NULL DEFAULT 0,
+        "revACC"      DOUBLE PRECISION NOT NULL DEFAULT 0,
+        traffic       INTEGER NOT NULL DEFAULT 0,
+        bills         INTEGER NOT NULL DEFAULT 0,
+        "qtyTotal"    INTEGER NOT NULL DEFAULT 0,
+        conversion    DOUBLE PRECISION NOT NULL DEFAULT 0,
+        aov           DOUBLE PRECISION NOT NULL DEFAULT 0,
+        ipt           DOUBLE PRECISION NOT NULL DEFAULT 0,
+        "targetDay"   DOUBLE PRECISION NOT NULL DEFAULT 0,
+        note          TEXT NOT NULL DEFAULT '',
+        "preparedBy"  TEXT NOT NULL DEFAULT '',
+        "createdAt"   TEXT NOT NULL,
+        "updatedAt"   TEXT NOT NULL
+      )
+    `;
+
     await sql.end();
 
     // Verify tables exist via Supabase client
     const { getSupabase } = await import("@/lib/supabase");
     const sb = getSupabase();
     const status: Record<string, boolean> = {};
-    for (const t of ["customers", "pos_orders", "pos_order_lines"]) {
+    for (const t of ["customers", "pos_orders", "pos_order_lines", "daily_reports"]) {
       const { error } = await sb.from(t).select("id").limit(1);
       status[t] = !error;
     }
