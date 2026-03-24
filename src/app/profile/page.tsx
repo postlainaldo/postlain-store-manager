@@ -6,7 +6,7 @@ import {
   Camera, Check, X, Edit2, Phone, FileText,
   Crown, UserCheck, User, Circle, Send,
   Lock, Eye, EyeOff, LogOut, ChevronDown,
-  Settings, Users,
+  Settings, Users, RefreshCw, Info,
   ToggleLeft, ToggleRight, Plus, Trash2,
   UserPlus, Activity, MessageSquare,
   Award,
@@ -14,6 +14,16 @@ import {
 import { useStore } from "@/store/useStore";
 import { useRouter } from "next/navigation";
 import type { UserRole, AppUser } from "@/store/useStore";
+import { useUpdateContext } from "@/components/Providers";
+
+const APP_VERSION = process.env.NEXT_PUBLIC_APP_VERSION ?? "1.0.0";
+
+function urlB64ToUint8Array(base64String: string) {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const rawData = atob(base64);
+  return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
+}
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -191,11 +201,21 @@ function StorePanel() {
   const [phone, setPhone] = useState(storePhone);
   const [email, setEmail] = useState(storeEmail);
   const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/settings").then(r => r.json()).then(d => {
+      if (d.storeName)    { setName(d.storeName);    setStoreSetting("storeName",    d.storeName); }
+      if (d.storeAddress) { setAddr(d.storeAddress); setStoreSetting("storeAddress", d.storeAddress); }
+      if (d.storePhone)   { setPhone(d.storePhone);  setStoreSetting("storePhone",   d.storePhone); }
+      if (d.storeEmail)   { setEmail(d.storeEmail);  setStoreSetting("storeEmail",   d.storeEmail); }
+    }).catch(() => {});
+  }, []);
+
   const handleSave = () => {
-    setStoreSetting("storeName", name);
-    setStoreSetting("storeAddress", addr);
-    setStoreSetting("storePhone", phone);
-    setStoreSetting("storeEmail", email);
+    setStoreSetting("storeName", name); setStoreSetting("storeAddress", addr);
+    setStoreSetting("storePhone", phone); setStoreSetting("storeEmail", email);
+    fetch("/api/settings", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ storeName: name, storeAddress: addr, storePhone: phone, storeEmail: email }) }).catch(() => {});
     setSaved(true); setTimeout(() => setSaved(false), 1400);
   };
   return (
@@ -354,6 +374,152 @@ function UsersPanel() {
               <button onClick={handleAdd} style={{ flex: 1, padding: "8px", borderRadius: 8, border: "none", background: "#0ea5e9", color: "#fff", fontSize: 9, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>THÊM</button>
               <button onClick={() => setShowAdd(false)} style={{ padding: "8px 14px", borderRadius: 8, border: "1px solid #bae6fd", background: "transparent", color: "#94a3b8", fontSize: 9, cursor: "pointer", fontFamily: "inherit" }}><X size={10} /></button>
             </div>
+          </div>
+        )}
+      </div>
+    </SCard>
+  );
+}
+
+function SecurityPanel({ currentUser }: { currentUser: { id: string; email: string; name: string; role: string } }) {
+  const [oldPw, setOldPw] = useState(""); const [newPw, setNewPw] = useState(""); const [confirmPw, setConfirmPw] = useState("");
+  const [showOld, setShowOld] = useState(false); const [showNew, setShowNew] = useState(false);
+  const [msg, setMsg] = useState<{ type: "ok"|"err"; text: string } | null>(null);
+
+  const handleChange = async () => {
+    if (newPw.length < 4) { setMsg({ type: "err", text: "Tối thiểu 4 ký tự" }); return; }
+    if (newPw !== confirmPw) { setMsg({ type: "err", text: "Mật khẩu không khớp" }); return; }
+    const check = await fetch("/api/auth", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username: currentUser.email, password: oldPw }) });
+    if (!check.ok) { setMsg({ type: "err", text: "Mật khẩu hiện tại không đúng" }); return; }
+    await fetch("/api/auth", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: currentUser.id, name: currentUser.name, username: currentUser.email, role: currentUser.role, active: true, password: newPw }) });
+    setMsg({ type: "ok", text: "Đã đổi mật khẩu" });
+    setTimeout(() => { setMsg(null); setOldPw(""); setNewPw(""); setConfirmPw(""); }, 1500);
+  };
+
+  const PwRow = ({ label, value, set, show, setShow }: { label: string; value: string; set: (v: string) => void; show: boolean; setShow: (v: boolean) => void }) => (
+    <div style={{ padding: "10px 20px", display: "flex", alignItems: "center", gap: 12 }}>
+      <label style={{ fontSize: 11, color: "#64748b", flexShrink: 0, width: 160 }}>{label}</label>
+      <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 6 }}>
+        <input type={show ? "text" : "password"} value={value} onChange={e => set(e.target.value)}
+          style={{ flex: 1, background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 8, padding: "7px 12px", fontSize: 11, color: "#0c1a2e", outline: "none", fontFamily: "inherit" }} />
+        <button onClick={() => setShow(!show)} style={{ background: "none", border: "none", cursor: "pointer", padding: 4, color: "#94a3b8" }}>
+          {show ? <EyeOff size={13} /> : <Eye size={13} />}
+        </button>
+      </div>
+    </div>
+  );
+
+  return (
+    <SCard title="ĐỔI MẬT KHẨU">
+      {msg && <div style={{ margin: "8px 20px 0", padding: "6px 12px", borderRadius: 8, background: msg.type === "ok" ? "rgba(16,185,129,0.08)" : "rgba(220,38,38,0.06)", fontSize: 10, color: msg.type === "ok" ? "#10b981" : "#dc2626" }}>{msg.text}</div>}
+      <PwRow label="Mật khẩu hiện tại" value={oldPw} set={setOldPw} show={showOld} setShow={setShowOld} />
+      <SDivider />
+      <PwRow label="Mật khẩu mới" value={newPw} set={setNewPw} show={showNew} setShow={setShowNew} />
+      <SDivider />
+      <PwRow label="Xác nhận mật khẩu mới" value={confirmPw} set={setConfirmPw} show={showNew} setShow={setShowNew} />
+      <div style={{ padding: "8px 20px 12px", display: "flex", justifyContent: "flex-end" }}>
+        <button onClick={handleChange} style={{ padding: "7px 20px", borderRadius: 8, border: "none", background: "#0ea5e9", color: "#fff", fontSize: 9, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", letterSpacing: "0.1em" }}>
+          ĐỔI MẬT KHẨU
+        </button>
+      </div>
+    </SCard>
+  );
+}
+
+function PushPanel({ userId }: { userId: string }) {
+  const [permStatus, setPermStatus] = useState("...");
+  const [subCount, setSubCount]     = useState<number | null>(null);
+  const [pushStatus, setPushStatus] = useState<"idle"|"sending"|"sent"|"error">("idle");
+  const [resubStatus, setResubStatus] = useState<"idle"|"loading"|"done"|"error">("idle");
+
+  useEffect(() => {
+    if (typeof Notification !== "undefined") setPermStatus(Notification.permission);
+    fetch("/api/push/test").then(r => r.json()).then(d => setSubCount(d.subscriptions ?? 0)).catch(() => {});
+  }, []);
+
+  const sendTest = async () => {
+    setPushStatus("sending");
+    try {
+      const r = await fetch("/api/push/test", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title: "Kiểm tra thông báo", body: "Push hoạt động ✓" }) });
+      setPushStatus(r.ok ? "sent" : "error");
+    } catch { setPushStatus("error"); }
+    setTimeout(() => setPushStatus("idle"), 3000);
+  };
+
+  const resub = async () => {
+    setResubStatus("loading");
+    try {
+      if (!("serviceWorker" in navigator) || !("PushManager" in window)) { setResubStatus("error"); return; }
+      const perm = await Notification.requestPermission();
+      setPermStatus(perm);
+      if (perm !== "granted") { setResubStatus("error"); return; }
+      const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+      if (!vapidKey) { setResubStatus("error"); return; }
+      const reg = await navigator.serviceWorker.ready;
+      const existing = await reg.pushManager.getSubscription();
+      if (existing) await existing.unsubscribe();
+      const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlB64ToUint8Array(vapidKey) });
+      await fetch("/api/push/subscribe", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId, subscription: sub.toJSON() }) });
+      const d = await fetch("/api/push/test").then(r => r.json());
+      setSubCount(d.subscriptions ?? 0);
+      setResubStatus("done");
+    } catch { setResubStatus("error"); }
+    setTimeout(() => setResubStatus("idle"), 3000);
+  };
+
+  const permColor = permStatus === "granted" ? "#10b981" : permStatus === "denied" ? "#ef4444" : "#f59e0b";
+
+  return (
+    <SCard title="PUSH NOTIFICATION">
+      <div style={{ padding: "12px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+            <div style={{ width: 7, height: 7, borderRadius: "50%", background: permColor }} />
+            <span style={{ fontSize: 10, color: "#334e68" }}>
+              {permStatus === "granted" ? "Đã cấp quyền" : permStatus === "denied" ? "Bị từ chối" : "Chưa cấp quyền"}
+            </span>
+          </div>
+          <span style={{ fontSize: 9, color: "#94a3b8", paddingLeft: 14 }}>
+            {subCount === null ? "Đang kiểm tra…" : `${subCount} thiết bị đã đăng ký`}
+          </span>
+        </div>
+        <div style={{ display: "flex", gap: 6 }}>
+          <button onClick={resub} disabled={resubStatus === "loading"}
+            style={{ padding: "5px 12px", borderRadius: 7, border: "1px solid #bae6fd", background: resubStatus === "done" ? "#f0fdf4" : resubStatus === "error" ? "#fef2f2" : "#f0f9ff", color: resubStatus === "done" ? "#10b981" : resubStatus === "error" ? "#ef4444" : "#0ea5e9", fontSize: 9, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+            {resubStatus === "loading" ? "…" : resubStatus === "done" ? "✓ Đã đăng ký" : resubStatus === "error" ? "✗ Lỗi" : "Đăng ký lại"}
+          </button>
+          <button onClick={sendTest} disabled={pushStatus === "sending"}
+            style={{ padding: "5px 12px", borderRadius: 7, border: "none", background: pushStatus === "sent" ? "#10b981" : pushStatus === "error" ? "#ef4444" : "#0ea5e9", color: "#fff", fontSize: 9, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+            {pushStatus === "sending" ? "Đang gửi…" : pushStatus === "sent" ? "✓ Đã gửi" : pushStatus === "error" ? "✗ Lỗi" : "Gửi thử"}
+          </button>
+        </div>
+      </div>
+      {permStatus === "denied" && (
+        <div style={{ padding: "0 20px 12px" }}>
+          <p style={{ fontSize: 9, color: "#ef4444" }}>Vào Settings điện thoại → trình duyệt → store.postlain.com → bật lại Notifications.</p>
+        </div>
+      )}
+    </SCard>
+  );
+}
+
+function VersionPanel() {
+  const { updateReady, onUpdate } = useUpdateContext();
+  return (
+    <SCard title="PHIÊN BẢN">
+      <div style={{ padding: "12px 20px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div>
+          <p style={{ fontSize: 11, color: "#0c1a2e", fontWeight: 600 }}>Postlain Store Manager</p>
+          <p style={{ fontSize: 9, color: "#64748b", marginTop: 2 }}>v{APP_VERSION}</p>
+        </div>
+        {updateReady ? (
+          <button onClick={onUpdate} style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 14px", borderRadius: 8, border: "none", background: "#C9A55A", color: "#0c1a2e", fontSize: 9, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+            <RefreshCw size={10} /> CẬP NHẬT
+          </button>
+        ) : (
+          <div style={{ display: "flex", alignItems: "center", gap: 5, padding: "6px 12px", borderRadius: 8, background: "#f0fdf4", border: "1px solid #bbf7d0" }}>
+            <Check size={10} style={{ color: "#10b981" }} />
+            <span style={{ fontSize: 9, color: "#10b981", fontWeight: 600 }}>Mới nhất</span>
           </div>
         )}
       </div>
@@ -767,9 +933,12 @@ export default function ProfilePage() {
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               <DisplayPanel />
               <NotifyPanel />
+              <PushPanel userId={currentUser.id} />
+              <SecurityPanel currentUser={{ id: currentUser.id, email: currentUser.email, name: currentUser.name, role: currentUser.role }} />
               {isManager && <StorePanel />}
               {isManager && <ShelvesPanel />}
               {isAdmin && <UsersPanel />}
+              <VersionPanel />
             </div>
           )}
 
