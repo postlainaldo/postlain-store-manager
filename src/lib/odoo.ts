@@ -305,10 +305,19 @@ export async function fetchOdooProducts(limit = 0): Promise<(OdooProduct & { qty
     const page = await execute(
       "product.product", "search_read",
       [[["id", "in", chunk], ["active", "=", true]]],
-      { fields: productFields, limit: PAGE, offset: 0 }
-    ) as OdooProduct[];
+      {
+        fields: [...productFields, "qty_available"],
+        limit: PAGE,
+        offset: 0,
+        context: { location: LOCATION_47GDL },
+      }
+    ) as (OdooProduct & { qty_available?: number })[];
     for (const p of page ?? []) {
-      allProducts.push({ ...p, qty_47gdl: Math.max(0, Math.floor(qtyMap.get(p.id) ?? 0)) });
+      // Prefer qty from stock.quant map; fallback to context-scoped qty_available
+      const qtyFromQuant = Math.floor(qtyMap.get(p.id) ?? 0);
+      const qtyFromProduct = Math.floor(typeof p.qty_available === "number" ? p.qty_available : 0);
+      const qty = qtyFromQuant > 0 ? qtyFromQuant : qtyFromProduct;
+      if (qty > 0) allProducts.push({ ...p, qty_47gdl: qty });
     }
   }
 
