@@ -12,6 +12,7 @@ import { useRouter } from "next/navigation";
 import {
   Search, Plus, Upload, Package, Pencil, Trash2,
   MapPin, X, Warehouse, Eye, CheckSquare, Square, ScanLine,
+  RefreshCw,
 } from "lucide-react";
 import QRScannerModal from "@/components/QRScannerModal";
 
@@ -76,6 +77,8 @@ function ListView() {
   const [selected,      setSelected]      = useState<Set<string>>(new Set());
   const [confirmBulk,   setConfirmBulk]   = useState(false);
   const [showScanner,   setShowScanner]   = useState(false);
+  const [odooSyncing,   setOdooSyncing]   = useState(false);
+  const [odooMsg,       setOdooMsg]       = useState<string | null>(null);
 
   useEffect(() => { fetchProducts(); }, []);
 
@@ -105,6 +108,26 @@ function ListView() {
       setSelected(new Set());
     } else {
       setSelected(new Set(filtered.map(p => p.id)));
+    }
+  };
+
+  const handleOdooSync = async () => {
+    setOdooSyncing(true);
+    setOdooMsg(null);
+    try {
+      const res = await fetch("/api/odoo/sync", { method: "POST" });
+      const data = await res.json();
+      if (data.ok) {
+        setOdooMsg(`Đồng bộ thành công ${data.synced} sản phẩm`);
+        await fetchProducts();
+      } else {
+        setOdooMsg(`Lỗi: ${data.error}`);
+      }
+    } catch {
+      setOdooMsg("Không kết nối được Odoo");
+    } finally {
+      setOdooSyncing(false);
+      setTimeout(() => setOdooMsg(null), 5000);
     }
   };
 
@@ -165,6 +188,29 @@ function ListView() {
         >
           <Upload size={11} strokeWidth={1.5} /> NHẬP EXCEL
         </button>
+        <button
+          onClick={handleOdooSync}
+          disabled={odooSyncing}
+          title="Đồng bộ sản phẩm từ Odoo"
+          className="flex items-center gap-1.5 px-3 h-9 rounded-xl border font-[inherit] cursor-pointer transition-colors disabled:opacity-60"
+          style={{ background: "#f0fdf4", borderColor: "#86efac", fontSize: 10, color: "#16a34a", letterSpacing: "0.1em" }}
+        >
+          <RefreshCw size={11} strokeWidth={1.5} className={odooSyncing ? "animate-spin" : ""} />
+          {odooSyncing ? "ĐỒNG BỘ..." : "SYNC ODOO"}
+        </button>
+        {odooMsg && (
+          <span
+            className="px-3 h-9 flex items-center rounded-xl text-xs font-medium"
+            style={{
+              background: odooMsg.startsWith("Lỗi") || odooMsg.startsWith("Không") ? "rgba(220,38,38,0.08)" : "rgba(22,163,74,0.08)",
+              color: odooMsg.startsWith("Lỗi") || odooMsg.startsWith("Không") ? "#dc2626" : "#16a34a",
+              border: `1px solid ${odooMsg.startsWith("Lỗi") || odooMsg.startsWith("Không") ? "rgba(220,38,38,0.2)" : "rgba(22,163,74,0.2)"}`,
+              fontSize: 10,
+            }}
+          >
+            {odooMsg}
+          </span>
+        )}
         <button
           onClick={() => setShowAdd(true)}
           className="flex items-center gap-1.5 px-3 h-9 rounded-xl border font-[inherit] cursor-pointer transition-colors"
