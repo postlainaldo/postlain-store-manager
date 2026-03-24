@@ -130,17 +130,36 @@ export interface OdooProduct {
 
 // ─── Public API ───────────────────────────────────────────────────────────────
 
-export async function fetchOdooProducts(): Promise<OdooProduct[]> {
-  const result = await execute(
-    "product.product", "search_read",
-    [[["active", "=", true]]],
-    {
-      fields: ["id", "default_code", "name", "list_price", "categ_id", "qty_available", "description_sale"],
-      limit: 0,
-      order: "default_code asc",
-    }
-  );
-  return (result as OdooProduct[]) ?? [];
+export async function fetchOdooProducts(limit = 0): Promise<OdooProduct[]> {
+  // limit=0 means no limit in Odoo XML-RPC, but we fetch in pages of 500
+  // to avoid XML-RPC response size issues
+  const PAGE = 500;
+  const fields = ["id", "default_code", "name", "list_price", "categ_id", "qty_available", "description_sale"];
+
+  if (limit > 0) {
+    const result = await execute(
+      "product.product", "search_read",
+      [[["active", "=", true]]],
+      { fields, limit, offset: 0, order: "id asc" }
+    );
+    return (result as OdooProduct[]) ?? [];
+  }
+
+  // Paginated fetch
+  const all: OdooProduct[] = [];
+  let offset = 0;
+  while (true) {
+    const page = await execute(
+      "product.product", "search_read",
+      [[["active", "=", true]]],
+      { fields, limit: PAGE, offset, order: "id asc" }
+    ) as OdooProduct[];
+    if (!page || page.length === 0) break;
+    all.push(...page);
+    if (page.length < PAGE) break;
+    offset += PAGE;
+  }
+  return all;
 }
 
 export async function testOdooConnection(): Promise<{ uid: number; serverVersion: string }> {

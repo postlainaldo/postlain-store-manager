@@ -5,6 +5,7 @@ import type { DBProduct } from "@/lib/dbAdapter";
 import { resolveCategory } from "@/lib/categoryMapping";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 60; // seconds — Vercel Pro/Hobby max
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -85,14 +86,16 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Optional: allow caller to pass { dryRun: true } to preview without saving
+    // Optional body: { dryRun: true, limit: 50 }
     let dryRun = false;
+    let limit = 0;
     try {
       const body = await req.json();
       dryRun = !!body?.dryRun;
+      if (typeof body?.limit === "number") limit = body.limit;
     } catch { /* no body — that's fine */ }
 
-    const odooProducts = await fetchOdooProducts();
+    const odooProducts = await fetchOdooProducts(limit);
     const mapped = odooProducts.map(mapProduct);
 
     if (!dryRun) {
