@@ -127,6 +127,30 @@ export function resolveCategory(code: string): { category: string; productType?:
   return { category: code };
 }
 
+// ─── ALDO Color code → hex color ──────────────────────────────────────────────
+// Based on ALDO NRF color code ranges
+export function colorCodeToHex(code: string | null | undefined): string | null {
+  if (!code) return null;
+  const n = parseInt(code, 10);
+  if (isNaN(n)) return null;
+  if (n === 0)             return null;           // No colour
+  if (n >= 1   && n <= 19) return "#1a1a1a";     // Black
+  if (n >= 20  && n <= 99) return "#9ca3af";     // Gray (Pewter)
+  if (n >= 100 && n <= 199) return "#f5f5f5";    // White / Natural
+  if (n >= 200 && n <= 249) return "#7c2d12";    // Brown (Rust/Khaki/Bone)
+  if (n >= 250 && n <= 299) return "#92400e";    // Beige / Khaki
+  if (n >= 300 && n <= 399) return "#15803d";    // Green
+  if (n >= 400 && n <= 499) return "#1d4ed8";    // Blue (Navy/Light Blue)
+  if (n >= 500 && n <= 599) return "#7e22ce";    // Purple
+  if (n >= 600 && n <= 649) return "#dc2626";    // Red
+  if (n >= 650 && n <= 699) return "#be185d";    // Pink / Fuchsia
+  if (n >= 700 && n <= 799) return "#d97706";    // Yellow
+  if (n >= 800 && n <= 899) return "#ea580c";    // Orange / Dark Orange
+  if (n >= 900 && n <= 939) return "#f97316";    // Other
+  if (n >= 940 && n <= 999) return "#c0c0c0";    // Metallic Multi
+  return null;
+}
+
 // ─── Parse MC and Season from notes field ─────────────────────────────────────
 // notes format: "MC: MC14003 | Season: FW25"
 export function parseMCFromNotes(notes?: string | null): string | null {

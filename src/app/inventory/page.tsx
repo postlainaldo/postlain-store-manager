@@ -15,7 +15,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import QRScannerModal from "@/components/QRScannerModal";
-import { parseMCFromNotes } from "@/lib/categoryMapping";
+import { parseMCFromNotes, colorCodeToHex } from "@/lib/categoryMapping";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -106,6 +106,44 @@ function ListView() {
     [products, search, filterCategory]
   );
 
+
+  // Pre-build location + placement maps — O(n) once, not per-row per-render
+  const locationMap = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const sec of storeSections)
+      for (const sub of sec.subsections)
+        for (let ri = 0; ri < sub.rows.length; ri++)
+          for (let si = 0; si < sub.rows[ri].products.length; si++) {
+            const pid = sub.rows[ri].products[si];
+            if (pid) m.set(pid, `Kệ ${sub.name} — Hàng ${ri + 1}, Ô ${si + 1}`);
+          }
+    for (const shelf of warehouseShelves)
+      for (let ti = 0; ti < shelf.tiers.length; ti++)
+        for (let si = 0; si < shelf.tiers[ti].length; si++) {
+          const pid = shelf.tiers[ti][si];
+          if (pid) m.set(pid, `Kho — ${shelf.name} · Tầng ${ti + 1}, Ô ${si + 1}`);
+        }
+    return m;
+  }, [storeSections, warehouseShelves]);
+
+  const displaySet = useMemo(() => {
+    const s = new Set<string>();
+    for (const sec of storeSections)
+      for (const sub of sec.subsections)
+        for (const row of sub.rows)
+          for (const pid of row.products)
+            if (pid) s.add(pid);
+    return s;
+  }, [storeSections]);
+
+  const warehouseSet = useMemo(() => {
+    const s = new Set<string>();
+    for (const shelf of warehouseShelves)
+      for (const tier of shelf.tiers)
+        for (const pid of tier)
+          if (pid) s.add(pid);
+    return s;
+  }, [warehouseShelves]);
 
   const allSelected = filtered.length > 0 && filtered.every(p => selected.has(p.id));
   const someSelected = selected.size > 0;
@@ -298,18 +336,13 @@ function ListView() {
         </div>
         {/* Rows */}
         {filtered.map(p => {
-          const loc       = resolveLocation(p.id, storeSections, warehouseShelves);
-          const isHov     = hoveredId === p.id;
-          const inDisplay = storeSections.some(sec =>
-            sec.subsections.some(sub =>
-              sub.rows.some(row => row.products.includes(p.id))
-            )
-          );
-          const inWarehouse = warehouseShelves.some(sh =>
-            sh.tiers.some(t => t.includes(p.id))
-          );
-          const isSel = selected.has(p.id);
-          const mc = parseMCFromNotes(p.notes);
+          const loc         = locationMap.get(p.id) ?? null;
+          const isHov       = hoveredId === p.id;
+          const inDisplay   = displaySet.has(p.id);
+          const inWarehouse = warehouseSet.has(p.id);
+          const isSel       = selected.has(p.id);
+          const mc          = parseMCFromNotes(p.notes);
+          const colorHex    = colorCodeToHex(p.color);
           return (
             <div
               key={p.id}
@@ -342,10 +375,16 @@ function ListView() {
                 )}
               </div>
 
-              {/* Màu — 3-digit color code */}
-              <span className="font-mono font-semibold" style={{ fontSize: 10, color: p.color ? "#0c1a2e" : "#cbd5e1" }}>
-                {p.color ?? "—"}
-              </span>
+              {/* Màu — color dot + 3-digit code */}
+              <div className="flex items-center gap-1">
+                {colorHex
+                  ? <div style={{ width: 10, height: 10, borderRadius: "50%", background: colorHex, border: "1px solid rgba(0,0,0,0.12)", flexShrink: 0 }} />
+                  : <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#e2e8f0", flexShrink: 0 }} />
+                }
+                <span className="font-mono font-semibold" style={{ fontSize: 9, color: p.color ? "#0c1a2e" : "#cbd5e1" }}>
+                  {p.color ?? "—"}
+                </span>
+              </div>
 
               {/* Barcode (SKU) */}
               <span className="font-mono truncate" style={{ fontSize: 9, color: "#64748b" }}>{p.sku ?? "—"}</span>
@@ -425,8 +464,9 @@ function ListView() {
       {/* Mobile cards */}
       <div className="md:hidden flex flex-col gap-2">
         {filtered.map(p => {
-          const loc = resolveLocation(p.id, storeSections, warehouseShelves);
-          const mc = parseMCFromNotes(p.notes);
+          const loc      = locationMap.get(p.id) ?? null;
+          const mc       = parseMCFromNotes(p.notes);
+          const colorHex = colorCodeToHex(p.color);
           return (
             <div
               key={p.id}
@@ -436,8 +476,13 @@ function ListView() {
               <div className="flex-1 min-w-0">
                 <p className="font-semibold truncate" style={{ fontSize: 12, color: "#0c1a2e" }}>{p.name}</p>
                 {/* Tags row: Màu · MC · Size · Category */}
-                <div className="flex flex-wrap gap-x-2 gap-y-0.5 mt-1">
-                  {p.color && <span style={{ fontSize: 9, color: "#0ea5e9", fontWeight: 600 }}>{p.color}</span>}
+                <div className="flex flex-wrap gap-x-2 gap-y-0.5 mt-1 items-center">
+                  {p.color && (
+                    <span className="flex items-center gap-1">
+                      {colorHex && <span style={{ width: 8, height: 8, borderRadius: "50%", background: colorHex, border: "1px solid rgba(0,0,0,0.1)", display: "inline-block", flexShrink: 0 }} />}
+                      <span style={{ fontSize: 9, color: "#334e68", fontWeight: 600 }}>{p.color}</span>
+                    </span>
+                  )}
                   {mc && <span style={{ fontSize: 9, color: "#0ea5e9", fontWeight: 600 }}>{mc}</span>}
                   {p.size && <span style={{ fontSize: 9, color: "#334e68" }}>Size {p.size}</span>}
                   <span style={{ fontSize: 9, color: "#94a3b8" }}>{p.category}</span>

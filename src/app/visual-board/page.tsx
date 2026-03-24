@@ -11,7 +11,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { useStore } from "@/store/useStore";
 import type { Product, StoreSection, WarehouseShelf } from "@/types";
-import { parseMCFromNotes, parseSeasonFromNotes } from "@/lib/categoryMapping";
+import { parseMCFromNotes, parseSeasonFromNotes, colorCodeToHex } from "@/lib/categoryMapping";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Subtab = "display" | "warehouse";
@@ -75,6 +75,7 @@ const ProductCard = memo(function ProductCard({
   const cc = catColor(product.category);
   const isSmall = size < 56;
   const price = product.markdownPrice ?? product.price;
+  const colorHex = colorCodeToHex(product.color);
 
   // ── Label variant (horizontal card for display slots) ──────────────────────
   if (variant === "label") {
@@ -168,7 +169,7 @@ const ProductCard = memo(function ProductCard({
         position: "relative", cursor: onRemove ? "pointer" : "default",
         border: `1.5px solid ${highlight ? "#C9A55A" : `${cc}55`}`,
         boxShadow: highlight ? "0 0 0 2px rgba(201,165,90,0.3)" : "0 1px 4px rgba(0,0,0,0.06)",
-        background: product.imagePath ? "transparent" : `${cc}18`,
+        background: product.imagePath ? "transparent" : colorHex ? `${colorHex}22` : `${cc}18`,
         transition: "all 0.12s",
         flexShrink: 0,
       }}
@@ -651,6 +652,7 @@ function PickerContent({
           const isSelected = selectedPid === p.id;
           const isPlaced = assignedIds.has(p.id);
           const price = p.markdownPrice ?? p.price;
+          const pColorHex = colorCodeToHex(p.color);
           return (
             <button key={p.id} onClick={() => onSelect(isSelected ? null : p.id)}
               style={{
@@ -664,7 +666,7 @@ function PickerContent({
               <div style={{
                 width: 36, height: 36, borderRadius: 8, flexShrink: 0, overflow: "hidden",
                 border: `1.5px solid ${isSelected ? "#C9A55A88" : `${cc}44`}`,
-                background: `${cc}22`,
+                background: pColorHex ? `${pColorHex}33` : `${cc}22`,
                 display: "flex", alignItems: "center", justifyContent: "center", position: "relative",
               }}>
                 {p.imagePath
