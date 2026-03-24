@@ -1195,7 +1195,7 @@ function ShelfView({ shelf, products, selectedPid, highlightPid, canEdit, onPlac
         {shelf.tiers.map((tier, ti) => (
           <div key={ti} style={{ display: "flex", alignItems: "flex-start", gap: 6 }}>
             <span style={{ fontSize: 8, fontWeight: 600, color: "#94a3b8", width: 34, textAlign: "right", flexShrink: 0, paddingTop: 9 }}>{TIER_LABELS[ti]}</span>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+            <div style={{ display: "flex", flexWrap: "nowrap", gap: 4, overflowX: "auto", paddingBottom: 2 }}>
               {tier.map((pid, si) => {
                 const p = pid && typeof pid === "string" ? products.find(x => x.id === pid) ?? null : null;
                 const isHighlit = !!pid && pid === highlightPid;
@@ -1256,7 +1256,7 @@ function SectionView({ section, products, selectedPid, highlightPid, canEdit, on
                     <span style={{ fontSize: 7, width: 20, flexShrink: 0, color: "#94a3b8", fontFamily: "monospace", textAlign: "right", paddingTop: 8 }}>
                       {row.type === "long" ? "D" : "N"}
                     </span>
-                    <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
+                    <div style={{ display: "flex", gap: 5, flexWrap: "nowrap", overflowX: "auto", paddingBottom: 2 }}>
                       {row.products.map((pid, si) => {
                         const p = pid && typeof pid === "string" ? products.find(x => x.id === pid) ?? null : null;
                         if (p) return (

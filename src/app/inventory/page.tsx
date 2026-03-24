@@ -278,8 +278,8 @@ function ListView() {
 
       {/* Table — desktop */}
       <div
-        className="hidden md:block rounded-2xl border overflow-hidden"
-        style={{ background: "#ffffff", borderColor: "#bae6fd" }}
+        className="hidden md:block rounded-2xl border"
+        style={{ background: "#ffffff", borderColor: "#bae6fd", overflowX: "auto" }}
       >
         {/* Header */}
         <div
@@ -426,15 +426,27 @@ function ListView() {
       <div className="md:hidden flex flex-col gap-2">
         {filtered.map(p => {
           const loc = resolveLocation(p.id, storeSections, warehouseShelves);
+          const mc = parseMCFromNotes(p.notes);
           return (
             <div
               key={p.id}
-              className="rounded-xl border px-4 py-3 flex items-start gap-3"
+              className="rounded-xl border px-3 py-2.5 flex items-start gap-2"
               style={{ background: "#ffffff", borderColor: "#bae6fd" }}
             >
               <div className="flex-1 min-w-0">
                 <p className="font-semibold truncate" style={{ fontSize: 12, color: "#0c1a2e" }}>{p.name}</p>
-                <p style={{ fontSize: 9, color: "#64748b", marginTop: 2 }}>{p.category}{p.sku ? ` · ${p.sku}` : ""}</p>
+                {/* Tags row: Màu · MC · Size · Category */}
+                <div className="flex flex-wrap gap-x-2 gap-y-0.5 mt-1">
+                  {p.color && <span style={{ fontSize: 9, color: "#0ea5e9", fontWeight: 600 }}>{p.color}</span>}
+                  {mc && <span style={{ fontSize: 9, color: "#0ea5e9", fontWeight: 600 }}>{mc}</span>}
+                  {p.size && <span style={{ fontSize: 9, color: "#334e68" }}>Size {p.size}</span>}
+                  <span style={{ fontSize: 9, color: "#94a3b8" }}>{p.category}</span>
+                </div>
+                {/* Barcode + price row */}
+                <div className="flex gap-2 mt-0.5 flex-wrap">
+                  {p.sku && <span className="font-mono" style={{ fontSize: 8, color: "#94a3b8" }}>{p.sku}</span>}
+                  {p.price && <span style={{ fontSize: 9, color: "#334e68", fontWeight: 600 }}>{fmtPrice(p.price)}</span>}
+                </div>
                 {loc && (
                   <p className="flex items-center gap-1 mt-1" style={{ fontSize: 8, color: "#0ea5e9" }}>
                     <MapPin size={7} /> {loc}
@@ -442,10 +454,7 @@ function ListView() {
                 )}
               </div>
               <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
-                <span
-                  className="font-bold"
-                  style={{ fontSize: 14, color: p.quantity === 0 ? "#dc2626" : p.quantity < 5 ? "#C9A55A" : "#0c1a2e" }}
-                >
+                <span className="font-bold" style={{ fontSize: 16, color: p.quantity === 0 ? "#dc2626" : p.quantity < 5 ? "#C9A55A" : "#0c1a2e" }}>
                   {p.quantity}
                 </span>
                 <div className="flex gap-1">
