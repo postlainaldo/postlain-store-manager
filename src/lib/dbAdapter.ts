@@ -466,6 +466,17 @@ export async function dbDeleteProducts(ids: string[]): Promise<void> {
 }
 
 /** Delete all products whose ID starts with "odoo-" (from previous syncs) */
+export async function dbDeleteAllProducts(): Promise<number> {
+  if (IS_SUPABASE) {
+    const { count } = await getSupabase().from("products").select("*", { count: "exact", head: true });
+    await getSupabase().from("products").delete().neq("id", "");
+    return count ?? 0;
+  }
+  const db = getDb();
+  const { changes } = db.prepare("DELETE FROM products").run() as { changes: number };
+  return changes;
+}
+
 export async function dbDeleteAllOdooProducts(): Promise<number> {
   if (IS_SUPABASE) {
     const { data } = await getSupabase()

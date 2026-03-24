@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { fetchOdooProducts, testOdooConnection } from "@/lib/odoo";
-import { dbBulkUpsertProducts, dbDeleteAllOdooProducts } from "@/lib/dbAdapter";
+import { dbBulkUpsertProducts, dbDeleteAllProducts } from "@/lib/dbAdapter";
 import type { DBProduct } from "@/lib/dbAdapter";
 import { resolveCategory } from "@/lib/categoryMapping";
 
@@ -102,7 +102,7 @@ export async function POST(req: NextRequest) {
 
     let deleted = 0;
     if (!dryRun) {
-      deleted = await dbDeleteAllOdooProducts();
+      deleted = await dbDeleteAllProducts();
       await dbBulkUpsertProducts(mapped);
     }
 
