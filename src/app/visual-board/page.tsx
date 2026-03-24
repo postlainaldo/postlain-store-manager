@@ -3,10 +3,10 @@
 import { useState, useEffect, useMemo, useCallback, useRef, memo } from "react";
 import {
   Search, X, Package, Warehouse, Eye,
-  ChevronLeft, ChevronRight, ChevronDown, ChevronUp,
+  ChevronLeft, ChevronRight, ChevronUp,
   Camera, ScanLine, Check, AlertCircle, QrCode,
   RefreshCw, LayoutGrid, Layers, Plus, Minus,
-  Wifi, WifiOff,
+  Wifi, WifiOff, Lock, Settings2, Trash2, Edit3,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useStore } from "@/store/useStore";
@@ -38,6 +38,13 @@ const CAT_COLOR: Record<string, string> = {
 };
 function catColor(cat: string) { return CAT_COLOR[cat] ?? "#64748b"; }
 
+function fmtPrice(n?: number | null) {
+  if (!n) return null;
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(n % 1_000_000 === 0 ? 0 : 1)}M`;
+  if (n >= 1_000) return `${Math.round(n / 1_000)}K`;
+  return String(n);
+}
+
 // ─── Barcode fuzzy match ──────────────────────────────────────────────────────
 function findProduct(products: Product[], code: string): Product | null {
   const raw = code.trim();
@@ -65,6 +72,7 @@ const ProductCard = memo(function ProductCard({
   const [hov, setHov] = useState(false);
   const cc = catColor(product.category);
   const isSmall = size < 56;
+  const price = product.markdownPrice ?? product.price;
 
   return (
     <div
@@ -91,32 +99,40 @@ const ProductCard = memo(function ProductCard({
           width: "100%", height: "100%",
           display: "flex", flexDirection: "column",
           alignItems: "center", justifyContent: "center",
-          gap: isSmall ? 1 : 2, padding: isSmall ? 2 : 4,
+          gap: 1, padding: isSmall ? 2 : 3,
         }}>
-          {product.color && (
+          {/* TÊN */}
+          <span style={{
+            fontSize: isSmall ? 6 : 7, fontWeight: 700, color: cc,
+            textAlign: "center", lineHeight: 1.1,
+            maxWidth: "100%", overflow: "hidden", wordBreak: "break-all",
+          }}>
+            {product.name.split(" ")[0].slice(0, isSmall ? 4 : 5)}
+          </span>
+          {/* MÀU */}
+          {product.color && !isSmall && (
             <div style={{
-              width: isSmall ? 8 : 12, height: isSmall ? 8 : 12,
-              borderRadius: "50%", background: product.color,
-              border: "1.5px solid rgba(255,255,255,0.6)", flexShrink: 0,
+              width: 8, height: 8, borderRadius: "50%", background: product.color,
+              border: "1.5px solid rgba(255,255,255,0.7)", flexShrink: 0,
             }} />
           )}
-          {/* Short name (first word or 2 chars) */}
-          <span style={{
-            fontSize: isSmall ? 6.5 : 7.5, fontWeight: 700, color: cc,
-            textAlign: "center", lineHeight: 1.15,
-            maxWidth: "100%", wordBreak: "break-all",
-            overflow: "hidden",
-          }}>
-            {product.name.split(" ")[0].slice(0, isSmall ? 4 : 6)}
-          </span>
-          {/* SKU last 4 chars */}
+          {/* MC (mã code - SKU) */}
           {product.sku && (
             <span style={{
-              fontSize: isSmall ? 5.5 : 6.5, fontWeight: 500, color: `${cc}aa`,
-              textAlign: "center", lineHeight: 1,
-              maxWidth: "100%",
+              fontSize: isSmall ? 5 : 6, fontWeight: 600, color: `${cc}cc`,
+              textAlign: "center", lineHeight: 1, maxWidth: "100%", overflow: "hidden",
             }}>
               {product.sku.slice(-4)}
+            </span>
+          )}
+          {/* GIÁ */}
+          {price && !isSmall && (
+            <span style={{
+              fontSize: 5.5, fontWeight: 700,
+              color: product.markdownPrice ? "#dc2626" : "#64748b",
+              textAlign: "center", lineHeight: 1,
+            }}>
+              {fmtPrice(price)}
             </span>
           )}
         </div>
@@ -170,8 +186,12 @@ const ProductCard = memo(function ProductCard({
                 boxShadow: "0 4px 16px rgba(0,0,0,0.2)",
               }}>
                 <p style={{ fontSize: 10, color: "#fff", fontWeight: 600 }}>{product.name}</p>
-                {product.sku && <p style={{ fontSize: 8, color: "#7dd3fc", marginTop: 1 }}>{product.sku}</p>}
-                <p style={{ fontSize: 8, color: "#94a3b8", marginTop: 1 }}>{product.category} · qty: {product.quantity}</p>
+                {product.sku && <p style={{ fontSize: 8, color: "#7dd3fc", marginTop: 1 }}>MC: {product.sku}</p>}
+                {product.color && <p style={{ fontSize: 8, color: "#94a3b8", marginTop: 1 }}>Màu: {product.color}</p>}
+                {price && <p style={{ fontSize: 8, color: product.markdownPrice ? "#fca5a5" : "#94a3b8", marginTop: 1 }}>
+                  {product.markdownPrice ? `${fmtPrice(product.markdownPrice)} ↓` : fmtPrice(product.price)}
+                </p>}
+                <p style={{ fontSize: 8, color: "#94a3b8", marginTop: 1 }}>{product.category} · SL: {product.quantity}</p>
               </div>
             </motion.div>
           )}
@@ -183,10 +203,10 @@ const ProductCard = memo(function ProductCard({
 
 // ─── Empty slot ───────────────────────────────────────────────────────────────
 function EmptySlot({
-  size = 64, canPlace, canScan, onPlace, onScan, label,
+  size = 64, canPlace, canScan, onPlace, onScan,
 }: {
   size?: number; canPlace: boolean; canScan: boolean;
-  onPlace?: () => void; onScan?: () => void; label?: string;
+  onPlace?: () => void; onScan?: () => void;
 }) {
   const [hov, setHov] = useState(false);
   const isSmall = size < 56;
@@ -196,7 +216,6 @@ function EmptySlot({
       onMouseEnter={() => setHov(true)}
       onMouseLeave={() => setHov(false)}
       onClick={() => { if (canPlace) onPlace?.(); else if (canScan) onScan?.(); }}
-      title={canScan ? "Click để quét QR" : canPlace ? "Click để đặt" : undefined}
       style={{
         width: size, height: size, borderRadius: isSmall ? 8 : 10,
         border: `1.5px dashed ${canPlace && hov ? "#C9A55A" : canPlace ? "#0ea5e9" : canScan && hov ? "#C9A55A" : "#e0f2fe"}`,
@@ -205,7 +224,6 @@ function EmptySlot({
         cursor: canPlace || canScan ? "pointer" : "default",
         transition: "all 0.12s",
         flexShrink: 0,
-        position: "relative",
       }}
     >
       {canPlace ? (
@@ -214,16 +232,6 @@ function EmptySlot({
         <ScanLine size={isSmall ? 10 : 14} style={{ color: "#C9A55A" }} />
       ) : (
         <Package size={isSmall ? 8 : 10} style={{ color: "#cbd5e1" }} />
-      )}
-      {label && hov && canScan && (
-        <div style={{
-          position: "absolute", bottom: "calc(100%+6px)", left: "50%",
-          transform: "translateX(-50%)",
-          background: "#0c1a2e", borderRadius: 6, padding: "3px 7px",
-          fontSize: 8, color: "#7dd3fc", whiteSpace: "nowrap", pointerEvents: "none",
-        }}>
-          Quét QR
-        </div>
       )}
     </div>
   );
@@ -253,200 +261,186 @@ function QRScanner({
     setScanning(false);
   }, []);
 
-  const handleCode = useCallback((code: string) => {
-    if (lockRef.current) return;
-    lockRef.current = true;
-    setLastCode(code);
-    stop();
-    onResult(code);
-  }, [stop, onResult]);
-
-  const start = useCallback(async () => {
-    setCamError(null); setLastCode(null); lockRef.current = false;
+  const startCamera = useCallback(async () => {
+    setCamError(null);
+    setLastCode(null);
+    lockRef.current = false;
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 720 } },
+        video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } },
       });
       streamRef.current = stream;
-      if (videoRef.current) { videoRef.current.srcObject = stream; await videoRef.current.play(); }
-      setScanning(true);
-    } catch {
-      setCamError("Không thể mở camera — dùng chế độ nhập SKU thủ công");
-      return;
-    }
-
-    // Detectors
-    type NativeD = { detect: (v: HTMLVideoElement) => Promise<{ rawValue: string }[]> };
-    let nativeD: NativeD | null = null;
-    try {
-      if ("BarcodeDetector" in window) {
-        const BD = (window as unknown as { BarcodeDetector: new (o: { formats: string[] }) => NativeD }).BarcodeDetector;
-        nativeD = new BD({ formats: ["qr_code","ean_13","ean_8","code_128","code_39","upc_a","upc_e","data_matrix","aztec"] });
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.play();
+        setScanning(true);
       }
-    } catch { /* ignore */ }
+    } catch {
+      setCamError("Không thể mở camera. Kiểm tra quyền truy cập.");
+    }
+  }, []);
 
-    type ZxR = { decodeFromVideoElement: (v: HTMLVideoElement) => Promise<{ getText(): string }> };
-    let zxR: ZxR | null = null;
-    try {
-      const { BrowserMultiFormatReader } = await import("@zxing/browser");
-      zxR = new BrowserMultiFormatReader() as unknown as ZxR;
-    } catch { /* ignore */ }
-
+  // Detection loop
+  useEffect(() => {
+    if (!scanning) return;
+    let nativeDetector: { detect: (v: HTMLVideoElement) => Promise<{ rawValue: string }[]> } | null = null;
+    let zxingReader: { decodeFromVideoElement: (v: HTMLVideoElement) => Promise<{ getText: () => string }> } | null = null;
     type JsQRFn = (d: Uint8ClampedArray, w: number, h: number) => { data: string } | null;
     let jsQRFn: JsQRFn | null = null;
-    try { jsQRFn = ((await import("jsqr")) as { default: JsQRFn }).default; } catch { /* ignore */ }
 
-    const tick = async () => {
-      if (lockRef.current || !streamRef.current) return;
-      const v = videoRef.current; const cv = canvasRef.current;
-      if (v && v.readyState >= v.HAVE_ENOUGH_DATA) {
-        if (nativeD) {
-          try { const r = await nativeD.detect(v); if (r[0]) { handleCode(r[0].rawValue); return; } } catch { /* ignore */ }
+    async function init() {
+      try {
+        if ("BarcodeDetector" in window) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          nativeDetector = new (window as any).BarcodeDetector({ formats: ["ean_13","ean_8","code_128","code_39","qr_code","upc_a","upc_e","itf","data_matrix","aztec"] });
         }
-        if (zxR) {
-          try { const r = await zxR.decodeFromVideoElement(v); if (r) { handleCode(r.getText()); return; } } catch { /* NotFoundException = normal */ }
+      } catch { /* not supported */ }
+      try {
+        type ZxingMod = { BrowserMultiFormatReader: new () => { decodeFromVideoElement: (v: HTMLVideoElement) => Promise<{ getText: () => string }> } };
+        const mod = await import("@zxing/browser") as unknown as ZxingMod;
+        zxingReader = new mod.BrowserMultiFormatReader();
+      } catch { /* not available */ }
+      try {
+        const mod = await import("jsqr");
+        jsQRFn = mod.default as unknown as JsQRFn;
+      } catch { /* not available */ }
+    }
+
+    init().then(() => {
+      const loop = async () => {
+        const video = videoRef.current;
+        const canvas = canvasRef.current;
+        if (!video || video.readyState < 2) { rafRef.current = requestAnimationFrame(loop); return; }
+        if (lockRef.current) { rafRef.current = requestAnimationFrame(loop); return; }
+
+        let code: string | null = null;
+
+        // 1. Native
+        if (!code && nativeDetector) {
+          try {
+            const results = await nativeDetector.detect(video);
+            if (results.length > 0) code = results[0].rawValue;
+          } catch { /* ignore */ }
         }
-        if (jsQRFn && cv) {
-          cv.width = v.videoWidth; cv.height = v.videoHeight;
-          const ctx = cv.getContext("2d");
-          if (ctx) {
-            ctx.drawImage(v, 0, 0);
-            const img = ctx.getImageData(0, 0, cv.width, cv.height);
-            const r = jsQRFn(img.data, img.width, img.height);
-            if (r) { handleCode(r.data); return; }
-          }
+        // 2. ZXing
+        if (!code && zxingReader) {
+          try {
+            const result = await zxingReader.decodeFromVideoElement(video);
+            if (result) code = result.getText();
+          } catch { /* not found */ }
         }
-      }
-      rafRef.current = requestAnimationFrame(tick);
+        // 3. jsQR fallback
+        if (!code && jsQRFn && canvas) {
+          try {
+            const ctx = canvas.getContext("2d");
+            if (ctx) {
+              canvas.width = video.videoWidth;
+              canvas.height = video.videoHeight;
+              ctx.drawImage(video, 0, 0);
+              const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
+              const qr = jsQRFn(img.data, img.width, img.height);
+              if (qr) code = qr.data;
+            }
+          } catch { /* ignore */ }
+        }
+
+        if (code && code !== lastCode) {
+          lockRef.current = true;
+          setLastCode(code);
+          onResult(code);
+          setTimeout(() => { lockRef.current = false; }, 2000);
+        }
+
+        rafRef.current = requestAnimationFrame(loop);
+      };
+      rafRef.current = requestAnimationFrame(loop);
+    });
+
+    return () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
-    rafRef.current = requestAnimationFrame(tick);
-  }, [handleCode]);
+  }, [scanning, lastCode, onResult]);
 
-  useEffect(() => { if (open) start(); else stop(); return stop; }, [open]); // eslint-disable-line
-
-  // When parent notifies "not found", re-enable scanning
   useEffect(() => {
-    if (notFound) { lockRef.current = false; }
-  }, [notFound]);
+    if (open) startCamera();
+    return () => stop();
+  }, [open]); // eslint-disable-line
 
   if (!open) return null;
 
   return (
     <motion.div
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      onClick={e => { if (e.target === e.currentTarget) { stop(); onClose(); } }}
-      style={{
-        position: "fixed", inset: 0, zIndex: 1000,
-        background: "rgba(12,26,46,0.8)", backdropFilter: "blur(6px)",
-        display: "flex", alignItems: "center", justifyContent: "center", padding: 16,
-      }}
+      style={{ position: "fixed", inset: 0, zIndex: 500, background: "rgba(12,26,46,0.85)", display: "flex", alignItems: "flex-end", justifyContent: "center" }}
     >
       <motion.div
-        initial={{ scale: 0.92, y: 20 }} animate={{ scale: 1, y: 0 }}
-        style={{
-          background: "#fff", borderRadius: 20, width: "100%", maxWidth: 380,
-          overflow: "hidden", boxShadow: "0 32px 80px rgba(0,0,0,0.3)",
-        }}
+        initial={{ y: 80, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 80, opacity: 0 }}
+        style={{ width: "100%", maxWidth: 420, background: "#0c1a2e", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, display: "flex", flexDirection: "column", gap: 12 }}
       >
-        {/* Header */}
-        <div style={{ padding: "14px 18px", background: "#0c1a2e", display: "flex", alignItems: "center", gap: 10 }}>
-          <QrCode size={16} style={{ color: "#C9A55A" }} />
-          <div style={{ flex: 1 }}>
-            <p style={{ fontSize: 12, fontWeight: 700, color: "#fff" }}>Quét mã sản phẩm</p>
-            {slotLabel && <p style={{ fontSize: 9, color: "#C9A55A", marginTop: 1 }}>→ {slotLabel}</p>}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div>
+            <p style={{ fontSize: 9, color: "#7dd3fc", letterSpacing: "0.2em", fontWeight: 700 }}>QUÉT MÃ VẠCH</p>
+            {slotLabel && <p style={{ fontSize: 11, color: "#94a3b8", marginTop: 2 }}>→ {slotLabel}</p>}
           </div>
           <button onClick={() => { stop(); onClose(); }}
-            style={{ width: 28, height: 28, borderRadius: 8, background: "rgba(255,255,255,0.1)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <X size={13} color="#fff" />
+            style={{ width: 32, height: 32, borderRadius: 10, background: "rgba(255,255,255,0.1)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <X size={14} color="#fff" />
           </button>
         </div>
 
-        {/* Camera */}
-        <div style={{ position: "relative", background: "#000", aspectRatio: "4/3" }}>
-          <video ref={videoRef} style={{ width: "100%", height: "100%", objectFit: "cover" }} playsInline muted autoPlay />
+        <div style={{ borderRadius: 16, overflow: "hidden", background: "#000", position: "relative", aspectRatio: "16/9" }}>
+          <video ref={videoRef} muted playsInline style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
           <canvas ref={canvasRef} style={{ display: "none" }} />
-
           {scanning && (
-            <>
-              {/* Scan frame */}
-              <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}>
-                <div style={{ width: 200, height: 140, position: "relative" }}>
-                  {[
-                    { top: 0, left: 0, borderTop: "3px solid #C9A55A", borderLeft: "3px solid #C9A55A" },
-                    { top: 0, right: 0, borderTop: "3px solid #C9A55A", borderRight: "3px solid #C9A55A" },
-                    { bottom: 0, left: 0, borderBottom: "3px solid #C9A55A", borderLeft: "3px solid #C9A55A" },
-                    { bottom: 0, right: 0, borderBottom: "3px solid #C9A55A", borderRight: "3px solid #C9A55A" },
-                  ].map((s, i) => <div key={i} style={{ position: "absolute", width: 28, height: 28, ...s }} />)}
-                  <motion.div
-                    animate={{ top: ["4px", "calc(100% - 4px)", "4px"] }}
-                    transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
-                    style={{ position: "absolute", left: 4, right: 4, height: 2, background: "linear-gradient(90deg, transparent, rgba(201,165,90,0.9), transparent)", borderRadius: 2 }}
-                  />
-                </div>
-              </div>
-              <div style={{ position: "absolute", bottom: 8, left: 0, right: 0, textAlign: "center" }}>
-                <span style={{ fontSize: 8, color: "rgba(255,255,255,0.5)", background: "rgba(0,0,0,0.4)", padding: "2px 8px", borderRadius: 20 }}>
-                  EAN-13 · Code-128 · QR · UPC · DataMatrix
-                </span>
-              </div>
-            </>
+            <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}>
+              <div style={{ width: "60%", aspectRatio: "3/2", border: "2px solid rgba(201,165,90,0.8)", borderRadius: 12, boxShadow: "0 0 0 1000px rgba(0,0,0,0.4)" }} />
+            </div>
           )}
-
           {!scanning && !camError && (
-            <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.5)" }}>
-              <p style={{ color: "#94a3b8", fontSize: 11 }}>Đang khởi động camera...</p>
+            <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Camera size={32} style={{ color: "rgba(255,255,255,0.3)" }} />
             </div>
           )}
         </div>
 
-        {/* Status */}
-        <div style={{ padding: "12px 18px", display: "flex", flexDirection: "column", gap: 10 }}>
-          {camError && (
-            <div style={{ padding: "10px 14px", borderRadius: 10, background: "rgba(220,38,38,0.06)", border: "1px solid rgba(220,38,38,0.2)", fontSize: 11, color: "#dc2626" }}>
-              {camError}
-            </div>
-          )}
-
-          {notFound && (
-            <div style={{ padding: "10px 14px", borderRadius: 10, background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.3)", display: "flex", gap: 8, alignItems: "center" }}>
-              <AlertCircle size={13} style={{ color: "#f59e0b", flexShrink: 0 }} />
-              <div>
-                <p style={{ fontSize: 10, color: "#92400e", fontWeight: 600 }}>Không tìm thấy sản phẩm</p>
-                <p style={{ fontSize: 9, color: "#b45309", marginTop: 1 }}>Mã: <span style={{ fontFamily: "monospace" }}>{notFound}</span></p>
-              </div>
-              <button onClick={() => { lockRef.current = false; start(); }}
-                style={{ marginLeft: "auto", padding: "4px 10px", borderRadius: 7, border: "1px solid #bae6fd", background: "#f0f9ff", fontSize: 8.5, color: "#0ea5e9", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
-                Quét lại
-              </button>
-            </div>
-          )}
-
-          {lastCode && !notFound && (
-            <div style={{ padding: "10px 14px", borderRadius: 10, background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.3)", display: "flex", gap: 8, alignItems: "center" }}>
-              <Check size={13} style={{ color: "#10b981" }} />
-              <p style={{ fontSize: 10, color: "#065f46", fontWeight: 600 }}>Đã quét: {lastCode}</p>
-            </div>
-          )}
-
-          <div style={{ display: "flex", gap: 8 }}>
-            <button onClick={() => { stop(); onClose(); }}
-              style={{ flex: 1, height: 38, borderRadius: 10, border: "1px solid #bae6fd", background: "#f0f9ff", fontSize: 10, color: "#64748b", cursor: "pointer", fontFamily: "inherit" }}>
-              Đóng
-            </button>
-            {!scanning && (
-              <button onClick={() => { lockRef.current = false; start(); }}
-                style={{ flex: 1, height: 38, borderRadius: 10, border: "none", background: "#0c1a2e", fontSize: 10, color: "#fff", fontWeight: 700, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
-                <Camera size={13} /> Bật Camera
-              </button>
-            )}
+        {camError && (
+          <div style={{ display: "flex", gap: 8, alignItems: "center", padding: "10px 14px", borderRadius: 10, background: "rgba(220,38,38,0.15)", border: "1px solid rgba(220,38,38,0.3)" }}>
+            <AlertCircle size={13} style={{ color: "#fca5a5", flexShrink: 0 }} />
+            <p style={{ fontSize: 11, color: "#fca5a5" }}>{camError}</p>
+            <button onClick={startCamera} style={{ marginLeft: "auto", fontSize: 10, color: "#7dd3fc", background: "none", border: "none", cursor: "pointer" }}>Thử lại</button>
           </div>
-        </div>
+        )}
+
+        {notFound && (
+          <div style={{ display: "flex", gap: 8, alignItems: "center", padding: "10px 14px", borderRadius: 10, background: "rgba(201,165,90,0.12)", border: "1px solid rgba(201,165,90,0.35)" }}>
+            <QrCode size={13} style={{ color: "#C9A55A", flexShrink: 0 }} />
+            <div>
+              <p style={{ fontSize: 10, color: "#C9A55A", fontWeight: 600 }}>Không tìm thấy</p>
+              <p style={{ fontSize: 9, color: "#94a3b8", marginTop: 1 }}>Mã: {notFound}</p>
+            </div>
+          </div>
+        )}
+
+        {lastCode && !notFound && (
+          <div style={{ display: "flex", gap: 8, alignItems: "center", padding: "10px 14px", borderRadius: 10, background: "rgba(16,185,129,0.12)", border: "1px solid rgba(16,185,129,0.35)" }}>
+            <Check size={13} style={{ color: "#10b981", flexShrink: 0 }} />
+            <p style={{ fontSize: 11, color: "#10b981", fontWeight: 600 }}>Đã nhận diện: {lastCode}</p>
+          </div>
+        )}
+
+        {scanning && (
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+            <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#C9A55A", animation: "pulse 1.2s ease-in-out infinite" }} />
+            <span style={{ fontSize: 10, color: "#94a3b8" }}>Đang quét...</span>
+          </div>
+        )}
       </motion.div>
+      <style>{`@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.4;transform:scale(0.8)} }`}</style>
     </motion.div>
   );
 }
 
-// ─── Product Picker (bottom sheet on mobile, sidebar panel on desktop) ─────────
+// ─── Product Picker ─────────────────────────────────────────────────────────
 function ProductPicker({
   products, selectedPid, onSelect, assignedIds, mode, open, onClose,
 }: {
@@ -506,7 +500,7 @@ function ProductPicker({
         )}
       </AnimatePresence>
       {/* Desktop sidebar */}
-      <div className="hidden md:flex" style={{ width: 260, flexShrink: 0 }}>
+      <div className="hidden md:flex" style={{ width: 240, flexShrink: 0 }}>
         <div style={{
           width: "100%", display: "flex", flexDirection: "column", gap: 8,
           background: "#fff", border: "1px solid #bae6fd", borderRadius: 16,
@@ -536,14 +530,11 @@ function PickerContent({
 }) {
   return (
     <>
-      {/* Handle (mobile only) */}
       {onClose && (
         <div style={{ display: "flex", justifyContent: "center", paddingTop: 8, paddingBottom: 4 }}>
           <div style={{ width: 36, height: 4, borderRadius: 2, background: "#e0f2fe" }} />
         </div>
       )}
-
-      {/* Header */}
       <div style={{ flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "space-between", padding: onClose ? "0 16px 8px" : "0 0 4px" }}>
         <div>
           <p style={{ fontSize: 9, fontWeight: 700, color: "#64748b", letterSpacing: "0.15em" }}>KHO SẢN PHẨM</p>
@@ -554,16 +545,12 @@ function PickerContent({
         </div>
         {onClose && <button onClick={onClose} style={{ width: 28, height: 28, borderRadius: 8, border: "1px solid #bae6fd", background: "#f0f9ff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><X size={12} style={{ color: "#64748b" }} /></button>}
       </div>
-
-      {/* Search */}
       <div style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 8, background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 10, padding: "0 10px", height: 36, margin: onClose ? "0 16px" : 0 }}>
         <Search size={12} style={{ color: "#94a3b8" }} strokeWidth={1.5} />
         <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Tên, SKU..."
           style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: 11, fontFamily: "inherit", color: "#0c1a2e" }} />
         {search && <button onClick={() => setSearch("")} style={{ background: "none", border: "none", cursor: "pointer" }}><X size={10} style={{ color: "#94a3b8" }} /></button>}
       </div>
-
-      {/* Category chips */}
       <div style={{ flexShrink: 0, display: "flex", gap: 5, overflowX: "auto", paddingBottom: 2, scrollbarWidth: "none", padding: onClose ? "0 16px" : undefined }}>
         {["Tất cả", ...presentCats].map(c => {
           const active = c === "Tất cả" ? cat === null : cat === c;
@@ -584,8 +571,6 @@ function PickerContent({
           );
         })}
       </div>
-
-      {/* Selected hint */}
       <AnimatePresence>
         {selectedPid && (
           <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}
@@ -598,8 +583,6 @@ function PickerContent({
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Product list */}
       <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: 4, padding: onClose ? "0 16px 16px" : "0 0 4px" }}>
         {products.length === 0 && (
           <p style={{ textAlign: "center", marginTop: 32, fontSize: 11, color: "#94a3b8" }}>Không có sản phẩm</p>
@@ -608,19 +591,19 @@ function PickerContent({
           const cc = catColor(p.category);
           const isSelected = selectedPid === p.id;
           const isPlaced = assignedIds.has(p.id);
+          const price = p.markdownPrice ?? p.price;
           return (
             <button key={p.id} onClick={() => onSelect(isSelected ? null : p.id)}
               style={{
-                display: "flex", alignItems: "center", gap: 10, padding: "9px 10px",
+                display: "flex", alignItems: "center", gap: 8, padding: "8px 10px",
                 borderRadius: 12, cursor: "pointer", border: isSelected ? `2px solid #C9A55A` : "1px solid #bae6fd",
                 background: isSelected ? "rgba(201,165,90,0.10)" : isPlaced ? "#f0fff4" : "#fff",
                 fontFamily: "inherit", textAlign: "left",
                 boxShadow: isSelected ? "0 0 0 3px rgba(201,165,90,0.18)" : "none",
                 transition: "all 0.12s", flexShrink: 0,
               }}>
-              {/* Thumbnail */}
               <div style={{
-                width: 40, height: 40, borderRadius: 8, flexShrink: 0, overflow: "hidden",
+                width: 36, height: 36, borderRadius: 8, flexShrink: 0, overflow: "hidden",
                 border: `1.5px solid ${isSelected ? "#C9A55A88" : `${cc}44`}`,
                 background: p.color ? `${p.color}22` : `${cc}22`,
                 display: "flex", alignItems: "center", justifyContent: "center", position: "relative",
@@ -628,28 +611,24 @@ function PickerContent({
                 {p.imagePath
                   ? <img src={p.imagePath} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                   : <>
-                      {p.color && <div style={{ width: 14, height: 14, borderRadius: "50%", background: p.color, border: "1.5px solid rgba(255,255,255,0.6)" }} />}
-                      {!p.color && <span style={{ fontSize: 11, fontWeight: 700, color: cc }}>{p.name.slice(0, 2)}</span>}
+                      {p.color && <div style={{ width: 12, height: 12, borderRadius: "50%", background: p.color, border: "1.5px solid rgba(255,255,255,0.6)" }} />}
+                      {!p.color && <span style={{ fontSize: 10, fontWeight: 700, color: cc }}>{p.name.slice(0, 2)}</span>}
                     </>
                 }
                 <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 2, background: cc }} />
               </div>
-              {/* Info */}
               <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ fontSize: 11, fontWeight: 600, color: isSelected ? "#C9A55A" : "#0c1a2e", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</p>
-                <div style={{ display: "flex", gap: 4, alignItems: "center", marginTop: 2 }}>
-                  <span style={{ width: 5, height: 5, borderRadius: "50%", background: cc, flexShrink: 0 }} />
-                  <span style={{ fontSize: 8.5, color: "#94a3b8", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {p.sku && <span style={{ color: "#0ea5e9", marginRight: 3 }}>{p.sku}</span>}
-                    {p.category}
-                  </span>
+                <p style={{ fontSize: 10.5, fontWeight: 600, color: isSelected ? "#C9A55A" : "#0c1a2e", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</p>
+                <div style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 2, flexWrap: "wrap" }}>
+                  {p.sku && <span style={{ fontSize: 8, color: "#0ea5e9", fontWeight: 600 }}>MC:{p.sku.slice(-6)}</span>}
+                  {p.color && <span style={{ width: 6, height: 6, borderRadius: "50%", background: p.color, border: "1px solid #e2e8f0", flexShrink: 0 }} />}
+                  {price && <span style={{ fontSize: 8, color: p.markdownPrice ? "#dc2626" : "#64748b", fontWeight: 600 }}>{fmtPrice(price)}</span>}
                 </div>
               </div>
-              {/* Right */}
-              <div style={{ flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 3 }}>
-                {(p.quantity ?? 0) > 0 && <span style={{ fontSize: 8.5, fontWeight: 700, padding: "1px 5px", borderRadius: 6, background: "#0ea5e9", color: "#fff" }}>×{p.quantity}</span>}
-                {isPlaced && <span style={{ fontSize: 7.5, fontWeight: 700, padding: "1px 5px", borderRadius: 6, background: `${accentColor}18`, color: accentColor }}>Đã xếp</span>}
-                {isSelected && <Check size={11} style={{ color: "#C9A55A" }} />}
+              <div style={{ flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 2 }}>
+                {(p.quantity ?? 0) > 0 && <span style={{ fontSize: 8, fontWeight: 700, padding: "1px 5px", borderRadius: 6, background: "#0ea5e9", color: "#fff" }}>×{p.quantity}</span>}
+                {isPlaced && <span style={{ fontSize: 7, fontWeight: 700, padding: "1px 4px", borderRadius: 5, background: `${accentColor}18`, color: accentColor }}>Đã xếp</span>}
+                {isSelected && <Check size={10} style={{ color: "#C9A55A" }} />}
               </div>
             </button>
           );
@@ -660,10 +639,10 @@ function PickerContent({
 }
 
 // ─── Display Tab ──────────────────────────────────────────────────────────────
-function DisplayTab({ products, storeSections, placeInSection, highlightPid }: {
+function DisplayTab({ products, storeSections, placeInSection, highlightPid, canEdit }: {
   products: Product[]; storeSections: StoreSection[];
   placeInSection: (sId: string, subId: string, ri: number, si: number, pid: string | null) => void;
-  highlightPid: string | null;
+  highlightPid: string | null; canEdit: boolean;
 }) {
   const [sectionIdx, setSectionIdx] = useState(0);
   const [selectedPid, setSelectedPid] = useState<string | null>(null);
@@ -682,7 +661,6 @@ function DisplayTab({ products, storeSections, placeInSection, highlightPid }: {
   const currentSection = storeSections[clampedIdx] ?? null;
   const cfg = currentSection ? (ZONE_CFG[currentSection.sectionType] ?? ZONE_CFG.window) : ZONE_CFG.window;
 
-  // Jump to section containing highlighted product
   useEffect(() => {
     if (!highlightPid) return;
     const idx = storeSections.findIndex(sec => sec.subsections.some(sub => sub.rows.some(row => row.products.includes(highlightPid))));
@@ -690,19 +668,20 @@ function DisplayTab({ products, storeSections, placeInSection, highlightPid }: {
   }, [highlightPid]); // eslint-disable-line
 
   const handlePlace = useCallback((sId: string, subId: string, ri: number, si: number) => {
-    if (!selectedPid) return;
+    if (!selectedPid || !canEdit) return;
     placeInSection(sId, subId, ri, si, selectedPid);
     setSelectedPid(null);
-  }, [selectedPid, placeInSection]);
+  }, [selectedPid, placeInSection, canEdit]);
 
   const handleScanToPlace = useCallback((sId: string, subId: string, ri: number, si: number) => {
+    if (!canEdit) return;
     const sec = storeSections.find(s => s.id === sId);
     const sub = sec?.subsections.find(s => s.id === subId);
     const label = sub ? `${sub.name} · Hàng ${ri + 1}, Ô ${si + 1}` : `Ô ${si + 1}`;
     setPendingSlot({ kind: "display", sId, subId, ri, si, label });
     setQrNotFound(null);
     setQrOpen(true);
-  }, [storeSections]);
+  }, [storeSections, canEdit]);
 
   const handleQrResult = useCallback((code: string) => {
     const match = findProduct(products, code);
@@ -716,7 +695,6 @@ function DisplayTab({ products, storeSections, placeInSection, highlightPid }: {
     }
   }, [products, pendingSlot, placeInSection]);
 
-  // Stats
   const totalSlots = storeSections.reduce((s, sec) => s + sec.subsections.reduce((ss, sub) => ss + sub.rows.reduce((rs, r) => rs + r.products.length, 0), 0), 0);
 
   return (
@@ -725,11 +703,15 @@ function DisplayTab({ products, storeSections, placeInSection, highlightPid }: {
         {qrOpen && <QRScanner open={qrOpen} onClose={() => { setQrOpen(false); setPendingSlot(null); }} onResult={handleQrResult} slotLabel={pendingSlot?.label} notFound={qrNotFound} />}
       </AnimatePresence>
 
-      <ProductPicker products={products} selectedPid={selectedPid} onSelect={setSelectedPid}
-        assignedIds={displayIds} mode="display" open={pickerOpen} onClose={() => setPickerOpen(false)} />
+      {/* Sidebar product picker — only show on desktop when canEdit */}
+      {canEdit && (
+        <ProductPicker products={products} selectedPid={selectedPid} onSelect={setSelectedPid}
+          assignedIds={displayIds} mode="display" open={pickerOpen} onClose={() => setPickerOpen(false)} />
+      )}
+      {!canEdit && <div className="hidden md:block" style={{ width: 240, flexShrink: 0 }} />}
 
       <div style={{ display: "flex", flexDirection: "column", flex: 1, gap: 8, minWidth: 0, minHeight: 0 }}>
-        {/* Stats - desktop */}
+        {/* Stats */}
         <div className="hidden md:flex" style={{ flexShrink: 0, alignItems: "center", gap: 8 }}>
           {[
             { icon: Eye, val: displayIds.size, unit: "đang trưng bày", color: "#C9A55A" },
@@ -745,11 +727,17 @@ function DisplayTab({ products, storeSections, placeInSection, highlightPid }: {
               </div>
             );
           })}
+          {!canEdit && (
+            <div style={{ display: "flex", alignItems: "center", gap: 5, padding: "7px 12px", borderRadius: 12, background: "rgba(148,163,184,0.08)", border: "1px solid #e2e8f0" }}>
+              <Lock size={10} style={{ color: "#94a3b8" }} />
+              <span style={{ fontSize: 9, color: "#94a3b8" }}>Chỉ xem</span>
+            </div>
+          )}
         </div>
 
         {/* Selected chip */}
         <AnimatePresence>
-          {selectedPid && (
+          {selectedPid && canEdit && (
             <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }}
               style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", borderRadius: 12, background: "rgba(201,165,90,0.10)", border: "1px solid rgba(201,165,90,0.4)" }}>
               {(() => { const p = products.find(x => x.id === selectedPid); return p ? <ProductCard product={p} size={32} /> : null; })()}
@@ -763,19 +751,19 @@ function DisplayTab({ products, storeSections, placeInSection, highlightPid }: {
 
         {/* Section navigator */}
         {storeSections.length > 0 && (
-          <div style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 6 }}>
             <button onClick={() => setSectionIdx(i => Math.max(0, i - 1))} disabled={clampedIdx === 0}
-              style={{ width: 36, height: 36, borderRadius: 10, border: "1px solid #bae6fd", background: clampedIdx === 0 ? "#f8fafc" : "#fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: clampedIdx === 0 ? "default" : "pointer" }}>
-              <ChevronLeft size={16} style={{ color: clampedIdx === 0 ? "#bae6fd" : "#0ea5e9" }} />
+              style={{ width: 34, height: 34, borderRadius: 10, border: "1px solid #bae6fd", background: clampedIdx === 0 ? "#f8fafc" : "#fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: clampedIdx === 0 ? "default" : "pointer", flexShrink: 0 }}>
+              <ChevronLeft size={15} style={{ color: clampedIdx === 0 ? "#bae6fd" : "#0ea5e9" }} />
             </button>
-            <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 10, padding: "0 14px", height: 36, background: "#fff", border: "1px solid #bae6fd", borderRadius: 10 }}>
+            <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 8, padding: "0 12px", height: 34, background: "#fff", border: `1px solid ${cfg.color}44`, borderRadius: 10, minWidth: 0 }}>
               <div style={{ width: 3, height: 14, borderRadius: 2, background: cfg.color, flexShrink: 0 }} />
-              <span style={{ fontSize: 11, fontWeight: 700, color: cfg.color, flex: 1 }}>{currentSection?.name ?? "—"}</span>
-              <span style={{ fontSize: 9, color: "#94a3b8" }}>{clampedIdx + 1} / {storeSections.length}</span>
+              <span style={{ fontSize: 11, fontWeight: 700, color: cfg.color, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{currentSection?.name ?? "—"}</span>
+              <span style={{ fontSize: 9, color: "#94a3b8", flexShrink: 0 }}>{clampedIdx + 1}/{storeSections.length}</span>
             </div>
             <button onClick={() => setSectionIdx(i => Math.min(storeSections.length - 1, i + 1))} disabled={clampedIdx === storeSections.length - 1}
-              style={{ width: 36, height: 36, borderRadius: 10, border: "1px solid #bae6fd", background: clampedIdx === storeSections.length - 1 ? "#f8fafc" : "#fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: clampedIdx === storeSections.length - 1 ? "default" : "pointer" }}>
-              <ChevronRight size={16} style={{ color: clampedIdx === storeSections.length - 1 ? "#bae6fd" : "#0ea5e9" }} />
+              style={{ width: 34, height: 34, borderRadius: 10, border: "1px solid #bae6fd", background: clampedIdx === storeSections.length - 1 ? "#f8fafc" : "#fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: clampedIdx === storeSections.length - 1 ? "default" : "pointer", flexShrink: 0 }}>
+              <ChevronRight size={15} style={{ color: clampedIdx === storeSections.length - 1 ? "#bae6fd" : "#0ea5e9" }} />
             </button>
           </div>
         )}
@@ -788,8 +776,9 @@ function DisplayTab({ products, storeSections, placeInSection, highlightPid }: {
                 <SectionView
                   section={currentSection} products={products}
                   selectedPid={selectedPid} highlightPid={highlightPid}
+                  canEdit={canEdit}
                   onPlace={handlePlace} onScanToPlace={handleScanToPlace}
-                  onRemove={(sId, subId, ri, si) => placeInSection(sId, subId, ri, si, null)}
+                  onRemove={(sId, subId, ri, si) => canEdit && placeInSection(sId, subId, ri, si, null)}
                 />
               </motion.div>
             ) : (
@@ -800,88 +789,121 @@ function DisplayTab({ products, storeSections, placeInSection, highlightPid }: {
       </div>
 
       {/* Mobile FAB */}
-      <div className="flex md:hidden" style={{ position: "fixed", bottom: "calc(68px + env(safe-area-inset-bottom, 0px))", right: 16, zIndex: 200 }}>
-        <button onClick={() => setPickerOpen(true)}
-          style={{ width: 56, height: 56, borderRadius: 28, background: "linear-gradient(135deg, #C9A55A, #e6c474)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 20px rgba(201,165,90,0.45)", position: "relative" }}>
-          <Package size={22} color="#fff" />
-          {selectedPid && <span style={{ position: "absolute", top: -2, right: -2, width: 16, height: 16, borderRadius: "50%", background: "#10b981", border: "2px solid #fff", display: "flex", alignItems: "center", justifyContent: "center" }}><Check size={8} color="#fff" /></span>}
-        </button>
-      </div>
+      {canEdit && (
+        <div className="flex md:hidden" style={{ position: "fixed", bottom: "calc(68px + env(safe-area-inset-bottom, 0px))", right: 16, zIndex: 200 }}>
+          <button onClick={() => setPickerOpen(true)}
+            style={{ width: 52, height: 52, borderRadius: 26, background: "linear-gradient(135deg, #C9A55A, #e6c474)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 20px rgba(201,165,90,0.45)", position: "relative" }}>
+            <Package size={20} color="#fff" />
+            {selectedPid && <span style={{ position: "absolute", top: -2, right: -2, width: 14, height: 14, borderRadius: "50%", background: "#10b981", border: "2px solid #fff" }} />}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
 
-function SectionView({ section, products, selectedPid, highlightPid, onPlace, onScanToPlace, onRemove }: {
-  section: StoreSection; products: Product[];
-  selectedPid: string | null; highlightPid: string | null;
-  onPlace: (sId: string, subId: string, ri: number, si: number) => void;
-  onScanToPlace: (sId: string, subId: string, ri: number, si: number) => void;
-  onRemove: (sId: string, subId: string, ri: number, si: number) => void;
+// ─── Shelf Management Panel ───────────────────────────────────────────────────
+function ShelfManagePanel({
+  warehouseShelves, onAdd, onRemove, onAdjustSlots,
+}: {
+  warehouseShelves: WarehouseShelf[];
+  onAdd: (type: "shoes" | "bags") => void;
+  onRemove: (id: string) => void;
+  onAdjustSlots: (id: string, delta: number) => void;
 }) {
-  const cfg = ZONE_CFG[section.sectionType] ?? ZONE_CFG.window;
+  const [open, setOpen] = useState(false);
+  const shoes = warehouseShelves.filter(s => s.shelfType === "shoes");
+  const bags  = warehouseShelves.filter(s => s.shelfType === "bags");
+
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-      {section.subsections.map(sub => {
-        const filled = sub.rows.reduce((s, r) => s + r.products.filter(Boolean).length, 0);
-        const total = sub.rows.reduce((s, r) => s + r.products.length, 0);
-        const pct = total > 0 ? (filled / total) * 100 : 0;
-        return (
-          <div key={sub.id} style={{ background: "#fff", border: `1px solid ${cfg.color}33`, borderRadius: 14, overflow: "hidden" }}>
-            {/* Sub header */}
-            <div style={{ padding: "8px 14px", background: cfg.bg, borderBottom: `1px solid ${cfg.color}22`, display: "flex", alignItems: "center", gap: 10 }}>
-              <p style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.14em", color: cfg.color, flex: 1 }}>{sub.name}</p>
-              <span style={{ fontSize: 8, color: cfg.color, opacity: 0.7 }}>{filled}/{total}</span>
-              <div style={{ width: 50, height: 3, borderRadius: 2, background: `${cfg.color}22`, overflow: "hidden" }}>
-                <div style={{ height: "100%", width: `${pct}%`, background: cfg.color, borderRadius: 2, transition: "width 0.3s" }} />
+    <div style={{ flexShrink: 0 }}>
+      <button onClick={() => setOpen(v => !v)}
+        style={{
+          display: "flex", alignItems: "center", gap: 6, padding: "7px 14px",
+          borderRadius: 12, border: "1px solid #bae6fd", background: open ? "#f0f9ff" : "#fff",
+          cursor: "pointer", fontFamily: "inherit", transition: "all 0.12s",
+        }}>
+        <Settings2 size={13} style={{ color: "#0ea5e9" }} />
+        <span style={{ fontSize: 10, fontWeight: 600, color: "#0ea5e9" }}>Quản Lý Kệ</span>
+        {open ? <ChevronUp size={12} style={{ color: "#94a3b8" }} /> : <ChevronRight size={12} style={{ color: "#94a3b8" }} />}
+      </button>
+
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}
+            style={{ overflow: "hidden" }}
+          >
+            <div style={{ paddingTop: 10, display: "flex", flexDirection: "column", gap: 10 }}>
+              {/* Add buttons */}
+              <div style={{ display: "flex", gap: 8 }}>
+                <button onClick={() => onAdd("shoes")}
+                  style={{ display: "flex", alignItems: "center", gap: 5, padding: "7px 14px", borderRadius: 10, border: "1.5px dashed #0ea5e9", background: "rgba(14,165,233,0.05)", cursor: "pointer", fontFamily: "inherit", fontSize: 10, fontWeight: 600, color: "#0ea5e9" }}>
+                  <Plus size={12} /> Thêm kệ Giày
+                </button>
+                <button onClick={() => onAdd("bags")}
+                  style={{ display: "flex", alignItems: "center", gap: 5, padding: "7px 14px", borderRadius: 10, border: "1.5px dashed #10b981", background: "rgba(16,185,129,0.05)", cursor: "pointer", fontFamily: "inherit", fontSize: 10, fontWeight: 600, color: "#10b981" }}>
+                  <Plus size={12} /> Thêm kệ Túi
+                </button>
               </div>
-            </div>
-            {/* Rows */}
-            <div style={{ padding: "10px 14px", display: "flex", flexDirection: "column", gap: 6 }}>
-              {[...sub.rows].reverse().map((row, revIdx) => {
-                const ri = sub.rows.length - 1 - revIdx;
-                if (row.type === "image") return (
-                  <div key={ri} style={{ height: 18, borderRadius: 6, background: "#f0f9ff", display: "flex", alignItems: "center", paddingLeft: 8 }}>
-                    <span style={{ fontSize: 7, color: "#94a3b8", letterSpacing: "0.2em" }}>TRANH / DECOR</span>
+
+              {/* Shelf list */}
+              {[{ label: "KỆ GIÀY", shelves: shoes, color: "#0ea5e9" }, { label: "KỆ TÚI", shelves: bags, color: "#10b981" }].map(group => (
+                <div key={group.label}>
+                  <p style={{ fontSize: 8.5, fontWeight: 700, color: group.color, letterSpacing: "0.15em", marginBottom: 6 }}>{group.label} ({group.shelves.length})</p>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                    {group.shelves.map(shelf => {
+                      const slotsPerTier = shelf.tiers[0]?.length ?? 25;
+                      const filled = shelf.tiers.reduce((s, t) => s + t.filter(Boolean).length, 0);
+                      return (
+                        <div key={shelf.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 10, background: "#fff", border: `1px solid ${group.color}22` }}>
+                          <div style={{ width: 3, height: 28, borderRadius: 2, background: group.color, flexShrink: 0 }} />
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <p style={{ fontSize: 11, fontWeight: 600, color: "#0c1a2e" }}>{shelf.name}</p>
+                            <p style={{ fontSize: 9, color: "#94a3b8", marginTop: 1 }}>{shelf.tiers.length} tầng · {slotsPerTier} ô/tầng · {filled} SP</p>
+                          </div>
+                          {/* Adjust slots per tier */}
+                          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                            <span style={{ fontSize: 8, color: "#64748b" }}>Ô:</span>
+                            <button onClick={() => onAdjustSlots(shelf.id, -1)} disabled={slotsPerTier <= 5}
+                              style={{ width: 22, height: 22, borderRadius: 6, border: "1px solid #e2e8f0", background: slotsPerTier <= 5 ? "#f8fafc" : "#fff", cursor: slotsPerTier <= 5 ? "default" : "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                              <Minus size={10} style={{ color: slotsPerTier <= 5 ? "#cbd5e1" : "#0c1a2e" }} />
+                            </button>
+                            <span style={{ fontSize: 11, fontWeight: 700, color: "#0c1a2e", minWidth: 20, textAlign: "center" }}>{slotsPerTier}</span>
+                            <button onClick={() => onAdjustSlots(shelf.id, 1)} disabled={slotsPerTier >= 50}
+                              style={{ width: 22, height: 22, borderRadius: 6, border: "1px solid #e2e8f0", background: slotsPerTier >= 50 ? "#f8fafc" : "#fff", cursor: slotsPerTier >= 50 ? "default" : "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                              <Plus size={10} style={{ color: slotsPerTier >= 50 ? "#cbd5e1" : "#0c1a2e" }} />
+                            </button>
+                          </div>
+                          {/* Remove shelf */}
+                          <button onClick={() => { if (confirm(`Xoá kệ "${shelf.name}"?`)) onRemove(shelf.id); }}
+                            style={{ width: 26, height: 26, borderRadius: 7, border: "1px solid #fee2e2", background: "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                            <Trash2 size={11} style={{ color: "#dc2626" }} />
+                          </button>
+                        </div>
+                      );
+                    })}
                   </div>
-                );
-                const slotSize = row.type === "long" ? 56 : 48;
-                return (
-                  <div key={ri} style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                    <span style={{ fontSize: 7, width: 24, flexShrink: 0, color: "#94a3b8", fontFamily: "monospace", textAlign: "right" }}>
-                      {row.type === "long" ? "DÀI" : "N"}
-                    </span>
-                    <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
-                      {row.products.map((pid, si) => {
-                        const p = pid && typeof pid === "string" ? products.find(x => x.id === pid) ?? null : null;
-                        if (p) return (
-                          <ProductCard key={si} product={p} size={slotSize}
-                            highlight={pid === highlightPid}
-                            onRemove={() => onRemove(section.id, sub.id, ri, si)} />
-                        );
-                        return (
-                          <EmptySlot key={si} size={slotSize}
-                            canPlace={!!selectedPid} canScan={!selectedPid}
-                            onPlace={() => onPlace(section.id, sub.id, ri, si)}
-                            onScan={() => onScanToPlace(section.id, sub.id, ri, si)} />
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })}
+                </div>
+              ))}
             </div>
-          </div>
-        );
-      })}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
 
 // ─── Warehouse Tab ────────────────────────────────────────────────────────────
-function WarehouseTab({ products, warehouseShelves, placeInWarehouse, highlightPid }: {
+function WarehouseTab({ products, warehouseShelves, placeInWarehouse, highlightPid, canEdit,
+  addWarehouseShelf, removeWarehouseShelf, adjustShelfSlots,
+}: {
   products: Product[]; warehouseShelves: WarehouseShelf[];
   placeInWarehouse: (shelfId: string, ti: number, si: number, pid: string | null) => void;
-  highlightPid: string | null;
+  highlightPid: string | null; canEdit: boolean;
+  addWarehouseShelf: (type: "shoes" | "bags") => void;
+  removeWarehouseShelf: (id: string) => void;
+  adjustShelfSlots: (id: string, delta: number) => void;
 }) {
   const [shelfIdx, setShelfIdx] = useState(0);
   const [selectedPid, setSelectedPid] = useState<string | null>(null);
@@ -907,7 +929,6 @@ function WarehouseTab({ products, warehouseShelves, placeInWarehouse, highlightP
   }, [wSearch, products]);
   const effectiveHighlight = highlightPid ?? searchHighlightPid;
 
-  // Jump to shelf containing highlighted product
   useEffect(() => {
     if (!effectiveHighlight) return;
     const idx = warehouseShelves.findIndex(sh => sh.tiers.some(t => t.includes(effectiveHighlight)));
@@ -915,18 +936,19 @@ function WarehouseTab({ products, warehouseShelves, placeInWarehouse, highlightP
   }, [effectiveHighlight]); // eslint-disable-line
 
   const handlePlace = useCallback((shelfId: string, ti: number, si: number) => {
-    if (!selectedPid) return;
+    if (!selectedPid || !canEdit) return;
     placeInWarehouse(shelfId, ti, si, selectedPid);
     setSelectedPid(null);
-  }, [selectedPid, placeInWarehouse]);
+  }, [selectedPid, placeInWarehouse, canEdit]);
 
   const handleScanToPlace = useCallback((shelfId: string, ti: number, si: number) => {
+    if (!canEdit) return;
     const shelf = warehouseShelves.find(s => s.id === shelfId);
     const label = shelf ? `${shelf.name} · Tầng ${ti + 1}, Ô ${si + 1}` : `Ô ${si + 1}`;
     setPendingSlot({ kind: "warehouse", shelfId, ti, si, label });
     setQrNotFound(null);
     setQrOpen(true);
-  }, [warehouseShelves]);
+  }, [warehouseShelves, canEdit]);
 
   const handleQrResult = useCallback((code: string) => {
     const match = findProduct(products, code);
@@ -959,34 +981,52 @@ function WarehouseTab({ products, warehouseShelves, placeInWarehouse, highlightP
         {qrOpen && <QRScanner open={qrOpen} onClose={() => { setQrOpen(false); setPendingSlot(null); }} onResult={handleQrResult} slotLabel={pendingSlot?.label} notFound={qrNotFound} />}
       </AnimatePresence>
 
-      <ProductPicker products={products} selectedPid={selectedPid} onSelect={setSelectedPid}
-        assignedIds={warehouseIds} mode="warehouse" open={pickerOpen} onClose={() => setPickerOpen(false)} />
+      {canEdit && (
+        <ProductPicker products={products} selectedPid={selectedPid} onSelect={setSelectedPid}
+          assignedIds={warehouseIds} mode="warehouse" open={pickerOpen} onClose={() => setPickerOpen(false)} />
+      )}
 
       <div style={{ display: "flex", flexDirection: "column", flex: 1, gap: 8, minWidth: 0, minHeight: 0 }}>
-        {/* Search */}
-        <div style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 8 }}>
-          <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 8, background: "#fff", border: "1px solid #bae6fd", borderRadius: 12, padding: "0 14px", height: 38 }}>
+        {/* Search row */}
+        <div style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          <div style={{ flex: 1, minWidth: 160, display: "flex", alignItems: "center", gap: 8, background: "#fff", border: "1px solid #bae6fd", borderRadius: 12, padding: "0 12px", height: 38 }}>
             <Search size={13} style={{ color: "#94a3b8" }} strokeWidth={1.5} />
-            <input value={wSearch} onChange={e => setWSearch(e.target.value)} placeholder="Tìm SKU, tên sản phẩm..."
+            <input value={wSearch} onChange={e => setWSearch(e.target.value)} placeholder="Tìm SKU, tên..."
               style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: 12, fontFamily: "inherit", color: "#0c1a2e" }} />
             {wSearch && <button onClick={() => setWSearch("")} style={{ background: "none", border: "none", cursor: "pointer" }}><X size={11} style={{ color: "#94a3b8" }} /></button>}
           </div>
-          {/* Stats desktop */}
-          {[
-            { label: "SKU", val: products.length, color: "#0c1a2e" },
-            { label: "Kho", val: warehouseIds.size, color: "#0ea5e9" },
-            { label: "Trống", val: products.length - warehouseIds.size, color: "#C9A55A" },
-          ].map(s => (
-            <div key={s.label} className="hidden md:flex" style={{ alignItems: "center", gap: 4, padding: "0 12px", height: 38, borderRadius: 12, background: "#fff", border: "1px solid #bae6fd", flexShrink: 0 }}>
-              <span style={{ fontSize: 14, fontWeight: 700, color: s.color }}>{s.val}</span>
-              <span style={{ fontSize: 9, color: "#64748b" }}>{s.label}</span>
+          <div className="hidden md:flex" style={{ gap: 6 }}>
+            {[
+              { label: "SP", val: products.length, color: "#0c1a2e" },
+              { label: "Kho", val: warehouseIds.size, color: "#0ea5e9" },
+            ].map(s => (
+              <div key={s.label} style={{ display: "flex", alignItems: "center", gap: 4, padding: "0 12px", height: 38, borderRadius: 12, background: "#fff", border: "1px solid #bae6fd" }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: s.color }}>{s.val}</span>
+                <span style={{ fontSize: 9, color: "#64748b" }}>{s.label}</span>
+              </div>
+            ))}
+          </div>
+          {!canEdit && (
+            <div style={{ display: "flex", alignItems: "center", gap: 5, padding: "0 12px", height: 38, borderRadius: 12, background: "rgba(148,163,184,0.08)", border: "1px solid #e2e8f0" }}>
+              <Lock size={11} style={{ color: "#94a3b8" }} />
+              <span style={{ fontSize: 9, color: "#94a3b8" }}>Chỉ xem</span>
             </div>
-          ))}
+          )}
         </div>
+
+        {/* Shelf manage panel (admin only) */}
+        {canEdit && (
+          <ShelfManagePanel
+            warehouseShelves={warehouseShelves}
+            onAdd={addWarehouseShelf}
+            onRemove={removeWarehouseShelf}
+            onAdjustSlots={adjustShelfSlots}
+          />
+        )}
 
         {/* Selected chip */}
         <AnimatePresence>
-          {selectedPid && (
+          {selectedPid && canEdit && (
             <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }}
               style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", borderRadius: 12, background: "rgba(201,165,90,0.10)", border: "1px solid rgba(201,165,90,0.4)" }}>
               {(() => { const p = products.find(x => x.id === selectedPid); return p ? <ProductCard product={p} size={32} /> : null; })()}
@@ -1014,22 +1054,22 @@ function WarehouseTab({ products, warehouseShelves, placeInWarehouse, highlightP
 
         {/* Shelf navigator */}
         {warehouseShelves.length > 0 && (
-          <div style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 6 }}>
             <button onClick={() => setShelfIdx(i => Math.max(0, i - 1))} disabled={clampedIdx === 0}
-              style={{ width: 36, height: 36, borderRadius: 10, border: "1px solid #bae6fd", background: clampedIdx === 0 ? "#f8fafc" : "#fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: clampedIdx === 0 ? "default" : "pointer" }}>
-              <ChevronLeft size={16} style={{ color: clampedIdx === 0 ? "#bae6fd" : "#0ea5e9" }} />
+              style={{ width: 34, height: 34, borderRadius: 10, border: "1px solid #bae6fd", background: clampedIdx === 0 ? "#f8fafc" : "#fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: clampedIdx === 0 ? "default" : "pointer", flexShrink: 0 }}>
+              <ChevronLeft size={15} style={{ color: clampedIdx === 0 ? "#bae6fd" : "#0ea5e9" }} />
             </button>
-            <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 10, padding: "0 14px", height: 36, background: "#fff", border: "1px solid #bae6fd", borderRadius: 10 }}>
-              <div style={{ width: 3, height: 14, borderRadius: 2, background: shelfTypeColor }} />
-              <span style={{ fontSize: 10, fontWeight: 700, color: shelfTypeColor, letterSpacing: "0.12em" }}>
+            <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 8, padding: "0 12px", height: 34, background: "#fff", border: "1px solid #bae6fd", borderRadius: 10, minWidth: 0 }}>
+              <div style={{ width: 3, height: 14, borderRadius: 2, background: shelfTypeColor, flexShrink: 0 }} />
+              <span style={{ fontSize: 10, fontWeight: 700, color: shelfTypeColor, letterSpacing: "0.1em", flexShrink: 0 }}>
                 {currentShelf?.shelfType === "bags" ? "TÚI" : "GIÀY"}
               </span>
-              <span style={{ fontSize: 11, fontWeight: 600, color: "#0c1a2e", flex: 1 }}>{currentShelf?.name ?? "—"}</span>
-              <span style={{ fontSize: 9, color: "#94a3b8" }}>{clampedIdx + 1} / {warehouseShelves.length}</span>
+              <span style={{ fontSize: 11, fontWeight: 600, color: "#0c1a2e", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{currentShelf?.name ?? "—"}</span>
+              <span style={{ fontSize: 9, color: "#94a3b8", flexShrink: 0 }}>{clampedIdx + 1}/{warehouseShelves.length}</span>
             </div>
             <button onClick={() => setShelfIdx(i => Math.min(warehouseShelves.length - 1, i + 1))} disabled={clampedIdx === warehouseShelves.length - 1}
-              style={{ width: 36, height: 36, borderRadius: 10, border: "1px solid #bae6fd", background: clampedIdx === warehouseShelves.length - 1 ? "#f8fafc" : "#fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: clampedIdx === warehouseShelves.length - 1 ? "default" : "pointer" }}>
-              <ChevronRight size={16} style={{ color: clampedIdx === warehouseShelves.length - 1 ? "#bae6fd" : "#0ea5e9" }} />
+              style={{ width: 34, height: 34, borderRadius: 10, border: "1px solid #bae6fd", background: clampedIdx === warehouseShelves.length - 1 ? "#f8fafc" : "#fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: clampedIdx === warehouseShelves.length - 1 ? "default" : "pointer", flexShrink: 0 }}>
+              <ChevronRight size={15} style={{ color: clampedIdx === warehouseShelves.length - 1 ? "#bae6fd" : "#0ea5e9" }} />
             </button>
           </div>
         )}
@@ -1041,8 +1081,9 @@ function WarehouseTab({ products, warehouseShelves, placeInWarehouse, highlightP
               <motion.div key={currentShelf.id} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.18 }}>
                 <ShelfView shelf={currentShelf} products={products}
                   selectedPid={selectedPid} highlightPid={effectiveHighlight}
+                  canEdit={canEdit}
                   onPlace={handlePlace} onScanToPlace={handleScanToPlace}
-                  onRemove={(shelfId, ti, si) => placeInWarehouse(shelfId, ti, si, null)} />
+                  onRemove={(shelfId, ti, si) => canEdit && placeInWarehouse(shelfId, ti, si, null)} />
               </motion.div>
             ) : (
               <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 120, color: "#94a3b8", fontSize: 12 }}>Chưa có kệ nào</div>
@@ -1052,13 +1093,15 @@ function WarehouseTab({ products, warehouseShelves, placeInWarehouse, highlightP
       </div>
 
       {/* Mobile FAB */}
-      <div className="flex md:hidden" style={{ position: "fixed", bottom: "calc(68px + env(safe-area-inset-bottom, 0px))", right: 16, zIndex: 200 }}>
-        <button onClick={() => setPickerOpen(true)}
-          style={{ width: 56, height: 56, borderRadius: 28, background: "linear-gradient(135deg, #10b981, #34d399)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 20px rgba(16,185,129,0.4)", position: "relative" }}>
-          <Package size={22} color="#fff" />
-          {selectedPid && <span style={{ position: "absolute", top: -2, right: -2, width: 16, height: 16, borderRadius: "50%", background: "#C9A55A", border: "2px solid #fff", display: "flex", alignItems: "center", justifyContent: "center" }}><Check size={8} color="#fff" /></span>}
-        </button>
-      </div>
+      {canEdit && (
+        <div className="flex md:hidden" style={{ position: "fixed", bottom: "calc(68px + env(safe-area-inset-bottom, 0px))", right: 16, zIndex: 200 }}>
+          <button onClick={() => setPickerOpen(true)}
+            style={{ width: 52, height: 52, borderRadius: 26, background: "linear-gradient(135deg, #10b981, #34d399)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 20px rgba(16,185,129,0.4)", position: "relative" }}>
+            <Package size={20} color="#fff" />
+            {selectedPid && <span style={{ position: "absolute", top: -2, right: -2, width: 14, height: 14, borderRadius: "50%", background: "#C9A55A", border: "2px solid #fff" }} />}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -1066,9 +1109,10 @@ function WarehouseTab({ products, warehouseShelves, placeInWarehouse, highlightP
 const TIER_LABELS = ["Tầng 4", "Tầng 3", "Tầng 2", "Tầng 1"];
 const COLS = 5;
 
-function ShelfView({ shelf, products, selectedPid, highlightPid, onPlace, onScanToPlace, onRemove }: {
+function ShelfView({ shelf, products, selectedPid, highlightPid, canEdit, onPlace, onScanToPlace, onRemove }: {
   shelf: WarehouseShelf; products: Product[];
   selectedPid: string | null; highlightPid: string | null;
+  canEdit: boolean;
   onPlace: (shelfId: string, ti: number, si: number) => void;
   onScanToPlace: (shelfId: string, ti: number, si: number) => void;
   onRemove: (shelfId: string, ti: number, si: number) => void;
@@ -1080,32 +1124,29 @@ function ShelfView({ shelf, products, selectedPid, highlightPid, onPlace, onScan
 
   return (
     <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #bae6fd", overflow: "hidden" }}>
-      {/* Shelf header */}
-      <div style={{ padding: "10px 16px", background: "#f0f9ff", borderBottom: "1px solid #bae6fd", display: "flex", alignItems: "center", gap: 10 }}>
+      <div style={{ padding: "10px 14px", background: "#f0f9ff", borderBottom: "1px solid #bae6fd", display: "flex", alignItems: "center", gap: 10 }}>
         <Warehouse size={13} style={{ color: "#0ea5e9" }} />
         <span style={{ fontSize: 11, fontWeight: 700, color: "#0c1a2e", flex: 1 }}>{shelf.name}</span>
-        <div style={{ width: 60, height: 4, background: "#e0f2fe", borderRadius: 4, overflow: "hidden" }}>
+        <div style={{ width: 50, height: 4, background: "#e0f2fe", borderRadius: 4, overflow: "hidden" }}>
           <div style={{ height: "100%", width: `${density * 100}%`, background: densityColor, borderRadius: 4, transition: "width 0.3s" }} />
         </div>
         <span style={{ fontSize: 9, color: "#64748b" }}>{filled}/{total}</span>
       </div>
-
-      {/* Tiers */}
-      <div style={{ padding: 12, display: "flex", flexDirection: "column", gap: 10 }}>
+      <div style={{ padding: "10px 12px", display: "flex", flexDirection: "column", gap: 8 }}>
         {shelf.tiers.map((tier, ti) => (
-          <div key={ti} style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
-            <span style={{ fontSize: 8, fontWeight: 600, color: "#94a3b8", width: 38, textAlign: "right", flexShrink: 0, paddingTop: 10 }}>{TIER_LABELS[ti]}</span>
-            <div style={{ display: "grid", gridTemplateColumns: `repeat(${COLS}, 52px)`, gap: 4 }}>
+          <div key={ti} style={{ display: "flex", alignItems: "flex-start", gap: 6 }}>
+            <span style={{ fontSize: 8, fontWeight: 600, color: "#94a3b8", width: 34, textAlign: "right", flexShrink: 0, paddingTop: 9 }}>{TIER_LABELS[ti]}</span>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
               {tier.map((pid, si) => {
                 const p = pid && typeof pid === "string" ? products.find(x => x.id === pid) ?? null : null;
                 const isHighlit = !!pid && pid === highlightPid;
                 if (p) return (
-                  <ProductCard key={si} product={p} size={52} highlight={isHighlit}
-                    onRemove={() => onRemove(shelf.id, ti, si)} />
+                  <ProductCard key={si} product={p} size={48} highlight={isHighlit}
+                    onRemove={canEdit ? () => onRemove(shelf.id, ti, si) : undefined} />
                 );
                 return (
-                  <EmptySlot key={si} size={52}
-                    canPlace={!!selectedPid} canScan={!selectedPid}
+                  <EmptySlot key={si} size={48}
+                    canPlace={canEdit && !!selectedPid} canScan={canEdit && !selectedPid}
                     onPlace={() => onPlace(shelf.id, ti, si)}
                     onScan={() => onScanToPlace(shelf.id, ti, si)} />
                 );
@@ -1118,22 +1159,84 @@ function ShelfView({ shelf, products, selectedPid, highlightPid, onPlace, onScan
   );
 }
 
+function SectionView({ section, products, selectedPid, highlightPid, canEdit, onPlace, onScanToPlace, onRemove }: {
+  section: StoreSection; products: Product[];
+  selectedPid: string | null; highlightPid: string | null;
+  canEdit: boolean;
+  onPlace: (sId: string, subId: string, ri: number, si: number) => void;
+  onScanToPlace: (sId: string, subId: string, ri: number, si: number) => void;
+  onRemove: (sId: string, subId: string, ri: number, si: number) => void;
+}) {
+  const cfg = ZONE_CFG[section.sectionType] ?? ZONE_CFG.window;
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      {section.subsections.map(sub => {
+        const filled = sub.rows.reduce((s, r) => s + r.products.filter(Boolean).length, 0);
+        const total = sub.rows.reduce((s, r) => s + r.products.length, 0);
+        const pct = total > 0 ? (filled / total) * 100 : 0;
+        return (
+          <div key={sub.id} style={{ background: "#fff", border: `1px solid ${cfg.color}33`, borderRadius: 14, overflow: "hidden" }}>
+            <div style={{ padding: "8px 12px", background: cfg.bg, borderBottom: `1px solid ${cfg.color}22`, display: "flex", alignItems: "center", gap: 8 }}>
+              <p style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.14em", color: cfg.color, flex: 1 }}>{sub.name}</p>
+              <span style={{ fontSize: 8, color: cfg.color, opacity: 0.7 }}>{filled}/{total}</span>
+              <div style={{ width: 40, height: 3, borderRadius: 2, background: `${cfg.color}22`, overflow: "hidden" }}>
+                <div style={{ height: "100%", width: `${pct}%`, background: cfg.color, borderRadius: 2, transition: "width 0.3s" }} />
+              </div>
+            </div>
+            <div style={{ padding: "8px 12px", display: "flex", flexDirection: "column", gap: 5 }}>
+              {[...sub.rows].reverse().map((row, revIdx) => {
+                const ri = sub.rows.length - 1 - revIdx;
+                if (row.type === "image") return (
+                  <div key={ri} style={{ height: 16, borderRadius: 6, background: "#f0f9ff", display: "flex", alignItems: "center", paddingLeft: 8 }}>
+                    <span style={{ fontSize: 7, color: "#94a3b8", letterSpacing: "0.2em" }}>TRANH / DECOR</span>
+                  </div>
+                );
+                const slotSize = row.type === "long" ? 52 : 44;
+                return (
+                  <div key={ri} style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                    <span style={{ fontSize: 7, width: 20, flexShrink: 0, color: "#94a3b8", fontFamily: "monospace", textAlign: "right" }}>
+                      {row.type === "long" ? "D" : "N"}
+                    </span>
+                    <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                      {row.products.map((pid, si) => {
+                        const p = pid && typeof pid === "string" ? products.find(x => x.id === pid) ?? null : null;
+                        if (p) return (
+                          <ProductCard key={si} product={p} size={slotSize}
+                            highlight={pid === highlightPid}
+                            onRemove={canEdit ? () => onRemove(section.id, sub.id, ri, si) : undefined} />
+                        );
+                        return (
+                          <EmptySlot key={si} size={slotSize}
+                            canPlace={canEdit && !!selectedPid} canScan={canEdit && !selectedPid}
+                            onPlace={() => onPlace(section.id, sub.id, ri, si)}
+                            onScan={() => onScanToPlace(section.id, sub.id, ri, si)} />
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // ─── Realtime hook ────────────────────────────────────────────────────────────
 function useRealtimeSync(onRefresh: () => void) {
   const [online, setOnline] = useState(true);
   const esRef = useRef<EventSource | null>(null);
-  // Keep a stable ref so SSE/poll closures always call the latest callback
   const refreshRef = useRef(onRefresh);
   useEffect(() => { refreshRef.current = onRefresh; });
 
   useEffect(() => {
     let retryTimer: ReturnType<typeof setTimeout>;
-
     function connect() {
       if (typeof EventSource === "undefined") return;
       const es = new EventSource("/api/placements/stream");
       esRef.current = es;
-
       es.onopen = () => setOnline(true);
       es.onmessage = () => { refreshRef.current(); };
       es.onerror = () => {
@@ -1142,11 +1245,8 @@ function useRealtimeSync(onRefresh: () => void) {
         retryTimer = setTimeout(connect, 4000);
       };
     }
-
     connect();
-    // Fallback polling every 15s
     const poll = setInterval(() => refreshRef.current(), 15_000);
-
     return () => {
       esRef.current?.close();
       clearTimeout(retryTimer);
@@ -1159,11 +1259,40 @@ function useRealtimeSync(onRefresh: () => void) {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function VisualBoardPage() {
-  const { products, storeSections, warehouseShelves, placeInSection, placeInWarehouse, fetchDbState } = useStore();
+  const {
+    products, storeSections, warehouseShelves,
+    placeInSection, placeInWarehouse, fetchDbState,
+    currentUser, addWarehouseShelf, removeWarehouseShelf,
+  } = useStore();
 
   const [subtab, setSubtab] = useState<Subtab>("display");
   const [highlightPid, setHighlightPid] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+
+  // Permission: only admin/manager can edit
+  const canEdit = currentUser?.role === "admin" || currentUser?.role === "manager";
+
+  // Adjust slots per tier for a shelf (client-side only — modifies tiers array width)
+  const adjustShelfSlots = useCallback((shelfId: string, delta: number) => {
+    // We use placeInWarehouse with a trick: adjust via Zustand directly
+    // This is a client-side layout change only
+    const store = useStore.getState();
+    const shelf = store.warehouseShelves.find(s => s.id === shelfId);
+    if (!shelf) return;
+    const current = shelf.tiers[0]?.length ?? 25;
+    const next = Math.max(5, Math.min(50, current + delta));
+    if (next === current) return;
+    // Rebuild tiers with new slot count
+    const newTiers = shelf.tiers.map(tier => {
+      if (next > current) return [...tier, ...Array(next - current).fill(null)];
+      return tier.slice(0, next);
+    });
+    useStore.setState(s => ({
+      warehouseShelves: s.warehouseShelves.map(sh =>
+        sh.id === shelfId ? { ...sh, tiers: newTiers } : sh
+      ),
+    }));
+  }, []);
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -1191,46 +1320,42 @@ export default function VisualBoardPage() {
   }, []);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 10, height: "100%", minHeight: 0 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 8, height: "100%", minHeight: 0 }}>
 
       {/* Header */}
-      <div style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+      <div style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
         <div className="hidden md:block">
           <p style={{ fontSize: 9, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.3em" }}>Trưng Bày · POSTLAIN</p>
-          <h1 style={{ fontSize: 22, fontWeight: 300, color: "#0c1a2e", letterSpacing: "0.04em", marginTop: 2 }}>Quản Lý Trưng Bày</h1>
+          <h1 style={{ fontSize: 20, fontWeight: 300, color: "#0c1a2e", letterSpacing: "0.04em", marginTop: 1 }}>Quản Lý Trưng Bày</h1>
         </div>
-
         <div style={{ flex: 1 }} />
-
         {/* Realtime indicator */}
         <div style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 10px", borderRadius: 20, background: online ? "rgba(16,185,129,0.08)" : "rgba(148,163,184,0.08)", border: `1px solid ${online ? "rgba(16,185,129,0.3)" : "rgba(148,163,184,0.3)"}` }}>
           {online ? <Wifi size={11} style={{ color: "#10b981" }} /> : <WifiOff size={11} style={{ color: "#94a3b8" }} />}
           <span style={{ fontSize: 8.5, color: online ? "#10b981" : "#94a3b8", fontWeight: 600 }}>{online ? "REALTIME" : "OFFLINE"}</span>
         </div>
-
-        {/* Refresh */}
-        <button onClick={handleRefresh} title="Tải lại dữ liệu"
-          style={{ width: 36, height: 36, borderRadius: 10, border: "1px solid #bae6fd", background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
-          <RefreshCw size={14} style={{ color: "#0ea5e9", animation: refreshing ? "spin 0.6s linear infinite" : "none" }} />
+        <button onClick={handleRefresh} title="Tải lại"
+          style={{ width: 34, height: 34, borderRadius: 10, border: "1px solid #bae6fd", background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+          <RefreshCw size={13} style={{ color: "#0ea5e9", animation: refreshing ? "spin 0.6s linear infinite" : "none" }} />
         </button>
       </div>
 
       {/* Subtab switcher */}
-      <div style={{ flexShrink: 0, display: "flex", gap: 4, background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 14, padding: 4, alignSelf: "flex-start" }}>
+      <div style={{ flexShrink: 0, display: "flex", gap: 4, background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 12, padding: 3, alignSelf: "flex-start" }}>
         {([
           { key: "display" as const,   label: "VỊ TRÍ",    icon: Eye,       color: "#0ea5e9" },
           { key: "warehouse" as const, label: "KHO HÀNG",  icon: Warehouse, color: "#10b981" },
         ]).map(({ key, label, icon: Icon, color }) => (
           <button key={key} onClick={() => setSubtab(key)}
             style={{
-              display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 10, border: "none",
+              display: "flex", alignItems: "center", gap: 5, padding: "7px 14px", borderRadius: 9, border: "none",
               background: subtab === key ? color : "transparent",
               color: subtab === key ? "#fff" : "#64748b",
               fontSize: 10, fontWeight: subtab === key ? 700 : 500, letterSpacing: "0.1em",
               cursor: "pointer", fontFamily: "inherit", transition: "all 0.18s",
               boxShadow: subtab === key ? `0 2px 8px ${color}44` : "none",
             }}>
-            <Icon size={14} />
+            <Icon size={13} />
             {label}
           </button>
         ))}
@@ -1241,9 +1366,20 @@ export default function VisualBoardPage() {
         <motion.div key={subtab} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.22 }}
           style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
           {subtab === "display" ? (
-            <DisplayTab products={products} storeSections={storeSections} placeInSection={placeInSection} highlightPid={highlightPid} />
+            <DisplayTab
+              products={products} storeSections={storeSections}
+              placeInSection={placeInSection} highlightPid={highlightPid}
+              canEdit={canEdit}
+            />
           ) : (
-            <WarehouseTab products={products} warehouseShelves={warehouseShelves} placeInWarehouse={placeInWarehouse} highlightPid={highlightPid} />
+            <WarehouseTab
+              products={products} warehouseShelves={warehouseShelves}
+              placeInWarehouse={placeInWarehouse} highlightPid={highlightPid}
+              canEdit={canEdit}
+              addWarehouseShelf={addWarehouseShelf}
+              removeWarehouseShelf={removeWarehouseShelf}
+              adjustShelfSlots={adjustShelfSlots}
+            />
           )}
         </motion.div>
       </AnimatePresence>
