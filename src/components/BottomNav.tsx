@@ -7,12 +7,14 @@ import {
 } from "lucide-react";
 import { useStore } from "@/store/useStore";
 
+// Same order as TopNav — Chat replaced by Profile (profile is in TopNav header on desktop)
 const NAV_ITEMS = [
-  { id: "overview",      label: "Tổng Quan", href: "/",             icon: LayoutDashboard, exact: true  },
-  { id: "inventory",     label: "Dữ Liệu",   href: "/inventory",    icon: Box,             exact: false },
-  { id: "sales",         label: "Bán Hàng",  href: "/sales",        icon: ShoppingBag,     exact: false },
-  { id: "visual-board",  label: "Vị Trí",     href: "/visual-board", icon: Focus,           exact: false },
-  { id: "profile",       label: "Hồ Sơ",      href: "/profile",      icon: UserCircle,      exact: false },
+  { id: "overview",     label: "Tổng Quan", href: "/",             icon: LayoutDashboard, exact: true  },
+  { id: "visual-board", label: "Vị Trí",    href: "/visual-board", icon: Focus,           exact: false },
+  { id: "inventory",    label: "Dữ Liệu",   href: "/inventory",    icon: Box,             exact: false },
+  { id: "sales",        label: "Bán Hàng",  href: "/sales",        icon: ShoppingBag,     exact: false },
+  { id: "chat",         label: "Chat",       href: "/chat",         icon: MessageSquare,   exact: false },
+  { id: "profile",      label: "Hồ Sơ",     href: "/profile",      icon: UserCircle,      exact: false },
 ] as const;
 
 export default function BottomNav() {
@@ -32,9 +34,10 @@ export default function BottomNav() {
         borderTop: "1px solid #bae6fd",
         display: "flex",
         alignItems: "stretch",
-        height: `calc(60px + env(safe-area-inset-bottom, 0px))`,
+        height: `calc(56px + env(safe-area-inset-bottom, 0px))`,
         paddingBottom: "env(safe-area-inset-bottom, 0px)",
         boxShadow: "0 -2px 16px rgba(12,26,46,0.07)",
+        overflowX: "auto",
       }}
       className="md:hidden"
     >
@@ -51,7 +54,8 @@ export default function BottomNav() {
               flex: 1, textDecoration: "none",
               display: "flex", flexDirection: "column",
               alignItems: "center", justifyContent: "center",
-              gap: 3, position: "relative", minWidth: 0,
+              gap: 3, position: "relative",
+              minWidth: 52, // prevent squishing below readable size
               padding: "0 2px",
             }}
           >
