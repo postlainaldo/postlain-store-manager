@@ -1325,8 +1325,8 @@ export default function VisualBoardPage() {
       {/* Header */}
       <div style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
         <div className="hidden md:block">
-          <p style={{ fontSize: 9, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.3em" }}>Trưng Bày · POSTLAIN</p>
-          <h1 style={{ fontSize: 20, fontWeight: 300, color: "#0c1a2e", letterSpacing: "0.04em", marginTop: 1 }}>Quản Lý Trưng Bày</h1>
+          <p style={{ fontSize: 9, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.3em" }}>Vị Trí · POSTLAIN</p>
+          <h1 style={{ fontSize: 20, fontWeight: 300, color: "#0c1a2e", letterSpacing: "0.04em", marginTop: 1 }}>Quản Lý Vị Trí</h1>
         </div>
         <div style={{ flex: 1 }} />
         {/* Realtime indicator */}
@@ -1343,8 +1343,8 @@ export default function VisualBoardPage() {
       {/* Subtab switcher */}
       <div style={{ flexShrink: 0, display: "flex", gap: 4, background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 12, padding: 3, alignSelf: "flex-start" }}>
         {([
-          { key: "display" as const,   label: "VỊ TRÍ",    icon: Eye,       color: "#0ea5e9" },
-          { key: "warehouse" as const, label: "KHO HÀNG",  icon: Warehouse, color: "#10b981" },
+          { key: "display" as const,   label: "TRƯNG BÀY",  icon: Eye,       color: "#0ea5e9" },
+          { key: "warehouse" as const, label: "KHO HÀNG",   icon: Warehouse, color: "#10b981" },
         ]).map(({ key, label, icon: Icon, color }) => (
           <button key={key} onClick={() => setSubtab(key)}
             style={{

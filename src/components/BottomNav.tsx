@@ -11,7 +11,7 @@ const NAV_ITEMS = [
   { id: "overview",      label: "Tổng Quan", href: "/",             icon: LayoutDashboard, exact: true  },
   { id: "inventory",     label: "Dữ Liệu",   href: "/inventory",    icon: Box,             exact: false },
   { id: "chat",          label: "Chat",       href: "/chat",         icon: MessageSquare,   exact: false },
-  { id: "visual-board",  label: "Trưng Bày",  href: "/visual-board", icon: Focus,           exact: false },
+  { id: "visual-board",  label: "Vị Trí",     href: "/visual-board", icon: Focus,           exact: false },
   { id: "profile",       label: "Hồ Sơ",      href: "/profile",      icon: UserCircle,      exact: false },
 ] as const;
 
