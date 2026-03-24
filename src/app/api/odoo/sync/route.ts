@@ -9,8 +9,10 @@ export const maxDuration = 60; // seconds — Vercel Pro/Hobby max
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+type OdooSyncProduct = Awaited<ReturnType<typeof fetchOdooProducts>>[number];
+
 /** Map Odoo product → Postlain DBProduct */
-function mapProduct(op: Awaited<ReturnType<typeof fetchOdooProducts>>[number]): DBProduct {
+function mapProduct(op: OdooSyncProduct): DBProduct {
   const now = new Date().toISOString();
 
   // SKU: use default_code if set, else fallback to "ODOO-{id}"
@@ -43,7 +45,7 @@ function mapProduct(op: Awaited<ReturnType<typeof fetchOdooProducts>>[number]): 
     sku,
     category,
     productType: productType ?? null,
-    quantity: Math.max(0, Math.floor(op.qty_available)),
+    quantity: op.qty_47gdl ?? 0,
     price: price ?? null,
     markdownPrice: null,
     color: null,

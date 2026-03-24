@@ -115,6 +115,9 @@ async function execute(model: string, method: string, args: unknown[], kwargs: R
   return xmlRpc("/xmlrpc/2/object", "execute_kw", [ODOO_DB, uid, ODOO_PASSWORD, model, method, args, kwargs]);
 }
 
+// Location ID of 47GDL Stock (Physical Locations/47GDL/Stock)
+const LOCATION_47GDL = 2026;
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface OdooProduct {
@@ -123,43 +126,71 @@ export interface OdooProduct {
   name: string;
   list_price: number;
   categ_id: [number, string] | false;
-  qty_available: number;
   description_sale: string | false;
   active: boolean;
 }
 
+export interface OdooQuant {
+  product_id: [number, string];
+  quantity: number;
+  reserved_quantity: number;
+}
+
 // ─── Public API ───────────────────────────────────────────────────────────────
 
-export async function fetchOdooProducts(limit = 0): Promise<OdooProduct[]> {
-  // limit=0 means no limit in Odoo XML-RPC, but we fetch in pages of 500
-  // to avoid XML-RPC response size issues
+/**
+ * Fetch products that have stock at 47GDL location.
+ * Returns products joined with their 47GDL quantity.
+ */
+export async function fetchOdooProducts(limit = 0): Promise<(OdooProduct & { qty_47gdl: number })[]> {
   const PAGE = 500;
-  const fields = ["id", "default_code", "name", "list_price", "categ_id", "qty_available", "description_sale"];
+  const productFields = ["id", "default_code", "name", "list_price", "categ_id", "description_sale"];
 
-  if (limit > 0) {
-    const result = await execute(
-      "product.product", "search_read",
-      [[["active", "=", true]]],
-      { fields, limit, offset: 0, order: "id asc" }
-    );
-    return (result as OdooProduct[]) ?? [];
-  }
-
-  // Paginated fetch
-  const all: OdooProduct[] = [];
-  let offset = 0;
+  // Step 1: get all quants at 47GDL location
+  const allQuants: OdooQuant[] = [];
+  let qOffset = 0;
   while (true) {
     const page = await execute(
-      "product.product", "search_read",
-      [[["active", "=", true]]],
-      { fields, limit: PAGE, offset, order: "id asc" }
-    ) as OdooProduct[];
+      "stock.quant", "search_read",
+      [[["location_id", "=", LOCATION_47GDL]]],
+      { fields: ["product_id", "quantity", "reserved_quantity"], limit: PAGE, offset: qOffset }
+    ) as OdooQuant[];
     if (!page || page.length === 0) break;
-    all.push(...page);
+    allQuants.push(...page);
     if (page.length < PAGE) break;
-    offset += PAGE;
+    qOffset += PAGE;
   }
-  return all;
+
+  if (allQuants.length === 0) return [];
+
+  // Build qty map: product_id → available qty (quantity - reserved)
+  const qtyMap = new Map<number, number>();
+  for (const q of allQuants) {
+    const pid = q.product_id[0];
+    const avail = (q.quantity ?? 0) - (q.reserved_quantity ?? 0);
+    qtyMap.set(pid, (qtyMap.get(pid) ?? 0) + avail);
+  }
+
+  const productIds = [...qtyMap.keys()];
+
+  // Step 2: fetch product details for those IDs (paginated)
+  const allProducts: (OdooProduct & { qty_47gdl: number })[] = [];
+  const effectiveLimit = limit > 0 ? Math.min(limit, productIds.length) : productIds.length;
+  const idsToFetch = productIds.slice(0, effectiveLimit);
+
+  for (let i = 0; i < idsToFetch.length; i += PAGE) {
+    const chunk = idsToFetch.slice(i, i + PAGE);
+    const page = await execute(
+      "product.product", "search_read",
+      [[["id", "in", chunk], ["active", "=", true]]],
+      { fields: productFields, limit: PAGE, offset: 0 }
+    ) as OdooProduct[];
+    for (const p of page ?? []) {
+      allProducts.push({ ...p, qty_47gdl: Math.max(0, Math.floor(qtyMap.get(p.id) ?? 0)) });
+    }
+  }
+
+  return allProducts;
 }
 
 export async function testOdooConnection(): Promise<{ uid: number; serverVersion: string }> {
