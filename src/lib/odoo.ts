@@ -182,8 +182,9 @@ async function execute(model: string, method: string, args: unknown[], kwargs: R
   return xmlRpc("/xmlrpc/2/object", "execute_kw", [ODOO_DB, uid, ODOO_PASSWORD, model, method, args, kwargs]);
 }
 
-// Location ID of 47GDL Stock (Physical Locations/47GDL/Stock)
-const LOCATION_47GDL = 2026;
+// Location ID of 47GDL (Physical Locations/47GDL — parent view node)
+// Using child_of to include all sub-locations (Stock, etc.)
+const LOCATION_47GDL = 2027;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -219,7 +220,7 @@ export async function fetchOdooProducts(limit = 0): Promise<(OdooProduct & { qty
   while (true) {
     const page = await execute(
       "stock.quant", "search_read",
-      [[["location_id", "=", LOCATION_47GDL]]],
+      [[["location_id", "child_of", LOCATION_47GDL], ["quantity", ">", 0]]],
       { fields: ["product_id", "quantity", "reserved_quantity"], limit: PAGE, offset: qOffset }
     ) as OdooQuant[];
     if (!page || page.length === 0) break;
