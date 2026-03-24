@@ -432,10 +432,50 @@ function PushPanel({ userId }: { userId: string }) {
   const [pushStatus, setPushStatus] = useState<"idle"|"sending"|"sent"|"error">("idle");
   const [resubStatus, setResubStatus] = useState<"idle"|"loading"|"done"|"error">("idle");
 
+  const refreshCount = () =>
+    fetch("/api/push/test").then(r => r.json()).then(d => setSubCount(d.subscriptions ?? 0)).catch(() => {});
+
   useEffect(() => {
     if (typeof Notification !== "undefined") setPermStatus(Notification.permission);
-    fetch("/api/push/test").then(r => r.json()).then(d => setSubCount(d.subscriptions ?? 0)).catch(() => {});
+    refreshCount();
   }, []);
+
+  const doSubscribe = async (): Promise<boolean> => {
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)) return false;
+    const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+    if (!vapidKey) return false;
+    const reg = await navigator.serviceWorker.ready;
+    const existing = await reg.pushManager.getSubscription();
+    if (existing) await existing.unsubscribe();
+    const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlB64ToUint8Array(vapidKey) });
+    await fetch("/api/push/subscribe", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId, subscription: sub.toJSON() }) });
+    return true;
+  };
+
+  // Called when permission is "default" — requests permission then subscribes
+  const enable = async () => {
+    setResubStatus("loading");
+    try {
+      const perm = await Notification.requestPermission();
+      setPermStatus(perm);
+      if (perm !== "granted") { setResubStatus("error"); return; }
+      await doSubscribe();
+      await refreshCount();
+      setResubStatus("done");
+    } catch { setResubStatus("error"); }
+    setTimeout(() => setResubStatus("idle"), 3000);
+  };
+
+  // Called when already granted — re-subscribe
+  const resub = async () => {
+    setResubStatus("loading");
+    try {
+      await doSubscribe();
+      await refreshCount();
+      setResubStatus("done");
+    } catch { setResubStatus("error"); }
+    setTimeout(() => setResubStatus("idle"), 3000);
+  };
 
   const sendTest = async () => {
     setPushStatus("sending");
@@ -446,37 +486,20 @@ function PushPanel({ userId }: { userId: string }) {
     setTimeout(() => setPushStatus("idle"), 3000);
   };
 
-  const resub = async () => {
-    setResubStatus("loading");
-    try {
-      if (!("serviceWorker" in navigator) || !("PushManager" in window)) { setResubStatus("error"); return; }
-      const perm = await Notification.requestPermission();
-      setPermStatus(perm);
-      if (perm !== "granted") { setResubStatus("error"); return; }
-      const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-      if (!vapidKey) { setResubStatus("error"); return; }
-      const reg = await navigator.serviceWorker.ready;
-      const existing = await reg.pushManager.getSubscription();
-      if (existing) await existing.unsubscribe();
-      const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlB64ToUint8Array(vapidKey) });
-      await fetch("/api/push/subscribe", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId, subscription: sub.toJSON() }) });
-      const d = await fetch("/api/push/test").then(r => r.json());
-      setSubCount(d.subscriptions ?? 0);
-      setResubStatus("done");
-    } catch { setResubStatus("error"); }
-    setTimeout(() => setResubStatus("idle"), 3000);
-  };
-
   const permColor = permStatus === "granted" ? "#10b981" : permStatus === "denied" ? "#ef4444" : "#f59e0b";
+  const isDefault = permStatus === "default" || permStatus === "...";
+  const isDenied  = permStatus === "denied";
+  const isGranted = permStatus === "granted";
 
   return (
     <SCard title="PUSH NOTIFICATION">
+      {/* Status row */}
       <div style={{ padding: "12px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
             <div style={{ width: 7, height: 7, borderRadius: "50%", background: permColor }} />
             <span style={{ fontSize: 10, color: "#334e68" }}>
-              {permStatus === "granted" ? "Đã cấp quyền" : permStatus === "denied" ? "Bị từ chối" : "Chưa cấp quyền"}
+              {isGranted ? "Đã cấp quyền" : isDenied ? "Bị từ chối" : "Chưa bật thông báo"}
             </span>
           </div>
           <span style={{ fontSize: 9, color: "#94a3b8", paddingLeft: 14 }}>
@@ -484,19 +507,37 @@ function PushPanel({ userId }: { userId: string }) {
           </span>
         </div>
         <div style={{ display: "flex", gap: 6 }}>
-          <button onClick={resub} disabled={resubStatus === "loading"}
-            style={{ padding: "5px 12px", borderRadius: 7, border: "1px solid #bae6fd", background: resubStatus === "done" ? "#f0fdf4" : resubStatus === "error" ? "#fef2f2" : "#f0f9ff", color: resubStatus === "done" ? "#10b981" : resubStatus === "error" ? "#ef4444" : "#0ea5e9", fontSize: 9, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
-            {resubStatus === "loading" ? "…" : resubStatus === "done" ? "✓ Đã đăng ký" : resubStatus === "error" ? "✗ Lỗi" : "Đăng ký lại"}
-          </button>
-          <button onClick={sendTest} disabled={pushStatus === "sending"}
-            style={{ padding: "5px 12px", borderRadius: 7, border: "none", background: pushStatus === "sent" ? "#10b981" : pushStatus === "error" ? "#ef4444" : "#0ea5e9", color: "#fff", fontSize: 9, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
-            {pushStatus === "sending" ? "Đang gửi…" : pushStatus === "sent" ? "✓ Đã gửi" : pushStatus === "error" ? "✗ Lỗi" : "Gửi thử"}
-          </button>
+          {/* Primary action: enable (if default) or resub (if granted) */}
+          {!isDenied && (
+            <button
+              onClick={isGranted ? resub : enable}
+              disabled={resubStatus === "loading"}
+              style={{
+                padding: "6px 14px", borderRadius: 7, border: "none",
+                background: resubStatus === "done" ? "#10b981" : resubStatus === "error" ? "#ef4444"
+                  : isDefault ? "#C9A55A" : "#0ea5e9",
+                color: "#fff", fontSize: 9, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+              }}>
+              {resubStatus === "loading" ? "…"
+                : resubStatus === "done" ? "✓ Đã đăng ký"
+                : resubStatus === "error" ? "✗ Lỗi"
+                : isDefault ? "BẬT THÔNG BÁO" : "Đăng ký lại"}
+            </button>
+          )}
+          {/* Test send — only when granted */}
+          {isGranted && (
+            <button onClick={sendTest} disabled={pushStatus === "sending"}
+              style={{ padding: "6px 14px", borderRadius: 7, border: "1px solid #bae6fd", background: pushStatus === "sent" ? "#f0fdf4" : "#f0f9ff", color: pushStatus === "sent" ? "#10b981" : pushStatus === "error" ? "#ef4444" : "#0ea5e9", fontSize: 9, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+              {pushStatus === "sending" ? "Đang gửi…" : pushStatus === "sent" ? "✓ Đã gửi" : pushStatus === "error" ? "✗ Lỗi" : "Gửi thử"}
+            </button>
+          )}
         </div>
       </div>
-      {permStatus === "denied" && (
+      {isDenied && (
         <div style={{ padding: "0 20px 12px" }}>
-          <p style={{ fontSize: 9, color: "#ef4444" }}>Vào Settings điện thoại → trình duyệt → store.postlain.com → bật lại Notifications.</p>
+          <p style={{ fontSize: 9, color: "#ef4444" }}>
+            Thông báo bị chặn. Vào Settings trình duyệt → site settings → store.postlain.com → bật lại Notifications, rồi nhấn &quot;Đăng ký lại&quot;.
+          </p>
         </div>
       )}
     </SCard>
@@ -936,7 +977,6 @@ export default function ProfilePage() {
               <PushPanel userId={currentUser.id} />
               <SecurityPanel currentUser={{ id: currentUser.id, email: currentUser.email, name: currentUser.name, role: currentUser.role }} />
               {isManager && <StorePanel />}
-              {isManager && <ShelvesPanel />}
               {isAdmin && <UsersPanel />}
               <VersionPanel />
             </div>

@@ -69,15 +69,17 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     setHydrated(true);
 
     // ── Push Notification subscription ───────────────────────────
+    // Only auto-subscribe if permission already granted (no popup on load).
+    // If permission is "default", user must click "Đăng ký lại" in Profile > Cài Đặt.
     const registerPush = async () => {
       if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
+      if (typeof Notification === "undefined") return;
+      if (Notification.permission !== "granted") return; // don't prompt on load
       const s = useStore.getState();
       if (!s.currentUser) return;
       const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
       if (!vapidKey) return;
       try {
-        const perm = await Notification.requestPermission();
-        if (perm !== "granted") return;
         const reg = await navigator.serviceWorker.ready;
         const existing = await reg.pushManager.getSubscription();
         const sub = existing ?? await reg.pushManager.subscribe({
@@ -89,7 +91,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ userId: s.currentUser.id, subscription: sub.toJSON() }),
         });
-      } catch { /* user denied or browser unsupported */ }
+      } catch { /* browser unsupported or subscribe failed */ }
     };
     registerPush();
 
