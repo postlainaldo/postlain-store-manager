@@ -1,13 +1,13 @@
 /**
- * Debug probe v5 — verify what sync actually fetches
- * DELETE THIS FILE after debugging.
+ * Probe v6 — show exact JSON from stock.quant child_of 2027
+ * DELETE after debugging.
  */
 export const dynamic = "force-dynamic";
 
 const ODOO_URL = (process.env.ODOO_URL ?? "").replace(/\/$/, "").replace(/#.*$/, "").replace(/\/web.*$/, "");
 const ODOO_DB  = process.env.ODOO_DB ?? "";
 const ODOO_USERNAME = process.env.ODOO_USERNAME ?? "";
-const ODOO_PASSWORD = process.env.ODOO_API_KEY ?? process.env.ODOO_PASSWORD ?? "";
+const ODOO_PASSWORD = process.env.ODOO_API_KEY ?? "";
 
 function enc(s: string) { return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
 function xv(x: unknown): string {
@@ -22,60 +22,65 @@ function xv(x: unknown): string {
 function xmlCall(method: string, params: unknown[]) {
   return `<?xml version="1.0"?><methodCall><methodName>${method}</methodName><params>${params.map(p=>`<param>${xv(p)}</param>`).join("")}</params></methodCall>`;
 }
-async function raw(endpoint: string, method: string, params: unknown[]): Promise<string> {
-  const res = await fetch(`${ODOO_URL}${endpoint}`,{method:"POST",headers:{"Content-Type":"text/xml; charset=utf-8"},body:xmlCall(method,params),cache:"no-store",signal:AbortSignal.timeout(20000)});
+async function rawXml(endpoint: string, method: string, params: unknown[]): Promise<string> {
+  const res = await fetch(`${ODOO_URL}${endpoint}`,{method:"POST",headers:{"Content-Type":"text/xml; charset=utf-8"},body:xmlCall(method,params),cache:"no-store",signal:AbortSignal.timeout(15000)});
   return res.text();
 }
-function ints(s: string): number[] { return [...s.matchAll(/<(?:int|i4)>(.*?)<\/(?:int|i4)>/g)].map(m=>parseInt(m[1],10)); }
-function strs(s: string): string[] { return [...s.matchAll(/<string>([\s\S]*?)<\/string>/g)].map(m=>m[1]); }
-function dbls(s: string): number[] { return [...s.matchAll(/<double>(.*?)<\/double>/g)].map(m=>parseFloat(m[1])); }
+function ints(s: string) { return [...s.matchAll(/<(?:int|i4)>(.*?)<\/(?:int|i4)>/g)].map(m=>parseInt(m[1],10)); }
 
 export async function GET() {
-  const uid = ints(await raw("/xmlrpc/2/common","authenticate",[ODOO_DB,ODOO_USERNAME,ODOO_PASSWORD,{}]))[0];
+  // Auth via XML-RPC
+  const uid = ints(await rawXml("/xmlrpc/2/common","authenticate",[ODOO_DB,ODOO_USERNAME,ODOO_PASSWORD,{}]))[0];
   if (!uid) return Response.json({error:"auth failed"});
 
-  const results: Record<string,unknown> = { uid };
+  // Get session cookie via JSON-RPC
+  let cookie = "";
+  const authRes = await fetch(`${ODOO_URL}/web/session/authenticate`,{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({jsonrpc:"2.0",method:"call",id:1,params:{db:ODOO_DB,login:ODOO_USERNAME,password:ODOO_PASSWORD}}),
+    cache:"no-store",
+  });
+  const sc = authRes.headers.get("set-cookie");
+  if (sc?.includes("session_id=")) { const m=sc.match(/session_id=([^;]+)/); if(m) cookie=`session_id=${m[1]}`; }
 
-  // 1. Count quants child_of 2027 with qty > 0
-  const countXml = await raw("/xmlrpc/2/object","execute_kw",[
-    ODOO_DB, uid, ODOO_PASSWORD,
-    "stock.quant","search_count",
-    [[["location_id","child_of",2027],["quantity",">",0]]],{}
-  ]);
-  results["count_qty_positive"] = ints(countXml)[0];
+  async function jrpc(model: string, method: string, args: unknown[], kwargs: unknown = {}) {
+    const r = await fetch(`${ODOO_URL}/web/dataset/call_kw`,{
+      method:"POST",
+      headers:{"Content-Type":"application/json", ...(cookie?{Cookie:cookie}:{})},
+      body:JSON.stringify({jsonrpc:"2.0",method:"call",id:1,params:{model,method,args,kwargs:{context:{lang:"vi_VN"},...(kwargs as object)}}}),
+      cache:"no-store",signal:AbortSignal.timeout(15000),
+    });
+    const j = await r.json() as {result?:unknown;error?:{message:string;data?:{message:string}}};
+    if(j.error) throw new Error(j.error.data?.message??j.error.message);
+    return j.result;
+  }
 
-  // 2. Count all quants child_of 2027
-  const countAllXml = await raw("/xmlrpc/2/object","execute_kw",[
-    ODOO_DB, uid, ODOO_PASSWORD,
-    "stock.quant","search_count",
-    [[["location_id","child_of",2027]]],{}
-  ]);
-  results["count_all"] = ints(countAllXml)[0];
+  // Count quants child_of 2027
+  const countAll  = await jrpc("stock.quant","search_count",[[["location_id","child_of",2027]]]);
+  const countPos  = await jrpc("stock.quant","search_count",[[["location_id","child_of",2027],["quantity",">",0]]]);
 
-  // 3. Get 3 sample quants with qty > 0 — raw XML to see double values
-  const sampleXml = await raw("/xmlrpc/2/object","execute_kw",[
-    ODOO_DB, uid, ODOO_PASSWORD,
-    "stock.quant","search_read",
+  // Get 5 sample quants with qty > 0 — show exact JSON
+  const sample = await jrpc("stock.quant","search_read",
     [[["location_id","child_of",2027],["quantity",">",0]]],
-    { fields:["product_id","quantity","reserved_quantity","location_id"], limit:3 }
-  ]);
-  // Show raw XML snippet (first 1500 chars) to see what types Odoo returns
-  results["sample_raw_xml_snippet"] = sampleXml.slice(0, 2000);
-  results["sample_strs"] = strs(sampleXml).slice(0, 20);
-  results["sample_ints"] = ints(sampleXml).slice(0, 20);
-  results["sample_doubles"] = dbls(sampleXml).slice(0, 20);
+    {fields:["product_id","quantity","reserved_quantity","location_id"],limit:5}
+  );
 
-  // 4. Get product.product fields for 1 product to check qty_available
-  const prodXml = await raw("/xmlrpc/2/object","execute_kw",[
-    ODOO_DB, uid, ODOO_PASSWORD,
-    "product.product","search_read",
+  // Count with on_hand filter
+  const countOnHand = await jrpc("stock.quant","search_count",
+    [[["location_id","child_of",2027],["on_hand","=",true]]]
+  );
+
+  // Try product.product with location context
+  const prodSample = await jrpc("product.product","search_read",
     [[["active","=",true]]],
-    { fields:["id","default_code","name","qty_available"], limit:3, order:"id asc" }
-  ]);
-  results["prod_sample_raw"] = prodXml.slice(0, 2000);
-  results["prod_strs"] = strs(prodXml).slice(0, 20);
-  results["prod_ints"] = ints(prodXml).slice(0, 10);
-  results["prod_doubles"] = dbls(prodXml).slice(0, 10);
+    {fields:["id","default_code","name","qty_available"],limit:5,context:{lang:"vi_VN",location:2027}}
+  );
 
-  return Response.json(results);
+  return Response.json({
+    uid, cookie: cookie?"set":"missing",
+    countAll, countPos, countOnHand,
+    quantSample: sample,
+    productSampleWithContext: prodSample,
+  });
 }
