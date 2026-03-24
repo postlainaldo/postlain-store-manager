@@ -236,7 +236,9 @@ export interface OdooPosOrderLine {
 export async function fetchPosOrders(dateFrom?: string, limit = 500): Promise<OdooPosOrder[]> {
   const cookie = await getSession();
   const PAGE = 200;
-  const domain: unknown[] = [["state", "=", "done"]];
+  // Odoo 13 POS states: "draft", "paid", "done", "invoiced", "cancel"
+  // Accept paid + done + invoiced (all completed orders)
+  const domain: unknown[] = [["state", "in", ["paid", "done", "invoiced"]]];
   if (dateFrom) domain.push(["date_order", ">=", dateFrom]);
 
   const all: OdooPosOrder[] = [];

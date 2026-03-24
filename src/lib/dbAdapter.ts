@@ -1342,14 +1342,14 @@ export async function dbGetPosSummary(dateFrom: string): Promise<{
     const { data } = await getSupabase()
       .from("pos_orders")
       .select("amountTotal")
-      .eq("state", "done")
+      .in("state", ["done", "paid", "invoiced"])
       .gte("createdAt", dateFrom);
     const rows = (data ?? []) as { amountTotal: number }[];
     const totalRevenue = rows.reduce((s, r) => s + r.amountTotal, 0);
     return { totalRevenue, orderCount: rows.length, avgOrderValue: rows.length ? totalRevenue / rows.length : 0 };
   }
   const r = getDb().prepare(
-    "SELECT COALESCE(SUM(amountTotal),0) as rev, COUNT(*) as cnt FROM pos_orders WHERE state='done' AND createdAt >= ?"
+    "SELECT COALESCE(SUM(amountTotal),0) as rev, COUNT(*) as cnt FROM pos_orders WHERE state IN ('done','paid','invoiced') AND createdAt >= ?"
   ).get(dateFrom) as { rev: number; cnt: number };
   return { totalRevenue: r.rev, orderCount: r.cnt, avgOrderValue: r.cnt ? r.rev / r.cnt : 0 };
 }
@@ -1362,7 +1362,7 @@ export async function dbGetTopProducts(dateFrom: string, limit = 10): Promise<{
     const { data: orders } = await getSupabase()
       .from("pos_orders")
       .select("id")
-      .eq("state", "done")
+      .in("state", ["done", "paid", "invoiced"])
       .gte("createdAt", dateFrom);
     const orderIds = (orders ?? []).map((o: { id: string }) => o.id);
     if (!orderIds.length) return [];
@@ -1389,7 +1389,7 @@ export async function dbGetTopProducts(dateFrom: string, limit = 10): Promise<{
     SELECT l.productName, l.sku, SUM(l.qty) as totalQty, SUM(l.priceSubtotal) as totalRevenue
     FROM pos_order_lines l
     JOIN pos_orders o ON o.id = l.orderId
-    WHERE o.state='done' AND o.createdAt >= ?
+    WHERE o.state IN ('done','paid','invoiced') AND o.createdAt >= ?
     GROUP BY l.productName ORDER BY totalQty DESC LIMIT ?
   `).all(dateFrom, limit) as { productName: string; sku: string | null; totalQty: number; totalRevenue: number }[];
 }
