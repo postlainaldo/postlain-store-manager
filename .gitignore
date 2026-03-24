@@ -40,3 +40,6 @@ public/assets/*.gif
 .env.local
 .env*.local
 .env.production
+
+.vercel
+.env*.local
