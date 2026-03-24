@@ -400,6 +400,35 @@ export async function dbUpsertProduct(p: DBProduct): Promise<DBProduct> {
   return p;
 }
 
+export async function dbBulkUpsertProducts(products: DBProduct[]): Promise<void> {
+  if (!products.length) return;
+  if (IS_SUPABASE) {
+    // Supabase upsert accepts an array — one round-trip for all rows
+    const CHUNK = 500;
+    for (let i = 0; i < products.length; i += CHUNK) {
+      await getSupabase()
+        .from("products")
+        .upsert(products.slice(i, i + CHUNK), { onConflict: "id" });
+    }
+    return;
+  }
+  // SQLite: wrap in a transaction for speed
+  const db = getDb();
+  const stmt = db.prepare(`
+    INSERT OR REPLACE INTO products
+      (id,name,sku,category,productType,quantity,price,markdownPrice,color,size,imagePath,notes,createdAt,updatedAt)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+  `);
+  const tx = db.transaction((rows: DBProduct[]) => {
+    for (const p of rows) {
+      stmt.run(p.id, p.name, p.sku ?? null, p.category, p.productType ?? null, p.quantity,
+        p.price ?? null, p.markdownPrice ?? null, p.color ?? null, p.size ?? null,
+        p.imagePath ?? null, p.notes ?? null, p.createdAt, p.updatedAt);
+    }
+  });
+  tx(products);
+}
+
 export async function dbDeleteProduct(id: string): Promise<void> {
   if (IS_SUPABASE) {
     await getSupabase().from("products").delete().eq("id", id);

@@ -10,16 +10,24 @@ self.addEventListener("message", (event: ExtendableMessageEvent) => {
 
 self.addEventListener("push", (event: PushEvent) => {
   if (!event.data) return;
-  let payload: { title?: string; body?: string; url?: string } = {};
+  let payload: { title?: string; body?: string; url?: string; type?: string } = {};
   try { payload = event.data.json(); } catch { payload = { body: event.data.text() }; }
 
   const title = payload.title ?? "Postlain";
+  const isImport = payload.type === "import";
+
   const options: NotificationOptions = {
-    body: payload.body ?? "",
-    icon: "/icon-192x192.png",
-    badge: "/favicon-32x32.png",
-    data: { url: payload.url ?? "/" },
-    vibrate: [200, 100, 200],
+    body:             payload.body ?? "",
+    icon:             "/icon-192x192.png",
+    badge:            "/favicon-32x32.png",
+    data:             { url: payload.url ?? "/" },
+    vibrate:          isImport ? [100, 50, 100, 50, 200] : [200, 100, 200],
+    // tag + renotify: each notification unique → always plays system sound
+    tag:              `postlain-${Date.now()}`,
+    renotify:         true,
+    requireInteraction: false,
+    // silent: false (default) → device plays its default notification sound
+    silent:           false,
   };
 
   event.waitUntil(self.registration.showNotification(title, options));
