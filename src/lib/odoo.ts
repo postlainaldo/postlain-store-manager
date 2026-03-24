@@ -285,9 +285,12 @@ export async function fetchOdooProducts(limit = 0): Promise<(OdooProduct & { qty
   // Build qty map: product_id → available qty (quantity - reserved)
   const qtyMap = new Map<number, number>();
   for (const q of allQuants) {
-    const pid = q.product_id[0];
-    const avail = (q.quantity ?? 0) - (q.reserved_quantity ?? 0);
-    qtyMap.set(pid, (qtyMap.get(pid) ?? 0) + avail);
+    // product_id is [id, name] tuple from Odoo many2one field
+    const pid = Array.isArray(q.product_id) ? (q.product_id as unknown[])[0] as number : q.product_id as unknown as number;
+    const qty = typeof q.quantity === "number" ? q.quantity : parseFloat(String(q.quantity ?? 0));
+    const res = typeof q.reserved_quantity === "number" ? q.reserved_quantity : parseFloat(String(q.reserved_quantity ?? 0));
+    const avail = qty - res;
+    if (avail > 0) qtyMap.set(pid, (qtyMap.get(pid) ?? 0) + avail);
   }
 
   const productIds = [...qtyMap.keys()];
