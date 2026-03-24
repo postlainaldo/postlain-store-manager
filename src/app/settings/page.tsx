@@ -300,13 +300,33 @@ function ShelvesPanel() {
 
 // ─── Notify Panel ────────────────────────────────────────────────────────────
 
+function urlB64ToUint8Array(base64String: string) {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const rawData = atob(base64);
+  return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
+}
+
 function NotifyPanel() {
   const {
     notifyLowStock, notifyMovement, notifyDaily, notifyPush,
     lowStockThreshold, setNotifySetting, setLowStockThreshold,
+    currentUser,
   } = useStore();
   const [threshold, setThreshold] = useState(String(lowStockThreshold));
   const [saved, setSaved] = useState(false);
+  const [pushStatus, setPushStatus] = useState<"idle"|"sending"|"sent"|"error">("idle");
+  const [subCount, setSubCount] = useState<number | null>(null);
+  const [permStatus, setPermStatus] = useState<string>("...");
+  const [resubStatus, setResubStatus] = useState<"idle"|"loading"|"done"|"error">("idle");
+
+  useEffect(() => {
+    if (typeof Notification !== "undefined") {
+      setPermStatus(Notification.permission);
+    }
+    // Fetch subscription count from server
+    fetch("/api/push/test").then(r => r.json()).then(d => setSubCount(d.subscriptions ?? 0)).catch(() => {});
+  }, []);
 
   const saveThreshold = () => {
     const n = parseInt(threshold, 10);
@@ -317,13 +337,54 @@ function NotifyPanel() {
     }
   };
 
+  const sendTestPush = async () => {
+    setPushStatus("sending");
+    try {
+      const r = await fetch("/api/push/test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: "Kiểm tra thông báo", body: "Push hoạt động ✓" }),
+      });
+      setPushStatus(r.ok ? "sent" : "error");
+    } catch { setPushStatus("error"); }
+    setTimeout(() => setPushStatus("idle"), 3000);
+  };
+
+  const resubscribe = async () => {
+    setResubStatus("loading");
+    try {
+      if (!("serviceWorker" in navigator) || !("PushManager" in window)) { setResubStatus("error"); return; }
+      const perm = await Notification.requestPermission();
+      setPermStatus(perm);
+      if (perm !== "granted") { setResubStatus("error"); return; }
+      const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+      if (!vapidKey) { setResubStatus("error"); return; }
+      const reg = await navigator.serviceWorker.ready;
+      // Unsubscribe existing first
+      const existing = await reg.pushManager.getSubscription();
+      if (existing) await existing.unsubscribe();
+      // Re-subscribe
+      const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlB64ToUint8Array(vapidKey) });
+      await fetch("/api/push/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: currentUser?.id ?? "user_admin", subscription: sub.toJSON() }),
+      });
+      const d = await fetch("/api/push/test").then(r => r.json());
+      setSubCount(d.subscriptions ?? 0);
+      setResubStatus("done");
+    } catch { setResubStatus("error"); }
+    setTimeout(() => setResubStatus("idle"), 3000);
+  };
+
+  const permColor = permStatus === "granted" ? "#10b981" : permStatus === "denied" ? "#ef4444" : "#f59e0b";
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <Card title="Cảnh Báo Kho">
         <Toggle label="Cảnh báo tồn kho thấp" desc="Thông báo khi SL < ngưỡng tối thiểu"
           on={notifyLowStock} set={v => setNotifySetting("notifyLowStock", v)} />
         <Divider />
-        {/* Threshold input — only shown when lowStock is on */}
         {notifyLowStock && (
           <>
             <div style={{ padding: "10px 20px", display: "flex", alignItems: "center", gap: 16 }}>
@@ -344,15 +405,60 @@ function NotifyPanel() {
             <Divider />
           </>
         )}
-        <Toggle label="Thông báo biến động"   desc="Mỗi khi có nhập/xuất/chuyển kho mới"
+        <Toggle label="Thông báo biến động" desc="Mỗi khi có nhập/xuất/chuyển kho mới"
           on={notifyMovement} set={v => setNotifySetting("notifyMovement", v)} />
         <Divider />
-        <Toggle label="Báo cáo hàng ngày"     desc="Tổng hợp cuối ngày gửi qua email"
+        <Toggle label="Báo cáo hàng ngày" desc="Tổng hợp cuối ngày gửi qua email"
           on={notifyDaily} set={v => setNotifySetting("notifyDaily", v)} />
       </Card>
-      <Card title="Kênh Nhận Thông Báo">
+
+      <Card title="Push Notification">
         <Toggle label="Push trên trình duyệt" desc="Thông báo trực tiếp trên màn hình"
           on={notifyPush} set={v => setNotifySetting("notifyPush", v)} />
+        <Divider />
+        {/* Status row */}
+        <div style={{ padding: "10px 20px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{ width: 7, height: 7, borderRadius: "50%", background: permColor, flexShrink: 0 }} />
+              <span style={{ fontSize: 10, color: "#334e68" }}>
+                Quyền thông báo: <strong>{permStatus === "granted" ? "Đã cấp" : permStatus === "denied" ? "Bị từ chối" : "Chưa cấp"}</strong>
+              </span>
+            </div>
+            <span style={{ fontSize: 9, color: "#94a3b8", paddingLeft: 15 }}>
+              {subCount === null ? "Đang kiểm tra…" : `${subCount} thiết bị đã đăng ký`}
+            </span>
+          </div>
+          <div style={{ display: "flex", gap: 6 }}>
+            <button onClick={resubscribe} disabled={resubStatus === "loading"}
+              style={{
+                padding: "5px 12px", borderRadius: 7, border: "1px solid #bae6fd",
+                background: resubStatus === "done" ? "#f0fdf4" : resubStatus === "error" ? "#fef2f2" : "#f0f9ff",
+                color: resubStatus === "done" ? "#10b981" : resubStatus === "error" ? "#ef4444" : "#0ea5e9",
+                fontSize: 9, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
+              }}>
+              {resubStatus === "loading" ? "…" : resubStatus === "done" ? "✓ Đã đăng ký" : resubStatus === "error" ? "✗ Lỗi" : "Đăng ký lại"}
+            </button>
+            <button onClick={sendTestPush} disabled={pushStatus === "sending"}
+              style={{
+                padding: "5px 12px", borderRadius: 7, border: "none",
+                background: pushStatus === "sent" ? "#10b981" : pushStatus === "error" ? "#ef4444" : "#0ea5e9",
+                color: "#fff", fontSize: 9, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
+              }}>
+              {pushStatus === "sending" ? "Đang gửi…" : pushStatus === "sent" ? "✓ Đã gửi" : pushStatus === "error" ? "✗ Lỗi" : "Gửi thử"}
+            </button>
+          </div>
+        </div>
+        {permStatus === "denied" && (
+          <>
+            <Divider />
+            <div style={{ padding: "8px 20px 12px" }}>
+              <p style={{ fontSize: 9, color: "#ef4444" }}>
+                Thông báo bị chặn. Vào Settings của trình duyệt/điện thoại → tìm store.postlain.com → bật lại quyền Notifications.
+              </p>
+            </div>
+          </>
+        )}
       </Card>
     </div>
   );
