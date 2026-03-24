@@ -211,6 +211,34 @@ export async function ensureSupabaseSchema() {
       "createdAt"   TEXT NOT NULL
     );
     CREATE INDEX IF NOT EXISTS idx_movements_created ON movements("createdAt" DESC);
+
+    CREATE TABLE IF NOT EXISTS shelves (
+      id          TEXT PRIMARY KEY,
+      name        TEXT NOT NULL,
+      type        TEXT NOT NULL CHECK(type IN ('WAREHOUSE','DISPLAY')),
+      "subType"   TEXT,
+      "sortOrder" INTEGER NOT NULL DEFAULT 0
+    );
+
+    CREATE TABLE IF NOT EXISTS slots (
+      id        TEXT PRIMARY KEY,
+      "shelfId" TEXT NOT NULL REFERENCES shelves(id) ON DELETE CASCADE,
+      tier      INTEGER NOT NULL DEFAULT 0,
+      position  INTEGER NOT NULL DEFAULT 0,
+      label     TEXT NOT NULL DEFAULT '',
+      UNIQUE("shelfId", tier, position, label)
+    );
+    CREATE INDEX IF NOT EXISTS idx_slots_shelf ON slots("shelfId", tier, position);
+
+    CREATE TABLE IF NOT EXISTS placements (
+      id          TEXT PRIMARY KEY,
+      "productId" TEXT NOT NULL,
+      "slotId"    TEXT NOT NULL UNIQUE REFERENCES slots(id) ON DELETE CASCADE,
+      "placedAt"  TEXT NOT NULL,
+      "updatedAt" TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_placements_slot ON placements("slotId");
+    CREATE INDEX IF NOT EXISTS idx_placements_product ON placements("productId");
   `;
 
   try {
@@ -598,4 +626,250 @@ export async function dbDeletePushSub(endpoint: string): Promise<void> {
     return;
   }
   getDb().prepare("DELETE FROM push_subs WHERE endpoint = ?").run(endpoint);
+}
+
+// ─── Shelves ──────────────────────────────────────────────────────────────────
+
+export type DBShelf = {
+  id: string; name: string; type: "WAREHOUSE" | "DISPLAY";
+  subType: string | null; sortOrder: number;
+};
+
+export async function dbGetAllShelves(): Promise<DBShelf[]> {
+  if (IS_SUPABASE) {
+    const { data } = await getSupabase().from("shelves").select("*").order("sortOrder").order("name");
+    return (data ?? []) as DBShelf[];
+  }
+  return getDb().prepare("SELECT * FROM shelves ORDER BY sortOrder, name").all() as DBShelf[];
+}
+
+export async function dbUpsertShelf(s: DBShelf): Promise<void> {
+  if (IS_SUPABASE) {
+    await getSupabase().from("shelves").upsert(s, { onConflict: "id" });
+    return;
+  }
+  getDb().prepare(`
+    INSERT INTO shelves(id,name,type,subType,sortOrder)
+    VALUES(@id,@name,@type,@subType,@sortOrder)
+    ON CONFLICT(id) DO UPDATE SET name=excluded.name,type=excluded.type,subType=excluded.subType,sortOrder=excluded.sortOrder
+  `).run(s);
+}
+
+// ─── Slots ────────────────────────────────────────────────────────────────────
+
+export type DBSlot = {
+  id: string; shelfId: string; tier: number; position: number; label: string;
+};
+
+export async function dbGetOrCreateSlot(shelfId: string, tier: number, position: number, label = ""): Promise<string> {
+  const slotId = `slot_${shelfId}_${tier}_${position}_${label}`.replace(/[^a-zA-Z0-9_]/g, "").slice(0, 64);
+  if (IS_SUPABASE) {
+    const sb = getSupabase();
+    // Check if slot already exists
+    const { data: existing } = await sb.from("slots")
+      .select("id").eq("shelfId", shelfId).eq("tier", tier).eq("position", position).eq("label", label).maybeSingle();
+    if (existing) return (existing as { id: string }).id;
+    // Insert new slot (ignore conflict on id in case of race condition)
+    await sb.from("slots").upsert(
+      { id: slotId, shelfId, tier, position, label },
+      { onConflict: "id", ignoreDuplicates: true }
+    );
+    return slotId;
+  }
+  const db = getDb();
+  const existing = db.prepare("SELECT id FROM slots WHERE shelfId=? AND tier=? AND position=? AND label=?").get(shelfId, tier, position, label) as { id: string } | undefined;
+  if (existing) return existing.id;
+  db.prepare("INSERT OR IGNORE INTO slots(id,shelfId,tier,position,label) VALUES(?,?,?,?,?)").run(slotId, shelfId, tier, position, label);
+  return slotId;
+}
+
+// ─── Placements ───────────────────────────────────────────────────────────────
+
+export async function dbSetPlacement(slotId: string, productId: string | null): Promise<void> {
+  if (IS_SUPABASE) {
+    const sb = getSupabase();
+    if (!productId) {
+      await sb.from("placements").delete().eq("slotId", slotId);
+      return;
+    }
+    const now = new Date().toISOString();
+    const id = `pl_${slotId}`.slice(0, 60);
+    await sb.from("placements").upsert(
+      { id, productId, slotId, placedAt: now, updatedAt: now },
+      { onConflict: "slotId" }
+    );
+    return;
+  }
+  const db = getDb();
+  if (!productId) {
+    db.prepare("DELETE FROM placements WHERE slotId = ?").run(slotId);
+    return;
+  }
+  const now = new Date().toISOString();
+  const id = `pl_${slotId}_${productId}`.slice(0, 60);
+  db.prepare(`
+    INSERT INTO placements(id,productId,slotId,placedAt,updatedAt)
+    VALUES(?,?,?,?,?)
+    ON CONFLICT(slotId) DO UPDATE SET productId=excluded.productId, updatedAt=excluded.updatedAt
+  `).run(id, productId, slotId, now, now);
+}
+
+export async function dbGetWarehouseMap(): Promise<Record<string, (string | null)[][]>> {
+  if (IS_SUPABASE) {
+    const sb = getSupabase();
+    const { data: shelves } = await sb.from("shelves").select("id").eq("type", "WAREHOUSE").order("sortOrder");
+    const result: Record<string, (string | null)[][]> = {};
+    for (const shelf of (shelves ?? []) as { id: string }[]) {
+      // Get all slots for this shelf
+      const { data: slots } = await sb.from("slots").select("id, tier, position").eq("shelfId", shelf.id);
+      // Get all placements for these slots
+      const slotIds = (slots ?? []).map((s: { id: string }) => s.id);
+      const { data: pls } = slotIds.length
+        ? await sb.from("placements").select("slotId, productId").in("slotId", slotIds)
+        : { data: [] };
+      const plMap: Record<string, string> = {};
+      for (const p of (pls ?? []) as { slotId: string; productId: string }[]) plMap[p.slotId] = p.productId;
+      const tiers: (string | null)[][] = Array.from({ length: 4 }, () => Array(25).fill(null));
+      for (const s of (slots ?? []) as { id: string; tier: number; position: number }[]) {
+        if (s.tier < 4 && s.position < 25) tiers[s.tier][s.position] = plMap[s.id] ?? null;
+      }
+      result[shelf.id] = tiers;
+    }
+    return result;
+  }
+  // SQLite fallback
+  const db = getDb();
+  const shelves = db.prepare("SELECT * FROM shelves WHERE type='WAREHOUSE' ORDER BY sortOrder, name").all() as DBShelf[];
+  const result: Record<string, (string | null)[][]> = {};
+  for (const shelf of shelves) {
+    const slots = db.prepare("SELECT s.tier, s.position, p.productId FROM slots s LEFT JOIN placements p ON p.slotId=s.id WHERE s.shelfId=? ORDER BY s.tier, s.position").all(shelf.id) as { tier: number; position: number; productId: string | null }[];
+    const tiers: (string | null)[][] = Array.from({ length: 4 }, () => Array(25).fill(null));
+    for (const s of slots) {
+      if (s.tier < 4 && s.position < 25) tiers[s.tier][s.position] = s.productId ?? null;
+    }
+    result[shelf.id] = tiers;
+  }
+  return result;
+}
+
+export async function dbGetDisplayMap(): Promise<Record<string, Record<string, (string | null)[][]>>> {
+  if (IS_SUPABASE) {
+    const sb = getSupabase();
+    const { data: shelves } = await sb.from("shelves").select("id").eq("type", "DISPLAY").order("sortOrder");
+    const result: Record<string, Record<string, (string | null)[][]>> = {};
+    for (const shelf of (shelves ?? []) as { id: string }[]) {
+      const { data: slots } = await sb.from("slots").select("id, label, tier, position").eq("shelfId", shelf.id);
+      const slotIds = (slots ?? []).map((s: { id: string }) => s.id);
+      const { data: pls } = slotIds.length
+        ? await sb.from("placements").select("slotId, productId").in("slotId", slotIds)
+        : { data: [] };
+      const plMap: Record<string, string> = {};
+      for (const p of (pls ?? []) as { slotId: string; productId: string }[]) plMap[p.slotId] = p.productId;
+      if (!result[shelf.id]) result[shelf.id] = {};
+      for (const s of (slots ?? []) as { id: string; label: string; tier: number; position: number }[]) {
+        const pid = plMap[s.id];
+        if (!pid) continue;
+        if (!result[shelf.id][s.label]) result[shelf.id][s.label] = [];
+        while (result[shelf.id][s.label].length <= s.tier) result[shelf.id][s.label].push([]);
+        while (result[shelf.id][s.label][s.tier].length <= s.position) result[shelf.id][s.label][s.tier].push(null);
+        result[shelf.id][s.label][s.tier][s.position] = pid;
+      }
+    }
+    return result;
+  }
+  // SQLite fallback
+  const db = getDb();
+  const shelves = db.prepare("SELECT * FROM shelves WHERE type='DISPLAY' ORDER BY sortOrder").all() as DBShelf[];
+  const result: Record<string, Record<string, (string | null)[][]>> = {};
+  for (const shelf of shelves) {
+    const slots = db.prepare(`SELECT s.label, s.tier, s.position, p.productId FROM slots s LEFT JOIN placements p ON p.slotId=s.id WHERE s.shelfId=? AND p.productId IS NOT NULL ORDER BY s.label, s.tier, s.position`).all(shelf.id) as { label: string; tier: number; position: number; productId: string }[];
+    if (!result[shelf.id]) result[shelf.id] = {};
+    for (const s of slots) {
+      if (!result[shelf.id][s.label]) result[shelf.id][s.label] = [];
+      while (result[shelf.id][s.label].length <= s.tier) result[shelf.id][s.label].push([]);
+      while (result[shelf.id][s.label][s.tier].length <= s.position) result[shelf.id][s.label][s.tier].push(null);
+      result[shelf.id][s.label][s.tier][s.position] = s.productId;
+    }
+  }
+  return result;
+}
+
+export async function dbGetWarehouseShelvesForState(): Promise<{
+  id: string; name: string; shelfType: "shoes" | "bags"; number: number;
+  tiers: (string | null)[][]; notes: string;
+}[]> {
+  if (IS_SUPABASE) {
+    const sb = getSupabase();
+    const { data: shelves } = await sb.from("shelves").select("*").eq("type", "WAREHOUSE").order("sortOrder");
+    const result = [];
+    for (const shelf of (shelves ?? []) as DBShelf[]) {
+      const { data: slots } = await sb.from("slots").select("id, tier, position").eq("shelfId", shelf.id);
+      const slotIds = (slots ?? []).map((s: { id: string }) => s.id);
+      const { data: pls } = slotIds.length
+        ? await sb.from("placements").select("slotId, productId").in("slotId", slotIds)
+        : { data: [] };
+      const plMap: Record<string, string> = {};
+      for (const p of (pls ?? []) as { slotId: string; productId: string }[]) plMap[p.slotId] = p.productId;
+      const tiers: (string | null)[][] = Array.from({ length: 4 }, () => Array(25).fill(null));
+      for (const s of (slots ?? []) as { id: string; tier: number; position: number }[]) {
+        if (s.tier < 4 && s.position < 25) tiers[s.tier][s.position] = plMap[s.id] ?? null;
+      }
+      result.push({
+        id: shelf.id, name: shelf.name,
+        shelfType: (shelf.subType ?? "shoes") as "shoes" | "bags",
+        number: parseInt(shelf.name.match(/\d+/)?.[0] ?? "1"),
+        tiers, notes: "",
+      });
+    }
+    return result;
+  }
+  // SQLite fallback
+  const db = getDb();
+  const shelves = db.prepare("SELECT * FROM shelves WHERE type='WAREHOUSE' ORDER BY sortOrder, name").all() as DBShelf[];
+  return shelves.map(shelf => {
+    const tiers: (string | null)[][] = Array.from({ length: 4 }, () => Array(25).fill(null));
+    const rows = db.prepare("SELECT sl.tier, sl.position, p.productId FROM slots sl LEFT JOIN placements p ON p.slotId=sl.id WHERE sl.shelfId=? ORDER BY sl.tier, sl.position").all(shelf.id) as { tier: number; position: number; productId: string | null }[];
+    for (const r of rows) { if (r.tier < 4 && r.position < 25) tiers[r.tier][r.position] = r.productId ?? null; }
+    return { id: shelf.id, name: shelf.name, shelfType: (shelf.subType ?? "shoes") as "shoes" | "bags", number: parseInt(shelf.name.match(/\d+/)?.[0] ?? "1"), tiers, notes: "" };
+  });
+}
+
+export async function dbGetDisplayPlacements(): Promise<Record<string, Record<string, Record<number, Record<number, string>>>>> {
+  if (IS_SUPABASE) {
+    const sb = getSupabase();
+    const { data: shelves } = await sb.from("shelves").select("id").eq("type", "DISPLAY").order("sortOrder");
+    const result: Record<string, Record<string, Record<number, Record<number, string>>>> = {};
+    for (const shelf of (shelves ?? []) as { id: string }[]) {
+      const { data: slots } = await sb.from("slots").select("id, label, tier, position").eq("shelfId", shelf.id);
+      const slotIds = (slots ?? []).map((s: { id: string }) => s.id);
+      const { data: pls } = slotIds.length
+        ? await sb.from("placements").select("slotId, productId").in("slotId", slotIds)
+        : { data: [] };
+      const plMap: Record<string, string> = {};
+      for (const p of (pls ?? []) as { slotId: string; productId: string }[]) plMap[p.slotId] = p.productId;
+      if (!result[shelf.id]) result[shelf.id] = {};
+      for (const s of (slots ?? []) as { id: string; label: string; tier: number; position: number }[]) {
+        const pid = plMap[s.id];
+        if (!pid) continue;
+        if (!result[shelf.id][s.label]) result[shelf.id][s.label] = {};
+        if (!result[shelf.id][s.label][s.tier]) result[shelf.id][s.label][s.tier] = {};
+        result[shelf.id][s.label][s.tier][s.position] = pid;
+      }
+    }
+    return result;
+  }
+  // SQLite fallback
+  const db = getDb();
+  const shelves = db.prepare("SELECT * FROM shelves WHERE type='DISPLAY' ORDER BY sortOrder").all() as DBShelf[];
+  const result: Record<string, Record<string, Record<number, Record<number, string>>>> = {};
+  for (const shelf of shelves) {
+    const rows = db.prepare("SELECT sl.label, sl.tier, sl.position, p.productId FROM slots sl LEFT JOIN placements p ON p.slotId=sl.id WHERE sl.shelfId=? AND p.productId IS NOT NULL").all(shelf.id) as { label: string; tier: number; position: number; productId: string }[];
+    if (!result[shelf.id]) result[shelf.id] = {};
+    for (const r of rows) {
+      if (!result[shelf.id][r.label]) result[shelf.id][r.label] = {};
+      if (!result[shelf.id][r.label][r.tier]) result[shelf.id][r.label][r.tier] = {};
+      result[shelf.id][r.label][r.tier][r.position] = r.productId;
+    }
+  }
+  return result;
 }

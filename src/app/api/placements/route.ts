@@ -5,26 +5,37 @@
  * POST body:
  *   {
  *     shelfId: string,
+ *     shelfName?: string,
  *     tier: number,        // warehouse: tier 0-3 | display: rowIndex
  *     position: number,    // warehouse: 0-24    | display: slotIndex
  *     label?: string,      // display only: subsectionId
  *     productId: string | null,
  *   }
+ *
+ * Uses dbAdapter so it works with both Supabase (Vercel) and SQLite (local dev).
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { getWarehouseMap, getDisplayMap, getOrCreateSlot, setPlacement, getAllPlacements, upsertShelf } from "@/lib/repo";
+import {
+  dbGetWarehouseMap,
+  dbGetDisplayMap,
+  dbUpsertShelf,
+  dbGetAllShelves,
+  dbGetOrCreateSlot,
+  dbSetPlacement,
+  ensureSupabaseSchema,
+} from "@/lib/dbAdapter";
 import { notifyClients } from "@/lib/sseClients";
-import getDb from "@/lib/database";
 
 export async function GET() {
-  const warehouse = getWarehouseMap();
-  const display   = getDisplayMap();
-  const raw       = getAllPlacements();
-  return NextResponse.json({ warehouse, display, placements: raw });
+  await ensureSupabaseSchema();
+  const [warehouse, display] = await Promise.all([dbGetWarehouseMap(), dbGetDisplayMap()]);
+  return NextResponse.json({ warehouse, display });
 }
 
 export async function POST(req: NextRequest) {
+  await ensureSupabaseSchema();
+
   const body = await req.json() as {
     shelfId: string;
     shelfName?: string;
@@ -40,13 +51,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
   }
 
-  // Auto-create shelf record if it doesn't exist yet (display sections are
-  // defined in client state but may not be seeded in the DB shelves table)
-  const db = getDb();
-  const shelfExists = db.prepare("SELECT id FROM shelves WHERE id = ?").get(shelfId);
+  // Auto-create shelf record if it doesn't exist yet
+  const shelves = await dbGetAllShelves();
+  const shelfExists = shelves.find(s => s.id === shelfId);
   if (!shelfExists) {
-    const isDisplay = label !== "";  // display placements always carry a subsectionId label
-    upsertShelf({
+    const isDisplay = label !== "";
+    await dbUpsertShelf({
       id: shelfId,
       name: shelfName ?? shelfId,
       type: isDisplay ? "DISPLAY" : "WAREHOUSE",
@@ -55,8 +65,8 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  const slotId = getOrCreateSlot(shelfId, tier, position, label);
-  setPlacement(slotId, productId);
+  const slotId = await dbGetOrCreateSlot(shelfId, tier, position, label);
+  await dbSetPlacement(slotId, productId);
 
   // Notify all SSE clients so every browser tab / device refreshes instantly
   notifyClients({ type: "placement", shelfId, tier, position, label, productId, slotId });
