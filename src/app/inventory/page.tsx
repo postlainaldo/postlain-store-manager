@@ -15,6 +15,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import QRScannerModal from "@/components/QRScannerModal";
+import { parseMCFromNotes } from "@/lib/categoryMapping";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -105,12 +106,6 @@ function ListView() {
     [products, search, filterCategory]
   );
 
-  // Parse MC code from notes field (stored as "MC: MC14003 | Season: FW25")
-  function parseMC(notes?: string | null): string | null {
-    if (!notes) return null;
-    const m = notes.match(/MC:\s*(MC\d+)/);
-    return m ? m[1] : null;
-  }
 
   const allSelected = filtered.length > 0 && filtered.every(p => selected.has(p.id));
   const someSelected = selected.size > 0;
@@ -314,7 +309,7 @@ function ListView() {
             sh.tiers.some(t => t.includes(p.id))
           );
           const isSel = selected.has(p.id);
-          const mc = parseMC(p.notes);
+          const mc = parseMCFromNotes(p.notes);
           return (
             <div
               key={p.id}

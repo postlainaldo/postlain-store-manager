@@ -11,6 +11,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { useStore } from "@/store/useStore";
 import type { Product, StoreSection, WarehouseShelf } from "@/types";
+import { parseMCFromNotes, parseSeasonFromNotes } from "@/lib/categoryMapping";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Subtab = "display" | "warehouse";
@@ -167,7 +168,7 @@ const ProductCard = memo(function ProductCard({
         position: "relative", cursor: onRemove ? "pointer" : "default",
         border: `1.5px solid ${highlight ? "#C9A55A" : `${cc}55`}`,
         boxShadow: highlight ? "0 0 0 2px rgba(201,165,90,0.3)" : "0 1px 4px rgba(0,0,0,0.06)",
-        background: product.imagePath ? "transparent" : (product.color ? `${product.color}22` : `${cc}18`),
+        background: product.imagePath ? "transparent" : `${cc}18`,
         transition: "all 0.12s",
         flexShrink: 0,
       }}
@@ -185,24 +186,30 @@ const ProductCard = memo(function ProductCard({
           alignItems: "center", justifyContent: "center",
           gap: 1, padding: isSmall ? 2 : 3,
         }}>
+          {/* Tên sản phẩm */}
           <span style={{
             fontSize: isSmall ? 6 : 7, fontWeight: 700, color: cc,
             textAlign: "center", lineHeight: 1.1,
             maxWidth: "100%", overflow: "hidden", wordBreak: "break-all",
           }}>
-            {product.name.split(" ")[0].slice(0, isSmall ? 4 : 5)}
+            {product.name.split(" ")[0].slice(0, isSmall ? 4 : 6)}
           </span>
+          {/* Màu (3-digit code) */}
           {product.color && !isSmall && (
-            <div style={{ width: 8, height: 8, borderRadius: "50%", background: product.color, border: "1.5px solid rgba(255,255,255,0.7)", flexShrink: 0 }} />
-          )}
-          {product.sku && (
-            <span style={{ fontSize: isSmall ? 5 : 6, fontWeight: 600, color: `${cc}cc`, textAlign: "center", lineHeight: 1, maxWidth: "100%", overflow: "hidden" }}>
-              {product.sku.slice(-4)}
+            <span style={{ fontSize: 6, fontWeight: 700, color: `${cc}bb`, textAlign: "center", lineHeight: 1 }}>
+              {product.color}
             </span>
           )}
-          {price && !isSmall && (
-            <span style={{ fontSize: 5.5, fontWeight: 700, color: product.markdownPrice ? "#dc2626" : "#64748b", textAlign: "center", lineHeight: 1 }}>
-              {fmtPrice(price)}
+          {/* MC code */}
+          {!isSmall && (
+            <span style={{ fontSize: 5.5, fontWeight: 600, color: `${cc}99`, textAlign: "center", lineHeight: 1, maxWidth: "100%", overflow: "hidden" }}>
+              {parseMCFromNotes(product.notes) ?? ""}
+            </span>
+          )}
+          {/* Size */}
+          {product.size && !isSmall && (
+            <span style={{ fontSize: 6, fontWeight: 700, color: `${cc}cc`, textAlign: "center", lineHeight: 1 }}>
+              {product.size}
             </span>
           )}
         </div>
@@ -234,12 +241,16 @@ const ProductCard = memo(function ProductCard({
             >
               <div style={{ background: "#0c1a2e", borderRadius: 8, padding: "5px 10px", boxShadow: "0 4px 16px rgba(0,0,0,0.2)" }}>
                 <p style={{ fontSize: 10, color: "#fff", fontWeight: 600 }}>{product.name}</p>
-                {product.sku && <p style={{ fontSize: 8, color: "#7dd3fc", marginTop: 1 }}>MC: {product.sku}</p>}
-                {product.color && <p style={{ fontSize: 8, color: "#94a3b8", marginTop: 1 }}>Màu: {product.color}</p>}
-                {price && <p style={{ fontSize: 8, color: product.markdownPrice ? "#fca5a5" : "#94a3b8", marginTop: 1 }}>
+                <div style={{ display: "flex", gap: 8, marginTop: 3, flexWrap: "wrap" }}>
+                  {product.color && <p style={{ fontSize: 8, color: "#7dd3fc" }}>Màu: <b>{product.color}</b></p>}
+                  {parseMCFromNotes(product.notes) && <p style={{ fontSize: 8, color: "#7dd3fc" }}>MC: <b>{parseMCFromNotes(product.notes)}</b></p>}
+                  {product.size && <p style={{ fontSize: 8, color: "#7dd3fc" }}>Size: <b>{product.size}</b></p>}
+                  {parseSeasonFromNotes(product.notes) && <p style={{ fontSize: 8, color: "#94a3b8" }}>{parseSeasonFromNotes(product.notes)}</p>}
+                </div>
+                {price && <p style={{ fontSize: 8, color: product.markdownPrice ? "#fca5a5" : "#94a3b8", marginTop: 2 }}>
                   {product.markdownPrice ? `${fmtPrice(product.markdownPrice)} ↓` : fmtPrice(product.price)}
                 </p>}
-                <p style={{ fontSize: 8, color: "#94a3b8", marginTop: 1 }}>{product.category} · SL: {product.quantity}</p>
+                <p style={{ fontSize: 8, color: "#94a3b8", marginTop: 2 }}>{product.category} · SL: {product.quantity}</p>
               </div>
             </motion.div>
           )}
@@ -653,23 +664,23 @@ function PickerContent({
               <div style={{
                 width: 36, height: 36, borderRadius: 8, flexShrink: 0, overflow: "hidden",
                 border: `1.5px solid ${isSelected ? "#C9A55A88" : `${cc}44`}`,
-                background: p.color ? `${p.color}22` : `${cc}22`,
+                background: `${cc}22`,
                 display: "flex", alignItems: "center", justifyContent: "center", position: "relative",
               }}>
                 {p.imagePath
                   ? <img src={p.imagePath} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                  : <>
-                      {p.color && <div style={{ width: 12, height: 12, borderRadius: "50%", background: p.color, border: "1.5px solid rgba(255,255,255,0.6)" }} />}
-                      {!p.color && <span style={{ fontSize: 10, fontWeight: 700, color: cc }}>{p.name.slice(0, 2)}</span>}
-                    </>
+                  : <span style={{ fontSize: p.color ? 9 : 10, fontWeight: 700, color: cc, textAlign: "center", lineHeight: 1 }}>
+                      {p.color ? p.color : p.name.slice(0, 2)}
+                    </span>
                 }
                 <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 2, background: cc }} />
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <p style={{ fontSize: 10.5, fontWeight: 600, color: isSelected ? "#C9A55A" : "#0c1a2e", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</p>
-                <div style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 2, flexWrap: "wrap" }}>
-                  {p.sku && <span style={{ fontSize: 8, color: "#0ea5e9", fontWeight: 600 }}>MC:{p.sku.slice(-6)}</span>}
-                  {p.color && <span style={{ width: 6, height: 6, borderRadius: "50%", background: p.color, border: "1px solid #e2e8f0", flexShrink: 0 }} />}
+                <div style={{ display: "flex", gap: 5, alignItems: "center", marginTop: 2, flexWrap: "wrap" }}>
+                  {parseMCFromNotes(p.notes) && <span style={{ fontSize: 8, color: "#0ea5e9", fontWeight: 600 }}>{parseMCFromNotes(p.notes)}</span>}
+                  {p.color && <span style={{ fontSize: 8, color: "#64748b", fontWeight: 600 }}>{p.color}</span>}
+                  {p.size && <span style={{ fontSize: 8, color: "#64748b" }}>{p.size}</span>}
                   {price && <span style={{ fontSize: 8, color: p.markdownPrice ? "#dc2626" : "#64748b", fontWeight: 600 }}>{fmtPrice(price)}</span>}
                 </div>
               </div>

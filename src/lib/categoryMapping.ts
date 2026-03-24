@@ -127,6 +127,20 @@ export function resolveCategory(code: string): { category: string; productType?:
   return { category: code };
 }
 
+// ─── Parse MC and Season from notes field ─────────────────────────────────────
+// notes format: "MC: MC14003 | Season: FW25"
+export function parseMCFromNotes(notes?: string | null): string | null {
+  if (!notes) return null;
+  const m = notes.match(/MC:\s*(MC\d+)/);
+  return m ? m[1] : null;
+}
+
+export function parseSeasonFromNotes(notes?: string | null): string | null {
+  if (!notes) return null;
+  const m = notes.match(/Season:\s*([A-Z]{2}\d{2})/);
+  return m ? m[1] : null;
+}
+
 // ─── Parse Vietnamese price format ────────────────────────────────────────────
 // "300.000 đ" → 300000, "1.500.000đ" → 1500000, "150,000" → 150000
 export function parseVietnamesePrice(raw: unknown): number | undefined {
