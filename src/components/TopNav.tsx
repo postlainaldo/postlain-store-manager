@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  LayoutDashboard, Focus, Box, Settings, LogIn, LogOut,
+  LayoutDashboard, Focus, Box, LogIn, LogOut,
   MessageSquare,
 } from "lucide-react";
 import { useStore } from "@/store/useStore";
@@ -12,10 +12,9 @@ import GlobalSearch from "@/components/GlobalSearch";
 
 const NAV_ITEMS = [
   { id: "overview",     label: "Tổng Quan",  href: "/",             icon: LayoutDashboard, exact: true  },
-  { id: "visual-board", label: "Trưng Bày",  href: "/visual-board", icon: Focus,           exact: false },
+  { id: "visual-board", label: "Vị Trí",     href: "/visual-board", icon: Focus,           exact: false },
   { id: "inventory",    label: "Dữ Liệu",    href: "/inventory",    icon: Box,             exact: false },
   { id: "chat",         label: "Chat",        href: "/chat",         icon: MessageSquare,   exact: false },
-  { id: "settings",     label: "Cài Đặt",    href: "/settings",     icon: Settings,        exact: false },
 ] as const;
 
 export default function TopNav() {
