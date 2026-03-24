@@ -224,8 +224,11 @@ export async function fetchOdooProducts(limit = 0): Promise<(OdooProduct & { qty
       [[
         ["location_id", "child_of", LOCATION_47GDL],
         ["quantity", ">", 0],
-        ["product_id.type", "=", "product"],          // storable only
-        ["product_id.sale_ok", "=", true],            // must be sellable
+        ["product_id.type", "=", "product"],          // storable only, excludes services/consumables
+        ["product_id.categ_id.name", "not ilike", "bao bi"],
+        ["product_id.categ_id.name", "not ilike", "packaging"],
+        ["product_id.categ_id.name", "not ilike", "gwp"],
+        ["product_id.categ_id.name", "not ilike", "gift"],
       ]],
       { fields: ["product_id", "quantity", "reserved_quantity"], limit: PAGE, offset: qOffset }
     ) as OdooQuant[];
