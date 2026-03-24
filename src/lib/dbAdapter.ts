@@ -447,12 +447,22 @@ export async function dbDeleteProduct(id: string): Promise<void> {
 }
 
 export async function dbDeleteProducts(ids: string[]): Promise<void> {
+  if (!ids.length) return;
   if (IS_SUPABASE) {
-    await getSupabase().from("products").delete().in("id", ids);
+    // Chunk to avoid Supabase URL length limit (~2000 items per .in())
+    const CHUNK = 200;
+    for (let i = 0; i < ids.length; i += CHUNK) {
+      await getSupabase().from("products").delete().in("id", ids.slice(i, i + CHUNK));
+    }
     return;
   }
-  const stmt = getDb().prepare("DELETE FROM products WHERE id = ?");
-  for (const id of ids) stmt.run(id);
+  // SQLite: use a single transaction for performance
+  const db = getDb();
+  const del = db.transaction((batch: string[]) => {
+    const stmt = db.prepare("DELETE FROM products WHERE id = ?");
+    for (const id of batch) stmt.run(id);
+  });
+  del(ids);
 }
 
 // ─── Chat Rooms ───────────────────────────────────────────────────────────────

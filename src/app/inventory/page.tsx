@@ -110,14 +110,23 @@ function ListView() {
 
   const handleBulkDelete = async () => {
     const ids = Array.from(selected);
-    await fetch("/api/products", {
+    setConfirmBulk(false);
+    setSelected(new Set());
+
+    // Optimistically remove from store immediately
+    useStore.getState().setProducts(
+      useStore.getState().products.filter(p => !ids.includes(p.id))
+    );
+
+    const res = await fetch("/api/products", {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ids }),
     });
-    await fetchProducts();
-    setSelected(new Set());
-    setConfirmBulk(false);
+    if (!res.ok) {
+      // Rollback by re-fetching if server failed
+      await fetchProducts();
+    }
   };
 
   return (
