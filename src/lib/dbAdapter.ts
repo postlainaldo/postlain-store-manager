@@ -239,6 +239,11 @@ export async function ensureSupabaseSchema() {
     );
     CREATE INDEX IF NOT EXISTS idx_placements_slot ON placements("slotId");
     CREATE INDEX IF NOT EXISTS idx_placements_product ON placements("productId");
+
+    CREATE TABLE IF NOT EXISTS app_settings (
+      key   TEXT PRIMARY KEY,
+      value TEXT NOT NULL DEFAULT ''
+    );
   `;
 
   try {
@@ -872,4 +877,64 @@ export async function dbGetDisplayPlacements(): Promise<Record<string, Record<st
     }
   }
   return result;
+}
+
+// ─── App Settings (store info) ────────────────────────────────────────────────
+
+export type AppSettings = {
+  storeName: string;
+  storeAddress: string;
+  storePhone: string;
+  storeEmail: string;
+};
+
+const SETTINGS_DEFAULTS: AppSettings = {
+  storeName: "",
+  storeAddress: "",
+  storePhone: "",
+  storeEmail: "",
+};
+
+export async function dbGetAppSettings(): Promise<AppSettings> {
+  if (IS_SUPABASE) {
+    const sb = getSupabase();
+    const { data } = await sb.from("app_settings").select("key, value");
+    const map: Record<string, string> = {};
+    for (const row of (data ?? []) as { key: string; value: string }[]) {
+      map[row.key] = row.value;
+    }
+    return {
+      storeName:    map["storeName"]    ?? SETTINGS_DEFAULTS.storeName,
+      storeAddress: map["storeAddress"] ?? SETTINGS_DEFAULTS.storeAddress,
+      storePhone:   map["storePhone"]   ?? SETTINGS_DEFAULTS.storePhone,
+      storeEmail:   map["storeEmail"]   ?? SETTINGS_DEFAULTS.storeEmail,
+    };
+  }
+  const db = getDb();
+  // Ensure table exists in SQLite
+  db.prepare("CREATE TABLE IF NOT EXISTS app_settings (key TEXT PRIMARY KEY, value TEXT NOT NULL DEFAULT '')").run();
+  const rows = db.prepare("SELECT key, value FROM app_settings").all() as { key: string; value: string }[];
+  const map: Record<string, string> = {};
+  for (const r of rows) map[r.key] = r.value;
+  return {
+    storeName:    map["storeName"]    ?? SETTINGS_DEFAULTS.storeName,
+    storeAddress: map["storeAddress"] ?? SETTINGS_DEFAULTS.storeAddress,
+    storePhone:   map["storePhone"]   ?? SETTINGS_DEFAULTS.storePhone,
+    storeEmail:   map["storeEmail"]   ?? SETTINGS_DEFAULTS.storeEmail,
+  };
+}
+
+export async function dbSetAppSettings(settings: Partial<AppSettings>): Promise<void> {
+  if (IS_SUPABASE) {
+    const sb = getSupabase();
+    const rows = Object.entries(settings).map(([key, value]) => ({ key, value: value ?? "" }));
+    await sb.from("app_settings").upsert(rows, { onConflict: "key" });
+    return;
+  }
+  const db = getDb();
+  db.prepare("CREATE TABLE IF NOT EXISTS app_settings (key TEXT PRIMARY KEY, value TEXT NOT NULL DEFAULT '')").run();
+  const stmt = db.prepare("INSERT INTO app_settings(key, value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value");
+  for (const [key, value] of Object.entries(settings)) {
+    stmt.run(key, value ?? "");
+  }
 }

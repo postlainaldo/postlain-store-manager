@@ -8,10 +8,13 @@ import {
   ChevronRight, Check, ToggleLeft, ToggleRight,
   Plus, Trash2, Pencil, Warehouse, X, Eye, EyeOff,
   Download, Upload, RefreshCw, Lock, Key, UserPlus,
-  Crown, UserCheck, User, Smartphone,
+  Crown, UserCheck, User, Smartphone, Info,
 } from "lucide-react";
 import { useStore } from "@/store/useStore";
 import type { UserRole, AppUser } from "@/store/useStore";
+import { useUpdateContext } from "@/components/Providers";
+
+const APP_VERSION = process.env.NEXT_PUBLIC_APP_VERSION ?? "1.0.0";
 
 const SECTIONS = [
   { id: "store",    label: "Thông Tin Cửa Hàng", icon: Store,     desc: "Tên, địa chỉ, liên hệ",     minRole: "manager" },
@@ -21,6 +24,7 @@ const SECTIONS = [
   { id: "users",    label: "Người Dùng",           icon: Users,     desc: "Phân quyền truy cập",        minRole: "admin"   },
   { id: "data",     label: "Dữ Liệu & Xuất File",  icon: Database,  desc: "Sao lưu, export Excel",      minRole: "manager" },
   { id: "security", label: "Bảo Mật",              icon: Shield,    desc: "Mật khẩu, xác thực",         minRole: "staff"   },
+  { id: "version",  label: "Phiên Bản",            icon: Info,      desc: `v${APP_VERSION} · Cập nhật app`, minRole: "staff" },
 ] as const;
 
 type SectionMinRole = typeof SECTIONS[number]["minRole"];
@@ -95,11 +99,27 @@ function StorePanel() {
   const [email,   setEmail]   = useState(storeEmail);
   const [saved,   setSaved]   = useState(false);
 
+  // Load from DB on mount (source of truth)
+  useEffect(() => {
+    fetch("/api/settings").then(r => r.json()).then(data => {
+      if (data.storeName)    { setName(data.storeName);    setStoreSetting("storeName",    data.storeName); }
+      if (data.storeAddress) { setAddr(data.storeAddress); setStoreSetting("storeAddress", data.storeAddress); }
+      if (data.storePhone)   { setPhone(data.storePhone);  setStoreSetting("storePhone",   data.storePhone); }
+      if (data.storeEmail)   { setEmail(data.storeEmail);  setStoreSetting("storeEmail",   data.storeEmail); }
+    }).catch(() => {});
+  }, []);
+
   const handleSave = () => {
     setStoreSetting("storeName",    name);
     setStoreSetting("storeAddress", addr);
     setStoreSetting("storePhone",   phone);
     setStoreSetting("storeEmail",   email);
+    // Persist to DB
+    fetch("/api/settings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ storeName: name, storeAddress: addr, storePhone: phone, storeEmail: email }),
+    }).catch(() => {});
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
@@ -898,6 +918,48 @@ function SecurityPanel() {
   );
 }
 
+// ─── Version Panel ────────────────────────────────────────────────────────────
+
+function VersionPanel() {
+  const { updateReady, onUpdate } = useUpdateContext();
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      <Card title="PHIÊN BẢN ỨNG DỤNG">
+        <div style={{ padding: "12px 20px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div>
+            <p style={{ fontSize: 11, color: "#0c1a2e", fontWeight: 600 }}>Postlain Store Manager</p>
+            <p style={{ fontSize: 9, color: "#64748b", marginTop: 3 }}>Phiên bản hiện tại: <strong>v{APP_VERSION}</strong></p>
+          </div>
+          {updateReady ? (
+            <button onClick={onUpdate} style={{
+              display: "flex", alignItems: "center", gap: 6,
+              padding: "7px 16px", borderRadius: 9, border: "none",
+              background: "#C9A55A", color: "#0c1a2e",
+              fontSize: 9, fontWeight: 700, letterSpacing: "0.1em",
+              cursor: "pointer", fontFamily: "inherit",
+            }}>
+              <RefreshCw size={10} /> CẬP NHẬT NGAY
+            </button>
+          ) : (
+            <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", borderRadius: 9, background: "#f0fdf4", border: "1px solid #bbf7d0" }}>
+              <Check size={10} style={{ color: "#10b981" }} />
+              <span style={{ fontSize: 9, color: "#10b981", fontWeight: 600 }}>Mới nhất</span>
+            </div>
+          )}
+        </div>
+        <Divider />
+        <div style={{ padding: "8px 20px 12px" }}>
+          <p style={{ fontSize: 9, color: "#94a3b8" }}>
+            Khi có bản cập nhật mới, nút &quot;CẬP NHẬT NGAY&quot; sẽ xuất hiện ở đây.
+            Update lớn đổi tên version (v1 → v2), update nhỏ đổi đuôi (v1.0 → v1.1).
+          </p>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function SettingsPage() {
@@ -905,6 +967,7 @@ export default function SettingsPage() {
   const storeName = useStore(s => s.storeName);
   const brandName = storeName.split("—")[0]?.trim() || storeName;
   const role = currentUser?.role ?? "staff";
+  const { updateReady } = useUpdateContext();
 
   const visibleSections = SECTIONS.filter(s => hasAccess(role, s.minRole));
   const defaultSection = visibleSections[0]?.id ?? "security";
@@ -929,6 +992,7 @@ export default function SettingsPage() {
     if (activeSection === "users")    return <UsersPanel />;
     if (activeSection === "data")     return <DataPanel />;
     if (activeSection === "security") return <SecurityPanel />;
+    if (activeSection === "version")  return <VersionPanel />;
     return null;
   }
 
@@ -964,6 +1028,9 @@ export default function SettingsPage() {
                 <p style={{ fontSize: 11, color: isA ? "#0c1a2e" : "#334e68", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.label}</p>
                 <p style={{ fontSize: 8, color: "#94a3b8", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.desc}</p>
               </div>
+              {s.id === "version" && updateReady && (
+                <div style={{ width: 7, height: 7, borderRadius: "50%", background: "#C9A55A", flexShrink: 0, marginRight: 2 }} />
+              )}
               {allowed
                 ? <ChevronRight size={9} style={{ color: isA ? "#94a3b8" : "#bae6fd", flexShrink: 0 }} />
                 : <Lock size={9} style={{ color: "#bae6fd", flexShrink: 0 }} />

@@ -1,9 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, createContext, useContext } from "react";
 import { useStore } from "@/store/useStore";
-import { RefreshCw } from "lucide-react";
 import SplashScreen from "@/components/SplashScreen";
+
+// ─── Update context (consumed by Settings page) ───────────────────────────────
+export const UpdateContext = createContext<{ updateReady: boolean; onUpdate: () => void }>({
+  updateReady: false,
+  onUpdate: () => {},
+});
 
 function urlB64ToUint8Array(base64String: string) {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
@@ -120,34 +125,11 @@ export default function Providers({ children }: { children: React.ReactNode }) {
   if (!hydrated) return null;
 
   return (
-    <>
+    <UpdateContext.Provider value={{ updateReady, onUpdate: handleUpdate }}>
       <SplashScreen />
       {children}
-
-      {/* PWA update toast */}
-      {updateReady && (
-        <div style={{
-          position: "fixed",
-          bottom: "calc(72px + env(safe-area-inset-bottom, 0px))",
-          left: "50%", transform: "translateX(-50%)",
-          zIndex: 9999,
-          background: "#0c1a2e", border: "1px solid #C9A55A",
-          borderRadius: 12, padding: "10px 16px",
-          display: "flex", alignItems: "center", gap: 10,
-          boxShadow: "0 8px 32px rgba(12,26,46,0.3)", whiteSpace: "nowrap",
-        }}>
-          <RefreshCw size={13} style={{ color: "#C9A55A", flexShrink: 0 }} />
-          <p style={{ fontSize: 11, color: "#fff", fontWeight: 600 }}>Có phiên bản mới!</p>
-          <button onClick={handleUpdate} style={{
-            background: "#C9A55A", border: "none", borderRadius: 7,
-            padding: "4px 12px", fontSize: 10, fontWeight: 700,
-            color: "#0c1a2e", cursor: "pointer", letterSpacing: "0.06em",
-          }}>CẬP NHẬT</button>
-          <button onClick={() => setUpdateReady(false)} style={{
-            background: "none", border: "none", cursor: "pointer", color: "#64748b", fontSize: 14, padding: 0,
-          }}>×</button>
-        </div>
-      )}
-    </>
+    </UpdateContext.Provider>
   );
 }
+
+export function useUpdateContext() { return useContext(UpdateContext); }
