@@ -40,7 +40,102 @@ function call(method: string, params: unknown[]): string {
   }</params></methodCall>`;
 }
 
-// ─── XML parser ───────────────────────────────────────────────────────────────
+// ─── XML parser (recursive, tag-balanced) ────────────────────────────────────
+
+/** Find the index just after the matching closing tag, handling nested same-name tags */
+function findClose(xml: string, openTag: string, closeTag: string, from: number): number {
+  let depth = 1, i = from;
+  while (i < xml.length && depth > 0) {
+    const o = xml.indexOf(openTag,  i);
+    const c = xml.indexOf(closeTag, i);
+    if (c === -1) break;
+    if (o !== -1 && o < c) { depth++; i = o + openTag.length; }
+    else                    { depth--; i = c + closeTag.length; }
+  }
+  return i;
+}
+
+function parseValue(xml: string, pos: number): [unknown, number] {
+  // skip whitespace
+  while (pos < xml.length && xml[pos] !== '<') pos++;
+  if (xml.slice(pos, pos + 7) !== "<value>") return [null, pos];
+  pos += 7; // past <value>
+  // skip whitespace
+  while (pos < xml.length && (xml[pos] === '\n' || xml[pos] === '\r' || xml[pos] === ' ')) pos++;
+
+  const rest = xml.slice(pos);
+
+  // <int> / <i4>
+  if (rest.startsWith("<int>") || rest.startsWith("<i4>")) {
+    const tag = rest.startsWith("<int>") ? "int" : "i4";
+    const end = xml.indexOf(`</${tag}>`, pos);
+    const n = parseInt(xml.slice(pos + tag.length + 2, end), 10);
+    return [n, xml.indexOf("</value>", end) + 8];
+  }
+  // <double>
+  if (rest.startsWith("<double>")) {
+    const end = xml.indexOf("</double>", pos);
+    return [parseFloat(xml.slice(pos + 8, end)), xml.indexOf("</value>", end) + 8];
+  }
+  // <boolean>
+  if (rest.startsWith("<boolean>")) {
+    const end = xml.indexOf("</boolean>", pos);
+    return [xml.slice(pos + 9, end) === "1", xml.indexOf("</value>", end) + 8];
+  }
+  // <nil/>
+  if (rest.startsWith("<nil/>")) {
+    return [null, xml.indexOf("</value>", pos) + 8];
+  }
+  // <string>
+  if (rest.startsWith("<string>")) {
+    const end = xml.indexOf("</string>", pos);
+    const raw = xml.slice(pos + 8, end).replace(/&amp;/g,"&").replace(/&lt;/g,"<").replace(/&gt;/g,">");
+    return [raw, xml.indexOf("</value>", end) + 8];
+  }
+  // <array>
+  if (rest.startsWith("<array>")) {
+    const dataStart = xml.indexOf("<data>", pos) + 6;
+    const dataEnd   = xml.indexOf("</data>", dataStart);
+    const items: unknown[] = [];
+    let cur = dataStart;
+    while (cur < dataEnd) {
+      const vi = xml.indexOf("<value>", cur);
+      if (vi === -1 || vi >= dataEnd) break;
+      const [item, next] = parseValue(xml, vi);
+      items.push(item);
+      cur = next;
+    }
+    const afterArray = xml.indexOf("</array>", dataEnd) + 8;
+    return [items, xml.indexOf("</value>", afterArray) + 8];
+  }
+  // <struct>
+  if (rest.startsWith("<struct>")) {
+    const structStart = pos + 8;
+    const structEnd   = findClose(xml, "<struct>", "</struct>", structStart);
+    const body = xml.slice(structStart, structEnd - 9); // trim </struct>
+    const obj: Record<string, unknown> = {};
+    let cur = 0;
+    while (true) {
+      const ms = body.indexOf("<member>", cur);
+      if (ms === -1) break;
+      const me = body.indexOf("</member>", ms);
+      const chunk = body.slice(ms + 8, me);
+      const nameStart = chunk.indexOf("<name>") + 6;
+      const nameEnd   = chunk.indexOf("</name>");
+      const name = chunk.slice(nameStart, nameEnd);
+      const vi   = chunk.indexOf("<value>");
+      if (name && vi !== -1) {
+        const [v] = parseValue(chunk, vi);
+        obj[name] = v;
+      }
+      cur = me + 9;
+    }
+    return [obj, xml.indexOf("</value>", structEnd) + 8];
+  }
+  // bare string (no type tag)
+  const end = xml.indexOf("</value>", pos);
+  return [xml.slice(pos, end).trim(), end + 8];
+}
 
 function parseXml(xml: string): unknown {
   if (xml.includes("<fault>")) {
@@ -48,39 +143,9 @@ function parseXml(xml: string): unknown {
     throw new Error(`Odoo: ${msg}`);
   }
   const vi = xml.indexOf("<value>");
-  return vi === -1 ? null : parseVal(xml, vi);
-}
-
-function parseVal(src: string, start: number): unknown {
-  const s = src.slice(start);
-  if (/<int>|<i4>/.test(s)) return parseInt(s.match(/<(?:int|i4)>(.*?)<\/(?:int|i4)>/)?.[1] ?? "0", 10);
-  if (/<double>/.test(s))   return parseFloat(s.match(/<double>(.*?)<\/double>/)?.[1] ?? "0");
-  if (/<boolean>/.test(s))  return s.match(/<boolean>(.*?)<\/boolean>/)?.[1] === "1";
-  if (/<string>/.test(s))   return (s.match(/<string>([\s\S]*?)<\/string>/)?.[1] ?? "").replace(/&amp;/g,"&").replace(/&lt;/g,"<").replace(/&gt;/g,">");
-  if (/<nil\/>/.test(s))    return null;
-  if (/<array>/.test(s)) {
-    const data = s.match(/<array>\s*<data>([\s\S]*?)<\/data>/)?.[1] ?? "";
-    const items: unknown[] = [];
-    let p = 0;
-    while (true) {
-      const vi = data.indexOf("<value>", p);
-      if (vi === -1) break;
-      items.push(parseVal(data, vi));
-      p = vi + 7;
-    }
-    return items;
-  }
-  if (/<struct>/.test(s)) {
-    const body = s.match(/<struct>([\s\S]*?)<\/struct>/)?.[1] ?? "";
-    const obj: Record<string, unknown> = {};
-    for (const m of body.split("<member>")) {
-      const name = m.match(/<name>(.*?)<\/name>/)?.[1];
-      const vi   = m.indexOf("<value>");
-      if (name && vi !== -1) obj[name] = parseVal(m, vi);
-    }
-    return obj;
-  }
-  return s.match(/<value>([\s\S]*?)<\/value>/)?.[1]?.trim() ?? null;
+  if (vi === -1) return null;
+  const [result] = parseValue(xml, vi);
+  return result;
 }
 
 // ─── Transport ────────────────────────────────────────────────────────────────
