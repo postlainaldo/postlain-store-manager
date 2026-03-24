@@ -1,6 +1,7 @@
 /**
- * Debug probe — inspect Odoo product fields to find store/location filter.
- * DELETE THIS FILE after debugging is done.
+ * Debug probe v3 — use JSON-RPC (no CSRF needed for read-only after auth via XML-RPC uid)
+ * Actually use XML-RPC but with simpler targeted queries.
+ * DELETE THIS FILE after debugging.
  */
 export const dynamic = "force-dynamic";
 
@@ -9,117 +10,80 @@ const ODOO_DB  = process.env.ODOO_DB ?? "";
 const ODOO_USERNAME = process.env.ODOO_USERNAME ?? "";
 const ODOO_PASSWORD = process.env.ODOO_API_KEY ?? process.env.ODOO_PASSWORD ?? "";
 
-function val(v: unknown): string {
-  if (v === null || v === undefined) return "<value><boolean>0</boolean></value>";
-  if (typeof v === "boolean")  return `<value><boolean>${v ? 1 : 0}</boolean></value>`;
-  if (typeof v === "number")   return Number.isInteger(v) ? `<value><int>${v}</int></value>` : `<value><double>${v}</double></value>`;
-  if (typeof v === "string")   return `<value><string>${v.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}</string></value>`;
-  if (Array.isArray(v))        return `<value><array><data>${v.map(val).join("")}</data></array></value>`;
-  if (typeof v === "object") {
-    const m = Object.entries(v as Record<string,unknown>).map(([k,x]) => `<member><name>${k}</name>${val(x)}</member>`).join("");
-    return `<value><struct>${m}</struct></value>`;
-  }
-  return `<value><string>${String(v)}</string></value>`;
+// Minimal XML-RPC
+function v(x: unknown): string {
+  if (x === null || x === undefined) return "<value><boolean>0</boolean></value>";
+  if (typeof x === "number") return Number.isInteger(x) ? `<value><int>${x}</int></value>` : `<value><double>${x}</double></value>`;
+  if (typeof x === "boolean") return `<value><boolean>${x?1:0}</boolean></value>`;
+  if (typeof x === "string") return `<value><string>${x.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}</string></value>`;
+  if (Array.isArray(x)) return `<value><array><data>${x.map(v).join("")}</data></array></value>`;
+  const m = Object.entries(x as Record<string,unknown>).map(([k,val])=>`<member><name>${k}</name>${v(val)}</member>`).join("");
+  return `<value><struct>${m}</struct></value>`;
 }
-function callXml(method: string, params: unknown[]) {
-  return `<?xml version="1.0"?><methodCall><methodName>${method}</methodName><params>${params.map(p=>`<param>${val(p)}</param>`).join("")}</params></methodCall>`;
+function xml(method: string, params: unknown[]) {
+  return `<?xml version="1.0"?><methodCall><methodName>${method}</methodName><params>${params.map(p=>`<param>${v(p)}</param>`).join("")}</params></methodCall>`;
 }
-function parseVal(src: string, start: number): unknown {
-  const s = src.slice(start);
-  if (/<int>|<i4>/.test(s)) return parseInt(s.match(/<(?:int|i4)>(.*?)<\/(?:int|i4)>/)?.[1]??"0",10);
-  if (/<double>/.test(s))   return parseFloat(s.match(/<double>(.*?)<\/double>/)?.[1]??"0");
-  if (/<boolean>/.test(s))  return s.match(/<boolean>(.*?)<\/boolean>/)?.[1]==="1";
-  if (/<nil\/>/.test(s))    return null;
-  if (/<string>/.test(s))   return (s.match(/<string>([\s\S]*?)<\/string>/)?.[1]??"").replace(/&amp;/g,"&").replace(/&lt;/g,"<").replace(/&gt;/g,">");
-  if (/<array>/.test(s)) {
-    const data = s.match(/<array>\s*<data>([\s\S]*?)<\/data>/)?.[1]??"";
-    const items: unknown[] = []; let p=0;
-    while(true){const vi=data.indexOf("<value>",p);if(vi===-1)break;items.push(parseVal(data,vi));p=vi+7;}
-    return items;
-  }
-  if (/<struct>/.test(s)) {
-    const body = s.match(/<struct>([\s\S]*?)<\/struct>/)?.[1]??"";
-    const obj: Record<string,unknown> = {};
-    for(const m of body.split("<member>")){const name=m.match(/<name>(.*?)<\/name>/)?.[1];const vi=m.indexOf("<value>");if(name&&vi!==-1)obj[name]=parseVal(m,vi);}
-    return obj;
-  }
-  return s.match(/<value>([\s\S]*?)<\/value>/)?.[1]?.trim()??null;
+
+// Simple text-based extractor — just grab all int values and string values
+function extractInts(s: string): number[] {
+  return [...s.matchAll(/<(?:int|i4)>(.*?)<\/(?:int|i4)>/g)].map(m=>parseInt(m[1],10));
 }
-function parseXml(xml: string): unknown {
-  if(xml.includes("<fault>")){const msg=xml.match(/<name>faultString<\/name>\s*<value><string>([\s\S]*?)<\/string>/)?.[1]??"fault";throw new Error(msg);}
-  const vi=xml.indexOf("<value>");return vi===-1?null:parseVal(xml,vi);
+function extractStrings(s: string): string[] {
+  return [...s.matchAll(/<string>([\s\S]*?)<\/string>/g)].map(m=>m[1].replace(/&amp;/g,"&").replace(/&lt;/g,"<").replace(/&gt;/g,">"));
 }
-async function xmlRpc(endpoint: string, method: string, params: unknown[]): Promise<unknown> {
-  const res = await fetch(`${ODOO_URL}${endpoint}`,{method:"POST",headers:{"Content-Type":"text/xml; charset=utf-8"},body:callXml(method,params),cache:"no-store",signal:AbortSignal.timeout(15000)});
-  if(!res.ok) throw new Error(`HTTP ${res.status}`);
-  return parseXml(await res.text());
+
+async function xrpc(endpoint: string, method: string, params: unknown[]): Promise<string> {
+  const res = await fetch(`${ODOO_URL}${endpoint}`,{method:"POST",headers:{"Content-Type":"text/xml; charset=utf-8"},body:xml(method,params),cache:"no-store",signal:AbortSignal.timeout(15000)});
+  return res.text();
 }
 
 export async function GET() {
-  try {
-    // Auth
-    const uid = await xmlRpc("/xmlrpc/2/common","authenticate",[ODOO_DB,ODOO_USERNAME,ODOO_PASSWORD,{}]) as number;
-    if(!uid) return Response.json({error:"auth failed"});
+  // Auth
+  const authXml = await xrpc("/xmlrpc/2/common","authenticate",[ODOO_DB,ODOO_USERNAME,ODOO_PASSWORD,{}]);
+  const uid = extractInts(authXml)[0];
+  if (!uid) return Response.json({error:"auth failed", raw: authXml.slice(0,200)});
 
-    const results: Record<string,unknown> = { uid };
+  const results: Record<string,unknown> = { uid };
 
-    // Get all fields of product.product
-    const fields = await xmlRpc("/xmlrpc/2/object","execute_kw",[
-      ODOO_DB, uid, ODOO_PASSWORD,
-      "product.product", "fields_get", [],
-      { attributes: ["string","type"] }
-    ]) as Record<string,{string:string;type:string}>;
+  // Get location details for ID 3324 and 2038
+  const locXml = await xrpc("/xmlrpc/2/object","execute_kw",[
+    ODOO_DB, uid, ODOO_PASSWORD,
+    "stock.location","search_read",
+    [[["id","in",[2038,3324]]]],
+    { fields:["id","name","complete_name","usage","active"], limit:10 }
+  ]);
+  results["location_details_raw_strings"] = extractStrings(locXml);
+  results["location_details_raw_ints"] = extractInts(locXml);
 
-    // Filter fields likely related to store/location/warehouse
-    const storeFields: Record<string,unknown> = {};
-    for(const [k,v] of Object.entries(fields)){
-      const label = (v.string??"").toLowerCase();
-      if(label.includes("store")||label.includes("location")||label.includes("warehouse")||label.includes("shop")||label.includes("cửa hàng")||label.includes("kho")||k.includes("pos")||k.includes("store")||k.includes("location")||k.includes("warehouse")){
-        storeFields[k] = v;
-      }
-    }
-    results["store_related_fields"] = storeFields;
+  // Search locations with "47" in name
+  const loc47Xml = await xrpc("/xmlrpc/2/object","execute_kw",[
+    ODOO_DB, uid, ODOO_PASSWORD,
+    "stock.location","search_read",
+    [[["complete_name","ilike","47"]]],
+    { fields:["id","name","complete_name","usage"], limit:20 }
+  ]);
+  results["loc_47_strings"] = extractStrings(loc47Xml);
+  results["loc_47_ints"] = extractInts(loc47Xml);
 
-    // Fetch 1 sample product with all fields to inspect
-    const sample = await xmlRpc("/xmlrpc/2/object","execute_kw",[
-      ODOO_DB, uid, ODOO_PASSWORD,
-      "product.product","search_read",
-      [[["default_code","like","47GDL"]]],
-      { fields: Object.keys(fields), limit: 1 }
-    ]);
-    results["sample_47GDL_product"] = sample;
+  // Search locations with "dalat" or "đà lạt"
+  const locDalatXml = await xrpc("/xmlrpc/2/object","execute_kw",[
+    ODOO_DB, uid, ODOO_PASSWORD,
+    "stock.location","search_read",
+    [[["complete_name","ilike","dalat"]]],
+    { fields:["id","name","complete_name","usage"], limit:20 }
+  ]);
+  results["loc_dalat_strings"] = extractStrings(locDalatXml);
+  results["loc_dalat_ints"] = extractInts(locDalatXml);
 
-    // Also try stock.quant to see location structure
-    const quantFields = await xmlRpc("/xmlrpc/2/object","execute_kw",[
-      ODOO_DB, uid, ODOO_PASSWORD,
-      "stock.quant","fields_get",[],
-      { attributes: ["string","type"] }
-    ]) as Record<string,{string:string;type:string}>;
-    const quantLocationFields: Record<string,unknown> = {};
-    for(const [k,v] of Object.entries(quantFields)){
-      quantLocationFields[k] = v;
-    }
-    results["stock_quant_fields"] = quantLocationFields;
+  // stock.quant: get qty for location 2038 (sample 5 records)
+  const quantXml = await xrpc("/xmlrpc/2/object","execute_kw",[
+    ODOO_DB, uid, ODOO_PASSWORD,
+    "stock.quant","search_read",
+    [[["location_id","=",2038]]],
+    { fields:["product_id","qty_available","quantity","location_id","reserved_quantity"], limit:5 }
+  ]);
+  results["quant_loc2038_strings"] = extractStrings(quantXml);
+  results["quant_loc2038_ints"] = extractInts(quantXml);
 
-    // Fetch sample quant with location name containing "47" or "Dalat" or "Đà Lạt"
-    const sampleQuant = await xmlRpc("/xmlrpc/2/object","execute_kw",[
-      ODOO_DB, uid, ODOO_PASSWORD,
-      "stock.location","search_read",
-      [[["complete_name","ilike","dalat"]]],
-      { fields:["id","name","complete_name","usage"], limit: 10 }
-    ]);
-    results["locations_dalat"] = sampleQuant;
-
-    const sampleQuant2 = await xmlRpc("/xmlrpc/2/object","execute_kw",[
-      ODOO_DB, uid, ODOO_PASSWORD,
-      "stock.location","search_read",
-      [[["complete_name","ilike","47"]]],
-      { fields:["id","name","complete_name","usage"], limit: 10 }
-    ]);
-    results["locations_47"] = sampleQuant2;
-
-    return Response.json(results);
-  } catch(e) {
-    return Response.json({ error: String(e) });
-  }
+  return Response.json(results);
 }
