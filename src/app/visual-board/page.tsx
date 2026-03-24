@@ -65,15 +65,99 @@ function findProduct(products: Product[], code: string): Product | null {
 
 // ─── Product card in slot ─────────────────────────────────────────────────────
 const ProductCard = memo(function ProductCard({
-  product, size = 64, highlight = false, onRemove,
+  product, size = 64, highlight = false, onRemove, variant = "square",
 }: {
   product: Product; size?: number; highlight?: boolean; onRemove?: () => void;
+  variant?: "square" | "label";
 }) {
   const [hov, setHov] = useState(false);
   const cc = catColor(product.category);
   const isSmall = size < 56;
   const price = product.markdownPrice ?? product.price;
 
+  // ── Label variant (horizontal card for display slots) ──────────────────────
+  if (variant === "label") {
+    return (
+      <div
+        onMouseEnter={() => setHov(true)}
+        onMouseLeave={() => setHov(false)}
+        style={{
+          width: 92, minHeight: 52, borderRadius: 9, overflow: "visible",
+          position: "relative", cursor: onRemove ? "pointer" : "default",
+          border: `1.5px solid ${highlight ? "#C9A55A" : `${cc}55`}`,
+          boxShadow: highlight ? "0 0 0 2px rgba(201,165,90,0.3)" : "0 1px 4px rgba(0,0,0,0.06)",
+          background: product.color ? `${product.color}18` : `${cc}12`,
+          transition: "box-shadow 0.12s",
+          flexShrink: 0,
+          display: "flex", flexDirection: "column",
+        }}
+      >
+        {/* Top color accent */}
+        <div style={{ height: 3, background: highlight ? "#C9A55A" : cc, borderRadius: "7px 7px 0 0", flexShrink: 0 }} />
+
+        <div style={{ padding: "5px 6px 5px", display: "flex", flexDirection: "column", gap: 2, flex: 1 }}>
+          {/* TÊN */}
+          <span style={{
+            fontSize: 9.5, fontWeight: 700, color: "#0c1a2e", lineHeight: 1.2,
+            overflow: "hidden", display: "-webkit-box",
+            WebkitLineClamp: 2, WebkitBoxOrient: "vertical",
+            wordBreak: "break-word",
+          }}>
+            {product.name}
+          </span>
+
+          {/* MC row */}
+          {product.sku && (
+            <span style={{ fontSize: 8, fontWeight: 600, color: cc, lineHeight: 1, letterSpacing: "0.02em" }}>
+              {product.sku}
+            </span>
+          )}
+
+          {/* MÀU + GIÁ row */}
+          <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 1 }}>
+            {product.color && (
+              <div style={{
+                width: 9, height: 9, borderRadius: "50%", background: product.color,
+                border: "1.5px solid rgba(255,255,255,0.8)", flexShrink: 0,
+              }} />
+            )}
+            {product.color && (
+              <span style={{ fontSize: 7.5, color: "#64748b", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {product.color}
+              </span>
+            )}
+            {price && (
+              <span style={{
+                fontSize: 8, fontWeight: 700, whiteSpace: "nowrap",
+                color: product.markdownPrice ? "#dc2626" : "#475569",
+              }}>
+                {fmtPrice(price)}
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Remove button */}
+        {hov && onRemove && (
+          <motion.button
+            initial={{ opacity: 0, scale: 0.7 }} animate={{ opacity: 1, scale: 1 }}
+            onClick={e => { e.stopPropagation(); onRemove(); }}
+            style={{
+              position: "absolute", top: -6, right: -6,
+              width: 16, height: 16, borderRadius: "50%",
+              background: "#dc2626", border: "1.5px solid #fff",
+              cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+              zIndex: 10,
+            }}
+          >
+            <X size={8} color="#fff" />
+          </motion.button>
+        )}
+      </div>
+    );
+  }
+
+  // ── Square variant (warehouse / sidebar) ───────────────────────────────────
   return (
     <div
       onMouseEnter={() => setHov(true)}
@@ -101,7 +185,6 @@ const ProductCard = memo(function ProductCard({
           alignItems: "center", justifyContent: "center",
           gap: 1, padding: isSmall ? 2 : 3,
         }}>
-          {/* TÊN */}
           <span style={{
             fontSize: isSmall ? 6 : 7, fontWeight: 700, color: cc,
             textAlign: "center", lineHeight: 1.1,
@@ -109,65 +192,37 @@ const ProductCard = memo(function ProductCard({
           }}>
             {product.name.split(" ")[0].slice(0, isSmall ? 4 : 5)}
           </span>
-          {/* MÀU */}
           {product.color && !isSmall && (
-            <div style={{
-              width: 8, height: 8, borderRadius: "50%", background: product.color,
-              border: "1.5px solid rgba(255,255,255,0.7)", flexShrink: 0,
-            }} />
+            <div style={{ width: 8, height: 8, borderRadius: "50%", background: product.color, border: "1.5px solid rgba(255,255,255,0.7)", flexShrink: 0 }} />
           )}
-          {/* MC (mã code - SKU) */}
           {product.sku && (
-            <span style={{
-              fontSize: isSmall ? 5 : 6, fontWeight: 600, color: `${cc}cc`,
-              textAlign: "center", lineHeight: 1, maxWidth: "100%", overflow: "hidden",
-            }}>
+            <span style={{ fontSize: isSmall ? 5 : 6, fontWeight: 600, color: `${cc}cc`, textAlign: "center", lineHeight: 1, maxWidth: "100%", overflow: "hidden" }}>
               {product.sku.slice(-4)}
             </span>
           )}
-          {/* GIÁ */}
           {price && !isSmall && (
-            <span style={{
-              fontSize: 5.5, fontWeight: 700,
-              color: product.markdownPrice ? "#dc2626" : "#64748b",
-              textAlign: "center", lineHeight: 1,
-            }}>
+            <span style={{ fontSize: 5.5, fontWeight: 700, color: product.markdownPrice ? "#dc2626" : "#64748b", textAlign: "center", lineHeight: 1 }}>
               {fmtPrice(price)}
             </span>
           )}
         </div>
       )}
 
-      {/* Category bar */}
-      <div style={{
-        position: "absolute", bottom: 0, left: 0, right: 0,
-        height: 3, background: highlight ? "#C9A55A" : cc,
-      }} />
+      <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 3, background: highlight ? "#C9A55A" : cc }} />
 
-      {/* Qty badge */}
       {(product.quantity ?? 0) > 1 && !isSmall && (
-        <div style={{
-          position: "absolute", top: 2, right: 2,
-          background: "rgba(12,26,46,0.8)", borderRadius: 4,
-          padding: "0 3px", lineHeight: "12px",
-          fontSize: 6.5, fontWeight: 700, color: "#fff",
-        }}>×{product.quantity}</div>
+        <div style={{ position: "absolute", top: 2, right: 2, background: "rgba(12,26,46,0.8)", borderRadius: 4, padding: "0 3px", lineHeight: "12px", fontSize: 6.5, fontWeight: 700, color: "#fff" }}>
+          ×{product.quantity}
+        </div>
       )}
 
-      {/* Hover: remove + tooltip */}
       {hov && (
         <>
           {onRemove && (
             <motion.button
               initial={{ opacity: 0, scale: 0.7 }} animate={{ opacity: 1, scale: 1 }}
               onClick={e => { e.stopPropagation(); onRemove(); }}
-              style={{
-                position: "absolute", top: 2, left: 2,
-                width: 16, height: 16, borderRadius: 4,
-                background: "rgba(220,38,38,0.9)", border: "none",
-                cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
-                zIndex: 10,
-              }}
+              style={{ position: "absolute", top: 2, left: 2, width: 16, height: 16, borderRadius: 4, background: "rgba(220,38,38,0.9)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10 }}
             >
               <X size={8} color="#fff" />
             </motion.button>
@@ -175,16 +230,9 @@ const ProductCard = memo(function ProductCard({
           {!isSmall && (
             <motion.div
               initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
-              style={{
-                position: "absolute", bottom: "calc(100% + 6px)", left: "50%",
-                transform: "translateX(-50%)", zIndex: 100, pointerEvents: "none",
-                whiteSpace: "nowrap",
-              }}
+              style={{ position: "absolute", bottom: "calc(100% + 6px)", left: "50%", transform: "translateX(-50%)", zIndex: 100, pointerEvents: "none", whiteSpace: "nowrap" }}
             >
-              <div style={{
-                background: "#0c1a2e", borderRadius: 8, padding: "5px 10px",
-                boxShadow: "0 4px 16px rgba(0,0,0,0.2)",
-              }}>
+              <div style={{ background: "#0c1a2e", borderRadius: 8, padding: "5px 10px", boxShadow: "0 4px 16px rgba(0,0,0,0.2)" }}>
                 <p style={{ fontSize: 10, color: "#fff", fontWeight: 600 }}>{product.name}</p>
                 {product.sku && <p style={{ fontSize: 8, color: "#7dd3fc", marginTop: 1 }}>MC: {product.sku}</p>}
                 {product.color && <p style={{ fontSize: 8, color: "#94a3b8", marginTop: 1 }}>Màu: {product.color}</p>}
@@ -1175,7 +1223,7 @@ function SectionView({ section, products, selectedPid, highlightPid, canEdit, on
         const total = sub.rows.reduce((s, r) => s + r.products.length, 0);
         const pct = total > 0 ? (filled / total) * 100 : 0;
         return (
-          <div key={sub.id} style={{ background: "#fff", border: `1px solid ${cfg.color}33`, borderRadius: 14, overflow: "hidden" }}>
+          <div key={sub.id} style={{ background: "#fff", border: `1px solid ${cfg.color}33`, borderRadius: 14, overflow: "visible" }}>
             <div style={{ padding: "8px 12px", background: cfg.bg, borderBottom: `1px solid ${cfg.color}22`, display: "flex", alignItems: "center", gap: 8 }}>
               <p style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.14em", color: cfg.color, flex: 1 }}>{sub.name}</p>
               <span style={{ fontSize: 8, color: cfg.color, opacity: 0.7 }}>{filled}/{total}</span>
@@ -1183,7 +1231,7 @@ function SectionView({ section, products, selectedPid, highlightPid, canEdit, on
                 <div style={{ height: "100%", width: `${pct}%`, background: cfg.color, borderRadius: 2, transition: "width 0.3s" }} />
               </div>
             </div>
-            <div style={{ padding: "8px 12px", display: "flex", flexDirection: "column", gap: 5 }}>
+            <div style={{ padding: "8px 12px 10px", display: "flex", flexDirection: "column", gap: 8, overflow: "visible" }}>
               {[...sub.rows].reverse().map((row, revIdx) => {
                 const ri = sub.rows.length - 1 - revIdx;
                 if (row.type === "image") return (
@@ -1191,22 +1239,22 @@ function SectionView({ section, products, selectedPid, highlightPid, canEdit, on
                     <span style={{ fontSize: 7, color: "#94a3b8", letterSpacing: "0.2em" }}>TRANH / DECOR</span>
                   </div>
                 );
-                const slotSize = row.type === "long" ? 52 : 44;
+                const emptySize = row.type === "long" ? 52 : 44;
                 return (
-                  <div key={ri} style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                    <span style={{ fontSize: 7, width: 20, flexShrink: 0, color: "#94a3b8", fontFamily: "monospace", textAlign: "right" }}>
+                  <div key={ri} style={{ display: "flex", alignItems: "flex-start", gap: 5 }}>
+                    <span style={{ fontSize: 7, width: 20, flexShrink: 0, color: "#94a3b8", fontFamily: "monospace", textAlign: "right", paddingTop: 8 }}>
                       {row.type === "long" ? "D" : "N"}
                     </span>
-                    <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                    <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
                       {row.products.map((pid, si) => {
                         const p = pid && typeof pid === "string" ? products.find(x => x.id === pid) ?? null : null;
                         if (p) return (
-                          <ProductCard key={si} product={p} size={slotSize}
+                          <ProductCard key={si} product={p} variant="label"
                             highlight={pid === highlightPid}
                             onRemove={canEdit ? () => onRemove(section.id, sub.id, ri, si) : undefined} />
                         );
                         return (
-                          <EmptySlot key={si} size={slotSize}
+                          <EmptySlot key={si} size={emptySize}
                             canPlace={canEdit && !!selectedPid} canScan={canEdit && !selectedPid}
                             onPlace={() => onPlace(section.id, sub.id, ri, si)}
                             onScan={() => onScanToPlace(section.id, sub.id, ri, si)} />
