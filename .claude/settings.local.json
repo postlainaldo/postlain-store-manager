@@ -1,7 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "Bash(python -m pip install customtkinter Pillow)"
+      "Bash(python -m pip install customtkinter Pillow)",
+      "WebSearch",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:www.odoo.com)"
     ]
   }
 }

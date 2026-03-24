@@ -202,3 +202,125 @@ export async function testOdooConnection(): Promise<{ uid: number; serverVersion
   const uid = await getUid();
   return { uid, serverVersion: "Odoo 13" };
 }
+
+// ─── POS Orders ───────────────────────────────────────────────────────────────
+
+export interface OdooPosOrder {
+  id: number;
+  name: string;
+  session_id: [number, string] | false;
+  partner_id: [number, string] | false;
+  state: string;
+  amount_total: number;
+  amount_tax: number;
+  amount_paid: number;
+  date_order: string;
+  lines: number[];
+}
+
+export interface OdooPosOrderLine {
+  id: number;
+  order_id: [number, string];
+  product_id: [number, string] | false;
+  full_product_name: string;
+  qty: number;
+  price_unit: number;
+  discount: number;
+  price_subtotal_incl: number;
+}
+
+/**
+ * Fetch POS orders from Odoo.
+ * dateFrom: ISO string e.g. "2025-01-01T00:00:00"
+ */
+export async function fetchPosOrders(dateFrom?: string, limit = 500): Promise<OdooPosOrder[]> {
+  const cookie = await getSession();
+  const PAGE = 200;
+  const domain: unknown[] = [["state", "=", "done"]];
+  if (dateFrom) domain.push(["date_order", ">=", dateFrom]);
+
+  const all: OdooPosOrder[] = [];
+  let offset = 0;
+  while (all.length < limit) {
+    const page = await execute(
+      cookie,
+      "pos.order", "search_read",
+      [domain],
+      {
+        fields: ["id", "name", "session_id", "partner_id", "state",
+                 "amount_total", "amount_tax", "amount_paid", "date_order", "lines"],
+        limit: PAGE,
+        offset,
+        order: "date_order desc",
+      }
+    ) as OdooPosOrder[];
+    console.log(`[odoo-pos] orders offset=${offset}: ${page?.length ?? 0}`);
+    if (!page?.length) break;
+    all.push(...page);
+    if (page.length < PAGE) break;
+    offset += PAGE;
+  }
+  console.log(`[odoo-pos] total orders: ${all.length}`);
+  return all;
+}
+
+export async function fetchPosOrderLines(orderIds: number[]): Promise<OdooPosOrderLine[]> {
+  if (!orderIds.length) return [];
+  const cookie = await getSession();
+  const PAGE = 500;
+  const all: OdooPosOrderLine[] = [];
+
+  for (let i = 0; i < orderIds.length; i += PAGE) {
+    const chunk = orderIds.slice(i, i + PAGE);
+    const page = await execute(
+      cookie,
+      "pos.order.line", "search_read",
+      [[["order_id", "in", chunk]]],
+      {
+        fields: ["id", "order_id", "product_id", "full_product_name",
+                 "qty", "price_unit", "discount", "price_subtotal_incl"],
+        limit: PAGE * 20,
+      }
+    ) as OdooPosOrderLine[];
+    all.push(...(page ?? []));
+  }
+  return all;
+}
+
+// ─── Customers (res.partner) ──────────────────────────────────────────────────
+
+export interface OdooPartner {
+  id: number;
+  name: string;
+  phone: string | false;
+  email: string | false;
+  street: string | false;
+  customer_rank: number;
+}
+
+export async function fetchOdooCustomers(limit = 2000): Promise<OdooPartner[]> {
+  const cookie = await getSession();
+  const PAGE = 500;
+  const all: OdooPartner[] = [];
+  let offset = 0;
+
+  while (all.length < limit) {
+    const page = await execute(
+      cookie,
+      "res.partner", "search_read",
+      [[["customer_rank", ">", 0], ["active", "=", true]]],
+      {
+        fields: ["id", "name", "phone", "email", "street", "customer_rank"],
+        limit: PAGE,
+        offset,
+      }
+    ) as OdooPartner[];
+    console.log(`[odoo-customers] offset=${offset}: ${page?.length ?? 0}`);
+    if (!page?.length) break;
+    all.push(...page);
+    if (page.length < PAGE) break;
+    offset += PAGE;
+  }
+  console.log(`[odoo-customers] total: ${all.length}`);
+  return all;
+}

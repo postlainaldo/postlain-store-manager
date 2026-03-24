@@ -253,6 +253,53 @@ export async function ensureSupabaseSchema() {
       key   TEXT PRIMARY KEY,
       value TEXT NOT NULL DEFAULT ''
     );
+
+    CREATE TABLE IF NOT EXISTS customers (
+      id            TEXT PRIMARY KEY,
+      "odooId"      INTEGER UNIQUE,
+      name          TEXT NOT NULL,
+      phone         TEXT,
+      email         TEXT,
+      street        TEXT,
+      "totalOrders" INTEGER NOT NULL DEFAULT 0,
+      "totalSpent"  REAL NOT NULL DEFAULT 0,
+      "lastOrderAt" TEXT,
+      "createdAt"   TEXT NOT NULL,
+      "updatedAt"   TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_customers_phone ON customers(phone);
+
+    CREATE TABLE IF NOT EXISTS pos_orders (
+      id              TEXT PRIMARY KEY,
+      "odooId"        INTEGER UNIQUE,
+      name            TEXT NOT NULL,
+      "sessionName"   TEXT,
+      "customerId"    TEXT,
+      "customerName"  TEXT,
+      state           TEXT NOT NULL DEFAULT 'done',
+      "amountTotal"   REAL NOT NULL DEFAULT 0,
+      "amountTax"     REAL NOT NULL DEFAULT 0,
+      "amountPaid"    REAL NOT NULL DEFAULT 0,
+      "lineCount"     INTEGER NOT NULL DEFAULT 0,
+      "createdAt"     TEXT NOT NULL,
+      "updatedAt"     TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_pos_orders_created ON pos_orders("createdAt" DESC);
+    CREATE INDEX IF NOT EXISTS idx_pos_orders_customer ON pos_orders("customerId");
+
+    CREATE TABLE IF NOT EXISTS pos_order_lines (
+      id               TEXT PRIMARY KEY,
+      "orderId"        TEXT NOT NULL REFERENCES pos_orders(id) ON DELETE CASCADE,
+      "odooId"         INTEGER UNIQUE,
+      "productId"      TEXT,
+      "productName"    TEXT NOT NULL,
+      sku              TEXT,
+      qty              REAL NOT NULL DEFAULT 1,
+      "priceUnit"      REAL NOT NULL DEFAULT 0,
+      discount         REAL NOT NULL DEFAULT 0,
+      "priceSubtotal"  REAL NOT NULL DEFAULT 0
+    );
+    CREATE INDEX IF NOT EXISTS idx_pos_lines_order ON pos_order_lines("orderId");
   `;
 
   try {
@@ -1080,4 +1127,269 @@ export async function dbSetAppSettings(settings: Partial<AppSettings>): Promise<
   for (const [key, value] of Object.entries(settings)) {
     stmt.run(key, value ?? "");
   }
+}
+
+// ─── Customers ────────────────────────────────────────────────────────────────
+
+export type DBCustomer = {
+  id: string;
+  odooId: number | null;
+  name: string;
+  phone?: string | null;
+  email?: string | null;
+  street?: string | null;
+  totalOrders: number;
+  totalSpent: number;
+  lastOrderAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export async function dbGetCustomers(limit = 200): Promise<DBCustomer[]> {
+  if (IS_SUPABASE) {
+    const { data } = await getSupabase()
+      .from("customers")
+      .select("*")
+      .order("totalSpent", { ascending: false })
+      .limit(limit);
+    return (data ?? []) as DBCustomer[];
+  }
+  return getDb().prepare(
+    "SELECT * FROM customers ORDER BY totalSpent DESC LIMIT ?"
+  ).all(limit) as DBCustomer[];
+}
+
+export async function dbSearchCustomers(query: string): Promise<DBCustomer[]> {
+  const q = `%${query}%`;
+  if (IS_SUPABASE) {
+    const { data } = await getSupabase()
+      .from("customers")
+      .select("*")
+      .or(`name.ilike.${q},phone.ilike.${q}`)
+      .order("totalSpent", { ascending: false })
+      .limit(50);
+    return (data ?? []) as DBCustomer[];
+  }
+  return getDb().prepare(
+    "SELECT * FROM customers WHERE name LIKE ? OR phone LIKE ? ORDER BY totalSpent DESC LIMIT 50"
+  ).all(q, q) as DBCustomer[];
+}
+
+export async function dbBulkUpsertCustomers(customers: DBCustomer[]): Promise<void> {
+  if (!customers.length) return;
+  if (IS_SUPABASE) {
+    const CHUNK = 500;
+    for (let i = 0; i < customers.length; i += CHUNK) {
+      await getSupabase()
+        .from("customers")
+        .upsert(customers.slice(i, i + CHUNK), { onConflict: "id" });
+    }
+    return;
+  }
+  const db = getDb();
+  const stmt = db.prepare(`
+    INSERT INTO customers (id,odooId,name,phone,email,street,totalOrders,totalSpent,lastOrderAt,createdAt,updatedAt)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?)
+    ON CONFLICT(id) DO UPDATE SET
+      name=excluded.name, phone=excluded.phone, email=excluded.email, street=excluded.street,
+      totalOrders=excluded.totalOrders, totalSpent=excluded.totalSpent,
+      lastOrderAt=excluded.lastOrderAt, updatedAt=excluded.updatedAt
+  `);
+  const tx = db.transaction((rows: DBCustomer[]) => {
+    for (const c of rows) {
+      stmt.run(c.id, c.odooId ?? null, c.name, c.phone ?? null, c.email ?? null,
+        c.street ?? null, c.totalOrders, c.totalSpent, c.lastOrderAt ?? null,
+        c.createdAt, c.updatedAt);
+    }
+  });
+  tx(customers);
+}
+
+// ─── POS Orders ───────────────────────────────────────────────────────────────
+
+export type DBPosOrder = {
+  id: string;
+  odooId: number | null;
+  name: string;
+  sessionName?: string | null;
+  customerId?: string | null;
+  customerName?: string | null;
+  state: string;
+  amountTotal: number;
+  amountTax: number;
+  amountPaid: number;
+  lineCount: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type DBPosOrderLine = {
+  id: string;
+  orderId: string;
+  odooId: number | null;
+  productId?: string | null;
+  productName: string;
+  sku?: string | null;
+  qty: number;
+  priceUnit: number;
+  discount: number;
+  priceSubtotal: number;
+};
+
+export async function dbGetPosOrders(opts: { limit?: number; customerId?: string; dateFrom?: string } = {}): Promise<DBPosOrder[]> {
+  const limit = opts.limit ?? 100;
+  if (IS_SUPABASE) {
+    let q = getSupabase()
+      .from("pos_orders")
+      .select("*")
+      .order("createdAt", { ascending: false })
+      .limit(limit);
+    if (opts.customerId) q = q.eq("customerId", opts.customerId);
+    if (opts.dateFrom) q = q.gte("createdAt", opts.dateFrom);
+    const { data } = await q;
+    return (data ?? []) as DBPosOrder[];
+  }
+  const db = getDb();
+  if (opts.customerId) {
+    return db.prepare(
+      "SELECT * FROM pos_orders WHERE customerId=? ORDER BY createdAt DESC LIMIT ?"
+    ).all(opts.customerId, limit) as DBPosOrder[];
+  }
+  if (opts.dateFrom) {
+    return db.prepare(
+      "SELECT * FROM pos_orders WHERE createdAt >= ? ORDER BY createdAt DESC LIMIT ?"
+    ).all(opts.dateFrom, limit) as DBPosOrder[];
+  }
+  return db.prepare(
+    "SELECT * FROM pos_orders ORDER BY createdAt DESC LIMIT ?"
+  ).all(limit) as DBPosOrder[];
+}
+
+export async function dbGetPosOrderLines(orderId: string): Promise<DBPosOrderLine[]> {
+  if (IS_SUPABASE) {
+    const { data } = await getSupabase()
+      .from("pos_order_lines")
+      .select("*")
+      .eq("orderId", orderId);
+    return (data ?? []) as DBPosOrderLine[];
+  }
+  return getDb().prepare(
+    "SELECT * FROM pos_order_lines WHERE orderId=?"
+  ).all(orderId) as DBPosOrderLine[];
+}
+
+export async function dbBulkUpsertPosOrders(orders: DBPosOrder[]): Promise<void> {
+  if (!orders.length) return;
+  if (IS_SUPABASE) {
+    const CHUNK = 500;
+    for (let i = 0; i < orders.length; i += CHUNK) {
+      await getSupabase()
+        .from("pos_orders")
+        .upsert(orders.slice(i, i + CHUNK), { onConflict: "id" });
+    }
+    return;
+  }
+  const db = getDb();
+  const stmt = db.prepare(`
+    INSERT INTO pos_orders (id,odooId,name,sessionName,customerId,customerName,state,amountTotal,amountTax,amountPaid,lineCount,createdAt,updatedAt)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
+    ON CONFLICT(id) DO UPDATE SET
+      state=excluded.state, amountTotal=excluded.amountTotal, amountTax=excluded.amountTax,
+      amountPaid=excluded.amountPaid, lineCount=excluded.lineCount, updatedAt=excluded.updatedAt
+  `);
+  const tx = db.transaction((rows: DBPosOrder[]) => {
+    for (const o of rows) {
+      stmt.run(o.id, o.odooId ?? null, o.name, o.sessionName ?? null,
+        o.customerId ?? null, o.customerName ?? null, o.state,
+        o.amountTotal, o.amountTax, o.amountPaid, o.lineCount,
+        o.createdAt, o.updatedAt);
+    }
+  });
+  tx(orders);
+}
+
+export async function dbBulkUpsertPosOrderLines(lines: DBPosOrderLine[]): Promise<void> {
+  if (!lines.length) return;
+  if (IS_SUPABASE) {
+    const CHUNK = 500;
+    for (let i = 0; i < lines.length; i += CHUNK) {
+      await getSupabase()
+        .from("pos_order_lines")
+        .upsert(lines.slice(i, i + CHUNK), { onConflict: "id" });
+    }
+    return;
+  }
+  const db = getDb();
+  const stmt = db.prepare(`
+    INSERT INTO pos_order_lines (id,orderId,odooId,productId,productName,sku,qty,priceUnit,discount,priceSubtotal)
+    VALUES (?,?,?,?,?,?,?,?,?,?)
+    ON CONFLICT(id) DO UPDATE SET qty=excluded.qty, priceUnit=excluded.priceUnit,
+      discount=excluded.discount, priceSubtotal=excluded.priceSubtotal
+  `);
+  const tx = db.transaction((rows: DBPosOrderLine[]) => {
+    for (const l of rows) {
+      stmt.run(l.id, l.orderId, l.odooId ?? null, l.productId ?? null,
+        l.productName, l.sku ?? null, l.qty, l.priceUnit, l.discount, l.priceSubtotal);
+    }
+  });
+  tx(lines);
+}
+
+export async function dbGetPosSummary(dateFrom: string): Promise<{
+  totalRevenue: number; orderCount: number; avgOrderValue: number;
+}> {
+  if (IS_SUPABASE) {
+    const { data } = await getSupabase()
+      .from("pos_orders")
+      .select("amountTotal")
+      .eq("state", "done")
+      .gte("createdAt", dateFrom);
+    const rows = (data ?? []) as { amountTotal: number }[];
+    const totalRevenue = rows.reduce((s, r) => s + r.amountTotal, 0);
+    return { totalRevenue, orderCount: rows.length, avgOrderValue: rows.length ? totalRevenue / rows.length : 0 };
+  }
+  const r = getDb().prepare(
+    "SELECT COALESCE(SUM(amountTotal),0) as rev, COUNT(*) as cnt FROM pos_orders WHERE state='done' AND createdAt >= ?"
+  ).get(dateFrom) as { rev: number; cnt: number };
+  return { totalRevenue: r.rev, orderCount: r.cnt, avgOrderValue: r.cnt ? r.rev / r.cnt : 0 };
+}
+
+export async function dbGetTopProducts(dateFrom: string, limit = 10): Promise<{
+  productName: string; sku: string | null; totalQty: number; totalRevenue: number;
+}[]> {
+  if (IS_SUPABASE) {
+    // Supabase can't do GROUP BY via JS client easily — fetch lines and aggregate
+    const { data: orders } = await getSupabase()
+      .from("pos_orders")
+      .select("id")
+      .eq("state", "done")
+      .gte("createdAt", dateFrom);
+    const orderIds = (orders ?? []).map((o: { id: string }) => o.id);
+    if (!orderIds.length) return [];
+    const CHUNK = 200;
+    const allLines: DBPosOrderLine[] = [];
+    for (let i = 0; i < orderIds.length; i += CHUNK) {
+      const { data: lines } = await getSupabase()
+        .from("pos_order_lines")
+        .select("productName,sku,qty,priceSubtotal")
+        .in("orderId", orderIds.slice(i, i + CHUNK));
+      allLines.push(...((lines ?? []) as DBPosOrderLine[]));
+    }
+    const map = new Map<string, { productName: string; sku: string | null; totalQty: number; totalRevenue: number }>();
+    for (const l of allLines) {
+      const k = l.productName;
+      const e = map.get(k) ?? { productName: l.productName, sku: l.sku ?? null, totalQty: 0, totalRevenue: 0 };
+      e.totalQty += l.qty;
+      e.totalRevenue += l.priceSubtotal;
+      map.set(k, e);
+    }
+    return [...map.values()].sort((a, b) => b.totalQty - a.totalQty).slice(0, limit);
+  }
+  return getDb().prepare(`
+    SELECT l.productName, l.sku, SUM(l.qty) as totalQty, SUM(l.priceSubtotal) as totalRevenue
+    FROM pos_order_lines l
+    JOIN pos_orders o ON o.id = l.orderId
+    WHERE o.state='done' AND o.createdAt >= ?
+    GROUP BY l.productName ORDER BY totalQty DESC LIMIT ?
+  `).all(dateFrom, limit) as { productName: string; sku: string | null; totalQty: number; totalRevenue: number }[];
 }

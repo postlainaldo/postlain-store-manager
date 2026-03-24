@@ -221,6 +221,58 @@ function migrateSchema(db: Database.Database) {
     );
     CREATE INDEX IF NOT EXISTS idx_activity_created ON activity(createdAt DESC);
   `);
+
+  // ── POS + Customers ─────────────────────────────────────────────────────────
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS customers (
+      id          TEXT PRIMARY KEY,
+      odooId      INTEGER UNIQUE,
+      name        TEXT NOT NULL,
+      phone       TEXT,
+      email       TEXT,
+      street      TEXT,
+      totalOrders INTEGER NOT NULL DEFAULT 0,
+      totalSpent  REAL NOT NULL DEFAULT 0,
+      lastOrderAt TEXT,
+      createdAt   TEXT NOT NULL,
+      updatedAt   TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_customers_odoo ON customers(odooId);
+    CREATE INDEX IF NOT EXISTS idx_customers_phone ON customers(phone);
+
+    CREATE TABLE IF NOT EXISTS pos_orders (
+      id            TEXT PRIMARY KEY,
+      odooId        INTEGER UNIQUE,
+      name          TEXT NOT NULL,
+      sessionName   TEXT,
+      customerId    TEXT,
+      customerName  TEXT,
+      state         TEXT NOT NULL DEFAULT 'done',
+      amountTotal   REAL NOT NULL DEFAULT 0,
+      amountTax     REAL NOT NULL DEFAULT 0,
+      amountPaid    REAL NOT NULL DEFAULT 0,
+      lineCount     INTEGER NOT NULL DEFAULT 0,
+      createdAt     TEXT NOT NULL,
+      updatedAt     TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_pos_orders_created ON pos_orders(createdAt DESC);
+    CREATE INDEX IF NOT EXISTS idx_pos_orders_customer ON pos_orders(customerId);
+
+    CREATE TABLE IF NOT EXISTS pos_order_lines (
+      id          TEXT PRIMARY KEY,
+      orderId     TEXT NOT NULL REFERENCES pos_orders(id) ON DELETE CASCADE,
+      odooId      INTEGER UNIQUE,
+      productId   TEXT,
+      productName TEXT NOT NULL,
+      sku         TEXT,
+      qty         REAL NOT NULL DEFAULT 1,
+      priceUnit   REAL NOT NULL DEFAULT 0,
+      discount    REAL NOT NULL DEFAULT 0,
+      priceSubtotal REAL NOT NULL DEFAULT 0
+    );
+    CREATE INDEX IF NOT EXISTS idx_pos_lines_order ON pos_order_lines(orderId);
+    CREATE INDEX IF NOT EXISTS idx_pos_lines_product ON pos_order_lines(productId);
+  `);
 }
 
 function colNames(db: Database.Database, table: string): string[] {
