@@ -374,8 +374,22 @@ export async function dbDeleteUser(id: string): Promise<void> {
 
 export async function dbGetProducts(): Promise<DBProduct[]> {
   if (IS_SUPABASE) {
-    const { data } = await getSupabase().from("products").select("*").order("createdAt");
-    return (data ?? []) as DBProduct[];
+    // Supabase default limit is 1000 rows — paginate to get all
+    const PAGE = 1000;
+    const all: DBProduct[] = [];
+    let from = 0;
+    while (true) {
+      const { data } = await getSupabase()
+        .from("products")
+        .select("*")
+        .order("createdAt")
+        .range(from, from + PAGE - 1);
+      if (!data?.length) break;
+      all.push(...(data as DBProduct[]));
+      if (data.length < PAGE) break;
+      from += PAGE;
+    }
+    return all;
   }
   return getDb().prepare("SELECT * FROM products ORDER BY createdAt").all() as DBProduct[];
 }
