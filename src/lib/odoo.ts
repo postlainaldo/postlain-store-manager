@@ -175,62 +175,11 @@ async function getUid(): Promise<number> {
   return uid;
 }
 
-// ─── JSON-RPC execute (for data calls — no CSRF needed for /web/dataset/call_kw with session) ──
-// We use XML-RPC only for auth, then JSON-RPC for data to avoid parser issues with nested XML.
-
-let _sessionCookie: string | null = null;
-
-async function jsonRpcAuthenticate(): Promise<void> {
-  // Use XML-RPC to get UID, then also do a JSON-RPC login to get a session cookie
-  const uid = await getUid();
-
-  // Do a JSON-RPC authenticate to get session cookie for subsequent calls
-  const res = await fetch(`${ODOO_URL}/web/session/authenticate`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ jsonrpc: "2.0", method: "call", id: 1, params: { db: ODOO_DB, login: ODOO_USERNAME, password: ODOO_PASSWORD } }),
-    cache: "no-store",
-  });
-  const sc = res.headers.get("set-cookie");
-  if (sc?.includes("session_id=")) {
-    const m = sc.match(/session_id=([^;]+)/);
-    if (m) _sessionCookie = `session_id=${m[1]}`;
-  }
-  void uid;
-}
+// ─── execute_kw via XML-RPC ───────────────────────────────────────────────────
 
 async function execute(model: string, method: string, args: unknown[], kwargs: Record<string,unknown> = {}): Promise<unknown> {
-  // Ensure we have a session cookie
-  if (!_sessionCookie) await jsonRpcAuthenticate();
-
-  const res = await fetch(`${ODOO_URL}/web/dataset/call_kw`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ..._sessionCookie ? { "Cookie": _sessionCookie } : {},
-    },
-    body: JSON.stringify({
-      jsonrpc: "2.0", method: "call", id: 1,
-      params: {
-        model, method,
-        args,
-        kwargs: { context: { lang: "vi_VN" }, ...kwargs },
-      },
-    }),
-    cache: "no-store",
-  });
-
-  // Capture updated session cookie
-  const sc = res.headers.get("set-cookie");
-  if (sc?.includes("session_id=")) {
-    const m = sc.match(/session_id=([^;]+)/);
-    if (m) _sessionCookie = `session_id=${m[1]}`;
-  }
-
-  if (!res.ok) throw new Error(`Odoo JSON-RPC HTTP ${res.status}`);
-  const json = await res.json() as { result?: unknown; error?: { message: string; data?: { message: string } } };
-  if (json.error) throw new Error(json.error.data?.message ?? json.error.message ?? "Odoo error");
-  return json.result;
+  const uid = await getUid();
+  return xmlRpc("/xmlrpc/2/object", "execute_kw", [ODOO_DB, uid, ODOO_PASSWORD, model, method, args, kwargs]);
 }
 
 // Location ID of 47GDL (Physical Locations/47GDL — parent view node)
@@ -266,12 +215,18 @@ export async function fetchOdooProducts(limit = 0): Promise<(OdooProduct & { qty
   const productFields = ["id", "default_code", "name", "list_price", "categ_id", "description_sale"];
 
   // Step 1: get all quants at 47GDL location
+  // Filter: storable products only (type=product), exclude consumables/services
   const allQuants: OdooQuant[] = [];
   let qOffset = 0;
   while (true) {
     const page = await execute(
       "stock.quant", "search_read",
-      [[["location_id", "child_of", LOCATION_47GDL], ["quantity", ">", 0]]],
+      [[
+        ["location_id", "child_of", LOCATION_47GDL],
+        ["quantity", ">", 0],
+        ["product_id.type", "=", "product"],          // storable only
+        ["product_id.sale_ok", "=", true],            // must be sellable
+      ]],
       { fields: ["product_id", "quantity", "reserved_quantity"], limit: PAGE, offset: qOffset }
     ) as OdooQuant[];
     if (!page || page.length === 0) break;
