@@ -465,6 +465,33 @@ export async function dbDeleteProducts(ids: string[]): Promise<void> {
   del(ids);
 }
 
+/** Delete all products whose ID starts with "odoo-" (from previous syncs) */
+export async function dbDeleteAllOdooProducts(): Promise<number> {
+  if (IS_SUPABASE) {
+    const { data } = await getSupabase()
+      .from("products")
+      .select("id")
+      .like("id", "odoo-%");
+    const ids = (data ?? []).map((r: { id: string }) => r.id);
+    if (ids.length > 0) {
+      const CHUNK = 200;
+      for (let i = 0; i < ids.length; i += CHUNK) {
+        await getSupabase().from("products").delete().in("id", ids.slice(i, i + CHUNK));
+      }
+    }
+    return ids.length;
+  }
+  const db = getDb();
+  const rows = db.prepare("SELECT id FROM products WHERE id LIKE 'odoo-%'").all() as { id: string }[];
+  if (rows.length > 0) {
+    const del = db.transaction(() => {
+      db.prepare("DELETE FROM products WHERE id LIKE 'odoo-%'").run();
+    });
+    del();
+  }
+  return rows.length;
+}
+
 // ─── Chat Rooms ───────────────────────────────────────────────────────────────
 
 export async function dbGetRooms(): Promise<(DBRoom & { lastMessage: unknown; messageCount: number })[]> {

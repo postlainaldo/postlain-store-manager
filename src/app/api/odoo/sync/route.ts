@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { fetchOdooProducts, testOdooConnection } from "@/lib/odoo";
-import { dbBulkUpsertProducts } from "@/lib/dbAdapter";
+import { dbBulkUpsertProducts, dbDeleteAllOdooProducts } from "@/lib/dbAdapter";
 import type { DBProduct } from "@/lib/dbAdapter";
 import { resolveCategory } from "@/lib/categoryMapping";
 
@@ -100,13 +100,16 @@ export async function POST(req: NextRequest) {
     const odooProducts = await fetchOdooProducts(limit);
     const mapped = odooProducts.map(mapProduct);
 
+    let deleted = 0;
     if (!dryRun) {
+      deleted = await dbDeleteAllOdooProducts();
       await dbBulkUpsertProducts(mapped);
     }
 
     return NextResponse.json({
       ok: true,
       synced: mapped.length,
+      deleted,
       dryRun,
       preview: dryRun ? mapped.slice(0, 5) : undefined,
       syncedAt: new Date().toISOString(),
