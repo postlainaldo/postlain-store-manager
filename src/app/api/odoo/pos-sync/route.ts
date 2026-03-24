@@ -66,7 +66,7 @@ function mapLine(l: Awaited<ReturnType<typeof fetchPosOrderLines>>[number]): DBP
     orderId: `pos-${(l.order_id as [number, string])[0]}`,
     odooId: l.id,
     productId: productId ? `odoo-${productId}` : null,
-    productName: l.full_product_name,
+    productName: l.name,
     sku: null,
     qty: l.qty ?? 1,
     priceUnit: l.price_unit ?? 0,

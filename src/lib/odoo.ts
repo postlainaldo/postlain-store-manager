@@ -222,7 +222,7 @@ export interface OdooPosOrderLine {
   id: number;
   order_id: [number, string];
   product_id: [number, string] | false;
-  full_product_name: string;
+  name: string;
   qty: number;
   price_unit: number;
   discount: number;
@@ -277,7 +277,7 @@ export async function fetchPosOrderLines(orderIds: number[]): Promise<OdooPosOrd
       "pos.order.line", "search_read",
       [[["order_id", "in", chunk]]],
       {
-        fields: ["id", "order_id", "product_id", "full_product_name",
+        fields: ["id", "order_id", "product_id", "name",
                  "qty", "price_unit", "discount", "price_subtotal_incl"],
         limit: PAGE * 20,
       }
