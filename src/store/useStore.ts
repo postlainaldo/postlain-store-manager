@@ -531,39 +531,44 @@ export const useStore = create<StoreState>()(
             displayPlacements: Record<string, Record<string, Record<number, Record<number, string>>>>;
           };
 
+          // DB is the single source of truth for placements.
+          // Always replace products and warehouse from DB.
+          // For storeSections: keep the section/subsection structure from Zustand
+          // (it defines which shelves exist and how many rows/slots each has),
+          // but replace every product slot with what the DB says.
           const state = get();
 
-          // Merge displayPlacements back into storeSections
           const sections = state.storeSections.map(sec => ({
             ...sec,
             subsections: sec.subsections.map(sub => {
               const subMap = displayPlacements?.[sec.id]?.[sub.id];
-              if (!subMap) return sub;
               const rows = sub.rows.map((row, ri) => {
-                const rowMap = subMap[ri];
-                if (!rowMap) return row;
-                const newProducts = row.products.map((_, si) => rowMap[si] ?? null);
+                const rowMap = subMap?.[ri];
+                // Replace all slots with DB values; default to null if not in DB
+                const newProducts = row.products.map((_, si) => rowMap?.[si] ?? null);
                 return { ...row, products: newProducts };
               });
               return { ...sub, rows };
             }),
           }));
 
-          // Merge DB warehouse placements into existing Zustand shelves
-          // (DB returns only shelves it knows; Zustand may have more from persist)
-          const dbWarehouseMap = new Map(dbWarehouse.map(s => [s.id, s]));
-          const mergedWarehouse = state.warehouseShelves.map(shelf => {
-            const dbShelf = dbWarehouseMap.get(shelf.id);
-            if (!dbShelf) return shelf;
-            return { ...shelf, tiers: dbShelf.tiers };
+          // Warehouse: DB is authoritative. Use DB shelves as base, enriched with
+          // any local-only metadata (name, shelfType, notes) from Zustand.
+          const zustandMap = new Map(state.warehouseShelves.map(s => [s.id, s]));
+          const mergedWarehouse: WarehouseShelf[] = dbWarehouse.map(dbShelf => {
+            const local = zustandMap.get(dbShelf.id);
+            return {
+              ...dbShelf,
+              // Preserve local display metadata if DB doesn't override
+              name: dbShelf.name ?? local?.name ?? dbShelf.id,
+              shelfType: dbShelf.shelfType ?? local?.shelfType ?? "shoes",
+              notes: local?.notes ?? dbShelf.notes ?? "",
+            };
           });
-          // Also add any DB shelves not present in Zustand (newly added from another client)
-          const zustandIds = new Set(state.warehouseShelves.map(s => s.id));
-          const newShelves = dbWarehouse.filter(s => !zustandIds.has(s.id));
 
-          set({ products, storeSections: sections, warehouseShelves: [...mergedWarehouse, ...newShelves] });
+          set({ products, storeSections: sections, warehouseShelves: mergedWarehouse });
         } catch {
-          // silently fail
+          // silently fail — keep existing state
         }
       },
 
