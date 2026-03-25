@@ -560,11 +560,12 @@ function ProductPicker({
         )}
       </AnimatePresence>
       {/* Desktop sidebar */}
-      <div className="hidden md:flex" style={{ width: 240, flexShrink: 0 }}>
+      <div className="hidden md:flex" style={{ width: 248, flexShrink: 0 }}>
         <div style={{
           width: "100%", display: "flex", flexDirection: "column", gap: 8,
-          background: "#fff", border: "1px solid #bae6fd", borderRadius: 16,
-          padding: 12, height: "100%", overflow: "hidden",
+          background: "#fff", border: "1px solid var(--border)",
+          borderRadius: 16, padding: 12, height: "100%", overflow: "hidden",
+          boxShadow: "0 2px 16px rgba(14,165,233,0.06)",
         }}>
           <PickerContent
             products={filtered} presentCats={presentCats} cat={cat} setCat={setCat}
@@ -611,25 +612,30 @@ function PickerContent({
           style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: 11, fontFamily: "inherit", color: "#0c1a2e" }} />
         {search && <button onClick={() => setSearch("")} style={{ background: "none", border: "none", cursor: "pointer" }}><X size={10} style={{ color: "#94a3b8" }} /></button>}
       </div>
-      <div style={{ flexShrink: 0, display: "flex", gap: 5, overflowX: "auto", paddingBottom: 2, scrollbarWidth: "none", padding: onClose ? "0 16px" : undefined }}>
-        {["Tất cả", ...presentCats].map(c => {
-          const active = c === "Tất cả" ? cat === null : cat === c;
-          const cc = c === "Tất cả" ? "#0ea5e9" : catColor(c);
-          return (
-            <button key={c} onClick={() => setCat(c === "Tất cả" ? null : c)}
-              style={{
-                flexShrink: 0, padding: "4px 10px", borderRadius: 20,
-                border: `1.5px solid ${active ? cc : "#e0f2fe"}`,
-                background: active ? `${cc}15` : "#fff",
-                color: active ? cc : "#64748b",
-                fontSize: 8.5, fontWeight: active ? 700 : 400, cursor: "pointer", fontFamily: "inherit",
-                display: "flex", alignItems: "center", gap: 4,
-              }}>
-              {c !== "Tất cả" && <span style={{ width: 5, height: 5, borderRadius: "50%", background: cc, flexShrink: 0 }} />}
-              {c}
-            </button>
-          );
-        })}
+      <div style={{ flexShrink: 0, padding: onClose ? "0 16px" : undefined }}>
+        <select
+          value={cat ?? ""}
+          onChange={e => setCat(e.target.value || null)}
+          style={{
+            width: "100%", height: 34, borderRadius: 10,
+            border: `1.5px solid ${cat ? catColor(cat) : "var(--border)"}`,
+            background: cat ? `${catColor(cat)}0d` : "var(--bg-surface)",
+            color: cat ? catColor(cat) : "var(--text-secondary)",
+            fontSize: 11, fontWeight: cat ? 700 : 400,
+            fontFamily: "inherit", padding: "0 10px",
+            outline: "none", cursor: "pointer",
+            appearance: "none", WebkitAppearance: "none",
+            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2364748b'/%3E%3C/svg%3E")`,
+            backgroundRepeat: "no-repeat",
+            backgroundPosition: "right 10px center",
+            paddingRight: 28,
+          }}
+        >
+          <option value="">Tất cả danh mục</option>
+          {presentCats.map(c => (
+            <option key={c} value={c}>{c}</option>
+          ))}
+        </select>
       </div>
       <AnimatePresence>
         {selectedPid && (
@@ -654,20 +660,25 @@ function PickerContent({
           const price = p.markdownPrice ?? p.price;
           const pColorHex = colorCodeToHex(p.color);
           return (
-            <button key={p.id} onClick={() => onSelect(isSelected ? null : p.id)}
+            <motion.button key={p.id}
+              onClick={() => onSelect(isSelected ? null : p.id)}
+              whileHover={{ scale: 1.01 }}
+              whileTap={{ scale: 0.99 }}
               style={{
                 display: "flex", alignItems: "center", gap: 8, padding: "8px 10px",
-                borderRadius: 12, cursor: "pointer", border: isSelected ? `2px solid #C9A55A` : "1px solid #bae6fd",
-                background: isSelected ? "rgba(201,165,90,0.10)" : isPlaced ? "#f0fff4" : "#fff",
+                borderRadius: 12, cursor: "pointer",
+                border: isSelected ? `2px solid #C9A55A` : `1px solid ${isPlaced ? "rgba(22,163,74,0.2)" : "var(--border)"}`,
+                background: isSelected ? "rgba(201,165,90,0.10)" : isPlaced ? "rgba(22,163,74,0.04)" : "#fff",
                 fontFamily: "inherit", textAlign: "left",
-                boxShadow: isSelected ? "0 0 0 3px rgba(201,165,90,0.18)" : "none",
+                boxShadow: isSelected ? "0 0 0 3px rgba(201,165,90,0.15), 0 2px 8px rgba(201,165,90,0.12)" : "0 1px 3px rgba(0,0,0,0.04)",
                 transition: "all 0.12s", flexShrink: 0,
               }}>
               <div style={{
-                width: 36, height: 36, borderRadius: 8, flexShrink: 0, overflow: "hidden",
+                width: 38, height: 38, borderRadius: 9, flexShrink: 0, overflow: "hidden",
                 border: `1.5px solid ${isSelected ? "#C9A55A88" : `${cc}44`}`,
                 background: pColorHex ? `${pColorHex}33` : `${cc}22`,
                 display: "flex", alignItems: "center", justifyContent: "center", position: "relative",
+                boxShadow: pColorHex ? `0 0 0 2px ${pColorHex}18` : "none",
               }}>
                 {p.imagePath
                   ? <img src={p.imagePath} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
@@ -678,20 +689,28 @@ function PickerContent({
                 <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 2, background: cc }} />
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ fontSize: 10.5, fontWeight: 600, color: isSelected ? "#C9A55A" : "#0c1a2e", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</p>
+                <p style={{ fontSize: 11, fontWeight: 600, color: isSelected ? "#C9A55A" : "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</p>
                 <div style={{ display: "flex", gap: 5, alignItems: "center", marginTop: 2, flexWrap: "wrap" }}>
-                  {parseMCFromNotes(p.notes) && <span style={{ fontSize: 8, color: "#0ea5e9", fontWeight: 600 }}>{parseMCFromNotes(p.notes)}</span>}
-                  {p.color && <span style={{ fontSize: 8, color: "#64748b", fontWeight: 600 }}>{p.color}</span>}
-                  {p.size && <span style={{ fontSize: 8, color: "#64748b" }}>{p.size}</span>}
-                  {price && <span style={{ fontSize: 8, color: p.markdownPrice ? "#dc2626" : "#64748b", fontWeight: 600 }}>{fmtPrice(price)}</span>}
+                  {parseMCFromNotes(p.notes) && (
+                    <span style={{ fontSize: 8, color: "var(--blue)", fontWeight: 700, background: "rgba(14,165,233,0.08)", padding: "1px 4px", borderRadius: 4 }}>
+                      {parseMCFromNotes(p.notes)}
+                    </span>
+                  )}
+                  {p.color && <span style={{ fontSize: 8, color: "var(--text-muted)", fontWeight: 600 }}>{p.color}</span>}
+                  {p.size && <span style={{ fontSize: 8, color: "var(--text-muted)" }}>{p.size}</span>}
+                  {price && <span style={{ fontSize: 8, color: p.markdownPrice ? "#dc2626" : "var(--text-muted)", fontWeight: 700 }}>{fmtPrice(price)}</span>}
                 </div>
               </div>
               <div style={{ flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 2 }}>
-                {(p.quantity ?? 0) > 0 && <span style={{ fontSize: 8, fontWeight: 700, padding: "1px 5px", borderRadius: 6, background: "#0ea5e9", color: "#fff" }}>×{p.quantity}</span>}
-                {isPlaced && <span style={{ fontSize: 7, fontWeight: 700, padding: "1px 4px", borderRadius: 5, background: `${accentColor}18`, color: accentColor }}>Đã xếp</span>}
+                {(p.quantity ?? 0) > 0 && (
+                  <span style={{ fontSize: 8, fontWeight: 700, padding: "2px 6px", borderRadius: 6, background: "var(--blue)", color: "#fff" }}>
+                    ×{p.quantity}
+                  </span>
+                )}
+                {isPlaced && <span style={{ fontSize: 7, fontWeight: 700, padding: "1px 4px", borderRadius: 5, background: `${accentColor}18`, color: accentColor, border: `1px solid ${accentColor}30` }}>Đã xếp</span>}
                 {isSelected && <Check size={10} style={{ color: "#C9A55A" }} />}
               </div>
-            </button>
+            </motion.button>
           );
         })}
       </div>
@@ -781,11 +800,11 @@ function DisplayTab({ products, storeSections, placeInSection, highlightPid, can
           ].map((c, i) => {
             const Icon = c.icon;
             return (
-              <div key={i} style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", borderRadius: 12, background: "#fff", border: "1px solid #bae6fd" }}>
+              <motion.div key={i} whileHover={{ y: -1 }} style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", borderRadius: 12, background: "#fff", border: "1px solid var(--border)", boxShadow: "0 1px 4px rgba(14,165,233,0.05)" }}>
                 <Icon size={11} style={{ color: c.color }} />
                 <span style={{ fontSize: 12, fontWeight: 700, color: c.color }}>{c.val}</span>
-                <span style={{ fontSize: 9, color: "#94a3b8" }}>{c.unit}</span>
-              </div>
+                <span style={{ fontSize: 9, color: "var(--text-muted)" }}>{c.unit}</span>
+              </motion.div>
             );
           })}
           {!canEdit && (
@@ -814,17 +833,17 @@ function DisplayTab({ products, storeSections, placeInSection, highlightPid, can
         {storeSections.length > 0 && (
           <div style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 6 }}>
             <button onClick={() => setSectionIdx(i => Math.max(0, i - 1))} disabled={clampedIdx === 0}
-              style={{ width: 34, height: 34, borderRadius: 10, border: "1px solid #bae6fd", background: clampedIdx === 0 ? "#f8fafc" : "#fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: clampedIdx === 0 ? "default" : "pointer", flexShrink: 0 }}>
-              <ChevronLeft size={15} style={{ color: clampedIdx === 0 ? "#bae6fd" : "#0ea5e9" }} />
+              style={{ width: 36, height: 36, borderRadius: 11, border: "1px solid var(--border)", background: clampedIdx === 0 ? "var(--bg-base)" : "#fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: clampedIdx === 0 ? "default" : "pointer", flexShrink: 0, boxShadow: clampedIdx === 0 ? "none" : "0 1px 4px rgba(14,165,233,0.08)" }}>
+              <ChevronLeft size={15} style={{ color: clampedIdx === 0 ? "var(--border)" : "var(--blue)" }} />
             </button>
-            <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 8, padding: "0 12px", height: 34, background: "#fff", border: `1px solid ${cfg.color}44`, borderRadius: 10, minWidth: 0 }}>
-              <div style={{ width: 3, height: 14, borderRadius: 2, background: cfg.color, flexShrink: 0 }} />
-              <span style={{ fontSize: 11, fontWeight: 700, color: cfg.color, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{currentSection?.name ?? "—"}</span>
-              <span style={{ fontSize: 9, color: "#94a3b8", flexShrink: 0 }}>{clampedIdx + 1}/{storeSections.length}</span>
+            <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 8, padding: "0 14px", height: 38, background: `linear-gradient(to right, ${cfg.color}08, transparent)`, border: `1px solid ${cfg.color}35`, borderRadius: 12, minWidth: 0, boxShadow: `0 2px 8px ${cfg.color}10` }}>
+              <div style={{ width: 4, height: 16, borderRadius: 3, background: cfg.color, flexShrink: 0, boxShadow: `0 0 6px ${cfg.color}60` }} />
+              <span style={{ fontSize: 12, fontWeight: 700, color: cfg.color, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{currentSection?.name ?? "—"}</span>
+              <span style={{ fontSize: 9, color: "var(--text-muted)", flexShrink: 0, fontVariantNumeric: "tabular-nums" }}>{clampedIdx + 1}/{storeSections.length}</span>
             </div>
             <button onClick={() => setSectionIdx(i => Math.min(storeSections.length - 1, i + 1))} disabled={clampedIdx === storeSections.length - 1}
-              style={{ width: 34, height: 34, borderRadius: 10, border: "1px solid #bae6fd", background: clampedIdx === storeSections.length - 1 ? "#f8fafc" : "#fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: clampedIdx === storeSections.length - 1 ? "default" : "pointer", flexShrink: 0 }}>
-              <ChevronRight size={15} style={{ color: clampedIdx === storeSections.length - 1 ? "#bae6fd" : "#0ea5e9" }} />
+              style={{ width: 36, height: 36, borderRadius: 11, border: "1px solid var(--border)", background: clampedIdx === storeSections.length - 1 ? "var(--bg-base)" : "#fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: clampedIdx === storeSections.length - 1 ? "default" : "pointer", flexShrink: 0, boxShadow: clampedIdx === storeSections.length - 1 ? "none" : "0 1px 4px rgba(14,165,233,0.08)" }}>
+              <ChevronRight size={15} style={{ color: clampedIdx === storeSections.length - 1 ? "var(--border)" : "var(--blue)" }} />
             </button>
           </div>
         )}
@@ -1117,11 +1136,11 @@ function WarehouseTab({ products, warehouseShelves, placeInWarehouse, highlightP
         {warehouseShelves.length > 0 && (
           <div style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 6 }}>
             <button onClick={() => setShelfIdx(i => Math.max(0, i - 1))} disabled={clampedIdx === 0}
-              style={{ width: 34, height: 34, borderRadius: 10, border: "1px solid #bae6fd", background: clampedIdx === 0 ? "#f8fafc" : "#fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: clampedIdx === 0 ? "default" : "pointer", flexShrink: 0 }}>
-              <ChevronLeft size={15} style={{ color: clampedIdx === 0 ? "#bae6fd" : "#0ea5e9" }} />
+              style={{ width: 36, height: 36, borderRadius: 11, border: "1px solid var(--border)", background: clampedIdx === 0 ? "var(--bg-base)" : "#fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: clampedIdx === 0 ? "default" : "pointer", flexShrink: 0, boxShadow: clampedIdx === 0 ? "none" : "0 1px 4px rgba(14,165,233,0.08)" }}>
+              <ChevronLeft size={15} style={{ color: clampedIdx === 0 ? "var(--border)" : "var(--blue)" }} />
             </button>
-            <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 8, padding: "0 12px", height: 34, background: "#fff", border: "1px solid #bae6fd", borderRadius: 10, minWidth: 0 }}>
-              <div style={{ width: 3, height: 14, borderRadius: 2, background: shelfTypeColor, flexShrink: 0 }} />
+            <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 8, padding: "0 14px", height: 38, background: `linear-gradient(to right, ${shelfTypeColor}08, transparent)`, border: `1px solid ${shelfTypeColor}35`, borderRadius: 12, minWidth: 0, boxShadow: `0 2px 8px ${shelfTypeColor}10` }}>
+              <div style={{ width: 4, height: 16, borderRadius: 3, background: shelfTypeColor, flexShrink: 0, boxShadow: `0 0 6px ${shelfTypeColor}60` }} />
               <span style={{ fontSize: 10, fontWeight: 700, color: shelfTypeColor, letterSpacing: "0.1em", flexShrink: 0 }}>
                 {currentShelf?.shelfType === "bags" ? "TÚI" : "GIÀY"}
               </span>
@@ -1129,8 +1148,8 @@ function WarehouseTab({ products, warehouseShelves, placeInWarehouse, highlightP
               <span style={{ fontSize: 9, color: "#94a3b8", flexShrink: 0 }}>{clampedIdx + 1}/{warehouseShelves.length}</span>
             </div>
             <button onClick={() => setShelfIdx(i => Math.min(warehouseShelves.length - 1, i + 1))} disabled={clampedIdx === warehouseShelves.length - 1}
-              style={{ width: 34, height: 34, borderRadius: 10, border: "1px solid #bae6fd", background: clampedIdx === warehouseShelves.length - 1 ? "#f8fafc" : "#fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: clampedIdx === warehouseShelves.length - 1 ? "default" : "pointer", flexShrink: 0 }}>
-              <ChevronRight size={15} style={{ color: clampedIdx === warehouseShelves.length - 1 ? "#bae6fd" : "#0ea5e9" }} />
+              style={{ width: 36, height: 36, borderRadius: 11, border: "1px solid var(--border)", background: clampedIdx === warehouseShelves.length - 1 ? "var(--bg-base)" : "#fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: clampedIdx === warehouseShelves.length - 1 ? "default" : "pointer", flexShrink: 0, boxShadow: clampedIdx === warehouseShelves.length - 1 ? "none" : "0 1px 4px rgba(14,165,233,0.08)" }}>
+              <ChevronRight size={15} style={{ color: clampedIdx === warehouseShelves.length - 1 ? "var(--border)" : "var(--blue)" }} />
             </button>
           </div>
         )}
@@ -1184,8 +1203,8 @@ function ShelfView({ shelf, products, selectedPid, highlightPid, canEdit, onPlac
   const densityColor = density >= 0.85 ? "#dc2626" : density >= 0.6 ? "#C9A55A" : "#10b981";
 
   return (
-    <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #bae6fd", overflow: "hidden" }}>
-      <div style={{ padding: "10px 14px", background: "#f0f9ff", borderBottom: "1px solid #bae6fd", display: "flex", alignItems: "center", gap: 10 }}>
+    <div style={{ background: "#fff", borderRadius: 16, border: "1px solid var(--border)", overflow: "hidden", boxShadow: "0 2px 12px rgba(14,165,233,0.06)" }}>
+      <div style={{ padding: "10px 14px", background: "linear-gradient(to bottom, #f8fbff, #f0f9ff)", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 10 }}>
         <Warehouse size={13} style={{ color: "#0ea5e9" }} />
         <span style={{ fontSize: 11, fontWeight: 700, color: "#0c1a2e", flex: 1 }}>{shelf.name}</span>
         <div style={{ width: 50, height: 4, background: "#e0f2fe", borderRadius: 4, overflow: "hidden" }}>
@@ -1236,8 +1255,8 @@ function SectionView({ section, products, selectedPid, highlightPid, canEdit, on
         const total = sub.rows.reduce((s, r) => s + r.products.length, 0);
         const pct = total > 0 ? (filled / total) * 100 : 0;
         return (
-          <div key={sub.id} style={{ background: "#fff", border: `1px solid ${cfg.color}33`, borderRadius: 14, overflow: "visible" }}>
-            <div style={{ padding: "8px 12px", background: cfg.bg, borderBottom: `1px solid ${cfg.color}22`, display: "flex", alignItems: "center", gap: 8 }}>
+          <div key={sub.id} style={{ background: "#fff", border: `1px solid ${cfg.color}30`, borderRadius: 14, overflow: "visible", boxShadow: `0 2px 10px ${cfg.color}08` }}>
+            <div style={{ padding: "8px 12px", background: `linear-gradient(to right, ${cfg.bg}, transparent)`, borderBottom: `1px solid ${cfg.color}20`, display: "flex", alignItems: "center", gap: 8 }}>
               <p style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.14em", color: cfg.color, flex: 1 }}>{sub.name}</p>
               <span style={{ fontSize: 8, color: cfg.color, opacity: 0.7 }}>{filled}/{total}</span>
               <div style={{ width: 40, height: 3, borderRadius: 2, background: `${cfg.color}22`, overflow: "hidden" }}>
@@ -1391,34 +1410,40 @@ export default function VisualBoardPage() {
         </div>
         <div style={{ flex: 1 }} />
         {/* Realtime indicator */}
-        <div style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 10px", borderRadius: 20, background: online ? "rgba(16,185,129,0.08)" : "rgba(148,163,184,0.08)", border: `1px solid ${online ? "rgba(16,185,129,0.3)" : "rgba(148,163,184,0.3)"}` }}>
-          {online ? <Wifi size={11} style={{ color: "#10b981" }} /> : <WifiOff size={11} style={{ color: "#94a3b8" }} />}
-          <span style={{ fontSize: 8.5, color: online ? "#10b981" : "#94a3b8", fontWeight: 600 }}>{online ? "REALTIME" : "OFFLINE"}</span>
-        </div>
-        <button onClick={handleRefresh} title="Tải lại"
-          style={{ width: 34, height: 34, borderRadius: 10, border: "1px solid #bae6fd", background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
-          <RefreshCw size={13} style={{ color: "#0ea5e9", animation: refreshing ? "spin 0.6s linear infinite" : "none" }} />
-        </button>
+        <motion.div
+          animate={{ opacity: [1, 0.7, 1] }}
+          transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+          style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 12px", borderRadius: 20, background: online ? "rgba(16,185,129,0.07)" : "rgba(148,163,184,0.07)", border: `1px solid ${online ? "rgba(16,185,129,0.25)" : "rgba(148,163,184,0.25)"}` }}>
+          <div style={{ width: 6, height: 6, borderRadius: "50%", background: online ? "#10b981" : "#94a3b8", boxShadow: online ? "0 0 6px rgba(16,185,129,0.7)" : "none" }} />
+          <span style={{ fontSize: 8.5, color: online ? "#10b981" : "#94a3b8", fontWeight: 700, letterSpacing: "0.1em" }}>{online ? "LIVE" : "OFFLINE"}</span>
+        </motion.div>
+        <motion.button onClick={handleRefresh} title="Tải lại"
+          whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.93 }}
+          style={{ width: 36, height: 36, borderRadius: 11, border: "1px solid var(--border)", background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", boxShadow: "0 1px 4px rgba(14,165,233,0.08)" }}>
+          <RefreshCw size={13} style={{ color: "var(--blue)", animation: refreshing ? "spin 0.6s linear infinite" : "none" }} />
+        </motion.button>
       </div>
 
       {/* Subtab switcher */}
-      <div style={{ flexShrink: 0, display: "flex", gap: 4, background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 12, padding: 3, alignSelf: "flex-start" }}>
+      <div style={{ flexShrink: 0, display: "flex", gap: 3, background: "var(--bg-surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 4, alignSelf: "flex-start", boxShadow: "0 1px 4px rgba(14,165,233,0.06)" }}>
         {([
           { key: "display" as const,   label: "TRƯNG BÀY",  icon: Eye,       color: "#0ea5e9" },
           { key: "warehouse" as const, label: "KHO HÀNG",   icon: Warehouse, color: "#10b981" },
         ]).map(({ key, label, icon: Icon, color }) => (
-          <button key={key} onClick={() => setSubtab(key)}
+          <motion.button key={key} onClick={() => setSubtab(key)}
+            whileHover={{ scale: subtab !== key ? 1.02 : 1 }}
+            whileTap={{ scale: 0.98 }}
             style={{
-              display: "flex", alignItems: "center", gap: 5, padding: "7px 14px", borderRadius: 9, border: "none",
+              display: "flex", alignItems: "center", gap: 6, padding: "8px 18px", borderRadius: 10, border: "none",
               background: subtab === key ? color : "transparent",
-              color: subtab === key ? "#fff" : "#64748b",
+              color: subtab === key ? "#fff" : "var(--text-secondary)",
               fontSize: 10, fontWeight: subtab === key ? 700 : 500, letterSpacing: "0.1em",
               cursor: "pointer", fontFamily: "inherit", transition: "all 0.18s",
-              boxShadow: subtab === key ? `0 2px 8px ${color}44` : "none",
+              boxShadow: subtab === key ? `0 3px 12px ${color}40` : "none",
             }}>
             <Icon size={13} />
             {label}
-          </button>
+          </motion.button>
         ))}
       </div>
 
