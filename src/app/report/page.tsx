@@ -16,9 +16,12 @@ type CashierEntry = {
 
 type MorningReport = {
   date: string; revTotal: number; bills: number; qtyTotal: number; aov: number; ipt: number;
-  byGroup: Record<string, GroupEntry>;
-  byCashier: Record<string, CashierEntry>;
   traffic: number | null;
+  byGroup: GroupEntry[];
+  byAdvisor: {
+    name: string; rev: number; bills: number; qty: number;
+    byGroup: { group: string; rev: number; qty: number }[];
+  }[];
 };
 
 type PayBreakdown = {
@@ -171,8 +174,8 @@ function MorningTab() {
 
   useEffect(() => { load(date); }, [date]);
 
-  const groups = data ? Object.values(data.byGroup).sort((a, b) => b.rev - a.rev) : [];
-  const cashiers = data ? Object.values(data.byCashier).sort((a, b) => b.rev - a.rev) : [];
+  const groups = data?.byGroup ?? [];
+  const advisors = data?.byAdvisor ?? [];
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -229,32 +232,34 @@ function MorningTab() {
           {/* ── Theo nhân viên ── */}
           <Card>
             <SectionHeader title="Doanh thu theo cá nhân" sub="(copy vào Club Elite)" />
-            {cashiers.map(c => {
-              const key = c.name;
+            {advisors.map(a => {
+              const key = a.name;
               const open = expanded[key];
-              const cGroups = Object.values(c.byGroup).sort((a, b) => b.rev - a.rev);
               return (
                 <div key={key} style={{ marginBottom: 2 }}>
                   <button onClick={() => setExpanded(e => ({ ...e, [key]: !open }))}
                     style={{
                       width: "100%", background: "none", border: "none", cursor: "pointer",
                       display: "flex", justifyContent: "space-between", alignItems: "center",
-                      padding: "7px 0", borderBottom: "1px solid rgba(255,255,255,0.04)",
+                      padding: "8px 0", borderBottom: "1px solid rgba(255,255,255,0.05)",
                     }}>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: "#fff" }}>{c.name}</span>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: "#fff" }}>{a.name}</span>
                     <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <span style={{ fontSize: 12, color: "#C9A55A", fontWeight: 700 }}>{K(c.rev)} ₫</span>
-                      <span style={{ fontSize: 11, color: "rgba(255,255,255,0.3)" }}>{c.bills} bill</span>
+                      <span style={{ fontSize: 12, color: "#C9A55A", fontWeight: 700 }}>{K(a.rev)} ₫</span>
+                      <span style={{ fontSize: 11, color: "rgba(255,255,255,0.3)" }}>{a.bills} bill · {a.qty} món</span>
                       {open ? <ChevronUp size={12} color="rgba(255,255,255,0.3)" /> : <ChevronDown size={12} color="rgba(255,255,255,0.3)" />}
                     </span>
                   </button>
                   {open && (
-                    <div style={{ paddingLeft: 12, paddingBottom: 6 }}>
-                      {cGroups.map(g => (
-                        <div key={g.group} style={{ display: "flex", justifyContent: "space-between",
-                          padding: "3px 0", fontSize: 12 }}>
-                          <span style={{ color: "rgba(255,255,255,0.4)" }}>{g.group || "Khác"}</span>
-                          <span style={{ color: "rgba(255,255,255,0.7)" }}>{K(g.rev)} ₫ · {g.qty} món</span>
+                    <div style={{ paddingLeft: 14, paddingBottom: 8, paddingTop: 4 }}>
+                      {a.byGroup.map(g => (
+                        <div key={g.group} style={{
+                          display: "flex", justifyContent: "space-between",
+                          padding: "3px 0", fontSize: 12,
+                          borderBottom: "1px solid rgba(255,255,255,0.03)",
+                        }}>
+                          <span style={{ color: "rgba(255,255,255,0.45)" }}>{g.group || "Khác"}</span>
+                          <span style={{ color: "rgba(255,255,255,0.75)" }}>{K(g.rev)} ₫ · {g.qty} món</span>
                         </div>
                       ))}
                     </div>
@@ -262,8 +267,10 @@ function MorningTab() {
                 </div>
               );
             })}
-            {cashiers.length === 0 && (
-              <div style={{ fontSize: 12, color: "rgba(255,255,255,0.25)", padding: "8px 0" }}>Không có dữ liệu</div>
+            {advisors.length === 0 && (
+              <div style={{ fontSize: 12, color: "rgba(255,255,255,0.25)", padding: "8px 0" }}>
+                Không có dữ liệu nhân viên (cần gán Sale Advisor trong Odoo POS)
+              </div>
             )}
           </Card>
         </>

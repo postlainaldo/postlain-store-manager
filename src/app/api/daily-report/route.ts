@@ -3,6 +3,7 @@ import { buildMorningReport, buildEveningReport, buildOverviewReport } from "@/l
 import { getPalexyTraffic } from "@/lib/palexy";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 60; // Vercel: allow up to 60s for Odoo calls
 
 /**
  * GET /api/daily-report?type=morning&date=2026-03-24
