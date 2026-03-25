@@ -59,6 +59,7 @@ interface OdooLine {
   order_id: [number, string];
   product_id: [number, string];
   qty: number;
+  price_unit: number;
   price_subtotal_incl: number;
   x_advisor: [number, string] | false;
 }
@@ -113,7 +114,7 @@ async function fetchDay(date: string) {
       ["order_id.date_order", ">=", from],
       ["order_id.date_order", "<=", to],
     ]], {
-      fields: ["order_id", "product_id", "qty", "price_subtotal_incl", "x_advisor"],
+      fields: ["order_id", "product_id", "qty", "price_unit", "price_subtotal_incl", "x_advisor"],
       limit: 2000,
     }),
   ]);
@@ -171,8 +172,11 @@ export async function buildMorningReport(date: string, traffic: number | null): 
     const rev = line.price_subtotal_incl;
     const qty = line.qty;
     // Skip full return lines (qty < 0 AND rev < 0 = returned product)
-    // Keep discount lines (rev < 0, qty > 0 = promotion/voucher row)
+    // Keep discount promo rows (rev < 0, qty > 0) — they reduce total correctly
     if (qty < 0 && rev < 0) continue;
+
+    // Qty chỉ tính sản phẩm có giá bán (price_unit > 0) — bỏ túi giấy, túi vải miễn phí
+    const countableQty = line.price_unit > 0 ? qty : 0;
 
     const group = prodGroup.get(line.product_id[0]) ?? "Khác";
     const advisorId = line.x_advisor ? line.x_advisor[0] : 0;
@@ -180,20 +184,24 @@ export async function buildMorningReport(date: string, traffic: number | null): 
     const advisorKey = String(advisorId);
     const ordId = line.order_id[0];
 
-    // by group
-    if (!groupMap[group]) groupMap[group] = { rev: 0, qty: 0, orderIds: new Set() };
-    groupMap[group].rev += rev;
-    groupMap[group].qty += qty;
-    groupMap[group].orderIds.add(ordId);
+    // by group — only track groups that have revenue (skip free items & promo rows)
+    if (rev !== 0) {
+      if (!groupMap[group]) groupMap[group] = { rev: 0, qty: 0, orderIds: new Set() };
+      groupMap[group].rev += rev;
+      groupMap[group].qty += countableQty;
+      groupMap[group].orderIds.add(ordId);
+    }
 
     // by advisor
     if (!advisorMap[advisorKey]) advisorMap[advisorKey] = { id: advisorId, name: advisorName, rev: 0, qty: 0, orderIds: new Set(), groups: {} };
     advisorMap[advisorKey].rev += rev;
-    advisorMap[advisorKey].qty += qty;
+    advisorMap[advisorKey].qty += countableQty;
     advisorMap[advisorKey].orderIds.add(ordId);
-    if (!advisorMap[advisorKey].groups[group]) advisorMap[advisorKey].groups[group] = { rev: 0, qty: 0 };
-    advisorMap[advisorKey].groups[group].rev += rev;
-    advisorMap[advisorKey].groups[group].qty += qty;
+    if (rev !== 0) {
+      if (!advisorMap[advisorKey].groups[group]) advisorMap[advisorKey].groups[group] = { rev: 0, qty: 0 };
+      advisorMap[advisorKey].groups[group].rev += rev;
+      advisorMap[advisorKey].groups[group].qty += countableQty;
+    }
   }
 
   const revTotal = Object.values(groupMap).reduce((s, g) => s + g.rev, 0);
@@ -246,14 +254,16 @@ export async function buildEveningReport(date: string): Promise<EveningReport> {
   const groupMap: Record<string, { rev: number; qty: number }> = {};
 
   for (const line of lines) {
-    // Skip full return lines only (qty < 0 AND rev < 0)
     if (line.qty < 0 && line.price_subtotal_incl < 0) continue;
     revTotal += line.price_subtotal_incl;
-    if (line.qty > 0) qtyTotal += line.qty;
-    const group = prodGroup.get(line.product_id[0]) ?? "Khác";
-    if (!groupMap[group]) groupMap[group] = { rev: 0, qty: 0 };
-    groupMap[group].rev += line.price_subtotal_incl;
-    if (line.qty > 0) groupMap[group].qty += line.qty;
+    // Qty: chỉ đếm sản phẩm có giá (bỏ túi giấy/túi vải price_unit=0)
+    if (line.price_unit > 0 && line.qty > 0) qtyTotal += line.qty;
+    if (line.price_subtotal_incl !== 0) {
+      const group = prodGroup.get(line.product_id[0]) ?? "Khác";
+      if (!groupMap[group]) groupMap[group] = { rev: 0, qty: 0 };
+      groupMap[group].rev += line.price_subtotal_incl;
+      if (line.price_unit > 0 && line.qty > 0) groupMap[group].qty += line.qty;
+    }
   }
 
   for (const p of payments) {
@@ -303,7 +313,7 @@ export async function buildOverviewReport(dates: string[], trafficMap: Map<strin
       for (const line of lines) {
         if (line.qty < 0 && line.price_subtotal_incl < 0) continue;
         revTotal += line.price_subtotal_incl;
-        if (line.qty > 0) qtyTotal += line.qty;
+        if (line.price_unit > 0 && line.qty > 0) qtyTotal += line.qty;
         if (line.price_subtotal_incl !== 0) {
           const group = prodGroup.get(line.product_id[0]) ?? "Khác";
           byGroup[group] = (byGroup[group] ?? 0) + line.price_subtotal_incl;

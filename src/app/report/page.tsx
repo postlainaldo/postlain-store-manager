@@ -3,16 +3,12 @@
 import { useEffect, useState, useCallback } from "react";
 import {
   ClipboardList, Sun, Moon, BarChart2, RefreshCw,
-  ChevronDown, ChevronUp, TrendingUp, Users, Receipt, Package,
+  ChevronDown, ChevronUp,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type GroupEntry = { group: string; rev: number; qty: number; bills?: number; pct?: number };
-type CashierEntry = {
-  name: string; rev: number; bills: number; qtyTotal: number;
-  byGroup: Record<string, { group: string; rev: number; qty: number }>;
-};
 
 type MorningReport = {
   date: string; revTotal: number; bills: number; qtyTotal: number; aov: number; ipt: number;
@@ -47,9 +43,7 @@ type OverviewReport = {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-// Always show exact number with thousand separators — no rounding/abbreviation
 const M = (n: number) => new Intl.NumberFormat("vi-VN").format(Math.round(n));
-// K kept for overview table where space is tight
 const K = (n: number) => n >= 1_000_000 ? (n / 1_000_000).toFixed(2) + "M" : M(n);
 
 function todayVN() {
@@ -78,19 +72,21 @@ function daysBack(n: number): string {
 function Card({ children, gold }: { children: React.ReactNode; gold?: boolean }) {
   return (
     <div style={{
-      background: gold ? "linear-gradient(135deg, rgba(201,165,90,0.1) 0%, rgba(201,165,90,0.04) 100%)"
-        : "rgba(255,255,255,0.025)",
-      border: `1px solid ${gold ? "rgba(201,165,90,0.25)" : "rgba(255,255,255,0.07)"}`,
+      background: gold
+        ? "linear-gradient(135deg, rgba(201,165,90,0.08) 0%, rgba(201,165,90,0.03) 100%)"
+        : "var(--bg-card)",
+      border: `1px solid ${gold ? "rgba(201,165,90,0.3)" : "var(--border)"}`,
       borderRadius: 12, padding: "14px 16px",
+      boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
     }}>{children}</div>
   );
 }
 
 function SectionHeader({ title, sub }: { title: string; sub?: string }) {
   return (
-    <div style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.35)",
+    <div style={{ fontSize: 10, fontWeight: 700, color: "var(--text-muted)",
       textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 8 }}>
-      {title}{sub && <span style={{ fontWeight: 400, marginLeft: 6, color: "rgba(255,255,255,0.2)" }}>{sub}</span>}
+      {title}{sub && <span style={{ fontWeight: 400, marginLeft: 6, color: "var(--text-muted)", opacity: 0.6 }}>{sub}</span>}
     </div>
   );
 }
@@ -101,12 +97,12 @@ function Row({ label, value, sub, bold, color }: {
   return (
     <div style={{
       display: "flex", justifyContent: "space-between", alignItems: "baseline",
-      padding: "5px 0", borderBottom: "1px solid rgba(255,255,255,0.04)",
+      padding: "6px 0", borderBottom: "1px solid var(--border-subtle)",
     }}>
-      <span style={{ fontSize: 12, color: "rgba(255,255,255,0.5)" }}>{label}</span>
-      <span style={{ fontSize: bold ? 14 : 12, fontWeight: bold ? 700 : 500,
-        color: color ?? (bold ? "#C9A55A" : "#fff") }}>
-        {value}{sub && <span style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", marginLeft: 4 }}>{sub}</span>}
+      <span style={{ fontSize: 13, color: "var(--text-secondary)" }}>{label}</span>
+      <span style={{ fontSize: bold ? 14 : 13, fontWeight: bold ? 700 : 500,
+        color: color ?? (bold ? "var(--gold)" : "var(--text-primary)") }}>
+        {value}{sub && <span style={{ fontSize: 11, color: "var(--text-muted)", marginLeft: 4 }}>{sub}</span>}
       </span>
     </div>
   );
@@ -117,11 +113,11 @@ function KpiGrid({ items }: { items: { label: string; value: string; color?: str
     <div style={{ display: "grid", gridTemplateColumns: `repeat(${items.length},1fr)`, gap: 6 }}>
       {items.map(i => (
         <div key={i.label} style={{
-          background: "rgba(255,255,255,0.04)", borderRadius: 8, padding: "8px 10px",
-          textAlign: "center",
+          background: "var(--bg-surface)", border: "1px solid var(--border-subtle)",
+          borderRadius: 8, padding: "8px 10px", textAlign: "center",
         }}>
-          <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", marginBottom: 3 }}>{i.label}</div>
-          <div style={{ fontSize: 13, fontWeight: 700, color: i.color ?? "#fff" }}>{i.value}</div>
+          <div style={{ fontSize: 9, color: "var(--text-muted)", marginBottom: 3 }}>{i.label}</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: i.color ?? "var(--text-primary)" }}>{i.value}</div>
         </div>
       ))}
     </div>
@@ -130,14 +126,14 @@ function KpiGrid({ items }: { items: { label: string; value: string; color?: str
 
 function LoadState({ loading, error }: { loading: boolean; error: string }) {
   if (loading) return (
-    <div style={{ textAlign: "center", padding: 48, color: "rgba(255,255,255,0.3)", fontSize: 13 }}>
+    <div style={{ textAlign: "center", padding: 48, color: "var(--text-muted)", fontSize: 13 }}>
       <RefreshCw size={18} style={{ animation: "spin 1s linear infinite", display: "inline-block", marginBottom: 8 }} />
       <br />Đang tải từ Odoo...
     </div>
   );
   if (error) return (
-    <div style={{ padding: "10px 14px", borderRadius: 8, background: "rgba(239,68,68,0.08)",
-      border: "1px solid rgba(239,68,68,0.2)", color: "#fca5a5", fontSize: 12 }}>
+    <div style={{ padding: "10px 14px", borderRadius: 8, background: "rgba(239,68,68,0.06)",
+      border: "1px solid rgba(239,68,68,0.2)", color: "#dc2626", fontSize: 12 }}>
       {error}
     </div>
   );
@@ -148,9 +144,9 @@ function DatePicker({ value, onChange }: { value: string; onChange: (d: string) 
   return (
     <input type="date" value={value} onChange={e => onChange(e.target.value)}
       style={{
-        flex: 1, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.12)",
-        borderRadius: 10, padding: "10px 12px", fontSize: 14, fontWeight: 600, color: "#fff",
-        outline: "none", colorScheme: "dark",
+        flex: 1, background: "var(--bg-surface)", border: "1px solid var(--border)",
+        borderRadius: 10, padding: "10px 12px", fontSize: 14, fontWeight: 600,
+        color: "var(--text-primary)", outline: "none", colorScheme: "light",
       }} />
   );
 }
@@ -185,12 +181,12 @@ function MorningTab() {
       <div style={{ display: "flex", gap: 8 }}>
         <DatePicker value={date} onChange={setDate} />
         <div style={{ padding: "10px 12px", borderRadius: 10,
-          background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)",
-          fontSize: 13, fontWeight: 700, color: "#C9A55A" }}>{dow(date)}</div>
+          background: "var(--bg-surface)", border: "1px solid var(--border)",
+          fontSize: 13, fontWeight: 700, color: "var(--gold)" }}>{dow(date)}</div>
         <button onClick={() => load(date)} style={{
           padding: "10px 12px", borderRadius: 10,
-          background: "rgba(14,165,233,0.1)", border: "1px solid rgba(14,165,233,0.2)",
-          color: "#38bdf8", cursor: "pointer",
+          background: "rgba(14,165,233,0.08)", border: "1px solid rgba(14,165,233,0.25)",
+          color: "var(--blue)", cursor: "pointer",
         }}><RefreshCw size={14} /></button>
       </div>
 
@@ -201,16 +197,16 @@ function MorningTab() {
           {/* ── Tổng quan ── */}
           <Card gold>
             <SectionHeader title={`Kết quả ${dow(date)} ${fmtVN(date)}`} />
-            <div style={{ fontSize: 28, fontWeight: 800, color: "#C9A55A", marginBottom: 10 }}>
+            <div style={{ fontSize: 26, fontWeight: 800, color: "var(--gold)", marginBottom: 10 }}>
               {M(data.revTotal)} ₫
             </div>
             <KpiGrid items={[
-              { label: "Số bill", value: String(data.bills), color: "#38bdf8" },
-              { label: "Số món", value: String(data.qtyTotal), color: "#a78bfa" },
-              { label: "AOV", value: M(data.aov) + " ₫", color: "#C9A55A" },
-              { label: "IPT", value: data.ipt.toFixed(2), color: "#fb923c" },
-              ...(data.traffic ? [{ label: "Traffic", value: String(data.traffic), color: "#34d399" }] : []),
-              ...(data.traffic && data.bills ? [{ label: "Conv.", value: (data.bills / data.traffic * 100).toFixed(1) + "%", color: "#f472b6" }] : []),
+              { label: "Số bill", value: String(data.bills), color: "var(--blue)" },
+              { label: "Số món", value: String(data.qtyTotal), color: "#7c3aed" },
+              { label: "AOV", value: M(data.aov) + " ₫", color: "var(--gold)" },
+              { label: "IPT", value: data.ipt.toFixed(2), color: "#ea580c" },
+              ...(data.traffic ? [{ label: "Traffic", value: String(data.traffic), color: "#059669" }] : []),
+              ...(data.traffic && data.bills ? [{ label: "Conv.", value: (data.bills / data.traffic * 100).toFixed(1) + "%", color: "#db2777" }] : []),
             ]} />
           </Card>
 
@@ -223,11 +219,11 @@ function MorningTab() {
                 value={M(g.rev) + " ₫"}
                 sub={`${g.qty} món · ${g.bills ?? 0} bill`}
                 bold={i === 0}
-                color={i === 0 ? "#C9A55A" : "#fff"}
+                color={i === 0 ? "var(--gold)" : undefined}
               />
             ))}
             {groups.length === 0 && (
-              <div style={{ fontSize: 12, color: "rgba(255,255,255,0.25)", padding: "8px 0" }}>Không có dữ liệu</div>
+              <div style={{ fontSize: 12, color: "var(--text-muted)", padding: "8px 0" }}>Không có dữ liệu</div>
             )}
           </Card>
 
@@ -243,13 +239,13 @@ function MorningTab() {
                     style={{
                       width: "100%", background: "none", border: "none", cursor: "pointer",
                       display: "flex", justifyContent: "space-between", alignItems: "center",
-                      padding: "8px 0", borderBottom: "1px solid rgba(255,255,255,0.05)",
+                      padding: "8px 0", borderBottom: "1px solid var(--border-subtle)",
                     }}>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: "#fff" }}>{a.name}</span>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{a.name}</span>
                     <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <span style={{ fontSize: 12, color: "#C9A55A", fontWeight: 700 }}>{M(a.rev)} ₫</span>
-                      <span style={{ fontSize: 11, color: "rgba(255,255,255,0.3)" }}>{a.bills} bill · {a.qty} món</span>
-                      {open ? <ChevronUp size={12} color="rgba(255,255,255,0.3)" /> : <ChevronDown size={12} color="rgba(255,255,255,0.3)" />}
+                      <span style={{ fontSize: 12, color: "var(--gold)", fontWeight: 700 }}>{M(a.rev)} ₫</span>
+                      <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{a.bills} bill · {a.qty} món</span>
+                      {open ? <ChevronUp size={12} color="var(--text-muted)" /> : <ChevronDown size={12} color="var(--text-muted)" />}
                     </span>
                   </button>
                   {open && (
@@ -258,10 +254,10 @@ function MorningTab() {
                         <div key={g.group} style={{
                           display: "flex", justifyContent: "space-between",
                           padding: "3px 0", fontSize: 12,
-                          borderBottom: "1px solid rgba(255,255,255,0.03)",
+                          borderBottom: "1px solid var(--border-subtle)",
                         }}>
-                          <span style={{ color: "rgba(255,255,255,0.45)" }}>{g.group || "Khác"}</span>
-                          <span style={{ color: "rgba(255,255,255,0.75)" }}>{M(g.rev)} ₫ · {g.qty} món</span>
+                          <span style={{ color: "var(--text-secondary)" }}>{g.group || "Khác"}</span>
+                          <span style={{ color: "var(--text-primary)" }}>{M(g.rev)} ₫ · {g.qty} món</span>
                         </div>
                       ))}
                     </div>
@@ -270,7 +266,7 @@ function MorningTab() {
               );
             })}
             {advisors.length === 0 && (
-              <div style={{ fontSize: 12, color: "rgba(255,255,255,0.25)", padding: "8px 0" }}>
+              <div style={{ fontSize: 12, color: "var(--text-muted)", padding: "8px 0" }}>
                 Không có dữ liệu nhân viên (cần gán Sale Advisor trong Odoo POS)
               </div>
             )}
@@ -314,12 +310,12 @@ function EveningTab() {
       <div style={{ display: "flex", gap: 8 }}>
         <DatePicker value={date} onChange={setDate} />
         <div style={{ padding: "10px 12px", borderRadius: 10,
-          background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)",
-          fontSize: 13, fontWeight: 700, color: "#C9A55A" }}>{dow(date)}</div>
+          background: "var(--bg-surface)", border: "1px solid var(--border)",
+          fontSize: 13, fontWeight: 700, color: "var(--gold)" }}>{dow(date)}</div>
         <button onClick={() => load(date)} style={{
           padding: "10px 12px", borderRadius: 10,
-          background: "rgba(14,165,233,0.1)", border: "1px solid rgba(14,165,233,0.2)",
-          color: "#38bdf8", cursor: "pointer",
+          background: "rgba(14,165,233,0.08)", border: "1px solid rgba(14,165,233,0.25)",
+          color: "var(--blue)", cursor: "pointer",
         }}><RefreshCw size={14} /></button>
       </div>
 
@@ -330,14 +326,14 @@ function EveningTab() {
           {/* ── Tổng doanh thu ── */}
           <Card gold>
             <SectionHeader title={`Cuối ngày ${dow(date)} ${fmtVN(date)}`} />
-            <div style={{ fontSize: 28, fontWeight: 800, color: "#C9A55A", marginBottom: 10 }}>
+            <div style={{ fontSize: 26, fontWeight: 800, color: "var(--gold)", marginBottom: 10 }}>
               {M(data.revTotal)} ₫
             </div>
             <KpiGrid items={[
-              { label: "Số bill", value: String(data.bills), color: "#38bdf8" },
-              { label: "Số món", value: String(data.qtyTotal), color: "#a78bfa" },
-              { label: "AOV", value: M(data.aov) + " ₫", color: "#C9A55A" },
-              { label: "IPT", value: data.ipt.toFixed(2), color: "#fb923c" },
+              { label: "Số bill", value: String(data.bills), color: "var(--blue)" },
+              { label: "Số món", value: String(data.qtyTotal), color: "#7c3aed" },
+              { label: "AOV", value: M(data.aov) + " ₫", color: "var(--gold)" },
+              { label: "IPT", value: data.ipt.toFixed(2), color: "#ea580c" },
             ]} />
           </Card>
 
@@ -353,9 +349,9 @@ function EveningTab() {
             ))}
             {pays.length > 0 && (
               <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 6,
-                borderTop: "1px solid rgba(255,255,255,0.08)", marginTop: 4 }}>
-                <span style={{ fontSize: 12, color: "rgba(255,255,255,0.4)" }}>Tổng thanh toán</span>
-                <span style={{ fontSize: 13, fontWeight: 700, color: "#C9A55A" }}>
+                borderTop: "1px solid var(--border)", marginTop: 4 }}>
+                <span style={{ fontSize: 12, color: "var(--text-secondary)", fontWeight: 600 }}>Tổng thanh toán</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: "var(--gold)" }}>
                   {M(pays.reduce((s, [, v]) => s + v, 0))} ₫
                 </span>
               </div>
@@ -371,7 +367,7 @@ function EveningTab() {
                 value={M(g.rev) + " ₫"}
                 sub={`${((g.pct ?? 0)).toFixed(1)}% · ${g.qty} món`}
                 bold={i === 0}
-                color={i === 0 ? "#C9A55A" : "#fff"}
+                color={i === 0 ? "var(--gold)" : undefined}
               />
             ))}
           </Card>
@@ -414,29 +410,33 @@ function OverviewTab() {
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       {/* Range shortcuts */}
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-        {RANGE_OPTIONS.map(o => (
-          <button key={o.label}
-            onClick={() => { setFrom(o.from); setTo(o.to); load(o.from, o.to); }}
-            style={{
-              padding: "6px 12px", borderRadius: 20, fontSize: 12, cursor: "pointer",
-              background: from === o.from && to === o.to ? "rgba(201,165,90,0.15)" : "rgba(255,255,255,0.04)",
-              border: from === o.from && to === o.to ? "1px solid rgba(201,165,90,0.4)" : "1px solid rgba(255,255,255,0.08)",
-              color: from === o.from && to === o.to ? "#C9A55A" : "rgba(255,255,255,0.5)",
-            }}>
-            {o.label}
-          </button>
-        ))}
+        {RANGE_OPTIONS.map(o => {
+          const active = from === o.from && to === o.to;
+          return (
+            <button key={o.label}
+              onClick={() => { setFrom(o.from); setTo(o.to); load(o.from, o.to); }}
+              style={{
+                padding: "6px 12px", borderRadius: 20, fontSize: 12, cursor: "pointer",
+                background: active ? "rgba(201,165,90,0.12)" : "var(--bg-surface)",
+                border: active ? "1px solid rgba(201,165,90,0.4)" : "1px solid var(--border)",
+                color: active ? "var(--gold)" : "var(--text-secondary)",
+                fontWeight: active ? 600 : 400,
+              }}>
+              {o.label}
+            </button>
+          );
+        })}
       </div>
 
       {/* Custom range */}
       <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
         <DatePicker value={from} onChange={setFrom} />
-        <span style={{ color: "rgba(255,255,255,0.3)", fontSize: 12 }}>→</span>
+        <span style={{ color: "var(--text-muted)", fontSize: 12 }}>→</span>
         <DatePicker value={to} onChange={setTo} />
         <button onClick={() => load(from, to)} style={{
           padding: "10px 12px", borderRadius: 10,
-          background: "rgba(14,165,233,0.1)", border: "1px solid rgba(14,165,233,0.2)",
-          color: "#38bdf8", cursor: "pointer", flexShrink: 0,
+          background: "rgba(14,165,233,0.08)", border: "1px solid rgba(14,165,233,0.25)",
+          color: "var(--blue)", cursor: "pointer", flexShrink: 0,
         }}><RefreshCw size={14} /></button>
       </div>
 
@@ -447,13 +447,13 @@ function OverviewTab() {
           {/* ── Tổng kết ── */}
           <Card gold>
             <SectionHeader title={`Tổng kết ${fmtVN(from)} – ${fmtVN(to)}`} />
-            <div style={{ fontSize: 26, fontWeight: 800, color: "#C9A55A", marginBottom: 10 }}>
+            <div style={{ fontSize: 24, fontWeight: 800, color: "var(--gold)", marginBottom: 10 }}>
               {K(data.totals.revTotal)} ₫
             </div>
             <KpiGrid items={[
-              { label: "Tổng bill", value: String(data.totals.bills), color: "#38bdf8" },
-              { label: "Tổng món", value: String(data.totals.qtyTotal), color: "#a78bfa" },
-              { label: "AOV TB", value: K(data.totals.bills > 0 ? data.totals.revTotal / data.totals.bills : 0) + " ₫", color: "#C9A55A" },
+              { label: "Tổng bill", value: String(data.totals.bills), color: "var(--blue)" },
+              { label: "Tổng món", value: String(data.totals.qtyTotal), color: "#7c3aed" },
+              { label: "AOV TB", value: K(data.totals.bills > 0 ? data.totals.revTotal / data.totals.bills : 0) + " ₫", color: "var(--gold)" },
             ]} />
           </Card>
 
@@ -463,9 +463,9 @@ function OverviewTab() {
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               {data.insights.map((t, i) => (
                 <div key={i} style={{
-                  fontSize: 13, color: "rgba(255,255,255,0.75)", lineHeight: 1.5,
-                  padding: "6px 10px", borderRadius: 8,
-                  background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.05)",
+                  fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.5,
+                  padding: "8px 10px", borderRadius: 8,
+                  background: "var(--bg-surface)", border: "1px solid var(--border-subtle)",
                 }}>{t}</div>
               ))}
             </div>
@@ -479,7 +479,9 @@ function OverviewTab() {
               padding: 0,
             }}>
               <SectionHeader title={`Chi tiết từng ngày (${data.days.length})`} />
-              {showDays ? <ChevronUp size={13} color="rgba(255,255,255,0.3)" /> : <ChevronDown size={13} color="rgba(255,255,255,0.3)" />}
+              {showDays
+                ? <ChevronUp size={13} color="var(--text-muted)" />
+                : <ChevronDown size={13} color="var(--text-muted)" />}
             </button>
             {showDays && (
               <div style={{ marginTop: 6 }}>
@@ -487,7 +489,7 @@ function OverviewTab() {
                 <div style={{
                   display: "grid", gridTemplateColumns: "70px 1fr 44px 44px 54px",
                   gap: 4, padding: "4px 0",
-                  fontSize: 9, color: "rgba(255,255,255,0.3)", textTransform: "uppercase",
+                  fontSize: 9, color: "var(--text-muted)", textTransform: "uppercase",
                 }}>
                   <span>Ngày</span><span style={{ textAlign: "right" }}>Doanh thu</span>
                   <span style={{ textAlign: "right" }}>Bill</span>
@@ -498,17 +500,17 @@ function OverviewTab() {
                   <div key={d.date} style={{
                     display: "grid", gridTemplateColumns: "70px 1fr 44px 44px 54px",
                     gap: 4, padding: "5px 0",
-                    borderTop: "1px solid rgba(255,255,255,0.04)", fontSize: 12,
+                    borderTop: "1px solid var(--border-subtle)", fontSize: 12,
                   }}>
-                    <span style={{ color: "rgba(255,255,255,0.5)" }}>{dow(d.date)} {d.date.slice(5)}</span>
-                    <span style={{ textAlign: "right", fontWeight: 600, color: d.revTotal > 0 ? "#C9A55A" : "rgba(255,255,255,0.2)" }}>
+                    <span style={{ color: "var(--text-secondary)" }}>{dow(d.date)} {d.date.slice(5)}</span>
+                    <span style={{ textAlign: "right", fontWeight: 600, color: d.revTotal > 0 ? "var(--gold)" : "var(--text-muted)" }}>
                       {d.revTotal > 0 ? K(d.revTotal) : "—"}
                     </span>
-                    <span style={{ textAlign: "right", color: "rgba(255,255,255,0.6)" }}>{d.bills || "—"}</span>
-                    <span style={{ textAlign: "right", color: "rgba(255,255,255,0.5)", fontSize: 11 }}>
+                    <span style={{ textAlign: "right", color: "var(--text-secondary)" }}>{d.bills || "—"}</span>
+                    <span style={{ textAlign: "right", color: "var(--text-secondary)", fontSize: 11 }}>
                       {d.aov > 0 ? K(d.aov) : "—"}
                     </span>
-                    <span style={{ textAlign: "right", color: d.conversion ? "#34d399" : "rgba(255,255,255,0.2)", fontSize: 11 }}>
+                    <span style={{ textAlign: "right", color: d.conversion ? "#059669" : "var(--text-muted)", fontSize: 11 }}>
                       {d.conversion != null ? d.conversion.toFixed(1) + "%" : "—"}
                     </span>
                   </div>
@@ -538,17 +540,17 @@ export default function ReportPage() {
   return (
     <div style={{
       minHeight: "100vh",
-      background: "linear-gradient(135deg, #0c1a2e 0%, #0f2035 100%)",
+      background: "var(--bg-base)",
       padding: "16px 16px 90px",
     }}>
       <div style={{ maxWidth: 720, margin: "0 auto" }}>
 
         {/* Header */}
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-          <ClipboardList size={18} color="#C9A55A" />
+          <ClipboardList size={18} color="var(--gold)" />
           <div>
-            <h1 style={{ fontSize: 18, fontWeight: 700, color: "#fff", margin: 0 }}>Báo Cáo</h1>
-            <p style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", margin: 0 }}>
+            <h1 style={{ fontSize: 18, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>Báo Cáo</h1>
+            <p style={{ fontSize: 11, color: "var(--text-muted)", margin: 0 }}>
               Dữ liệu live từ Odoo POS + Palexy
             </p>
           </div>
@@ -560,9 +562,10 @@ export default function ReportPage() {
             <button key={t.key} onClick={() => setTab(t.key)} style={{
               display: "flex", flexDirection: "column", alignItems: "center", gap: 2,
               padding: "10px 8px", borderRadius: 12, cursor: "pointer",
-              background: tab === t.key ? "rgba(201,165,90,0.12)" : "rgba(255,255,255,0.03)",
-              border: tab === t.key ? "1px solid rgba(201,165,90,0.35)" : "1px solid rgba(255,255,255,0.07)",
-              color: tab === t.key ? "#C9A55A" : "rgba(255,255,255,0.4)",
+              background: tab === t.key ? "rgba(201,165,90,0.1)" : "var(--bg-surface)",
+              border: tab === t.key ? "1px solid rgba(201,165,90,0.4)" : "1px solid var(--border)",
+              color: tab === t.key ? "var(--gold)" : "var(--text-secondary)",
+              boxShadow: tab === t.key ? "0 2px 8px rgba(201,165,90,0.1)" : "none",
             }}>
               <div style={{ display: "flex", alignItems: "center", gap: 4, fontWeight: 700, fontSize: 13 }}>
                 {t.icon} {t.label}
@@ -580,7 +583,7 @@ export default function ReportPage() {
 
       <style jsx global>{`
         @keyframes spin { from { transform: rotate(0deg) } to { transform: rotate(360deg) } }
-        input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.6); }
+        input[type="date"]::-webkit-calendar-picker-indicator { filter: none; opacity: 0.5; }
       `}</style>
     </div>
   );
