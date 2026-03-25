@@ -158,6 +158,10 @@ export default function ReportPage() {
         setNote(res.saved.note ?? "");
         setPreparedBy(res.saved.preparedBy ?? "");
       }
+      // Auto-fill traffic from Palexy if no saved value
+      if (!res.saved?.traffic && res.palexyTraffic != null) {
+        setTraffic(res.palexyTraffic);
+      }
     } catch (e) {
       setError(String(e));
     } finally {
@@ -351,8 +355,15 @@ export default function ReportPage() {
                 alignItems: "center", gap: 6 }}>
                 <Users size={12} />
                 Traffic & Conversion
-                <span style={{ fontSize: 9, color: "rgba(255,255,255,0.2)", fontWeight: 400,
-                  marginLeft: "auto" }}>← nhập từ Palexy</span>
+                {data.palexyTraffic != null
+                  ? <span style={{ fontSize: 9, background: "rgba(56,189,248,0.12)",
+                      border: "1px solid rgba(56,189,248,0.25)", color: "#38bdf8",
+                      borderRadius: 4, padding: "1px 5px", fontWeight: 500, marginLeft: "auto" }}>
+                      ✓ Palexy
+                    </span>
+                  : <span style={{ fontSize: 9, color: "rgba(255,255,255,0.2)", fontWeight: 400,
+                      marginLeft: "auto" }}>← nhập từ Palexy</span>
+                }
               </div>
               <div style={{ padding: 14, display: "flex", flexDirection: "column", gap: 8 }}>
                 <InlineInput label="Traffic (lượt khách vào)" value={traffic} onChange={setTraffic} unit="KH" />
