@@ -4,14 +4,16 @@
  *
  * Auth: session cookie via POST /api/login
  * Traffic endpoint: GET /api/v2/report/getStoreReport
+ * Date format: YYYY-MM-DD
+ * Response: { rows: [{ store_id, visits, day }] }
  */
 
 const PALEXY_URL = process.env.PALEXY_URL ?? "https://ica.palexy.com";
 const PALEXY_EMAIL = process.env.PALEXY_EMAIL ?? "";
 const PALEXY_PASSWORD = process.env.PALEXY_PASSWORD ?? "";
-const PALEXY_STORE_ID = process.env.PALEXY_STORE_ID ?? "";
+const PALEXY_STORE_ID = process.env.PALEXY_STORE_ID ?? "1207"; // ALDO Go! Đà Lạt
 
-// Cache session cookie for 1 hour
+// Cache session cookie for 55 minutes
 let cachedCookie: string | null = null;
 let cookieExpiry = 0;
 
@@ -36,26 +38,18 @@ async function getSessionCookie(): Promise<string> {
     throw new Error(`Palexy login failed (${res.status}): ${body.slice(0, 200)}`);
   }
 
-  // Extract session cookie from set-cookie header
-  const setCookie = res.headers.get("set-cookie") ?? "";
-  const match = setCookie.match(/(?:JSESSIONID|remember-me)=([^;]+)/);
-  if (!match) throw new Error("Palexy login: no session cookie in response");
-
   // Build cookie string from all set-cookie values
-  const allCookies = res.headers.getSetCookie
-    ? res.headers.getSetCookie()
-    : [setCookie];
-  cachedCookie = allCookies
-    .map(c => c.split(";")[0])
-    .join("; ");
-  cookieExpiry = now + 55 * 60 * 1000; // 55 minutes
+  const setCookie = res.headers.get("set-cookie") ?? "";
+  const allCookies = (res.headers as unknown as { getSetCookie?: () => string[] }).getSetCookie?.() ?? [setCookie];
+  cachedCookie = allCookies.map(c => c.split(";")[0]).join("; ");
+  if (!cachedCookie) throw new Error("Palexy login: no session cookie in response");
 
+  cookieExpiry = now + 55 * 60 * 1000;
   return cachedCookie;
 }
 
 /**
  * Get list of stores accessible by this account.
- * Use this to find the storeId for ALDO Đà Lạt.
  */
 export async function getPalexyStores(): Promise<{ id: number; name: string; code: string }[]> {
   const cookie = await getSessionCookie();
@@ -75,18 +69,14 @@ export async function getPalexyStores(): Promise<{ id: number; name: string; cod
 export async function getPalexyTraffic(date: string): Promise<number | null> {
   if (!PALEXY_EMAIL || !PALEXY_PASSWORD) return null;
 
-  // Date format for Palexy: YYYYMMDD
-  const palexyDate = date.replace(/-/g, "");
-  const storeId = PALEXY_STORE_ID;
-
   const cookie = await getSessionCookie();
   const params = new URLSearchParams({
-    fromDate: palexyDate,
-    toDate: palexyDate,
+    fromDate: date,  // API uses YYYY-MM-DD
+    toDate: date,
     dimensions: "store_id,day",
     metrics: "visits",
+    storeIds: PALEXY_STORE_ID,
   });
-  if (storeId) params.set("storeIds", storeId);
 
   const res = await fetch(`${PALEXY_URL}/api/v2/report/getStoreReport?${params}`, {
     headers: { Cookie: cookie },
@@ -97,13 +87,12 @@ export async function getPalexyTraffic(date: string): Promise<number | null> {
     throw new Error(`Palexy report failed (${res.status}): ${body.slice(0, 200)}`);
   }
 
+  // Response format: { rows: [{ store_id: "1207", visits: "123", day: "2026-03-25" }] }
   const data = await res.json() as {
-    rows?: { dimensionValues: string[]; metricValues: (number | null)[] }[];
+    rows?: { store_id: string; visits: string | number | null; day: string }[];
   };
 
   if (!data.rows?.length) return null;
-
-  // metricValues[0] = visits
-  const visits = data.rows[0].metricValues[0];
-  return visits != null ? Math.round(visits) : null;
+  const visits = data.rows[0].visits;
+  return visits != null ? Math.round(Number(visits)) : null;
 }
