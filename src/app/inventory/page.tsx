@@ -371,7 +371,7 @@ function ListView() {
         {/* Table header */}
         <div style={{
           display: "grid",
-          gridTemplateColumns: "32px minmax(160px,2.5fr) 52px 120px 60px 90px 90px 48px 56px 96px",
+          gridTemplateColumns: "32px minmax(140px,1fr) 52px 120px 60px 90px 90px 48px 52px 96px",
           padding: "0 16px", height: 34, alignItems: "center",
           background: "linear-gradient(to bottom, #f8fbff, #f0f9ff)",
           borderBottom: "1px solid var(--border)",
@@ -412,7 +412,7 @@ function ListView() {
                 onMouseLeave={() => setHoveredId(null)}
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "32px minmax(160px,2.5fr) 52px 120px 60px 90px 90px 48px 56px 96px",
+                  gridTemplateColumns: "32px minmax(140px,1fr) 52px 120px 60px 90px 90px 48px 52px 96px",
                   padding: "0 16px", minHeight: 46, alignItems: "center",
                   borderBottom: "1px solid var(--border-subtle)",
                   background: isSel
@@ -497,30 +497,34 @@ function ListView() {
 
                 {/* Actions */}
                 <div style={{ display: "flex", alignItems: "center", gap: 3, justifyContent: "flex-end" }}>
-                  <button
-                    onClick={() => navigateToBoard(router, p.id, "display")}
-                    title={inDisp ? "Đang trưng bày" : "Chưa có kệ"}
-                    style={{
-                      width: 26, height: 26, borderRadius: 8,
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      border: inDisp ? "1px solid rgba(201,165,90,0.4)" : `1px solid ${isHov ? "var(--border)" : "transparent"}`,
-                      background: inDisp ? "rgba(201,165,90,0.08)" : "transparent",
-                      cursor: "pointer",
-                    }}>
-                    <Eye size={10} style={{ color: inDisp ? "#C9A55A" : isHov ? "var(--text-muted)" : "transparent" }} />
-                  </button>
-                  <button
-                    onClick={() => navigateToBoard(router, p.id, "warehouse")}
-                    title={inWh ? "Đang trong kho" : "Chưa xếp kho"}
-                    style={{
-                      width: 26, height: 26, borderRadius: 8,
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      border: inWh ? "1px solid rgba(14,165,233,0.4)" : `1px solid ${isHov ? "var(--border)" : "transparent"}`,
-                      background: inWh ? "rgba(14,165,233,0.08)" : "transparent",
-                      cursor: "pointer",
-                    }}>
-                    <Warehouse size={10} style={{ color: inWh ? "var(--blue)" : isHov ? "var(--text-muted)" : "transparent" }} />
-                  </button>
+                  {inDisp && (
+                    <button
+                      onClick={() => navigateToBoard(router, p.id, "display")}
+                      title="Xem vị trí trưng bày"
+                      style={{
+                        width: 26, height: 26, borderRadius: 8,
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        border: "1px solid rgba(201,165,90,0.4)",
+                        background: "rgba(201,165,90,0.08)",
+                        cursor: "pointer",
+                      }}>
+                      <Eye size={10} style={{ color: "#C9A55A" }} />
+                    </button>
+                  )}
+                  {inWh && (
+                    <button
+                      onClick={() => navigateToBoard(router, p.id, "warehouse")}
+                      title="Xem vị trí kho"
+                      style={{
+                        width: 26, height: 26, borderRadius: 8,
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        border: "1px solid rgba(14,165,233,0.4)",
+                        background: "rgba(14,165,233,0.08)",
+                        cursor: "pointer",
+                      }}>
+                      <Warehouse size={10} style={{ color: "var(--blue)" }} />
+                    </button>
+                  )}
                   <button
                     onClick={() => setEditProduct(p)}
                     style={{

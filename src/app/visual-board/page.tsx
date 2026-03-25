@@ -831,20 +831,29 @@ function DisplayTab({ products, storeSections, placeInSection, highlightPid, can
 
         {/* Section navigator */}
         {storeSections.length > 0 && (
-          <div style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 6 }}>
-            <button onClick={() => setSectionIdx(i => Math.max(0, i - 1))} disabled={clampedIdx === 0}
-              style={{ width: 36, height: 36, borderRadius: 11, border: "1px solid var(--border)", background: clampedIdx === 0 ? "var(--bg-base)" : "#fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: clampedIdx === 0 ? "default" : "pointer", flexShrink: 0, boxShadow: clampedIdx === 0 ? "none" : "0 1px 4px rgba(14,165,233,0.08)" }}>
-              <ChevronLeft size={15} style={{ color: clampedIdx === 0 ? "var(--border)" : "var(--blue)" }} />
-            </button>
-            <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 8, padding: "0 14px", height: 38, background: `linear-gradient(to right, ${cfg.color}08, transparent)`, border: `1px solid ${cfg.color}35`, borderRadius: 12, minWidth: 0, boxShadow: `0 2px 8px ${cfg.color}10` }}>
-              <div style={{ width: 4, height: 16, borderRadius: 3, background: cfg.color, flexShrink: 0, boxShadow: `0 0 6px ${cfg.color}60` }} />
-              <span style={{ fontSize: 12, fontWeight: 700, color: cfg.color, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{currentSection?.name ?? "—"}</span>
-              <span style={{ fontSize: 9, color: "var(--text-muted)", flexShrink: 0, fontVariantNumeric: "tabular-nums" }}>{clampedIdx + 1}/{storeSections.length}</span>
-            </div>
-            <button onClick={() => setSectionIdx(i => Math.min(storeSections.length - 1, i + 1))} disabled={clampedIdx === storeSections.length - 1}
-              style={{ width: 36, height: 36, borderRadius: 11, border: "1px solid var(--border)", background: clampedIdx === storeSections.length - 1 ? "var(--bg-base)" : "#fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: clampedIdx === storeSections.length - 1 ? "default" : "pointer", flexShrink: 0, boxShadow: clampedIdx === storeSections.length - 1 ? "none" : "0 1px 4px rgba(14,165,233,0.08)" }}>
-              <ChevronRight size={15} style={{ color: clampedIdx === storeSections.length - 1 ? "var(--border)" : "var(--blue)" }} />
-            </button>
+          <div style={{ flexShrink: 0, position: "relative" }}>
+            <div style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", width: 4, height: 16, borderRadius: 3, background: cfg.color, boxShadow: `0 0 6px ${cfg.color}60`, zIndex: 1, pointerEvents: "none" }} />
+            <select
+              value={clampedIdx}
+              onChange={e => setSectionIdx(Number(e.target.value))}
+              style={{
+                width: "100%", height: 38, borderRadius: 12,
+                border: `1px solid ${cfg.color}35`,
+                background: `linear-gradient(to right, ${cfg.color}08, transparent)`,
+                color: cfg.color, fontSize: 12, fontWeight: 700,
+                fontFamily: "inherit", paddingLeft: 26, paddingRight: 36,
+                outline: "none", cursor: "pointer",
+                appearance: "none", WebkitAppearance: "none",
+                backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2364748b'/%3E%3C/svg%3E")`,
+                backgroundRepeat: "no-repeat",
+                backgroundPosition: "right 12px center",
+                boxShadow: `0 2px 8px ${cfg.color}10`,
+              }}
+            >
+              {storeSections.map((sec, i) => (
+                <option key={sec.id} value={i}>{sec.name}</option>
+              ))}
+            </select>
           </div>
         )}
 
@@ -1134,23 +1143,31 @@ function WarehouseTab({ products, warehouseShelves, placeInWarehouse, highlightP
 
         {/* Shelf navigator */}
         {warehouseShelves.length > 0 && (
-          <div style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 6 }}>
-            <button onClick={() => setShelfIdx(i => Math.max(0, i - 1))} disabled={clampedIdx === 0}
-              style={{ width: 36, height: 36, borderRadius: 11, border: "1px solid var(--border)", background: clampedIdx === 0 ? "var(--bg-base)" : "#fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: clampedIdx === 0 ? "default" : "pointer", flexShrink: 0, boxShadow: clampedIdx === 0 ? "none" : "0 1px 4px rgba(14,165,233,0.08)" }}>
-              <ChevronLeft size={15} style={{ color: clampedIdx === 0 ? "var(--border)" : "var(--blue)" }} />
-            </button>
-            <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 8, padding: "0 14px", height: 38, background: `linear-gradient(to right, ${shelfTypeColor}08, transparent)`, border: `1px solid ${shelfTypeColor}35`, borderRadius: 12, minWidth: 0, boxShadow: `0 2px 8px ${shelfTypeColor}10` }}>
-              <div style={{ width: 4, height: 16, borderRadius: 3, background: shelfTypeColor, flexShrink: 0, boxShadow: `0 0 6px ${shelfTypeColor}60` }} />
-              <span style={{ fontSize: 10, fontWeight: 700, color: shelfTypeColor, letterSpacing: "0.1em", flexShrink: 0 }}>
-                {currentShelf?.shelfType === "bags" ? "TÚI" : "GIÀY"}
-              </span>
-              <span style={{ fontSize: 11, fontWeight: 600, color: "#0c1a2e", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{currentShelf?.name ?? "—"}</span>
-              <span style={{ fontSize: 9, color: "#94a3b8", flexShrink: 0 }}>{clampedIdx + 1}/{warehouseShelves.length}</span>
-            </div>
-            <button onClick={() => setShelfIdx(i => Math.min(warehouseShelves.length - 1, i + 1))} disabled={clampedIdx === warehouseShelves.length - 1}
-              style={{ width: 36, height: 36, borderRadius: 11, border: "1px solid var(--border)", background: clampedIdx === warehouseShelves.length - 1 ? "var(--bg-base)" : "#fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: clampedIdx === warehouseShelves.length - 1 ? "default" : "pointer", flexShrink: 0, boxShadow: clampedIdx === warehouseShelves.length - 1 ? "none" : "0 1px 4px rgba(14,165,233,0.08)" }}>
-              <ChevronRight size={15} style={{ color: clampedIdx === warehouseShelves.length - 1 ? "var(--border)" : "var(--blue)" }} />
-            </button>
+          <div style={{ flexShrink: 0, position: "relative" }}>
+            <div style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", width: 4, height: 16, borderRadius: 3, background: shelfTypeColor, boxShadow: `0 0 6px ${shelfTypeColor}60`, zIndex: 1, pointerEvents: "none" }} />
+            <select
+              value={clampedIdx}
+              onChange={e => setShelfIdx(Number(e.target.value))}
+              style={{
+                width: "100%", height: 38, borderRadius: 12,
+                border: `1px solid ${shelfTypeColor}35`,
+                background: `linear-gradient(to right, ${shelfTypeColor}08, transparent)`,
+                color: "#0c1a2e", fontSize: 11, fontWeight: 600,
+                fontFamily: "inherit", paddingLeft: 26, paddingRight: 36,
+                outline: "none", cursor: "pointer",
+                appearance: "none", WebkitAppearance: "none",
+                backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2364748b'/%3E%3C/svg%3E")`,
+                backgroundRepeat: "no-repeat",
+                backgroundPosition: "right 12px center",
+                boxShadow: `0 2px 8px ${shelfTypeColor}10`,
+              }}
+            >
+              {warehouseShelves.map((shelf, i) => (
+                <option key={shelf.id} value={i}>
+                  {shelf.shelfType === "bags" ? "TÚI" : "GIÀY"} · {shelf.name}
+                </option>
+              ))}
+            </select>
           </div>
         )}
 
