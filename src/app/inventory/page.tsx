@@ -362,30 +362,47 @@ function ListView() {
         background: "#fff", overflowX: "auto",
         boxShadow: "0 2px 16px rgba(14,165,233,0.06)",
       }}>
-        {/* Table header */}
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: "32px 1fr 52px 130px 64px 100px 100px 48px 52px 88px",
-          padding: "0 16px", height: 34, alignItems: "center",
-          background: "linear-gradient(to bottom, #f8fbff, #f0f9ff)",
-          borderBottom: "1px solid var(--border)",
-        }}>
-          <button onClick={toggleAll} style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center" }}>
-            {allSelected
-              ? <CheckSquare size={13} style={{ color: "var(--blue)" }} />
-              : <Square size={13} style={{ color: "var(--border)" }} />}
-          </button>
-          {["Tên SP", "Màu", "Barcode", "MC", "Full Price", "Giá Sale", "Size", "SL", ""].map((h, i) => (
-            <span key={i} style={{ fontSize: 8, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.18em" }}>{h}</span>
-          ))}
-        </div>
-
-        {/* Rows */}
-        <div>
+        <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "auto" }}>
+          <colgroup>
+            <col style={{ width: 32 }} />
+            {/* Name: auto — stretches to fill remaining space */}
+            <col />
+            <col style={{ width: 60 }} />   {/* Color */}
+            <col style={{ width: 140 }} />  {/* Barcode */}
+            <col style={{ width: 72 }} />   {/* MC */}
+            <col style={{ width: 110 }} />  {/* Full Price */}
+            <col style={{ width: 110 }} />  {/* Giá Sale */}
+            <col style={{ width: 48 }} />   {/* Size */}
+            <col style={{ width: 52 }} />   {/* SL */}
+            <col style={{ width: 88 }} />   {/* Actions */}
+          </colgroup>
+          <thead>
+            <tr style={{
+              background: "linear-gradient(to bottom, #f8fbff, #f0f9ff)",
+              borderBottom: "1px solid var(--border)",
+            }}>
+              <th style={{ padding: "0 0 0 16px", height: 34, textAlign: "left" }}>
+                <button onClick={toggleAll} style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center" }}>
+                  {allSelected
+                    ? <CheckSquare size={13} style={{ color: "var(--blue)" }} />
+                    : <Square size={13} style={{ color: "var(--border)" }} />}
+                </button>
+              </th>
+              {["Tên SP", "Màu", "Barcode", "MC", "Full Price", "Giá Sale", "Size", "SL", ""].map((h, i) => (
+                <th key={i} style={{
+                  padding: "0 8px", height: 34, textAlign: "left",
+                  fontSize: 8, fontWeight: 700, color: "var(--text-muted)",
+                  textTransform: "uppercase", letterSpacing: "0.18em",
+                  whiteSpace: "nowrap",
+                }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
           {filtered.length === 0 ? (
-            <div style={{ padding: "56px 0", textAlign: "center", color: "var(--text-muted)", fontSize: 12 }}>
+            <tr><td colSpan={10} style={{ padding: "56px 0", textAlign: "center", color: "var(--text-muted)", fontSize: 12 }}>
               Không tìm thấy sản phẩm nào
-            </div>
+            </td></tr>
           ) : filtered.map((p, rowIndex) => {
             const loc      = locationMap.get(p.id) ?? null;
             const isHov    = hoveredId === p.id;
@@ -397,7 +414,7 @@ function ListView() {
             const hasSale  = !!p.markdownPrice;
 
             return (
-              <motion.div
+              <motion.tr
                 key={p.id}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -405,9 +422,6 @@ function ListView() {
                 onMouseEnter={() => setHoveredId(p.id)}
                 onMouseLeave={() => setHoveredId(null)}
                 style={{
-                  display: "grid",
-                  gridTemplateColumns: "32px 1fr 52px 130px 64px 100px 100px 48px 52px 88px",
-                  padding: "0 16px", minHeight: 46, alignItems: "center",
                   borderBottom: "1px solid var(--border-subtle)",
                   background: isSel
                     ? "rgba(220,38,38,0.03)"
@@ -416,15 +430,17 @@ function ListView() {
                 }}
               >
                 {/* Checkbox */}
-                <button onClick={() => toggleSelect(p.id)}
-                  style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center" }}>
-                  {isSel
-                    ? <CheckSquare size={13} style={{ color: "#dc2626" }} />
-                    : <Square size={13} style={{ color: isHov ? "var(--border)" : "transparent" }} />}
-                </button>
+                <td style={{ padding: "0 0 0 16px", height: 46 }}>
+                  <button onClick={() => toggleSelect(p.id)}
+                    style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center" }}>
+                    {isSel
+                      ? <CheckSquare size={13} style={{ color: "#dc2626" }} />
+                      : <Square size={13} style={{ color: isHov ? "var(--border)" : "transparent" }} />}
+                  </button>
+                </td>
 
                 {/* Name + location */}
-                <div style={{ overflow: "hidden", paddingRight: 8 }}>
+                <td style={{ padding: "0 8px 0 8px", maxWidth: 0 }}>
                   <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text-primary)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                     {p.name}
                   </p>
@@ -435,61 +451,76 @@ function ListView() {
                   ) : (
                     <p style={{ fontSize: 8, color: "var(--text-muted)", marginTop: 2 }}>{p.category}</p>
                   )}
-                </div>
+                </td>
 
                 {/* Color */}
-                <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                  <div style={{
-                    width: 11, height: 11, borderRadius: "50%", flexShrink: 0,
-                    background: colorHex ?? "#e2e8f0",
-                    border: "1.5px solid rgba(0,0,0,0.1)",
-                    boxShadow: colorHex ? `0 0 0 2px ${colorHex}22` : "none",
-                  }} />
-                  <span style={{ fontSize: 9, fontWeight: 600, color: p.color ? "var(--text-primary)" : "var(--text-muted)", fontVariantNumeric: "tabular-nums" }}>
-                    {p.color ?? "—"}
-                  </span>
-                </div>
+                <td style={{ padding: "0 8px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                    <div style={{
+                      width: 11, height: 11, borderRadius: "50%", flexShrink: 0,
+                      background: colorHex ?? "#e2e8f0",
+                      border: "1.5px solid rgba(0,0,0,0.1)",
+                      boxShadow: colorHex ? `0 0 0 2px ${colorHex}22` : "none",
+                    }} />
+                    <span style={{ fontSize: 9, fontWeight: 600, color: p.color ? "var(--text-primary)" : "var(--text-muted)", fontVariantNumeric: "tabular-nums" }}>
+                      {p.color ?? "—"}
+                    </span>
+                  </div>
+                </td>
 
                 {/* Barcode */}
-                <span style={{ fontSize: 9, color: "var(--text-muted)", fontFamily: "monospace", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                  {p.sku ?? "—"}
-                </span>
+                <td style={{ padding: "0 8px" }}>
+                  <span style={{ fontSize: 9, color: "var(--text-muted)", fontFamily: "monospace", whiteSpace: "nowrap" }}>
+                    {p.sku ?? "—"}
+                  </span>
+                </td>
 
                 {/* MC */}
-                {mc ? (
-                  <span style={{
-                    fontSize: 9, fontWeight: 700, color: "var(--blue)",
-                    background: "rgba(14,165,233,0.08)", padding: "2px 6px",
-                    borderRadius: 6, display: "inline-block",
-                    border: "1px solid rgba(14,165,233,0.2)",
-                  }}>{mc}</span>
-                ) : (
-                  <span style={{ fontSize: 9, color: "var(--border)" }}>—</span>
-                )}
+                <td style={{ padding: "0 8px" }}>
+                  {mc ? (
+                    <span style={{
+                      fontSize: 9, fontWeight: 700, color: "var(--blue)",
+                      background: "rgba(14,165,233,0.08)", padding: "2px 6px",
+                      borderRadius: 6, display: "inline-block",
+                      border: "1px solid rgba(14,165,233,0.2)",
+                    }}>{mc}</span>
+                  ) : (
+                    <span style={{ fontSize: 9, color: "var(--border)" }}>—</span>
+                  )}
+                </td>
 
                 {/* Full Price */}
-                <span style={{ fontSize: 9, color: hasSale ? "var(--text-muted)" : "var(--text-secondary)", textDecoration: hasSale ? "line-through" : "none" }}>
-                  {fmtPrice(p.price)}
-                </span>
+                <td style={{ padding: "0 8px" }}>
+                  <span style={{ fontSize: 9, color: hasSale ? "var(--text-muted)" : "var(--text-secondary)", textDecoration: hasSale ? "line-through" : "none" }}>
+                    {fmtPrice(p.price)}
+                  </span>
+                </td>
 
                 {/* Sale Price */}
-                {hasSale ? (
-                  <span style={{ fontSize: 10, fontWeight: 700, color: "#dc2626" }}>
-                    {fmtPrice(p.markdownPrice)}
-                  </span>
-                ) : (
-                  <span style={{ fontSize: 9, color: "var(--border)" }}>—</span>
-                )}
+                <td style={{ padding: "0 8px" }}>
+                  {hasSale ? (
+                    <span style={{ fontSize: 10, fontWeight: 700, color: "#dc2626" }}>
+                      {fmtPrice(p.markdownPrice)}
+                    </span>
+                  ) : (
+                    <span style={{ fontSize: 9, color: "var(--border)" }}>—</span>
+                  )}
+                </td>
 
                 {/* Size */}
-                <span style={{ fontSize: 10, color: p.size ? "var(--text-primary)" : "var(--text-muted)" }}>
-                  {p.size ?? "—"}
-                </span>
+                <td style={{ padding: "0 8px" }}>
+                  <span style={{ fontSize: 10, color: p.size ? "var(--text-primary)" : "var(--text-muted)" }}>
+                    {p.size ?? "—"}
+                  </span>
+                </td>
 
                 {/* Qty */}
-                <QtyPill qty={p.quantity} />
+                <td style={{ padding: "0 8px" }}>
+                  <QtyPill qty={p.quantity} />
+                </td>
 
                 {/* Actions */}
+                <td style={{ padding: "0 16px 0 8px" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 3, justifyContent: "flex-end" }}>
                   {inDisp && (
                     <button
@@ -540,10 +571,12 @@ function ListView() {
                     <Trash2 size={10} style={{ color: isHov ? "#dc2626" : "transparent" }} />
                   </button>
                 </div>
-              </motion.div>
+                </td>
+              </motion.tr>
             );
           })}
-        </div>
+          </tbody>
+        </table>
       </div>
 
       {/* ── Mobile cards ──────────────────────────────────────────── */}
