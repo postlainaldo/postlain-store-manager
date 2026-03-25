@@ -47,7 +47,9 @@ type OverviewReport = {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+// Always show exact number with thousand separators — no rounding/abbreviation
 const M = (n: number) => new Intl.NumberFormat("vi-VN").format(Math.round(n));
+// K kept for overview table where space is tight
 const K = (n: number) => n >= 1_000_000 ? (n / 1_000_000).toFixed(2) + "M" : M(n);
 
 function todayVN() {
@@ -200,12 +202,12 @@ function MorningTab() {
           <Card gold>
             <SectionHeader title={`Kết quả ${dow(date)} ${fmtVN(date)}`} />
             <div style={{ fontSize: 28, fontWeight: 800, color: "#C9A55A", marginBottom: 10 }}>
-              {K(data.revTotal)} ₫
+              {M(data.revTotal)} ₫
             </div>
             <KpiGrid items={[
               { label: "Số bill", value: String(data.bills), color: "#38bdf8" },
               { label: "Số món", value: String(data.qtyTotal), color: "#a78bfa" },
-              { label: "AOV", value: K(data.aov) + " ₫", color: "#C9A55A" },
+              { label: "AOV", value: M(data.aov) + " ₫", color: "#C9A55A" },
               { label: "IPT", value: data.ipt.toFixed(2), color: "#fb923c" },
               ...(data.traffic ? [{ label: "Traffic", value: String(data.traffic), color: "#34d399" }] : []),
               ...(data.traffic && data.bills ? [{ label: "Conv.", value: (data.bills / data.traffic * 100).toFixed(1) + "%", color: "#f472b6" }] : []),
@@ -218,7 +220,7 @@ function MorningTab() {
             {groups.map((g, i) => (
               <Row key={g.group}
                 label={g.group || "Không rõ nhóm"}
-                value={K(g.rev) + " ₫"}
+                value={M(g.rev) + " ₫"}
                 sub={`${g.qty} món · ${g.bills ?? 0} bill`}
                 bold={i === 0}
                 color={i === 0 ? "#C9A55A" : "#fff"}
@@ -245,7 +247,7 @@ function MorningTab() {
                     }}>
                     <span style={{ fontSize: 13, fontWeight: 600, color: "#fff" }}>{a.name}</span>
                     <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <span style={{ fontSize: 12, color: "#C9A55A", fontWeight: 700 }}>{K(a.rev)} ₫</span>
+                      <span style={{ fontSize: 12, color: "#C9A55A", fontWeight: 700 }}>{M(a.rev)} ₫</span>
                       <span style={{ fontSize: 11, color: "rgba(255,255,255,0.3)" }}>{a.bills} bill · {a.qty} món</span>
                       {open ? <ChevronUp size={12} color="rgba(255,255,255,0.3)" /> : <ChevronDown size={12} color="rgba(255,255,255,0.3)" />}
                     </span>
@@ -259,7 +261,7 @@ function MorningTab() {
                           borderBottom: "1px solid rgba(255,255,255,0.03)",
                         }}>
                           <span style={{ color: "rgba(255,255,255,0.45)" }}>{g.group || "Khác"}</span>
-                          <span style={{ color: "rgba(255,255,255,0.75)" }}>{K(g.rev)} ₫ · {g.qty} món</span>
+                          <span style={{ color: "rgba(255,255,255,0.75)" }}>{M(g.rev)} ₫ · {g.qty} món</span>
                         </div>
                       ))}
                     </div>
@@ -329,12 +331,12 @@ function EveningTab() {
           <Card gold>
             <SectionHeader title={`Cuối ngày ${dow(date)} ${fmtVN(date)}`} />
             <div style={{ fontSize: 28, fontWeight: 800, color: "#C9A55A", marginBottom: 10 }}>
-              {K(data.revTotal)} ₫
+              {M(data.revTotal)} ₫
             </div>
             <KpiGrid items={[
               { label: "Số bill", value: String(data.bills), color: "#38bdf8" },
               { label: "Số món", value: String(data.qtyTotal), color: "#a78bfa" },
-              { label: "AOV", value: K(data.aov) + " ₫", color: "#C9A55A" },
+              { label: "AOV", value: M(data.aov) + " ₫", color: "#C9A55A" },
               { label: "IPT", value: data.ipt.toFixed(2), color: "#fb923c" },
             ]} />
           </Card>
@@ -345,10 +347,19 @@ function EveningTab() {
             {pays.map(([key, val]) => (
               <Row key={key}
                 label={PAY_LABELS[key] ?? key}
-                value={K(val) + " ₫"}
+                value={M(val) + " ₫"}
                 bold={key === "cash" || key === "vnpay"}
               />
             ))}
+            {pays.length > 0 && (
+              <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 6,
+                borderTop: "1px solid rgba(255,255,255,0.08)", marginTop: 4 }}>
+                <span style={{ fontSize: 12, color: "rgba(255,255,255,0.4)" }}>Tổng thanh toán</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: "#C9A55A" }}>
+                  {M(pays.reduce((s, [, v]) => s + v, 0))} ₫
+                </span>
+              </div>
+            )}
           </Card>
 
           {/* ── Theo nhóm MH ── */}
@@ -357,7 +368,7 @@ function EveningTab() {
             {groups.map((g, i) => (
               <Row key={g.group}
                 label={g.group || "Không rõ nhóm"}
-                value={K(g.rev) + " ₫"}
+                value={M(g.rev) + " ₫"}
                 sub={`${((g.pct ?? 0)).toFixed(1)}% · ${g.qty} món`}
                 bold={i === 0}
                 color={i === 0 ? "#C9A55A" : "#fff"}

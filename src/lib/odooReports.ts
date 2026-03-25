@@ -170,7 +170,9 @@ export async function buildMorningReport(date: string, traffic: number | null): 
   for (const line of lines) {
     const rev = line.price_subtotal_incl;
     const qty = line.qty;
-    if (rev < 0 || qty < 0) continue; // skip discount/return lines
+    // Skip full return lines (qty < 0 AND rev < 0 = returned product)
+    // Keep discount lines (rev < 0, qty > 0 = promotion/voucher row)
+    if (qty < 0 && rev < 0) continue;
 
     const group = prodGroup.get(line.product_id[0]) ?? "Khác";
     const advisorId = line.x_advisor ? line.x_advisor[0] : 0;
@@ -244,13 +246,14 @@ export async function buildEveningReport(date: string): Promise<EveningReport> {
   const groupMap: Record<string, { rev: number; qty: number }> = {};
 
   for (const line of lines) {
-    if (line.price_subtotal_incl < 0 || line.qty < 0) continue;
+    // Skip full return lines only (qty < 0 AND rev < 0)
+    if (line.qty < 0 && line.price_subtotal_incl < 0) continue;
     revTotal += line.price_subtotal_incl;
-    qtyTotal += line.qty;
+    if (line.qty > 0) qtyTotal += line.qty;
     const group = prodGroup.get(line.product_id[0]) ?? "Khác";
     if (!groupMap[group]) groupMap[group] = { rev: 0, qty: 0 };
     groupMap[group].rev += line.price_subtotal_incl;
-    groupMap[group].qty += line.qty;
+    if (line.qty > 0) groupMap[group].qty += line.qty;
   }
 
   for (const p of payments) {
@@ -298,11 +301,13 @@ export async function buildOverviewReport(dates: string[], trafficMap: Map<strin
       const byGroup: Record<string, number> = {};
 
       for (const line of lines) {
-        if (line.price_subtotal_incl < 0 || line.qty < 0) continue;
+        if (line.qty < 0 && line.price_subtotal_incl < 0) continue;
         revTotal += line.price_subtotal_incl;
-        qtyTotal += line.qty;
-        const group = prodGroup.get(line.product_id[0]) ?? "Khác";
-        byGroup[group] = (byGroup[group] ?? 0) + line.price_subtotal_incl;
+        if (line.qty > 0) qtyTotal += line.qty;
+        if (line.price_subtotal_incl !== 0) {
+          const group = prodGroup.get(line.product_id[0]) ?? "Khác";
+          byGroup[group] = (byGroup[group] ?? 0) + line.price_subtotal_incl;
+        }
       }
 
       const bills = orders.filter(o => o.amount_total > 0).length;
