@@ -1,8 +1,6 @@
 "use client";
 
-import {
-  useState, useEffect, useMemo,
-} from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useStore } from "@/store/useStore";
 import type { Product, WarehouseShelf } from "@/types";
@@ -12,7 +10,7 @@ import { useRouter } from "next/navigation";
 import {
   Search, Plus, Upload, Package, Pencil, Trash2,
   MapPin, X, Warehouse, Eye, CheckSquare, Square, ScanLine,
-  RefreshCw,
+  RefreshCw, Filter, BarChart2, TrendingDown,
 } from "lucide-react";
 import QRScannerModal from "@/components/QRScannerModal";
 import { parseMCFromNotes, colorCodeToHex } from "@/lib/categoryMapping";
@@ -22,92 +20,75 @@ import { parseMCFromNotes, colorCodeToHex } from "@/lib/categoryMapping";
 function fmt(n: number) { return new Intl.NumberFormat("vi-VN").format(n); }
 function fmtPrice(n?: number) {
   if (!n) return "—";
-  return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(n);
+  return new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 0 }).format(n) + " ₫";
 }
-
-function resolveLocation(
-  pid: string,
-  storeSections: ReturnType<typeof useStore.getState>["storeSections"],
-  warehouseShelves: WarehouseShelf[]
-): string | null {
-  for (const sec of storeSections) {
-    for (const sub of sec.subsections) {
-      for (let ri = 0; ri < sub.rows.length; ri++) {
-        const si = sub.rows[ri].products.indexOf(pid);
-        if (si !== -1) return `Kệ ${sub.name} — Hàng ${ri + 1}, Ô ${si + 1}`;
-      }
-    }
-  }
-  for (const shelf of warehouseShelves) {
-    for (let ti = 0; ti < shelf.tiers.length; ti++) {
-      const si = shelf.tiers[ti].indexOf(pid);
-      if (si !== -1) return `Kho — ${shelf.name} · Tầng ${ti + 1}, Ô ${si + 1}`;
-    }
-  }
-  return null;
-}
-
-// ─── Navigate to visual-board with highlight ──────────────────────────────────
 
 function navigateToBoard(
   router: ReturnType<typeof useRouter>,
   pid: string,
   mode: "display" | "warehouse"
 ) {
-  try {
-    sessionStorage.setItem("postlain_highlight", JSON.stringify({ pid, mode }));
-  } catch { /* noop */ }
+  try { sessionStorage.setItem("postlain_highlight", JSON.stringify({ pid, mode })); } catch { /* noop */ }
   router.push("/visual-board");
 }
 
-// ─── List view ────────────────────────────────────────────────────────────────
+// ─── Qty pill ────────────────────────────────────────────────────────────────
+
+function QtyPill({ qty }: { qty: number }) {
+  const color = qty === 0 ? "#dc2626" : qty <= 3 ? "#ea580c" : qty <= 5 ? "#C9A55A" : "#16a34a";
+  const bg    = qty === 0 ? "rgba(220,38,38,0.08)" : qty <= 3 ? "rgba(234,88,12,0.08)" : qty <= 5 ? "rgba(201,165,90,0.1)" : "rgba(22,163,74,0.07)";
+  return (
+    <div style={{
+      display: "inline-flex", alignItems: "center", justifyContent: "center",
+      minWidth: 28, height: 22, borderRadius: 6, padding: "0 6px",
+      background: bg, border: `1px solid ${color}30`,
+    }}>
+      <span style={{ fontSize: 12, fontWeight: 700, color, fontVariantNumeric: "tabular-nums" }}>{qty}</span>
+    </div>
+  );
+}
+
+// ─── Main list view ──────────────────────────────────────────────────────────
 
 function ListView() {
-  const {
-    products, storeSections, warehouseShelves,
-    fetchProducts, deleteProduct,
-  } = useStore();
+  const { products, storeSections, warehouseShelves, fetchProducts, deleteProduct } = useStore();
   const router = useRouter();
 
-  const [search,          setSearch]        = useState("");
-  const [filterCategory,  setFilterCat]     = useState("");
-  const [editProduct,     setEditProduct]   = useState<Product | null>(null);
-  const [showAdd,         setShowAdd]       = useState(false);
-  const [showImport,      setShowImport]    = useState(false);
-  const [deleteId,        setDeleteId]      = useState<string | null>(null);
-  const [hoveredId,       setHoveredId]     = useState<string | null>(null);
-  const [selected,        setSelected]      = useState<Set<string>>(new Set());
-  const [confirmBulk,     setConfirmBulk]   = useState(false);
-  const [showScanner,     setShowScanner]   = useState(false);
-  const [odooSyncing,     setOdooSyncing]   = useState(false);
-  const [odooMsg,         setOdooMsg]       = useState<string | null>(null);
+  const [search,        setSearch]      = useState("");
+  const [filterCat,     setFilterCat]   = useState("");
+  const [filterStock,   setFilterStock] = useState<"all"|"low"|"out">("all");
+  const [editProduct,   setEditProduct] = useState<Product | null>(null);
+  const [showAdd,       setShowAdd]     = useState(false);
+  const [showImport,    setShowImport]  = useState(false);
+  const [deleteId,      setDeleteId]    = useState<string | null>(null);
+  const [hoveredId,     setHoveredId]   = useState<string | null>(null);
+  const [selected,      setSelected]    = useState<Set<string>>(new Set());
+  const [confirmBulk,   setConfirmBulk] = useState(false);
+  const [showScanner,   setShowScanner] = useState(false);
+  const [odooSyncing,   setOdooSyncing] = useState(false);
+  const [odooMsg,       setOdooMsg]     = useState<string | null>(null);
+  const [showFilters,   setShowFilters] = useState(false);
 
   useEffect(() => { fetchProducts(); }, []);
 
-  const categories = useMemo(() => {
-    const cats = new Set(products.map(p => p.category));
-    return Array.from(cats).sort();
-  }, [products]);
+  const categories = useMemo(() => Array.from(new Set(products.map(p => p.category))).sort(), [products]);
 
-  const filtered = useMemo(() =>
-    products.filter(p => {
-      if (filterCategory && p.category !== filterCategory) return false;
-      if (!search) return true;
-      const q = search.toLowerCase();
-      return (
-        p.name.toLowerCase().includes(q)
-        || (p.sku ?? "").toLowerCase().includes(q)
-        || p.category.toLowerCase().includes(q)
-        || (p.color ?? "").includes(q)
-        || (p.size ?? "").toLowerCase().includes(q)
-        || (p.notes ?? "").toLowerCase().includes(q)
-      );
-    }),
-    [products, search, filterCategory]
-  );
+  const filtered = useMemo(() => products.filter(p => {
+    if (filterCat && p.category !== filterCat) return false;
+    if (filterStock === "out" && p.quantity !== 0) return false;
+    if (filterStock === "low" && !(p.quantity > 0 && p.quantity <= 5)) return false;
+    if (!search) return true;
+    const q = search.toLowerCase();
+    return (
+      p.name.toLowerCase().includes(q)
+      || (p.sku ?? "").toLowerCase().includes(q)
+      || p.category.toLowerCase().includes(q)
+      || (p.color ?? "").includes(q)
+      || (p.size ?? "").toLowerCase().includes(q)
+      || (p.notes ?? "").toLowerCase().includes(q)
+    );
+  }), [products, search, filterCat, filterStock]);
 
-
-  // Pre-build location + placement maps — O(n) once, not per-row per-render
   const locationMap = useMemo(() => {
     const m = new Map<string, string>();
     for (const sec of storeSections)
@@ -115,13 +96,13 @@ function ListView() {
         for (let ri = 0; ri < sub.rows.length; ri++)
           for (let si = 0; si < sub.rows[ri].products.length; si++) {
             const pid = sub.rows[ri].products[si];
-            if (pid) m.set(pid, `Kệ ${sub.name} — Hàng ${ri + 1}, Ô ${si + 1}`);
+            if (pid) m.set(pid, `${sub.name} / H${ri+1}·Ô${si+1}`);
           }
     for (const shelf of warehouseShelves)
       for (let ti = 0; ti < shelf.tiers.length; ti++)
         for (let si = 0; si < shelf.tiers[ti].length; si++) {
           const pid = shelf.tiers[ti][si];
-          if (pid) m.set(pid, `Kho — ${shelf.name} · Tầng ${ti + 1}, Ô ${si + 1}`);
+          if (pid) m.set(pid, `${shelf.name} T${ti+1}·Ô${si+1}`);
         }
     return m;
   }, [storeSections, warehouseShelves]);
@@ -146,368 +127,485 @@ function ListView() {
   }, [warehouseShelves]);
 
   const allSelected = filtered.length > 0 && filtered.every(p => selected.has(p.id));
-  const someSelected = selected.size > 0;
 
-  const toggleSelect = (id: string) => {
-    setSelected(prev => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
-  };
-
-  const toggleAll = () => {
-    if (allSelected) {
-      setSelected(new Set());
-    } else {
-      setSelected(new Set(filtered.map(p => p.id)));
-    }
-  };
+  const toggleSelect = (id: string) => setSelected(prev => {
+    const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n;
+  });
+  const toggleAll = () => allSelected ? setSelected(new Set()) : setSelected(new Set(filtered.map(p => p.id)));
 
   const handleOdooSync = async () => {
-    setOdooSyncing(true);
-    setOdooMsg(null);
+    setOdooSyncing(true); setOdooMsg(null);
     try {
-      const res = await fetch("/api/odoo/sync", { method: "POST" });
-      const data = await res.json();
-      if (data.ok) {
-        setOdooMsg(`Đồng bộ thành công ${data.synced} sản phẩm`);
-        await fetchProducts();
-      } else {
-        setOdooMsg(`Lỗi: ${data.error}`);
-      }
-    } catch {
-      setOdooMsg("Không kết nối được Odoo");
-    } finally {
-      setOdooSyncing(false);
-      setTimeout(() => setOdooMsg(null), 5000);
-    }
+      const data = await fetch("/api/odoo/sync", { method: "POST" }).then(r => r.json());
+      setOdooMsg(data.ok ? `✓ Đồng bộ ${data.synced} sản phẩm` : `Lỗi: ${data.error}`);
+      if (data.ok) await fetchProducts();
+    } catch { setOdooMsg("Không kết nối được Odoo"); }
+    finally { setOdooSyncing(false); setTimeout(() => setOdooMsg(null), 5000); }
   };
 
   const handleBulkDelete = async () => {
     const ids = Array.from(selected);
-    setConfirmBulk(false);
-    setSelected(new Set());
-
-    // Optimistically remove from store immediately
-    useStore.getState().setProducts(
-      useStore.getState().products.filter(p => !ids.includes(p.id))
-    );
-
-    const res = await fetch("/api/products", {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ids }),
-    });
-    if (!res.ok) {
-      // Rollback by re-fetching if server failed
-      await fetchProducts();
-    }
+    setConfirmBulk(false); setSelected(new Set());
+    useStore.getState().setProducts(useStore.getState().products.filter(p => !ids.includes(p.id)));
+    const res = await fetch("/api/products", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ids }) });
+    if (!res.ok) await fetchProducts();
   };
 
+  const hasActiveFilter = filterCat || filterStock !== "all";
+
   return (
-    <div className="flex flex-col gap-4">
-      {/* Toolbar */}
-      <div className="flex flex-wrap items-center gap-2">
-        <div
-          className="flex items-center gap-2 flex-1 min-w-[180px] rounded-xl px-3 h-9"
-          style={{ background: "#ffffff", border: "1px solid #bae6fd" }}
-        >
-          <Search size={12} style={{ color: "#94a3b8" }} strokeWidth={1.5} />
+    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+
+      {/* ── Toolbar ───────────────────────────────────────────────── */}
+      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8 }}>
+        {/* Search */}
+        <div style={{
+          display: "flex", alignItems: "center", gap: 8, flex: "1 1 200px",
+          background: "#fff", border: "1px solid var(--border)", borderRadius: 12,
+          padding: "0 12px", height: 38,
+          boxShadow: "0 1px 4px rgba(14,165,233,0.05)",
+        }}>
+          <Search size={13} style={{ color: "var(--text-muted)", flexShrink: 0 }} strokeWidth={1.5} />
           <input
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Tên, SKU, danh mục..."
-            className="flex-1 bg-transparent border-none outline-none font-[inherit]"
-            style={{ fontSize: 11, color: "#0c1a2e" }}
+            value={search} onChange={e => setSearch(e.target.value)}
+            placeholder="Tên, SKU, danh mục, màu..."
+            style={{
+              flex: 1, background: "none", border: "none", outline: "none",
+              fontSize: 12, color: "var(--text-primary)", fontFamily: "inherit",
+            }}
           />
           {search && (
-            <button onClick={() => setSearch("")} style={{ background: "none", border: "none", cursor: "pointer" }}>
-              <X size={10} style={{ color: "#94a3b8" }} />
+            <button onClick={() => setSearch("")}
+              style={{ background: "none", border: "none", cursor: "pointer", padding: 0, lineHeight: 1 }}>
+              <X size={11} style={{ color: "var(--text-muted)" }} />
             </button>
           )}
         </div>
-        {/* Category filter */}
-        <select
-          value={filterCategory}
-          onChange={e => setFilterCat(e.target.value)}
-          className="h-9 rounded-xl border px-3 font-[inherit] cursor-pointer"
-          style={{ background: filterCategory ? "#f0f9ff" : "#ffffff", borderColor: filterCategory ? "#0ea5e9" : "#bae6fd", fontSize: 10, color: filterCategory ? "#0ea5e9" : "#64748b", minWidth: 120 }}
-        >
-          <option value="">Tất cả danh mục</option>
-          {categories.map(c => <option key={c} value={c}>{c}</option>)}
-        </select>
+
+        {/* Filter toggle */}
         <button
-          onClick={() => setShowScanner(true)}
-          className="flex items-center gap-1.5 px-3 h-9 rounded-xl border font-[inherit] cursor-pointer transition-colors"
-          style={{ background: "#ffffff", borderColor: "#bae6fd", fontSize: 10, color: "#0ea5e9", letterSpacing: "0.1em" }}
+          onClick={() => setShowFilters(s => !s)}
+          style={{
+            display: "flex", alignItems: "center", gap: 6,
+            height: 38, padding: "0 14px", borderRadius: 12, border: "1px solid",
+            fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
+            background: hasActiveFilter ? "rgba(14,165,233,0.08)" : "#fff",
+            borderColor: hasActiveFilter ? "rgba(14,165,233,0.4)" : "var(--border)",
+            color: hasActiveFilter ? "var(--blue)" : "var(--text-secondary)",
+          }}
         >
-          <ScanLine size={11} strokeWidth={1.5} /> QUÉT MÃ
+          <Filter size={12} strokeWidth={1.6} />
+          {hasActiveFilter ? "Đang lọc" : "Lọc"}
+          {hasActiveFilter && (
+            <span style={{
+              width: 16, height: 16, borderRadius: "50%",
+              background: "var(--blue)", color: "#fff",
+              fontSize: 9, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center",
+            }}>!</span>
+          )}
         </button>
-        <button
-          onClick={() => setShowImport(true)}
-          className="flex items-center gap-1.5 px-3 h-9 rounded-xl border font-[inherit] cursor-pointer transition-colors hover:border-blue"
-          style={{ background: "#ffffff", borderColor: "#bae6fd", fontSize: 10, color: "#334e68", letterSpacing: "0.1em" }}
-        >
-          <Upload size={11} strokeWidth={1.5} /> NHẬP EXCEL
+
+        <button onClick={() => setShowScanner(true)} style={{
+          display: "flex", alignItems: "center", gap: 6,
+          height: 38, padding: "0 14px", borderRadius: 12,
+          background: "#fff", border: "1px solid var(--border)",
+          fontSize: 11, color: "var(--blue)", cursor: "pointer", fontFamily: "inherit", fontWeight: 600,
+          letterSpacing: "0.06em",
+        }}>
+          <ScanLine size={12} strokeWidth={1.5} /> QUÉT MÃ
         </button>
-        <button
-          onClick={handleOdooSync}
-          disabled={odooSyncing}
-          title="Đồng bộ sản phẩm từ Odoo"
-          className="flex items-center gap-1.5 px-3 h-9 rounded-xl border font-[inherit] cursor-pointer transition-colors disabled:opacity-60"
-          style={{ background: "#f0fdf4", borderColor: "#86efac", fontSize: 10, color: "#16a34a", letterSpacing: "0.1em" }}
-        >
-          <RefreshCw size={11} strokeWidth={1.5} className={odooSyncing ? "animate-spin" : ""} />
+
+        <button onClick={() => setShowImport(true)} style={{
+          display: "flex", alignItems: "center", gap: 6,
+          height: 38, padding: "0 14px", borderRadius: 12,
+          background: "#fff", border: "1px solid var(--border)",
+          fontSize: 11, color: "var(--text-secondary)", cursor: "pointer", fontFamily: "inherit", fontWeight: 600,
+          letterSpacing: "0.06em",
+        }}>
+          <Upload size={12} strokeWidth={1.5} /> NHẬP EXCEL
+        </button>
+
+        <button onClick={handleOdooSync} disabled={odooSyncing} style={{
+          display: "flex", alignItems: "center", gap: 6,
+          height: 38, padding: "0 14px", borderRadius: 12,
+          background: "rgba(22,163,74,0.06)", border: "1px solid rgba(22,163,74,0.3)",
+          fontSize: 11, color: "#16a34a", cursor: odooSyncing ? "default" : "pointer",
+          fontFamily: "inherit", fontWeight: 600, letterSpacing: "0.06em",
+          opacity: odooSyncing ? 0.7 : 1,
+        }}>
+          <RefreshCw size={12} strokeWidth={1.5} className={odooSyncing ? "animate-spin" : ""} />
           {odooSyncing ? "ĐỒNG BỘ..." : "SYNC ODOO"}
         </button>
+
         {odooMsg && (
-          <span
-            className="px-3 h-9 flex items-center rounded-xl text-xs font-medium"
+          <motion.span
+            initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
             style={{
-              background: odooMsg.startsWith("Lỗi") || odooMsg.startsWith("Không") ? "rgba(220,38,38,0.08)" : "rgba(22,163,74,0.08)",
-              color: odooMsg.startsWith("Lỗi") || odooMsg.startsWith("Không") ? "#dc2626" : "#16a34a",
-              border: `1px solid ${odooMsg.startsWith("Lỗi") || odooMsg.startsWith("Không") ? "rgba(220,38,38,0.2)" : "rgba(22,163,74,0.2)"}`,
-              fontSize: 10,
-            }}
-          >
+              padding: "0 12px", height: 38, display: "flex", alignItems: "center",
+              borderRadius: 12, fontSize: 11, fontWeight: 600,
+              background: odooMsg.startsWith("✓") ? "rgba(22,163,74,0.06)" : "rgba(220,38,38,0.06)",
+              border: `1px solid ${odooMsg.startsWith("✓") ? "rgba(22,163,74,0.25)" : "rgba(220,38,38,0.2)"}`,
+              color: odooMsg.startsWith("✓") ? "#16a34a" : "#dc2626",
+            }}>
             {odooMsg}
-          </span>
+          </motion.span>
         )}
-        <button
-          onClick={() => setShowAdd(true)}
-          className="flex items-center gap-1.5 px-3 h-9 rounded-xl border font-[inherit] cursor-pointer transition-colors"
-          style={{ background: "#0ea5e9", borderColor: "#0284c7", color: "#ffffff", fontSize: 10, letterSpacing: "0.1em" }}
-        >
-          <Plus size={11} strokeWidth={2} /> THÊM SẢN PHẨM
+
+        <button onClick={() => setShowAdd(true)} style={{
+          display: "flex", alignItems: "center", gap: 6,
+          height: 38, padding: "0 16px", borderRadius: 12,
+          background: "var(--blue)", border: "1px solid var(--blue-dark)",
+          color: "#fff", fontSize: 11, fontWeight: 700, cursor: "pointer",
+          fontFamily: "inherit", letterSpacing: "0.06em",
+          boxShadow: "0 2px 10px rgba(14,165,233,0.25)",
+        }}>
+          <Plus size={12} strokeWidth={2.5} /> THÊM SẢN PHẨM
         </button>
       </div>
 
-      {/* Bulk action bar */}
+      {/* ── Filter panel ──────────────────────────────────────────── */}
       <AnimatePresence>
-        {someSelected && (
+        {showFilters && (
           <motion.div
-            initial={{ opacity: 0, y: -6, height: 0 }}
-            animate={{ opacity: 1, y: 0, height: "auto" }}
-            exit={{ opacity: 0, y: -6, height: 0 }}
-            className="flex items-center gap-3 px-4 rounded-xl overflow-hidden"
-            style={{ background: "rgba(220,38,38,0.06)", border: "1px solid rgba(220,38,38,0.25)", minHeight: 40 }}
+            initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }} style={{ overflow: "hidden" }}
           >
-            <span style={{ fontSize: 10, color: "#dc2626", fontWeight: 600 }}>
-              Đã chọn {selected.size} sản phẩm
-            </span>
-            <div style={{ flex: 1 }} />
-            <button
-              onClick={() => setSelected(new Set())}
-              style={{ fontSize: 9, color: "#64748b", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}
-            >
-              Bỏ chọn
-            </button>
-            <button
-              onClick={() => setConfirmBulk(true)}
-              className="flex items-center gap-1.5 px-3 h-7 rounded-lg border font-[inherit] cursor-pointer"
-              style={{ background: "#dc2626", borderColor: "#b91c1c", color: "#fff", fontSize: 9, letterSpacing: "0.08em" }}
-            >
-              <Trash2 size={10} /> XOÁ {selected.size} MỤC
-            </button>
+            <div style={{
+              display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center",
+              padding: "12px 16px", borderRadius: 12,
+              background: "rgba(14,165,233,0.04)", border: "1px solid var(--border-subtle)",
+            }}>
+              <span style={{ fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.15em" }}>
+                Lọc:
+              </span>
+              {/* Stock filter pills */}
+              {(["all","low","out"] as const).map(v => (
+                <button key={v} onClick={() => setFilterStock(v)} style={{
+                  padding: "4px 12px", borderRadius: 20, fontSize: 11, cursor: "pointer",
+                  fontFamily: "inherit", fontWeight: filterStock === v ? 700 : 400,
+                  background: filterStock === v
+                    ? v === "out" ? "rgba(220,38,38,0.1)" : v === "low" ? "rgba(201,165,90,0.1)" : "rgba(14,165,233,0.1)"
+                    : "var(--bg-surface)",
+                  border: `1px solid ${filterStock === v
+                    ? v === "out" ? "rgba(220,38,38,0.35)" : v === "low" ? "rgba(201,165,90,0.35)" : "rgba(14,165,233,0.35)"
+                    : "var(--border)"}`,
+                  color: filterStock === v
+                    ? v === "out" ? "#dc2626" : v === "low" ? "#C9A55A" : "var(--blue)"
+                    : "var(--text-secondary)",
+                }}>
+                  {v === "all" ? "Tất cả" : v === "low" ? "Sắp hết (≤5)" : "Hết hàng"}
+                </button>
+              ))}
+
+              <div style={{ width: 1, height: 20, background: "var(--border)" }} />
+
+              {/* Category filter */}
+              <select value={filterCat} onChange={e => setFilterCat(e.target.value)} style={{
+                height: 30, borderRadius: 20, border: "1px solid var(--border)",
+                padding: "0 12px", fontSize: 11, color: filterCat ? "var(--blue)" : "var(--text-secondary)",
+                background: filterCat ? "rgba(14,165,233,0.06)" : "var(--bg-surface)",
+                fontFamily: "inherit", cursor: "pointer", outline: "none",
+              }}>
+                <option value="">Tất cả danh mục</option>
+                {categories.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+
+              {hasActiveFilter && (
+                <button onClick={() => { setFilterCat(""); setFilterStock("all"); }} style={{
+                  padding: "4px 10px", borderRadius: 20, fontSize: 10, cursor: "pointer",
+                  background: "none", border: "1px solid var(--border)", color: "var(--text-muted)",
+                  fontFamily: "inherit",
+                }}>
+                  ✕ Xoá bộ lọc
+                </button>
+              )}
+
+              <span style={{ marginLeft: "auto", fontSize: 10, color: "var(--text-muted)" }}>
+                {filtered.length} / {products.length} sản phẩm
+              </span>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Table — desktop */}
-      <div
-        className="hidden md:block rounded-2xl border"
-        style={{ background: "#ffffff", borderColor: "#bae6fd", overflowX: "auto" }}
-      >
-        {/* Header */}
-        <div
-          className="grid px-4 items-center border-b"
-          style={{ gridTemplateColumns: "28px 2fr 55px 115px 72px 88px 88px 50px 44px 104px", height: 36, borderColor: "#e0f2fe", background: "#f0f9ff" }}
-        >
+      {/* ── Bulk action bar ───────────────────────────────────────── */}
+      <AnimatePresence>
+        {selected.size > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: -6, height: 0 }}
+            animate={{ opacity: 1, y: 0, height: "auto" }}
+            exit={{ opacity: 0, y: -6, height: 0 }}
+            style={{ overflow: "hidden" }}
+          >
+            <div style={{
+              display: "flex", alignItems: "center", gap: 12, padding: "10px 16px",
+              borderRadius: 12, background: "rgba(220,38,38,0.05)", border: "1px solid rgba(220,38,38,0.2)",
+            }}>
+              <span style={{ fontSize: 11, color: "#dc2626", fontWeight: 700 }}>
+                {selected.size} sản phẩm được chọn
+              </span>
+              <div style={{ flex: 1 }} />
+              <button onClick={() => setSelected(new Set())} style={{
+                fontSize: 10, color: "var(--text-muted)", background: "none", border: "none",
+                cursor: "pointer", fontFamily: "inherit",
+              }}>Bỏ chọn</button>
+              <button onClick={() => setConfirmBulk(true)} style={{
+                display: "flex", alignItems: "center", gap: 6,
+                padding: "6px 14px", borderRadius: 8, border: "1px solid #b91c1c",
+                background: "#dc2626", color: "#fff", fontSize: 10, fontWeight: 700,
+                cursor: "pointer", fontFamily: "inherit",
+              }}>
+                <Trash2 size={10} /> XOÁ {selected.size} MỤC
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Desktop table ─────────────────────────────────────────── */}
+      <div className="hidden md:block" style={{
+        borderRadius: 16, border: "1px solid var(--border)",
+        background: "#fff", overflow: "hidden",
+        boxShadow: "0 2px 16px rgba(14,165,233,0.06)",
+      }}>
+        {/* Table header */}
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: "32px minmax(160px,2.5fr) 52px 120px 60px 90px 90px 48px 56px 96px",
+          padding: "0 16px", height: 34, alignItems: "center",
+          background: "linear-gradient(to bottom, #f8fbff, #f0f9ff)",
+          borderBottom: "1px solid var(--border)",
+        }}>
           <button onClick={toggleAll} style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center" }}>
             {allSelected
-              ? <CheckSquare size={13} style={{ color: "#0ea5e9" }} />
-              : <Square size={13} style={{ color: "#bae6fd" }} />
-            }
+              ? <CheckSquare size={13} style={{ color: "var(--blue)" }} />
+              : <Square size={13} style={{ color: "var(--border)" }} />}
           </button>
-          {["Tên SP", "Màu", "Barcode", "MC", "Full Price", "Giá Sale", "Size", "SL", ""].map(h => (
-            <span key={h} className="font-bold uppercase tracking-[0.2em]" style={{ fontSize: 8, color: "#64748b" }}>{h}</span>
+          {["Tên SP", "Màu", "Barcode", "MC", "Full Price", "Giá Sale", "Size", "SL", ""].map((h, i) => (
+            <span key={i} style={{ fontSize: 8, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.18em" }}>{h}</span>
           ))}
         </div>
+
         {/* Rows */}
-        {filtered.map(p => {
-          const loc         = locationMap.get(p.id) ?? null;
-          const isHov       = hoveredId === p.id;
-          const inDisplay   = displaySet.has(p.id);
-          const inWarehouse = warehouseSet.has(p.id);
-          const isSel       = selected.has(p.id);
-          const mc          = parseMCFromNotes(p.notes);
-          const colorHex    = colorCodeToHex(p.color);
-          return (
-            <div
-              key={p.id}
-              onMouseEnter={() => setHoveredId(p.id)}
-              onMouseLeave={() => setHoveredId(null)}
-              className="grid px-4 items-center border-b last:border-0"
-              style={{
-                gridTemplateColumns: "28px 2fr 55px 115px 72px 88px 88px 50px 44px 104px",
-                minHeight: 44,
-                borderColor: "#e0f2fe",
-                background: isSel ? "rgba(220,38,38,0.04)" : isHov ? "rgba(14,165,233,0.04)" : "transparent",
-                transition: "background 0.12s",
-              }}
-            >
-              {/* Checkbox */}
-              <button onClick={() => toggleSelect(p.id)} style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center" }}>
-                {isSel
-                  ? <CheckSquare size={13} style={{ color: "#dc2626" }} />
-                  : <Square size={13} style={{ color: isHov ? "#bae6fd" : "transparent" }} />
-                }
-              </button>
-
-              {/* Tên SP */}
-              <div className="overflow-hidden pr-2">
-                <p className="font-semibold truncate" style={{ fontSize: 11, color: "#0c1a2e" }}>{p.name}</p>
-                {loc && (
-                  <p className="flex items-center gap-0.5" style={{ fontSize: 8, color: "#0ea5e9", marginTop: 1 }}>
-                    <MapPin size={7} /> {loc}
-                  </p>
-                )}
-              </div>
-
-              {/* Màu — color dot + 3-digit code */}
-              <div className="flex items-center gap-1">
-                {colorHex
-                  ? <div style={{ width: 10, height: 10, borderRadius: "50%", background: colorHex, border: "1px solid rgba(0,0,0,0.12)", flexShrink: 0 }} />
-                  : <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#e2e8f0", flexShrink: 0 }} />
-                }
-                <span className="font-mono font-semibold" style={{ fontSize: 9, color: p.color ? "#0c1a2e" : "#cbd5e1" }}>
-                  {p.color ?? "—"}
-                </span>
-              </div>
-
-              {/* Barcode (SKU) */}
-              <span className="font-mono truncate" style={{ fontSize: 9, color: "#64748b" }}>{p.sku ?? "—"}</span>
-
-              {/* MC */}
-              <span className="font-mono" style={{ fontSize: 9, color: mc ? "#0ea5e9" : "#cbd5e1" }}>
-                {mc ?? "—"}
-              </span>
-
-              {/* Full Price */}
-              <span style={{ fontSize: 9, color: "#334e68" }}>{fmtPrice(p.price)}</span>
-
-              {/* Giá Sale */}
-              <span style={{ fontSize: 9, color: p.markdownPrice ? "#dc2626" : "#cbd5e1" }}>
-                {p.markdownPrice ? fmtPrice(p.markdownPrice) : "—"}
-              </span>
-
-              {/* Size */}
-              <span style={{ fontSize: 10, color: p.size ? "#0c1a2e" : "#cbd5e1" }}>{p.size ?? "—"}</span>
-
-              {/* QTY */}
-              <span className="font-semibold" style={{ fontSize: 12, color: p.quantity === 0 ? "#dc2626" : p.quantity < 5 ? "#C9A55A" : "#0c1a2e" }}>
-                {p.quantity}
-              </span>
-
-              {/* Actions — fixed width, no layout shift */}
-              <div className="flex items-center gap-1 justify-end" style={{ width: 104 }}>
-                <button
-                  onClick={() => navigateToBoard(router, p.id, "display")}
-                  title={inDisplay ? "Xem vị trí Trưng Bày" : "Chưa xếp vào kệ trưng bày"}
-                  className="flex items-center justify-center h-6 rounded-lg border cursor-pointer transition-all"
-                  style={{
-                    width: 28,
-                    background:  inDisplay ? "rgba(201,165,90,0.10)" : isHov ? "#f0f9ff" : "transparent",
-                    borderColor: inDisplay ? "rgba(201,165,90,0.45)" : isHov ? "#bae6fd" : "transparent",
-                  }}
-                >
-                  <Eye size={9} style={{ color: inDisplay ? "#C9A55A" : isHov ? "#94a3b8" : "transparent" }} />
-                </button>
-                <button
-                  onClick={() => navigateToBoard(router, p.id, "warehouse")}
-                  title={inWarehouse ? "Xem vị trí Kho" : "Chưa xếp vào kho"}
-                  className="flex items-center justify-center h-6 rounded-lg border cursor-pointer transition-all"
-                  style={{
-                    width: 28,
-                    background:  inWarehouse ? "rgba(14,165,233,0.10)" : isHov ? "#f0f9ff" : "transparent",
-                    borderColor: inWarehouse ? "rgba(14,165,233,0.45)" : isHov ? "#bae6fd" : "transparent",
-                  }}
-                >
-                  <Warehouse size={9} style={{ color: inWarehouse ? "#0ea5e9" : isHov ? "#94a3b8" : "transparent" }} />
-                </button>
-                <button
-                  onClick={() => setEditProduct(p)}
-                  className="flex items-center justify-center w-6 h-6 rounded-lg border cursor-pointer transition-all"
-                  style={{ background: isHov ? "#f0f9ff" : "transparent", borderColor: isHov ? "#bae6fd" : "transparent" }}
-                >
-                  <Pencil size={9} style={{ color: isHov ? "#0ea5e9" : "transparent" }} />
-                </button>
-                <button
-                  onClick={() => setDeleteId(p.id)}
-                  className="flex items-center justify-center w-6 h-6 rounded-lg border cursor-pointer transition-all"
-                  style={{ background: isHov ? "#f0f9ff" : "transparent", borderColor: isHov ? "#fecaca" : "transparent" }}
-                >
-                  <Trash2 size={9} style={{ color: isHov ? "#dc2626" : "transparent" }} />
-                </button>
-              </div>
+        <div>
+          {filtered.length === 0 ? (
+            <div style={{ padding: "56px 0", textAlign: "center", color: "var(--text-muted)", fontSize: 12 }}>
+              Không tìm thấy sản phẩm nào
             </div>
-          );
-        })}
-        {filtered.length === 0 && (
-          <div className="py-16 text-center" style={{ color: "#94a3b8", fontSize: 11 }}>
-            Không tìm thấy sản phẩm nào
-          </div>
-        )}
+          ) : filtered.map((p, rowIndex) => {
+            const loc      = locationMap.get(p.id) ?? null;
+            const isHov    = hoveredId === p.id;
+            const isSel    = selected.has(p.id);
+            const inDisp   = displaySet.has(p.id);
+            const inWh     = warehouseSet.has(p.id);
+            const mc       = parseMCFromNotes(p.notes);
+            const colorHex = colorCodeToHex(p.color);
+            const hasSale  = !!p.markdownPrice;
+
+            return (
+              <motion.div
+                key={p.id}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: Math.min(rowIndex * 0.01, 0.2) }}
+                onMouseEnter={() => setHoveredId(p.id)}
+                onMouseLeave={() => setHoveredId(null)}
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "32px minmax(160px,2.5fr) 52px 120px 60px 90px 90px 48px 56px 96px",
+                  padding: "0 16px", minHeight: 46, alignItems: "center",
+                  borderBottom: "1px solid var(--border-subtle)",
+                  background: isSel
+                    ? "rgba(220,38,38,0.03)"
+                    : isHov ? "rgba(14,165,233,0.03)" : "transparent",
+                  transition: "background 0.1s",
+                }}
+              >
+                {/* Checkbox */}
+                <button onClick={() => toggleSelect(p.id)}
+                  style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center" }}>
+                  {isSel
+                    ? <CheckSquare size={13} style={{ color: "#dc2626" }} />
+                    : <Square size={13} style={{ color: isHov ? "var(--border)" : "transparent" }} />}
+                </button>
+
+                {/* Name + location */}
+                <div style={{ overflow: "hidden", paddingRight: 8 }}>
+                  <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text-primary)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    {p.name}
+                  </p>
+                  {loc ? (
+                    <p style={{ fontSize: 8, color: "var(--blue)", marginTop: 2, display: "flex", alignItems: "center", gap: 2 }}>
+                      <MapPin size={7} /> {loc}
+                    </p>
+                  ) : (
+                    <p style={{ fontSize: 8, color: "var(--text-muted)", marginTop: 2 }}>{p.category}</p>
+                  )}
+                </div>
+
+                {/* Color */}
+                <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                  <div style={{
+                    width: 11, height: 11, borderRadius: "50%", flexShrink: 0,
+                    background: colorHex ?? "#e2e8f0",
+                    border: "1.5px solid rgba(0,0,0,0.1)",
+                    boxShadow: colorHex ? `0 0 0 2px ${colorHex}22` : "none",
+                  }} />
+                  <span style={{ fontSize: 9, fontWeight: 600, color: p.color ? "var(--text-primary)" : "var(--text-muted)", fontVariantNumeric: "tabular-nums" }}>
+                    {p.color ?? "—"}
+                  </span>
+                </div>
+
+                {/* Barcode */}
+                <span style={{ fontSize: 9, color: "var(--text-muted)", fontFamily: "monospace", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                  {p.sku ?? "—"}
+                </span>
+
+                {/* MC */}
+                {mc ? (
+                  <span style={{
+                    fontSize: 9, fontWeight: 700, color: "var(--blue)",
+                    background: "rgba(14,165,233,0.08)", padding: "2px 6px",
+                    borderRadius: 6, display: "inline-block",
+                    border: "1px solid rgba(14,165,233,0.2)",
+                  }}>{mc}</span>
+                ) : (
+                  <span style={{ fontSize: 9, color: "var(--border)" }}>—</span>
+                )}
+
+                {/* Full Price */}
+                <span style={{ fontSize: 9, color: hasSale ? "var(--text-muted)" : "var(--text-secondary)", textDecoration: hasSale ? "line-through" : "none" }}>
+                  {fmtPrice(p.price)}
+                </span>
+
+                {/* Sale Price */}
+                {hasSale ? (
+                  <span style={{ fontSize: 10, fontWeight: 700, color: "#dc2626" }}>
+                    {fmtPrice(p.markdownPrice)}
+                  </span>
+                ) : (
+                  <span style={{ fontSize: 9, color: "var(--border)" }}>—</span>
+                )}
+
+                {/* Size */}
+                <span style={{ fontSize: 10, color: p.size ? "var(--text-primary)" : "var(--text-muted)" }}>
+                  {p.size ?? "—"}
+                </span>
+
+                {/* Qty */}
+                <QtyPill qty={p.quantity} />
+
+                {/* Actions */}
+                <div style={{ display: "flex", alignItems: "center", gap: 3, justifyContent: "flex-end" }}>
+                  <button
+                    onClick={() => navigateToBoard(router, p.id, "display")}
+                    title={inDisp ? "Đang trưng bày" : "Chưa có kệ"}
+                    style={{
+                      width: 26, height: 26, borderRadius: 8,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      border: inDisp ? "1px solid rgba(201,165,90,0.4)" : `1px solid ${isHov ? "var(--border)" : "transparent"}`,
+                      background: inDisp ? "rgba(201,165,90,0.08)" : "transparent",
+                      cursor: "pointer",
+                    }}>
+                    <Eye size={10} style={{ color: inDisp ? "#C9A55A" : isHov ? "var(--text-muted)" : "transparent" }} />
+                  </button>
+                  <button
+                    onClick={() => navigateToBoard(router, p.id, "warehouse")}
+                    title={inWh ? "Đang trong kho" : "Chưa xếp kho"}
+                    style={{
+                      width: 26, height: 26, borderRadius: 8,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      border: inWh ? "1px solid rgba(14,165,233,0.4)" : `1px solid ${isHov ? "var(--border)" : "transparent"}`,
+                      background: inWh ? "rgba(14,165,233,0.08)" : "transparent",
+                      cursor: "pointer",
+                    }}>
+                    <Warehouse size={10} style={{ color: inWh ? "var(--blue)" : isHov ? "var(--text-muted)" : "transparent" }} />
+                  </button>
+                  <button
+                    onClick={() => setEditProduct(p)}
+                    style={{
+                      width: 26, height: 26, borderRadius: 8,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      border: `1px solid ${isHov ? "var(--border)" : "transparent"}`,
+                      background: "transparent", cursor: "pointer",
+                    }}>
+                    <Pencil size={10} style={{ color: isHov ? "var(--blue)" : "transparent" }} />
+                  </button>
+                  <button
+                    onClick={() => setDeleteId(p.id)}
+                    style={{
+                      width: 26, height: 26, borderRadius: 8,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      border: `1px solid ${isHov ? "rgba(220,38,38,0.25)" : "transparent"}`,
+                      background: "transparent", cursor: "pointer",
+                    }}>
+                    <Trash2 size={10} style={{ color: isHov ? "#dc2626" : "transparent" }} />
+                  </button>
+                </div>
+              </motion.div>
+            );
+          })}
+        </div>
       </div>
 
-      {/* Mobile cards */}
-      <div className="md:hidden flex flex-col gap-2">
+      {/* ── Mobile cards ──────────────────────────────────────────── */}
+      <div className="md:hidden" style={{ display: "flex", flexDirection: "column", gap: 6 }}>
         {filtered.map(p => {
           const loc      = locationMap.get(p.id) ?? null;
           const mc       = parseMCFromNotes(p.notes);
           const colorHex = colorCodeToHex(p.color);
           return (
-            <div
-              key={p.id}
-              className="rounded-xl border px-3 py-2.5 flex items-start gap-2"
-              style={{ background: "#ffffff", borderColor: "#bae6fd" }}
-            >
-              <div className="flex-1 min-w-0">
-                <p className="font-semibold truncate" style={{ fontSize: 12, color: "#0c1a2e" }}>{p.name}</p>
-                {/* Tags row: Màu · MC · Size · Category */}
-                <div className="flex flex-wrap gap-x-2 gap-y-0.5 mt-1 items-center">
-                  {p.color && (
-                    <span className="flex items-center gap-1">
-                      {colorHex && <span style={{ width: 8, height: 8, borderRadius: "50%", background: colorHex, border: "1px solid rgba(0,0,0,0.1)", display: "inline-block", flexShrink: 0 }} />}
-                      <span style={{ fontSize: 9, color: "#334e68", fontWeight: 600 }}>{p.color}</span>
+            <div key={p.id} style={{
+              borderRadius: 12, border: "1px solid var(--border)",
+              background: "#fff", padding: "12px 14px",
+              display: "flex", alignItems: "flex-start", gap: 12,
+              boxShadow: "0 1px 6px rgba(14,165,233,0.04)",
+            }}>
+              {/* Color dot */}
+              {colorHex && (
+                <div style={{
+                  width: 10, height: 10, borderRadius: "50%", flexShrink: 0, marginTop: 4,
+                  background: colorHex, border: "1.5px solid rgba(0,0,0,0.1)",
+                  boxShadow: `0 0 0 2px ${colorHex}25`,
+                }} />
+              )}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)", marginBottom: 4 }}>{p.name}</p>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 10px", marginBottom: 4 }}>
+                  {p.color && <span style={{ fontSize: 9, color: "var(--text-secondary)", fontWeight: 600 }}>{p.color}</span>}
+                  {mc && (
+                    <span style={{ fontSize: 9, fontWeight: 700, color: "var(--blue)", background: "rgba(14,165,233,0.08)", padding: "1px 6px", borderRadius: 4, border: "1px solid rgba(14,165,233,0.2)" }}>
+                      {mc}
                     </span>
                   )}
-                  {mc && <span style={{ fontSize: 9, color: "#0ea5e9", fontWeight: 600 }}>{mc}</span>}
-                  {p.size && <span style={{ fontSize: 9, color: "#334e68" }}>Size {p.size}</span>}
-                  <span style={{ fontSize: 9, color: "#94a3b8" }}>{p.category}</span>
+                  {p.size && <span style={{ fontSize: 9, color: "var(--text-secondary)" }}>Size {p.size}</span>}
+                  <span style={{ fontSize: 9, color: "var(--text-muted)" }}>{p.category}</span>
                 </div>
-                {/* Barcode + price row */}
-                <div className="flex gap-2 mt-0.5 flex-wrap">
-                  {p.sku && <span className="font-mono" style={{ fontSize: 8, color: "#94a3b8" }}>{p.sku}</span>}
-                  {p.price && <span style={{ fontSize: 9, color: "#334e68", fontWeight: 600 }}>{fmtPrice(p.price)}</span>}
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                  {p.sku && <span style={{ fontSize: 8, color: "var(--text-muted)", fontFamily: "monospace" }}>{p.sku}</span>}
+                  {p.price && <span style={{ fontSize: 9, color: p.markdownPrice ? "var(--text-muted)" : "var(--text-secondary)", textDecoration: p.markdownPrice ? "line-through" : "none" }}>{fmtPrice(p.price)}</span>}
+                  {p.markdownPrice && <span style={{ fontSize: 10, fontWeight: 700, color: "#dc2626" }}>{fmtPrice(p.markdownPrice)}</span>}
                 </div>
                 {loc && (
-                  <p className="flex items-center gap-1 mt-1" style={{ fontSize: 8, color: "#0ea5e9" }}>
+                  <p style={{ fontSize: 8, color: "var(--blue)", marginTop: 4, display: "flex", alignItems: "center", gap: 3 }}>
                     <MapPin size={7} /> {loc}
                   </p>
                 )}
               </div>
-              <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
-                <span className="font-bold" style={{ fontSize: 16, color: p.quantity === 0 ? "#dc2626" : p.quantity < 5 ? "#C9A55A" : "#0c1a2e" }}>
-                  {p.quantity}
-                </span>
-                <div className="flex gap-1">
-                  <button onClick={() => setEditProduct(p)} className="w-7 h-7 rounded-lg border flex items-center justify-center" style={{ background: "#f0f9ff", borderColor: "#bae6fd" }}>
-                    <Pencil size={10} style={{ color: "#0ea5e9" }} />
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8, flexShrink: 0 }}>
+                <QtyPill qty={p.quantity} />
+                <div style={{ display: "flex", gap: 6 }}>
+                  <button onClick={() => setEditProduct(p)} style={{
+                    width: 30, height: 30, borderRadius: 8, border: "1px solid var(--border)",
+                    background: "var(--bg-surface)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer",
+                  }}>
+                    <Pencil size={11} style={{ color: "var(--blue)" }} />
                   </button>
-                  <button onClick={() => setDeleteId(p.id)} className="w-7 h-7 rounded-lg border flex items-center justify-center" style={{ background: "#f0f9ff", borderColor: "#bae6fd" }}>
-                    <Trash2 size={10} style={{ color: "#dc2626" }} />
+                  <button onClick={() => setDeleteId(p.id)} style={{
+                    width: 30, height: 30, borderRadius: 8, border: "1px solid rgba(220,38,38,0.2)",
+                    background: "rgba(220,38,38,0.05)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer",
+                  }}>
+                    <Trash2 size={11} style={{ color: "#dc2626" }} />
                   </button>
                 </div>
               </div>
@@ -516,89 +614,43 @@ function ListView() {
         })}
       </div>
 
-      {/* Modals */}
+      {/* ── Modals ────────────────────────────────────────────────── */}
       {(showAdd || !!editProduct) && (
-        <ProductFormModal
-          product={editProduct}
-          onClose={() => { setShowAdd(false); setEditProduct(null); }}
-        />
+        <ProductFormModal product={editProduct} onClose={() => { setShowAdd(false); setEditProduct(null); }} />
       )}
-      {showImport && (
-        <ExcelImportModal
-          onClose={() => setShowImport(false)}
-        />
-      )}
+      {showImport && <ExcelImportModal onClose={() => setShowImport(false)} />}
       <QRScannerModal open={showScanner} onClose={() => setShowScanner(false)} />
-      {/* Single delete confirm */}
+
+      {/* Single delete */}
       <AnimatePresence>
         {deleteId && (
-          <motion.div
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 flex items-center justify-center z-50 p-4"
-            style={{ background: "rgba(12,26,46,0.35)", backdropFilter: "blur(4px)" }}
-          >
-            <motion.div
-              initial={{ scale: 0.94, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.94, opacity: 0 }}
-              className="rounded-2xl border p-6 max-w-sm w-full"
-              style={{ background: "#ffffff", borderColor: "#bae6fd", boxShadow: "0 20px 60px rgba(12,26,46,0.15)" }}
-            >
-              <p className="font-bold mb-1" style={{ fontSize: 14, color: "#0c1a2e" }}>Xác nhận xoá?</p>
-              <p style={{ fontSize: 11, color: "#64748b", marginBottom: 20 }}>Thao tác này không thể hoàn tác.</p>
-              <div className="flex gap-2 justify-end">
-                <button
-                  onClick={() => setDeleteId(null)}
-                  className="px-4 py-2 rounded-xl border font-[inherit] cursor-pointer"
-                  style={{ background: "#f0f9ff", borderColor: "#bae6fd", fontSize: 11, color: "#334e68" }}
-                >
-                  Huỷ
-                </button>
-                <button
-                  onClick={async () => { await deleteProduct(deleteId); setDeleteId(null); }}
-                  className="px-4 py-2 rounded-xl border font-[inherit] cursor-pointer"
-                  style={{ background: "#dc2626", borderColor: "#b91c1c", color: "#ffffff", fontSize: 11 }}
-                >
-                  Xoá
-                </button>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            style={{ position: "fixed", inset: 0, background: "rgba(12,26,46,0.3)", backdropFilter: "blur(6px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: 16 }}>
+            <motion.div initial={{ scale: 0.93, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.93, opacity: 0 }}
+              style={{ background: "#fff", borderRadius: 20, padding: 28, maxWidth: 360, width: "100%", border: "1px solid var(--border)", boxShadow: "0 24px 64px rgba(12,26,46,0.18)" }}>
+              <p style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)", marginBottom: 6 }}>Xác nhận xoá?</p>
+              <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 24 }}>Thao tác này không thể hoàn tác.</p>
+              <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+                <button onClick={() => setDeleteId(null)} style={{ padding: "8px 18px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--bg-surface)", fontSize: 12, color: "var(--text-secondary)", cursor: "pointer", fontFamily: "inherit" }}>Huỷ</button>
+                <button onClick={async () => { await deleteProduct(deleteId); setDeleteId(null); }} style={{ padding: "8px 18px", borderRadius: 10, border: "1px solid #b91c1c", background: "#dc2626", color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Xoá</button>
               </div>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Bulk delete confirm */}
+      {/* Bulk delete */}
       <AnimatePresence>
         {confirmBulk && (
-          <motion.div
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 flex items-center justify-center z-50 p-4"
-            style={{ background: "rgba(12,26,46,0.35)", backdropFilter: "blur(4px)" }}
-          >
-            <motion.div
-              initial={{ scale: 0.94, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.94, opacity: 0 }}
-              className="rounded-2xl border p-6 max-w-sm w-full"
-              style={{ background: "#ffffff", borderColor: "#fca5a5", boxShadow: "0 20px 60px rgba(12,26,46,0.15)" }}
-            >
-              <p className="font-bold mb-1" style={{ fontSize: 14, color: "#0c1a2e" }}>
-                Xoá {selected.size} sản phẩm?
-              </p>
-              <p style={{ fontSize: 11, color: "#64748b", marginBottom: 20 }}>
-                Tất cả sản phẩm đã chọn sẽ bị xoá vĩnh viễn. Không thể hoàn tác.
-              </p>
-              <div className="flex gap-2 justify-end">
-                <button
-                  onClick={() => setConfirmBulk(false)}
-                  className="px-4 py-2 rounded-xl border font-[inherit] cursor-pointer"
-                  style={{ background: "#f0f9ff", borderColor: "#bae6fd", fontSize: 11, color: "#334e68" }}
-                >
-                  Huỷ
-                </button>
-                <button
-                  onClick={handleBulkDelete}
-                  className="px-4 py-2 rounded-xl border font-[inherit] cursor-pointer"
-                  style={{ background: "#dc2626", borderColor: "#b91c1c", color: "#ffffff", fontSize: 11 }}
-                >
-                  Xoá {selected.size} mục
-                </button>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            style={{ position: "fixed", inset: 0, background: "rgba(12,26,46,0.3)", backdropFilter: "blur(6px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: 16 }}>
+            <motion.div initial={{ scale: 0.93, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.93, opacity: 0 }}
+              style={{ background: "#fff", borderRadius: 20, padding: 28, maxWidth: 380, width: "100%", border: "1px solid rgba(220,38,38,0.2)", boxShadow: "0 24px 64px rgba(12,26,46,0.18)" }}>
+              <p style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)", marginBottom: 6 }}>Xoá {selected.size} sản phẩm?</p>
+              <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 24 }}>Tất cả sản phẩm đã chọn sẽ bị xoá vĩnh viễn. Không thể hoàn tác.</p>
+              <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+                <button onClick={() => setConfirmBulk(false)} style={{ padding: "8px 18px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--bg-surface)", fontSize: 12, color: "var(--text-secondary)", cursor: "pointer", fontFamily: "inherit" }}>Huỷ</button>
+                <button onClick={handleBulkDelete} style={{ padding: "8px 18px", borderRadius: 10, border: "1px solid #b91c1c", background: "#dc2626", color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Xoá {selected.size} mục</button>
               </div>
             </motion.div>
           </motion.div>
@@ -612,44 +664,66 @@ function ListView() {
 
 export default function InventoryPage() {
   const { products } = useStore();
+  const totalValue = products.reduce((s, p) => s + ((p.markdownPrice ?? p.price) || 0) * p.quantity, 0);
+  const totalQty   = products.reduce((s, p) => s + p.quantity, 0);
+  const onSale     = products.filter(p => !!p.markdownPrice).length;
 
-  const totalValue = products.reduce((s, p) => s + (p.price ?? 0) * p.quantity, 0);
+  const stats = [
+    { label: "SKU", value: products.length, color: "var(--blue)", icon: Package },
+    { label: "Tổng tồn", value: totalQty, color: "#7c3aed", icon: BarChart2 },
+    {
+      label: "Giá trị",
+      value: totalValue >= 1e9 ? `${(totalValue/1e9).toFixed(2)}Tỷ` : `${fmt(Math.round(totalValue/1e6))}M`,
+      color: "var(--gold)", icon: BarChart2,
+    },
+    { label: "Đang sale", value: onSale, color: "#dc2626", icon: TrendingDown },
+  ];
 
   return (
-    <div className="flex flex-col gap-6">
+    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
 
       {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.28 }}
-        className="flex items-end justify-between gap-4 flex-wrap"
-      >
+      <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.28 }}
+        style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
         <div>
-          <p className="font-bold uppercase tracking-[0.38em]" style={{ fontSize: 9, color: "#94a3b8" }}>
+          <p style={{ fontSize: 9, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.38em" }}>
             Quản Lý Cửa Hàng · ALDO
           </p>
-          <h1 className="font-light tracking-wide mt-1" style={{ fontSize: 26, color: "#0c1a2e" }}>
+          <h1 style={{ fontSize: 26, fontWeight: 300, color: "var(--text-primary)", letterSpacing: "0.04em", marginTop: 4, lineHeight: 1.2 }}>
             Kho Hàng
           </h1>
         </div>
 
-        {/* Quick stats */}
-        <div
-          className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl border"
-          style={{ background: "#ffffff", borderColor: "#bae6fd" }}
-        >
-          <Package size={10} style={{ color: "#0ea5e9" }} />
-          <span className="font-semibold" style={{ fontSize: 10, color: "#0c1a2e" }}>{products.length}</span>
-          <span style={{ fontSize: 9, color: "#64748b" }}>SKU</span>
-          <span style={{ fontSize: 9, color: "#bae6fd", margin: "0 2px" }}>·</span>
-          <span style={{ fontSize: 9, color: "#334e68" }}>
-            {totalValue >= 1_000_000_000
-              ? `${(totalValue / 1_000_000_000).toFixed(1)}Tỷ`
-              : `${fmt(Math.round(totalValue / 1_000))}K`} VND
-          </span>
+        {/* Stat chips */}
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          {stats.map((s, i) => (
+            <motion.div
+              key={s.label}
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.05 + i * 0.04 }}
+              style={{
+                display: "flex", alignItems: "center", gap: 7,
+                padding: "6px 12px", borderRadius: 10,
+                background: "#fff", border: "1px solid var(--border)",
+                boxShadow: "0 1px 4px rgba(14,165,233,0.05)",
+              }}
+            >
+              <div style={{
+                width: 6, height: 6, borderRadius: "50%", background: s.color,
+                boxShadow: `0 0 4px ${s.color}80`,
+              }} />
+              <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)", fontVariantNumeric: "tabular-nums" }}>
+                {typeof s.value === "number" ? fmt(s.value) : s.value}
+              </span>
+              <span style={{ fontSize: 9, color: "var(--text-muted)", letterSpacing: "0.1em", textTransform: "uppercase" }}>
+                {s.label}
+              </span>
+            </motion.div>
+          ))}
         </div>
       </motion.div>
 
-      {/* Content */}
       <ListView />
     </div>
   );

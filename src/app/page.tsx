@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { useStore } from "@/store/useStore";
 import {
   DollarSign, Eye, Package, Layers,
-  ArrowRight, RefreshCw, AlertTriangle,
+  ArrowRight, RefreshCw,
   TrendingUp, Users, Activity,
 } from "lucide-react";
 import AdminNotifyPanel from "@/components/AdminNotifyPanel";
@@ -298,8 +298,6 @@ export default function OverviewPage() {
   const totalSKUs  = products.length;
   // Use markdown (current/sale) price if available, else list price
   const totalValue = products.reduce((s, p) => s + ((p.markdownPrice ?? p.price) || 0) * p.quantity, 0);
-  const lowStock   = products.filter(p => p.quantity > 0 && p.quantity <= 5).length;
-  const outOfStock = products.filter(p => p.quantity === 0).length;
 
   const displayedIds = new Set<string>();
   storeSections.forEach(sec => sec.subsections.forEach(sub =>
@@ -383,31 +381,6 @@ export default function OverviewPage() {
           </div>
         </motion.div>
 
-        {/* ── Alerts ─────────────────────────────────────────────── */}
-        {(lowStock > 0 || outOfStock > 0) && (
-          <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="flex flex-col gap-2">
-            {outOfStock > 0 && (
-              <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl border"
-                style={{ background: "rgba(220,38,38,0.05)", borderColor: "rgba(220,38,38,0.2)" }}>
-                <AlertTriangle size={13} style={{ color: "#dc2626", flexShrink: 0 }} />
-                <p style={{ fontSize: 10, color: "#dc2626", fontWeight: 600 }}>{outOfStock} sản phẩm đã hết hàng</p>
-                <Link href="/inventory?filter=out" style={{ textDecoration: "none", marginLeft: "auto" }}>
-                  <span style={{ fontSize: 9, color: "#dc2626", fontWeight: 600, letterSpacing: "0.08em" }}>XEM →</span>
-                </Link>
-              </div>
-            )}
-            {lowStock > 0 && (
-              <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl border"
-                style={{ background: "rgba(201,165,90,0.06)", borderColor: "rgba(201,165,90,0.25)" }}>
-                <AlertTriangle size={13} style={{ color: "#C9A55A", flexShrink: 0 }} />
-                <p style={{ fontSize: 10, color: "#C9A55A", fontWeight: 600 }}>{lowStock} sản phẩm sắp hết hàng (≤ 5)</p>
-                <Link href="/inventory?filter=low" style={{ textDecoration: "none", marginLeft: "auto" }}>
-                  <span style={{ fontSize: 9, color: "#C9A55A", fontWeight: 600, letterSpacing: "0.08em" }}>XEM →</span>
-                </Link>
-              </div>
-            )}
-          </motion.div>
-        )}
 
         {/* ── KPI Cards ──────────────────────────────────────────── */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
