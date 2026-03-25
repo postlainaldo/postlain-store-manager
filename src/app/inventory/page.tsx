@@ -356,11 +356,10 @@ function ListView() {
         background: "#fff", overflowX: "auto",
         boxShadow: "0 2px 16px rgba(14,165,233,0.06)",
       }}>
-      <div style={{ minWidth: 886 }}>
         {/* Table header */}
         <div style={{
           display: "grid",
-          gridTemplateColumns: "32px 220px 52px 130px 64px 100px 100px 48px 52px 88px",
+          gridTemplateColumns: "32px 1fr 52px 130px 64px 100px 100px 48px 52px 88px",
           padding: "0 16px", height: 34, alignItems: "center",
           background: "linear-gradient(to bottom, #f8fbff, #f0f9ff)",
           borderBottom: "1px solid var(--border)",
@@ -401,7 +400,7 @@ function ListView() {
                 onMouseLeave={() => setHoveredId(null)}
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "32px 220px 52px 130px 64px 100px 100px 48px 52px 88px",
+                  gridTemplateColumns: "32px 1fr 52px 130px 64px 100px 100px 48px 52px 88px",
                   padding: "0 16px", minHeight: 46, alignItems: "center",
                   borderBottom: "1px solid var(--border-subtle)",
                   background: isSel
@@ -539,7 +538,6 @@ function ListView() {
             );
           })}
         </div>
-      </div>{/* end minWidth wrapper */}
       </div>
 
       {/* ── Mobile cards ──────────────────────────────────────────── */}
