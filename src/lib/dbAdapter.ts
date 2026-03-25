@@ -538,6 +538,35 @@ export async function dbDeleteAllProducts(): Promise<number> {
   return changes;
 }
 
+// Delete products with category "Khác" or no price (garbage products from Odoo)
+export async function dbDeleteBadOdooProducts(): Promise<number> {
+  if (IS_SUPABASE) {
+    const { data } = await getSupabase()
+      .from("products")
+      .select("id")
+      .like("id", "odoo-%")
+      .or("category.eq.Khác,price.is.null,price.eq.0");
+    const ids = (data ?? []).map((r: { id: string }) => r.id);
+    if (ids.length > 0) {
+      const CHUNK = 200;
+      for (let i = 0; i < ids.length; i += CHUNK) {
+        await getSupabase().from("products").delete().in("id", ids.slice(i, i + CHUNK));
+      }
+    }
+    return ids.length;
+  }
+  const db = getDb();
+  const rows = db.prepare(
+    "SELECT id FROM products WHERE id LIKE 'odoo-%' AND (category = 'Khác' OR price IS NULL OR price = 0)"
+  ).all() as { id: string }[];
+  if (rows.length > 0) {
+    db.prepare(
+      "DELETE FROM products WHERE id LIKE 'odoo-%' AND (category = 'Khác' OR price IS NULL OR price = 0)"
+    ).run();
+  }
+  return rows.length;
+}
+
 export async function dbDeleteAllOdooProducts(): Promise<number> {
   if (IS_SUPABASE) {
     const { data } = await getSupabase()

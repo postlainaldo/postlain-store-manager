@@ -135,8 +135,14 @@ function ListView() {
     setOdooSyncing(true); setOdooMsg(null);
     try {
       const data = await fetch("/api/odoo/sync", { method: "POST" }).then(r => r.json());
-      setOdooMsg(data.ok ? `✓ Đồng bộ ${data.synced} sản phẩm` : `Lỗi: ${data.error}`);
-      if (data.ok) await fetchProducts();
+      if (data.ok) {
+        // Also clean up any leftover bad products (category Khác or price 0)
+        await fetch("/api/products/cleanup", { method: "POST" }).catch(() => {});
+        await fetchProducts();
+        setOdooMsg(`✓ Đồng bộ ${data.synced} sản phẩm`);
+      } else {
+        setOdooMsg(`Lỗi: ${data.error}`);
+      }
     } catch { setOdooMsg("Không kết nối được Odoo"); }
     finally { setOdooSyncing(false); setTimeout(() => setOdooMsg(null), 5000); }
   };
