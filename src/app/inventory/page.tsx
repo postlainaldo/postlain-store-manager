@@ -5,10 +5,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useStore } from "@/store/useStore";
 import type { Product, WarehouseShelf } from "@/types";
 import ProductFormModal from "@/components/ProductFormModal";
-import ExcelImportModal from "@/components/ExcelImportModal";
 import { useRouter } from "next/navigation";
 import {
-  Search, Plus, Upload, Package, Pencil, Trash2,
+  Search, Plus, Package, Pencil, Trash2,
   MapPin, X, Warehouse, Eye, CheckSquare, Square, ScanLine,
   RefreshCw, Filter, BarChart2, TrendingDown,
 } from "lucide-react";
@@ -59,7 +58,6 @@ function ListView() {
   const [filterStock,   setFilterStock] = useState<"all"|"low"|"out">("all");
   const [editProduct,   setEditProduct] = useState<Product | null>(null);
   const [showAdd,       setShowAdd]     = useState(false);
-  const [showImport,    setShowImport]  = useState(false);
   const [deleteId,      setDeleteId]    = useState<string | null>(null);
   const [hoveredId,     setHoveredId]   = useState<string | null>(null);
   const [selected,      setSelected]    = useState<Set<string>>(new Set());
@@ -213,16 +211,6 @@ function ListView() {
           letterSpacing: "0.06em",
         }}>
           <ScanLine size={12} strokeWidth={1.5} /> QUÉT MÃ
-        </button>
-
-        <button onClick={() => setShowImport(true)} style={{
-          display: "flex", alignItems: "center", gap: 6,
-          height: 38, padding: "0 14px", borderRadius: 12,
-          background: "#fff", border: "1px solid var(--border)",
-          fontSize: 11, color: "var(--text-secondary)", cursor: "pointer", fontFamily: "inherit", fontWeight: 600,
-          letterSpacing: "0.06em",
-        }}>
-          <Upload size={12} strokeWidth={1.5} /> NHẬP EXCEL
         </button>
 
         <button onClick={handleOdooSync} disabled={odooSyncing} style={{
@@ -622,7 +610,6 @@ function ListView() {
       {(showAdd || !!editProduct) && (
         <ProductFormModal product={editProduct} onClose={() => { setShowAdd(false); setEditProduct(null); }} />
       )}
-      {showImport && <ExcelImportModal onClose={() => setShowImport(false)} />}
       <QRScannerModal open={showScanner} onClose={() => setShowScanner(false)} />
 
       {/* Single delete */}
