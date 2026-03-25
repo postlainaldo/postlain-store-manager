@@ -30,6 +30,7 @@ type DailyData = {
   odoo: OdooData;
   topProducts: TopProduct[];
   orders: Order[];
+  palexyTraffic: number | null;
   saved: {
     traffic: number; targetDay: number;
     revHB: number; revSC: number; revACC: number; note: string; preparedBy: string;

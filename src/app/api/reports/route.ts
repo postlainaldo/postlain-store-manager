@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { dbGetDailyReports, dbGetDailyReportByDate, dbUpsertDailyReport, DBDailyReport } from "@/lib/dbAdapter";
 import { dbGetPosSummary, dbGetTopProducts, dbGetPosOrders } from "@/lib/dbAdapter";
+import { getPalexyTraffic } from "@/lib/palexy";
 
 export const dynamic = "force-dynamic";
 
@@ -20,11 +21,12 @@ export async function GET(req: NextRequest) {
     const dayEnd   = new Date(date + "T23:59:59+07:00").toISOString();
 
     try {
-      const [summary, topProducts, orders, savedReport] = await Promise.all([
+      const [summary, topProducts, orders, savedReport, palexyTraffic] = await Promise.all([
         dbGetPosSummary(dayStart, dayEnd),
         dbGetTopProducts(dayStart, 20, dayEnd),
         dbGetPosOrders({ dateFrom: dayStart, limit: 200 }),
         date ? dbGetDailyReportByDate(date, "end") : Promise.resolve(null),
+        getPalexyTraffic(date).catch(() => null),
       ]);
 
       // Filter orders to just this day
@@ -51,6 +53,8 @@ export async function GET(req: NextRequest) {
         })),
         // Saved manual data (traffic, target, HB/SC/ACC override)
         saved: savedReport,
+        // Auto traffic from Palexy (null if not configured or unavailable)
+        palexyTraffic,
       });
     } catch (err) {
       return NextResponse.json({ ok: false, error: String(err) }, { status: 500 });
