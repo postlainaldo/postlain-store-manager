@@ -4,7 +4,8 @@
       "Bash(python -m pip install customtkinter Pillow)",
       "WebSearch",
       "WebFetch(domain:github.com)",
-      "WebFetch(domain:www.odoo.com)"
+      "WebFetch(domain:www.odoo.com)",
+      "WebFetch(domain:ica.palexy.com)"
     ]
   }
 }
