@@ -142,7 +142,9 @@ export async function POST(req: NextRequest) {
     } catch { /* no body */ }
 
     const odooProducts = await fetchOdooProducts(limit);
-    const mapped = odooProducts.map(mapProduct);
+    const mapped = odooProducts
+      .map(mapProduct)
+      .filter(p => p.category !== "Khác" && p.price != null && p.price > 0);
 
     let deleted = 0;
     if (!dryRun) {
