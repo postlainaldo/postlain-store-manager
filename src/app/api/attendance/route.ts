@@ -2,13 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import getDb from "@/lib/database";
 import { nanoid } from "nanoid";
 
-// GET /api/attendance?userId=&date=YYYY-MM-DD&limit=50
+// GET /api/attendance?userId=&date=YYYY-MM-DD&from=YYYY-MM-DD&to=YYYY-MM-DD&limit=500
 export async function GET(req: NextRequest) {
   const db = getDb();
   const { searchParams } = new URL(req.url);
   const userId = searchParams.get("userId");
-  const date   = searchParams.get("date");   // e.g. "2026-03-26"
-  const limit  = parseInt(searchParams.get("limit") ?? "100");
+  const date   = searchParams.get("date");   // single day
+  const from   = searchParams.get("from");   // range start
+  const to     = searchParams.get("to");     // range end
+  const limit  = parseInt(searchParams.get("limit") ?? "500");
 
   let query = `SELECT * FROM attendance`;
   const params: (string | number)[] = [];
@@ -16,6 +18,8 @@ export async function GET(req: NextRequest) {
 
   if (userId) { conds.push(`userId = ?`); params.push(userId); }
   if (date)   { conds.push(`checkIn LIKE ?`); params.push(`${date}%`); }
+  if (from)   { conds.push(`checkIn >= ?`); params.push(`${from}T00:00:00`); }
+  if (to)     { conds.push(`checkIn <= ?`); params.push(`${to}T23:59:59`); }
 
   if (conds.length) query += ` WHERE ${conds.join(" AND ")}`;
   query += ` ORDER BY checkIn DESC LIMIT ?`;
