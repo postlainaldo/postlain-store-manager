@@ -833,23 +833,10 @@ function DisplayTab({ products, storeSections, placeInSection, highlightPid, can
   const cfg = currentSection ? (ZONE_CFG[currentSection.sectionType] ?? ZONE_CFG.window) : ZONE_CFG.window;
 
   useEffect(() => {
-    if (!highlightPid) return;
-    // Poll: wait for data + render, then switch section and scroll
-    let attempts = 0;
-    const poll = setInterval(() => {
-      // Re-check section index each tick in case data just loaded
-      const idx = storeSections.findIndex(sec => sec.subsections.some(sub => sub.rows.some(row => row.products.includes(highlightPid))));
-      if (idx !== -1) setSectionIdx(idx);
-      const el = document.querySelector(`[data-hpid="${highlightPid}"]`);
-      if (el) {
-        clearInterval(poll);
-        el.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
-      } else if (++attempts > 60) {
-        clearInterval(poll); // give up after 3s
-      }
-    }, 50);
-    return () => clearInterval(poll);
-  }, [highlightPid, storeSections]); // eslint-disable-line
+    const handler = (e: Event) => setSectionIdx((e as CustomEvent<number>).detail);
+    window.addEventListener("vb:setSection", handler);
+    return () => window.removeEventListener("vb:setSection", handler);
+  }, []);
 
   const handlePlace = useCallback((sId: string, subId: string, ri: number, si: number) => {
     if (!selectedPid || !canEdit) return;
@@ -1136,22 +1123,10 @@ function WarehouseTab({ products, warehouseShelves, placeInWarehouse, highlightP
   const effectiveHighlight = highlightPid ?? searchHighlightPid;
 
   useEffect(() => {
-    if (!effectiveHighlight) return;
-    // Poll: wait for data + render, then switch shelf and scroll
-    let attempts = 0;
-    const poll = setInterval(() => {
-      const idx = warehouseShelves.findIndex(sh => sh.tiers.some(t => t.includes(effectiveHighlight)));
-      if (idx !== -1) setShelfIdx(idx);
-      const el = document.querySelector(`[data-hpid="${effectiveHighlight}"]`);
-      if (el) {
-        clearInterval(poll);
-        el.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
-      } else if (++attempts > 60) {
-        clearInterval(poll); // give up after 3s
-      }
-    }, 50);
-    return () => clearInterval(poll);
-  }, [effectiveHighlight, warehouseShelves]); // eslint-disable-line
+    const handler = (e: Event) => setShelfIdx((e as CustomEvent<number>).detail);
+    window.addEventListener("vb:setShelf", handler);
+    return () => window.removeEventListener("vb:setShelf", handler);
+  }, []);
 
   const handlePlace = useCallback((shelfId: string, ti: number, si: number) => {
     if (!selectedPid || !canEdit) return;
@@ -1535,7 +1510,7 @@ export default function VisualBoardPage() {
 
   useEffect(() => { fetchDbState(); }, []); // eslint-disable-line
 
-  // Handle incoming highlight from global search
+  // Handle incoming highlight from inventory page
   useEffect(() => {
     try {
       const raw = sessionStorage.getItem("postlain_highlight");
@@ -1543,10 +1518,45 @@ export default function VisualBoardPage() {
       sessionStorage.removeItem("postlain_highlight");
       const { pid, mode } = JSON.parse(raw) as { pid: string; mode: Subtab };
       setSubtab(mode);
-      setHighlightPid(pid);
-      setTimeout(() => setHighlightPid(null), 5000);
+      // Delay until AnimatePresence tab-switch animation finishes (~220ms) + data loads
+      setTimeout(() => setHighlightPid(pid), 350);
     } catch { /* noop */ }
   }, []);
+
+  // Scroll to highlighted product — poll until element is in DOM
+  useEffect(() => {
+    if (!highlightPid) return;
+    let attempts = 0;
+    const id = setInterval(() => {
+      // Keep trying to switch to the right section/shelf each tick (data may load late)
+      if (subtab === "display") {
+        const idx = storeSections.findIndex(sec =>
+          sec.subsections.some(sub => sub.rows.some(row => row.products.includes(highlightPid)))
+        );
+        if (idx !== -1) {
+          // Signal child via a custom event — child listens and calls setSectionIdx
+          window.dispatchEvent(new CustomEvent("vb:setSection", { detail: idx }));
+        }
+      } else {
+        const idx = warehouseShelves.findIndex(sh =>
+          sh.tiers.some(t => t.includes(highlightPid))
+        );
+        if (idx !== -1) {
+          window.dispatchEvent(new CustomEvent("vb:setShelf", { detail: idx }));
+        }
+      }
+      const el = document.querySelector(`[data-hpid="${highlightPid}"]`);
+      if (el) {
+        clearInterval(id);
+        el.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
+        setTimeout(() => setHighlightPid(null), 3000);
+      } else if (++attempts > 80) {
+        clearInterval(id); // give up after 4s
+        setHighlightPid(null);
+      }
+    }, 50);
+    return () => clearInterval(id);
+  }, [highlightPid, subtab, storeSections, warehouseShelves]); // eslint-disable-line
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 8, height: "100%", minHeight: 0 }}>
