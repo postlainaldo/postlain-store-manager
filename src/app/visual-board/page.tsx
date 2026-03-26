@@ -834,14 +834,22 @@ function DisplayTab({ products, storeSections, placeInSection, highlightPid, can
 
   useEffect(() => {
     if (!highlightPid) return;
-    const idx = storeSections.findIndex(sec => sec.subsections.some(sub => sub.rows.some(row => row.products.includes(highlightPid))));
-    if (idx !== -1) setSectionIdx(idx);
-    // Scroll to highlighted product after section renders
-    setTimeout(() => {
+    // Poll: wait for data + render, then switch section and scroll
+    let attempts = 0;
+    const poll = setInterval(() => {
+      // Re-check section index each tick in case data just loaded
+      const idx = storeSections.findIndex(sec => sec.subsections.some(sub => sub.rows.some(row => row.products.includes(highlightPid))));
+      if (idx !== -1) setSectionIdx(idx);
       const el = document.querySelector(`[data-hpid="${highlightPid}"]`);
-      el?.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
-    }, 300);
-  }, [highlightPid]); // eslint-disable-line
+      if (el) {
+        clearInterval(poll);
+        el.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
+      } else if (++attempts > 60) {
+        clearInterval(poll); // give up after 3s
+      }
+    }, 50);
+    return () => clearInterval(poll);
+  }, [highlightPid, storeSections]); // eslint-disable-line
 
   const handlePlace = useCallback((sId: string, subId: string, ri: number, si: number) => {
     if (!selectedPid || !canEdit) return;
@@ -1129,14 +1137,21 @@ function WarehouseTab({ products, warehouseShelves, placeInWarehouse, highlightP
 
   useEffect(() => {
     if (!effectiveHighlight) return;
-    const idx = warehouseShelves.findIndex(sh => sh.tiers.some(t => t.includes(effectiveHighlight)));
-    if (idx !== -1) setShelfIdx(idx);
-    // Scroll to highlighted product after shelf renders
-    setTimeout(() => {
+    // Poll: wait for data + render, then switch shelf and scroll
+    let attempts = 0;
+    const poll = setInterval(() => {
+      const idx = warehouseShelves.findIndex(sh => sh.tiers.some(t => t.includes(effectiveHighlight)));
+      if (idx !== -1) setShelfIdx(idx);
       const el = document.querySelector(`[data-hpid="${effectiveHighlight}"]`);
-      el?.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
-    }, 300);
-  }, [effectiveHighlight]); // eslint-disable-line
+      if (el) {
+        clearInterval(poll);
+        el.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
+      } else if (++attempts > 60) {
+        clearInterval(poll); // give up after 3s
+      }
+    }, 50);
+    return () => clearInterval(poll);
+  }, [effectiveHighlight, warehouseShelves]); // eslint-disable-line
 
   const handlePlace = useCallback((shelfId: string, ti: number, si: number) => {
     if (!selectedPid || !canEdit) return;
@@ -1528,10 +1543,8 @@ export default function VisualBoardPage() {
       sessionStorage.removeItem("postlain_highlight");
       const { pid, mode } = JSON.parse(raw) as { pid: string; mode: Subtab };
       setSubtab(mode);
-      setTimeout(() => {
-        setHighlightPid(pid);
-        setTimeout(() => setHighlightPid(null), 4000);
-      }, 450);
+      setHighlightPid(pid);
+      setTimeout(() => setHighlightPid(null), 5000);
     } catch { /* noop */ }
   }, []);
 

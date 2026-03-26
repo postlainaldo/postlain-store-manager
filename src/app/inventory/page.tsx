@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useStore } from "@/store/useStore";
 import type { Product, WarehouseShelf } from "@/types";
@@ -9,10 +9,128 @@ import { useRouter } from "next/navigation";
 import {
   Search, Plus, Package, Pencil, Trash2,
   MapPin, X, Warehouse, Eye, CheckSquare, Square, ScanLine,
-  RefreshCw, Filter, BarChart2, TrendingDown,
+  RefreshCw, Filter, BarChart2, TrendingDown, Camera,
 } from "lucide-react";
 import QRScannerModal from "@/components/QRScannerModal";
 import { parseMCFromNotes, colorCodeToHex } from "@/lib/categoryMapping";
+import "barcode-detector/polyfill";
+
+// ─── Inline search scanner (mobile) ──────────────────────────────────────────
+function SearchScanner({ onResult, onClose }: { onResult: (code: string) => void; onClose: () => void }) {
+  const [scanning, setScanning] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const rafRef = useRef<number | null>(null);
+  const lockRef = useRef(false);
+
+  const stop = useCallback(() => {
+    if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = null; }
+    streamRef.current?.getTracks().forEach(t => t.stop());
+    streamRef.current = null;
+  }, []);
+
+  useEffect(() => {
+    let nativeDetector: { detect: (v: HTMLVideoElement) => Promise<{ rawValue: string }[]> } | null = null;
+    type JsQRFn = (d: Uint8ClampedArray, w: number, h: number) => { data: string } | null;
+    let jsQRFn: JsQRFn | null = null;
+    let canvas: HTMLCanvasElement | null = null;
+
+    async function start() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } },
+        });
+        streamRef.current = stream;
+        if (videoRef.current) { videoRef.current.srcObject = stream; await videoRef.current.play(); }
+        setScanning(true);
+      } catch {
+        setErr("Không thể mở camera");
+        return;
+      }
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      if ("BarcodeDetector" in window) {
+        try { nativeDetector = new (window as any).BarcodeDetector({ formats: ["ean_13","ean_8","code_128","code_39","qr_code","upc_a","upc_e"] }); } catch { /* */ }
+      }
+      try { const m = await import("jsqr"); jsQRFn = m.default as unknown as JsQRFn; canvas = document.createElement("canvas"); } catch { /* */ }
+
+      const loop = async () => {
+        if (lockRef.current || !streamRef.current) return;
+        const video = videoRef.current;
+        if (!video || video.readyState < 2) { rafRef.current = requestAnimationFrame(loop); return; }
+
+        let code: string | null = null;
+        if (nativeDetector) {
+          try { const r = await nativeDetector.detect(video); if (r.length) code = r[0].rawValue; } catch { /* */ }
+        }
+        if (!code && jsQRFn && canvas) {
+          canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+          const ctx = canvas.getContext("2d");
+          if (ctx) { ctx.drawImage(video, 0, 0); const r = jsQRFn(ctx.getImageData(0,0,canvas.width,canvas.height).data, canvas.width, canvas.height); if (r) code = r.data; }
+        }
+        if (code) { lockRef.current = true; stop(); onResult(code); return; }
+        rafRef.current = requestAnimationFrame(loop);
+      };
+      rafRef.current = requestAnimationFrame(loop);
+    }
+
+    start();
+    return () => stop();
+  }, []); // eslint-disable-line
+
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(12,26,46,0.92)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end" }}
+      onClick={e => { if (e.target === e.currentTarget) { stop(); onClose(); } }}
+    >
+      <motion.div initial={{ y: 60, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 60, opacity: 0 }}
+        style={{ width: "100%", maxWidth: 480, background: "#0c1a2e", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: "20px 20px 36px", display: "flex", flexDirection: "column", gap: 12 }}
+      >
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div>
+            <p style={{ fontSize: 9, fontWeight: 700, color: "#7dd3fc", letterSpacing: "0.2em" }}>QUÉT ĐỂ TÌM KIẾM</p>
+            <p style={{ fontSize: 11, color: "#94a3b8", marginTop: 2 }}>Hướng camera vào mã vạch hoặc QR</p>
+          </div>
+          <button onClick={() => { stop(); onClose(); }}
+            style={{ width: 32, height: 32, borderRadius: 10, background: "rgba(255,255,255,0.1)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <X size={14} color="#fff" />
+          </button>
+        </div>
+
+        <div style={{ position: "relative", borderRadius: 16, overflow: "hidden", background: "#000", aspectRatio: "4/3" }}>
+          <video ref={videoRef} muted playsInline style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+          {scanning && (
+            <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}>
+              <div style={{ width: "65%", aspectRatio: "2/1", border: "2px solid rgba(201,165,90,0.85)", borderRadius: 10, boxShadow: "0 0 0 1000px rgba(0,0,0,0.35)" }}>
+                <motion.div animate={{ top: ["4px","calc(100% - 4px)","4px"] }} transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
+                  style={{ position: "absolute", left: 4, right: 4, height: 2, background: "linear-gradient(90deg,transparent,rgba(14,165,233,0.9),transparent)", borderRadius: 2 }} />
+              </div>
+            </div>
+          )}
+          {!scanning && !err && (
+            <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Camera size={28} style={{ color: "rgba(255,255,255,0.3)" }} />
+            </div>
+          )}
+          {err && (
+            <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+              <p style={{ fontSize: 12, color: "#fca5a5", textAlign: "center" }}>{err}</p>
+            </div>
+          )}
+        </div>
+
+        {scanning && (
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+            <motion.div animate={{ opacity: [1, 0.3, 1] }} transition={{ duration: 1.2, repeat: Infinity }}
+              style={{ width: 6, height: 6, borderRadius: "50%", background: "#C9A55A" }} />
+            <span style={{ fontSize: 10, color: "#94a3b8" }}>Đang quét...</span>
+          </div>
+        )}
+      </motion.div>
+    </motion.div>
+  );
+}
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -62,7 +180,8 @@ function ListView() {
   const [hoveredId,     setHoveredId]   = useState<string | null>(null);
   const [selected,      setSelected]    = useState<Set<string>>(new Set());
   const [confirmBulk,   setConfirmBulk] = useState(false);
-  const [showScanner,   setShowScanner] = useState(false);
+  const [showScanner,       setShowScanner]       = useState(false);
+  const [showSearchScanner, setShowSearchScanner] = useState(false);
   const [odooSyncing,   setOdooSyncing] = useState(false);
   const [odooMsg,       setOdooMsg]     = useState<string | null>(null);
   const [showFilters,   setShowFilters] = useState(false);
@@ -178,10 +297,18 @@ function ListView() {
               fontSize: 12, color: "var(--text-primary)", fontFamily: "inherit",
             }}
           />
-          {search && (
+          {search ? (
             <button onClick={() => setSearch("")}
               style={{ background: "none", border: "none", cursor: "pointer", padding: 0, lineHeight: 1 }}>
               <X size={11} style={{ color: "var(--text-muted)" }} />
+            </button>
+          ) : (
+            <button
+              className="md:hidden"
+              onClick={() => setShowSearchScanner(true)}
+              style={{ background: "none", border: "none", cursor: "pointer", padding: 0, lineHeight: 1, display: "flex", alignItems: "center" }}
+            >
+              <ScanLine size={14} style={{ color: "var(--blue)" }} strokeWidth={1.6} />
             </button>
           )}
         </div>
@@ -668,6 +795,14 @@ function ListView() {
         <ProductFormModal product={editProduct} onClose={() => { setShowAdd(false); setEditProduct(null); }} />
       )}
       <QRScannerModal open={showScanner} onClose={() => setShowScanner(false)} />
+      <AnimatePresence>
+        {showSearchScanner && (
+          <SearchScanner
+            onResult={code => { setSearch(code); setShowSearchScanner(false); }}
+            onClose={() => setShowSearchScanner(false)}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Single delete */}
       <AnimatePresence>
