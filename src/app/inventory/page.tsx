@@ -585,6 +585,8 @@ function ListView() {
           const loc      = locationMap.get(p.id) ?? null;
           const mc       = parseMCFromNotes(p.notes);
           const colorHex = colorCodeToHex(p.color);
+          const inDisp   = displaySet.has(p.id);
+          const inWh     = warehouseSet.has(p.id);
           return (
             <div key={p.id} style={{
               borderRadius: 12, border: "1px solid var(--border)",
@@ -625,7 +627,23 @@ function ListView() {
               </div>
               <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8, flexShrink: 0 }}>
                 <QtyPill qty={p.quantity} />
-                <div style={{ display: "flex", gap: 6 }}>
+                <div style={{ display: "flex", gap: 5 }}>
+                  {inDisp && (
+                    <button onClick={() => navigateToBoard(router, p.id, "display")} title="Vị trí trưng bày" style={{
+                      width: 30, height: 30, borderRadius: 8, border: "1px solid rgba(201,165,90,0.3)",
+                      background: "rgba(201,165,90,0.08)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer",
+                    }}>
+                      <Eye size={11} style={{ color: "#C9A55A" }} />
+                    </button>
+                  )}
+                  {inWh && (
+                    <button onClick={() => navigateToBoard(router, p.id, "warehouse")} title="Vị trí kho" style={{
+                      width: 30, height: 30, borderRadius: 8, border: "1px solid rgba(14,165,233,0.25)",
+                      background: "rgba(14,165,233,0.06)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer",
+                    }}>
+                      <Warehouse size={11} style={{ color: "var(--blue)" }} />
+                    </button>
+                  )}
                   <button onClick={() => setEditProduct(p)} style={{
                     width: 30, height: 30, borderRadius: 8, border: "1px solid var(--border)",
                     background: "var(--bg-surface)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer",

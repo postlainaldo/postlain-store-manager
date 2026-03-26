@@ -9,6 +9,7 @@ import {
   Settings, Users, RefreshCw, Info,
   Plus, Trash2, UserPlus, Activity, MessageSquare,
   Award, Bell, Zap, Shield, Store,
+  Download, Upload, Database, AlertTriangle,
 } from "lucide-react";
 import { useStore } from "@/store/useStore";
 import { useRouter } from "next/navigation";
@@ -743,6 +744,141 @@ function PushPanel({ userId }: { userId: string }) {
   );
 }
 
+// ─── Backup / Restore ─────────────────────────────────────────────────────────
+function BackupPanel({ currentUser }: { currentUser: { id: string } }) {
+  const [status, setStatus] = useState<{ type: "ok" | "err" | "info"; text: string } | null>(null);
+  const [restoring, setRestoring] = useState(false);
+  const [confirmRestore, setConfirmRestore] = useState(false);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const handleDownload = async () => {
+    setStatus({ type: "info", text: "Đang xuất dữ liệu..." });
+    try {
+      const res = await fetch("/api/backup", { headers: { "x-user-id": currentUser.id } });
+      if (!res.ok) { setStatus({ type: "err", text: "Không thể xuất backup" }); return; }
+      const blob = await res.blob();
+      const cd = res.headers.get("Content-Disposition") ?? "";
+      const match = cd.match(/filename="([^"]+)"/);
+      const filename = match?.[1] ?? "postlain-backup.json";
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = filename; a.click();
+      URL.revokeObjectURL(url);
+      setStatus({ type: "ok", text: "Đã tải xuống backup thành công" });
+    } catch {
+      setStatus({ type: "err", text: "Lỗi kết nối" });
+    }
+    setTimeout(() => setStatus(null), 3000);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.name.endsWith(".json")) { setStatus({ type: "err", text: "Chọn file .json" }); return; }
+    setPendingFile(file);
+    setConfirmRestore(true);
+    if (fileRef.current) fileRef.current.value = "";
+  };
+
+  const handleRestore = async () => {
+    if (!pendingFile) return;
+    setRestoring(true);
+    setConfirmRestore(false);
+    setStatus({ type: "info", text: "Đang khôi phục..." });
+    try {
+      const text = await pendingFile.text();
+      let payload: unknown;
+      try { payload = JSON.parse(text); } catch { setStatus({ type: "err", text: "File JSON không hợp lệ" }); setRestoring(false); return; }
+      const res = await fetch("/api/backup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-user-id": currentUser.id },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) { setStatus({ type: "err", text: data.error ?? "Lỗi restore" }); }
+      else {
+        const total = Object.values(data.restored as Record<string, number>).reduce((a, b) => a + b, 0);
+        setStatus({ type: "ok", text: `Khôi phục thành công — ${total} bản ghi` });
+        setTimeout(() => window.location.reload(), 1800);
+      }
+    } catch {
+      setStatus({ type: "err", text: "Lỗi đọc file" });
+    } finally {
+      setRestoring(false);
+      setPendingFile(null);
+    }
+  };
+
+  const statusColor = status?.type === "ok" ? "#10b981" : status?.type === "err" ? "#dc2626" : "#0ea5e9";
+  const statusBg   = status?.type === "ok" ? "rgba(16,185,129,0.08)" : status?.type === "err" ? "rgba(220,38,38,0.06)" : "rgba(14,165,233,0.08)";
+
+  return (
+    <PremiumCard title="SAO LƯU & KHÔI PHỤC" icon={Database} iconColor="#8b5cf6" accentColor="#8b5cf6">
+      <div style={{ padding: "12px 20px 16px", display: "flex", flexDirection: "column", gap: 10 }}>
+        <p style={{ fontSize: 10, color: "var(--text-muted)", lineHeight: 1.5 }}>
+          Xuất toàn bộ dữ liệu (sản phẩm, vị trí, chat, đơn hàng, người dùng...) thành file JSON. Dùng file này để khôi phục khi cần.
+        </p>
+
+        {status && (
+          <div style={{ padding: "8px 12px", borderRadius: 8, background: statusBg, border: `1px solid ${statusColor}30`, display: "flex", alignItems: "center", gap: 6 }}>
+            {status.type === "err" && <AlertTriangle size={11} style={{ color: statusColor, flexShrink: 0 }} />}
+            {status.type === "ok"  && <Check size={11} style={{ color: statusColor, flexShrink: 0 }} />}
+            {status.type === "info" && <RefreshCw size={11} style={{ color: statusColor, flexShrink: 0, animation: "spin 1s linear infinite" }} />}
+            <span style={{ fontSize: 10, color: statusColor, fontWeight: 600 }}>{status.text}</span>
+          </div>
+        )}
+
+        {/* Confirm restore dialog */}
+        {confirmRestore && pendingFile && (
+          <div style={{ padding: "12px", borderRadius: 10, background: "rgba(220,38,38,0.06)", border: "1px solid rgba(220,38,38,0.2)", display: "flex", flexDirection: "column", gap: 8 }}>
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+              <AlertTriangle size={14} style={{ color: "#dc2626", flexShrink: 0, marginTop: 1 }} />
+              <div>
+                <p style={{ fontSize: 11, fontWeight: 700, color: "#dc2626" }}>Xác nhận khôi phục?</p>
+                <p style={{ fontSize: 9.5, color: "#92400e", marginTop: 3, lineHeight: 1.5 }}>
+                  Toàn bộ dữ liệu hiện tại sẽ bị <strong>xóa</strong> và thay bằng dữ liệu trong file:<br />
+                  <span style={{ fontFamily: "monospace", color: "#dc2626" }}>{pendingFile.name}</span>
+                </p>
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 6 }}>
+              <button onClick={handleRestore}
+                style={{ flex: 1, padding: "8px", borderRadius: 8, border: "none", background: "#dc2626", color: "#fff", fontSize: 10, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                XÁC NHẬN KHÔI PHỤC
+              </button>
+              <button onClick={() => { setConfirmRestore(false); setPendingFile(null); }}
+                style={{ padding: "8px 14px", borderRadius: 8, border: "1px solid var(--border)", background: "transparent", color: "var(--text-muted)", fontSize: 10, cursor: "pointer", fontFamily: "inherit" }}>
+                HỦY
+              </button>
+            </div>
+          </div>
+        )}
+
+        <div style={{ display: "flex", gap: 8 }}>
+          {/* Download backup */}
+          <motion.button whileTap={{ scale: 0.97 }} onClick={handleDownload}
+            style={{ flex: 1, height: 42, borderRadius: 10, border: "none", background: "linear-gradient(135deg,#8b5cf6,#7c3aed)", color: "#fff", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "center", gap: 7, boxShadow: "0 4px 14px rgba(139,92,246,0.3)" }}>
+            <Download size={14} /> Xuất Backup
+          </motion.button>
+
+          {/* Upload restore */}
+          <input ref={fileRef} type="file" accept=".json" style={{ display: "none" }} onChange={handleFileChange} />
+          <motion.button whileTap={{ scale: 0.97 }} onClick={() => fileRef.current?.click()} disabled={restoring}
+            style={{ flex: 1, height: 42, borderRadius: 10, border: "1.5px solid rgba(139,92,246,0.4)", background: "rgba(139,92,246,0.06)", color: "#8b5cf6", fontSize: 11, fontWeight: 700, cursor: restoring ? "not-allowed" : "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}>
+            <Upload size={14} /> Nhập Restore
+          </motion.button>
+        </div>
+
+        <p style={{ fontSize: 8.5, color: "var(--text-muted)", textAlign: "center" }}>
+          Backup bao gồm: sản phẩm · vị trí · người dùng · chat · đơn hàng · báo cáo
+        </p>
+      </div>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    </PremiumCard>
+  );
+}
+
 function VersionPanel() {
   const { updateReady, onUpdate } = useUpdateContext();
   return (
@@ -1303,6 +1439,7 @@ export default function ProfilePage() {
                 <SecurityPanel currentUser={{ id: currentUser.id, email: currentUser.email, name: currentUser.name, role: currentUser.role }} />
                 {isManager && <StorePanel />}
                 {isAdmin && <UsersPanel />}
+                {isAdmin && <BackupPanel currentUser={{ id: currentUser.id }} />}
                 <VersionPanel />
               </div>
             )}
