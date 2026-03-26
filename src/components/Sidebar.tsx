@@ -12,7 +12,6 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
-  Clock,
 } from "lucide-react";
 import ThemeToggle from "./ThemeToggle";
 
@@ -20,7 +19,6 @@ const NAV_ITEMS = [
   { id: "overview",     label: "Tổng Quan",  href: "/",             icon: LayoutDashboard, exact: true  },
   { id: "visual-board", label: "Vị Trí",     href: "/visual-board", icon: Focus,           exact: false },
   { id: "inventory",    label: "Dữ Liệu",    href: "/inventory",    icon: Box,             exact: false },
-  { id: "attendance",   label: "Chấm Công",  href: "/attendance",   icon: Clock,           exact: false },
   { id: "settings",     label: "Cài Đặt",    href: "/settings",     icon: Settings,        exact: false },
 ] as const;
 
