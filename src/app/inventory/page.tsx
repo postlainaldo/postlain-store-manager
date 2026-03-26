@@ -177,7 +177,7 @@ function ListView() {
   const [editProduct,   setEditProduct] = useState<Product | null>(null);
   const [showAdd,       setShowAdd]     = useState(false);
   const [deleteId,      setDeleteId]    = useState<string | null>(null);
-  const [hoveredId,     setHoveredId]   = useState<string | null>(null);
+  const [hoveredId,     setHoveredId]   = useState<string | null>(null); // desktop only
   const [selected,      setSelected]    = useState<Set<string>>(new Set());
   const [confirmBulk,   setConfirmBulk] = useState(false);
   const [showScanner,       setShowScanner]       = useState(false);
@@ -185,6 +185,15 @@ function ListView() {
   const [odooSyncing,   setOdooSyncing] = useState(false);
   const [odooMsg,       setOdooMsg]     = useState<string | null>(null);
   const [showFilters,   setShowFilters] = useState(false);
+  // Detect viewport to avoid rendering both desktop table AND mobile cards simultaneously
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 767px)");
+    setIsMobile(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
 
   useEffect(() => { fetchProducts(); }, []);
 
@@ -484,7 +493,7 @@ function ListView() {
       </AnimatePresence>
 
       {/* ── Desktop table ─────────────────────────────────────────── */}
-      <div className="hidden md:block" style={{
+      {!isMobile && <div style={{
         borderRadius: 16, border: "1px solid var(--border)",
         background: "#fff", overflowX: "auto",
         boxShadow: "0 2px 16px rgba(14,165,233,0.06)",
@@ -541,11 +550,8 @@ function ListView() {
             const hasSale  = !!p.markdownPrice;
 
             return (
-              <motion.tr
+              <tr
                 key={p.id}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: Math.min(rowIndex * 0.01, 0.2) }}
                 onMouseEnter={() => setHoveredId(p.id)}
                 onMouseLeave={() => setHoveredId(null)}
                 style={{
@@ -699,15 +705,15 @@ function ListView() {
                   </button>
                 </div>
                 </td>
-              </motion.tr>
+              </tr>
             );
           })}
           </tbody>
         </table>
-      </div>
+      </div>}
 
       {/* ── Mobile cards ──────────────────────────────────────────── */}
-      <div className="md:hidden" style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+      {isMobile && <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
         {filtered.map(p => {
           const loc      = locationMap.get(p.id) ?? null;
           const mc       = parseMCFromNotes(p.notes);
@@ -788,7 +794,7 @@ function ListView() {
             </div>
           );
         })}
-      </div>
+      </div>}
 
       {/* ── Modals ────────────────────────────────────────────────── */}
       {(showAdd || !!editProduct) && (

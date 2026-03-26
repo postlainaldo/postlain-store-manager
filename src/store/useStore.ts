@@ -651,12 +651,12 @@ export const useStore = create<StoreState>()(
         })),
     }),
     {
-      name: "postlain-store-v2",
+      name: "postlain-store-v3",
       partialize: (s) => ({
+        // Never persist large server-side data — always reload from DB
+        // storeSections, warehouseShelves, products are excluded intentionally
         shelfLayout: s.shelfLayout,
         shelfConfig: s.shelfConfig,
-        storeSections: s.storeSections,
-        warehouseShelves: s.warehouseShelves,
         storeLayout: s.storeLayout,
         storeName: s.storeName,
         storeAddress: s.storeAddress,
@@ -670,7 +670,6 @@ export const useStore = create<StoreState>()(
         uiCompact: s.uiCompact,
         uiAnimations: s.uiAnimations,
         uiDensity: s.uiDensity,
-        users: s.users,
         currentUser: s.currentUser,
       }),
       skipHydration: true,
