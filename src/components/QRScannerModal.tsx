@@ -126,31 +126,70 @@ export default function QRScannerModal({ open, onClose }: Props) {
     if (!file) return;
     setIosDecoding(true);
     setFound(null); setNotFound(null);
-    try {
-      // Try BarcodeDetector on image bitmap first (works on some iOS 17+)
-      if ("BarcodeDetector" in window) {
-        const img = await createImageBitmap(file);
-        const BD = (window as unknown as { BarcodeDetector: new (o: { formats: string[] }) => { detect: (s: ImageBitmap) => Promise<Array<{ rawValue: string }>> } }).BarcodeDetector;
-        const det = new BD({ formats: ["qr_code","ean_13","ean_8","code_128","code_39","upc_a","upc_e"] });
-        const results = await det.detect(img);
-        if (results.length > 0) { await handleCode(results[0].rawValue); setIosDecoding(false); return; }
-      }
 
-      // Fallback: zxing decode from image URL
-      const url = URL.createObjectURL(file);
+    const loadImage = (f: File): Promise<HTMLImageElement> =>
+      new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = reject;
+        img.src = URL.createObjectURL(f);
+      });
+
+    // Downscale large images — zxing and jsqr both work better at ~1200px wide
+    const prepareCanvas = (img: HTMLImageElement): HTMLCanvasElement => {
+      const MAX = 1200;
+      let w = img.naturalWidth;
+      let h = img.naturalHeight;
+      if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; }
+      const c = document.createElement("canvas");
+      c.width = w; c.height = h;
+      c.getContext("2d")!.drawImage(img, 0, 0, w, h);
+      return c;
+    };
+
+    try {
+      const img = await loadImage(file);
+      const objectUrl = img.src;
+      const canvas = prepareCanvas(img);
+      URL.revokeObjectURL(objectUrl);
+      const ctx = canvas.getContext("2d")!;
+
+      // 1. jsqr — fast, canvas-native, great for QR codes
       try {
-        const { BrowserMultiFormatReader } = await import("@zxing/browser");
-        const reader = new BrowserMultiFormatReader();
-        const result = await (reader as unknown as { decodeFromImageUrl: (u: string) => Promise<{ getText(): string }> }).decodeFromImageUrl(url);
-        if (result) { await handleCode(result.getText()); setIosDecoding(false); URL.revokeObjectURL(url); return; }
-      } catch { /* not found */ }
-      URL.revokeObjectURL(url);
-      setNotFound("Không đọc được mã — thử chụp rõ hơn");
+        const mod = await import("jsqr");
+        const jsQR = mod.default as (d: Uint8ClampedArray, w: number, h: number) => { data: string } | null;
+        const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const result = jsQR(imgData.data, canvas.width, canvas.height);
+        if (result?.data) { await handleCode(result.data); return; }
+      } catch { /* not available */ }
+
+      // 2. zxing @zxing/library — decode directly from canvas ImageData (no DOM required)
+      try {
+        const zxing = await import("@zxing/library");
+        const { MultiFormatReader, BinaryBitmap, HybridBinarizer, RGBLuminanceSource } = zxing;
+        const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        // Convert RGBA to luminance (grayscale)
+        const len = canvas.width * canvas.height;
+        const luminance = new Uint8ClampedArray(len);
+        for (let i = 0; i < len; i++) {
+          const r = imgData.data[i * 4];
+          const g = imgData.data[i * 4 + 1];
+          const b = imgData.data[i * 4 + 2];
+          luminance[i] = Math.round(0.299 * r + 0.587 * g + 0.114 * b);
+        }
+        const source = new RGBLuminanceSource(luminance, canvas.width, canvas.height);
+        const bitmap = new BinaryBitmap(new HybridBinarizer(source));
+        const reader = new MultiFormatReader();
+        const result = reader.decode(bitmap);
+        if (result) { await handleCode(result.getText()); return; }
+      } catch { /* NotFoundException is normal */ }
+
+      // Nothing found
+      setNotFound("Không đọc được mã — chụp sát và rõ hơn");
     } catch {
-      setNotFound("Lỗi đọc ảnh");
+      setNotFound("Lỗi đọc ảnh — thử lại");
     } finally {
       setIosDecoding(false);
-      // Reset file input so same file can be selected again
       if (iosFileRef.current) iosFileRef.current.value = "";
     }
   }, [handleCode]);
