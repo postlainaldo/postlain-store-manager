@@ -429,7 +429,7 @@ function OverviewTab() {
       </div>
 
       {/* Custom range */}
-      <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+      <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
         <DatePicker value={from} onChange={setFrom} />
         <span style={{ color: "var(--text-muted)", fontSize: 12 }}>→</span>
         <DatePicker value={to} onChange={setTo} />

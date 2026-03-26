@@ -278,7 +278,7 @@ function MsgBubble({ msg, isMe, showHeader, members, onDelete, onReply, onReact,
     <div style={{ display: "flex", justifyContent: "flex-end", gap: 6, marginBottom: 2 }}
       onMouseEnter={() => setHover(true)} onMouseLeave={() => { setHover(false); setShowReact(false); }}>
       <ActionBar />
-      <div style={{ maxWidth: "74%" }}>
+      <div style={{ maxWidth: "min(74%, 520px)" }}>
         {showHeader && (
           <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 5, marginBottom: 3 }}>
             <span style={{ fontSize: 8, color: "#b0c4d8" }}>{formatTime(msg.createdAt)}</span>
@@ -303,7 +303,7 @@ function MsgBubble({ msg, isMe, showHeader, members, onDelete, onReply, onReact,
         ? <Avatar src={member?.avatar} name={msg.userName} size={30} />
         : <div style={{ width: 30, flexShrink: 0 }} />
       }
-      <div style={{ maxWidth: "74%" }}>
+      <div style={{ maxWidth: "min(74%, 520px)" }}>
         {showHeader && (
           <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 3 }}>
             <span style={{ fontSize: 10, fontWeight: 700, color: "#0c1a2e" }}>{msg.userName}</span>

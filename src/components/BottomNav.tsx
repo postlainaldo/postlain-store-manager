@@ -56,7 +56,7 @@ export default function BottomNav() {
               display: "flex", flexDirection: "column",
               alignItems: "center", justifyContent: "center",
               gap: 3, position: "relative",
-              minWidth: 52, // prevent squishing below readable size
+              minWidth: 44, // prevent squishing below readable size
               padding: "0 2px",
             }}
           >

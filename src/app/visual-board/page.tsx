@@ -791,7 +791,7 @@ function DisplayTab({ products, storeSections, placeInSection, highlightPid, can
       {!canEdit && <div className="hidden md:block" style={{ width: 240, flexShrink: 0 }} />}
 
       <div style={{ display: "flex", flexDirection: "column", flex: 1, gap: 8, minWidth: 0, minHeight: 0 }}>
-        {/* Stats */}
+        {/* Stats — desktop full, mobile compact */}
         <div className="hidden md:flex" style={{ flexShrink: 0, alignItems: "center", gap: 8 }}>
           {[
             { icon: Eye, val: displayIds.size, unit: "đang trưng bày", color: "#C9A55A" },
@@ -813,6 +813,19 @@ function DisplayTab({ products, storeSections, placeInSection, highlightPid, can
               <span style={{ fontSize: 9, color: "#94a3b8" }}>Chỉ xem</span>
             </div>
           )}
+        </div>
+        {/* Mobile compact stats */}
+        <div className="flex md:hidden" style={{ flexShrink: 0, alignItems: "center", gap: 6 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 10px", borderRadius: 8, background: "rgba(201,165,90,0.08)", border: "1px solid rgba(201,165,90,0.25)" }}>
+            <Eye size={10} style={{ color: "#C9A55A" }} />
+            <span style={{ fontSize: 11, fontWeight: 700, color: "#C9A55A" }}>{displayIds.size}</span>
+            <span style={{ fontSize: 9, color: "var(--text-muted)" }}>trưng bày</span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 10px", borderRadius: 8, background: "rgba(14,165,233,0.06)", border: "1px solid rgba(14,165,233,0.2)" }}>
+            <Layers size={10} style={{ color: "#0ea5e9" }} />
+            <span style={{ fontSize: 11, fontWeight: 700, color: "#0ea5e9" }}>{totalSlots > 0 ? Math.round((displayIds.size / totalSlots) * 100) : 0}%</span>
+            <span style={{ fontSize: 9, color: "var(--text-muted)" }}>lấp đầy</span>
+          </div>
         </div>
 
         {/* Selected chip */}

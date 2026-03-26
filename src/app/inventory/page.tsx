@@ -601,7 +601,7 @@ function ListView() {
                 }} />
               )}
               <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)", marginBottom: 4 }}>{p.name}</p>
+                <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)", marginBottom: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</p>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 10px", marginBottom: 4 }}>
                   {p.color && <span style={{ fontSize: 9, color: "var(--text-secondary)", fontWeight: 600 }}>{p.color}</span>}
                   {mc && (

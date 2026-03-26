@@ -133,7 +133,7 @@ export default function SalesPage() {
         </div>
 
         {/* Stats row */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10, marginBottom: 28 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, marginBottom: 28 }}>
           {[
             { label: "Doanh thu", value: cur ? `${fmt(cur.totalRevenue)} ₫` : "—", icon: TrendingUp, color: "var(--gold)" },
             { label: "Số đơn", value: cur ? String(cur.orderCount) : "—", icon: Receipt, color: "var(--blue)" },
@@ -141,14 +141,14 @@ export default function SalesPage() {
           ].map(({ label, value, icon: Icon, color }) => (
             <div key={label} style={{
               background: "var(--bg-card)", border: "1px solid var(--border)",
-              borderRadius: 12, padding: "14px 16px",
-              boxShadow: "0 1px 4px rgba(0,0,0,0.05)",
+              borderRadius: 12, padding: "12px 10px",
+              boxShadow: "0 1px 4px rgba(0,0,0,0.05)", minWidth: 0,
             }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
-                <Icon size={14} color={color} />
-                <span style={{ fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em" }}>{label}</span>
+              <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 6 }}>
+                <Icon size={12} color={color} style={{ flexShrink: 0 }} />
+                <span style={{ fontSize: 9, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.04em", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{label}</span>
               </div>
-              <div style={{ fontSize: 18, fontWeight: 700, color: "var(--text-primary)" }}>{value}</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{value}</div>
             </div>
           ))}
         </div>
@@ -184,10 +184,10 @@ export default function SalesPage() {
                             <span style={{ fontSize: 12, color: "var(--text-muted)", marginLeft: 8 }}>{o.customerName}</span>
                           )}
                         </div>
-                        <div style={{ display: "flex", alignItems: "center", gap: 14, flexShrink: 0 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
                           <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{o.lineCount} SP</span>
-                          <span style={{ fontSize: 13, fontWeight: 700, color: "var(--gold)" }}>{fmt(o.amountTotal)} ₫</span>
-                          <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{fmtDate(o.createdAt)}</span>
+                          <span style={{ fontSize: 13, fontWeight: 700, color: "var(--gold)", whiteSpace: "nowrap" }}>{fmt(o.amountTotal)} ₫</span>
+                          <span className="hidden sm:inline" style={{ fontSize: 11, color: "var(--text-muted)", whiteSpace: "nowrap" }}>{fmtDate(o.createdAt)}</span>
                           {expandedOrder === o.id
                             ? <ChevronUp size={13} color="var(--text-muted)" />
                             : <ChevronDown size={13} color="var(--text-muted)" />}
@@ -228,20 +228,20 @@ export default function SalesPage() {
                 <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                   {topProducts.map((p, i) => (
                     <div key={p.productName} style={{
-                      display: "grid", gridTemplateColumns: "28px 1fr 60px 100px",
-                      gap: 10, alignItems: "center", padding: "8px 14px", borderRadius: 8,
+                      display: "flex", alignItems: "center", gap: 10,
+                      padding: "8px 14px", borderRadius: 8,
                       background: i < 3 ? "rgba(201,165,90,0.06)" : "var(--bg-surface)",
                       border: i < 3 ? "1px solid rgba(201,165,90,0.2)" : "1px solid var(--border)",
                     }}>
-                      <span style={{ fontSize: 12, fontWeight: 700, color: i < 3 ? "var(--gold)" : "var(--text-muted)", textAlign: "center" }}>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: i < 3 ? "var(--gold)" : "var(--text-muted)", width: 24, flexShrink: 0, textAlign: "center" }}>
                         #{i + 1}
                       </span>
-                      <div>
-                        <div style={{ fontSize: 13, color: "var(--text-primary)", fontWeight: 500 }}>{p.productName}</div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 13, color: "var(--text-primary)", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.productName}</div>
                         {p.sku && <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{p.sku}</div>}
                       </div>
-                      <span style={{ fontSize: 12, color: "var(--text-secondary)", textAlign: "right" }}>{p.totalQty} đôi</span>
-                      <span style={{ fontSize: 12, fontWeight: 600, color: "var(--gold)", textAlign: "right" }}>{fmt(p.totalRevenue)} ₫</span>
+                      <span style={{ fontSize: 12, color: "var(--text-secondary)", flexShrink: 0 }}>{p.totalQty} đôi</span>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: "var(--gold)", flexShrink: 0, whiteSpace: "nowrap" }}>{fmt(p.totalRevenue)} ₫</span>
                     </div>
                   ))}
                 </div>
