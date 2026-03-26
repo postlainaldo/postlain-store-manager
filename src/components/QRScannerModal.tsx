@@ -46,6 +46,13 @@ function matchProductBySku(products: Product[], code: string): Product | null {
   return null;
 }
 
+// Detect iOS (Safari on iPhone/iPad doesn't support getUserMedia barcode scanning well)
+function isIOS() {
+  if (typeof navigator === "undefined") return false;
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+}
+
 export default function QRScannerModal({ open, onClose }: Props) {
   const { currentUser } = useStore();
   const [mode, setMode] = useState<"scan" | "manual">("scan");
@@ -58,13 +65,16 @@ export default function QRScannerModal({ open, onClose }: Props) {
   const [qty, setQty] = useState(1);
   const [done, setDone] = useState(false);
   const [allProducts, setAllProducts] = useState<Product[]>([]);
+  const [iosDecoding, setIosDecoding] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const rafRef = useRef<number | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const iosFileRef = useRef<HTMLInputElement>(null);
   const lockRef = useRef(false); // prevent duplicate detections
+  const ios = isIOS();
 
   // ── Load all products for fuzzy local matching ──────────────────────────────
   useEffect(() => {
@@ -109,6 +119,41 @@ export default function QRScannerModal({ open, onClose }: Props) {
     setNotFound(raw);
     lockRef.current = false;
   }, [allProducts, stopCamera]);
+
+  // ── iOS: decode barcode from photo file ─────────────────────────────────────
+  const handleIosFile = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIosDecoding(true);
+    setFound(null); setNotFound(null);
+    try {
+      // Try BarcodeDetector on image bitmap first (works on some iOS 17+)
+      if ("BarcodeDetector" in window) {
+        const img = await createImageBitmap(file);
+        const BD = (window as unknown as { BarcodeDetector: new (o: { formats: string[] }) => { detect: (s: ImageBitmap) => Promise<Array<{ rawValue: string }>> } }).BarcodeDetector;
+        const det = new BD({ formats: ["qr_code","ean_13","ean_8","code_128","code_39","upc_a","upc_e"] });
+        const results = await det.detect(img);
+        if (results.length > 0) { await handleCode(results[0].rawValue); setIosDecoding(false); return; }
+      }
+
+      // Fallback: zxing decode from image URL
+      const url = URL.createObjectURL(file);
+      try {
+        const { BrowserMultiFormatReader } = await import("@zxing/browser");
+        const reader = new BrowserMultiFormatReader();
+        const result = await (reader as unknown as { decodeFromImageUrl: (u: string) => Promise<{ getText(): string }> }).decodeFromImageUrl(url);
+        if (result) { await handleCode(result.getText()); setIosDecoding(false); URL.revokeObjectURL(url); return; }
+      } catch { /* not found */ }
+      URL.revokeObjectURL(url);
+      setNotFound("Không đọc được mã — thử chụp rõ hơn");
+    } catch {
+      setNotFound("Lỗi đọc ảnh");
+    } finally {
+      setIosDecoding(false);
+      // Reset file input so same file can be selected again
+      if (iosFileRef.current) iosFileRef.current.value = "";
+    }
+  }, [handleCode]);
 
   // ── Start camera + multi-format scan loop ────────────────────────────────────
   const startCamera = useCallback(async () => {
@@ -239,7 +284,7 @@ export default function QRScannerModal({ open, onClose }: Props) {
       setFound(null); setNotFound(null); setDone(false);
       setManualInput(""); setCameraError(null); setQty(1);
       setMode("scan");
-      startCamera();
+      if (!ios) startCamera();
     } else {
       stopCamera();
     }
@@ -251,7 +296,7 @@ export default function QRScannerModal({ open, onClose }: Props) {
     if (mode === "manual") {
       stopCamera();
       setTimeout(() => inputRef.current?.focus(), 80);
-    } else {
+    } else if (!ios) {
       startCamera();
     }
   }, [mode]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -371,8 +416,51 @@ export default function QRScannerModal({ open, onClose }: Props) {
 
           <div style={{ padding: "16px 20px", display: "flex", flexDirection: "column", gap: 14 }}>
 
-            {/* Camera view */}
-            {mode === "scan" && (
+            {/* iOS: photo-based barcode capture */}
+            {mode === "scan" && ios && (
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
+                <input
+                  ref={iosFileRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  style={{ display: "none" }}
+                  onChange={handleIosFile}
+                />
+                <div style={{
+                  width: "100%", aspectRatio: "4/3", borderRadius: 12,
+                  background: "linear-gradient(135deg,#0c1a2e,#1e3a5f)",
+                  display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10,
+                  border: "2px dashed rgba(201,165,90,0.4)",
+                }}>
+                  <Camera size={32} style={{ color: "#C9A55A", opacity: 0.8 }} />
+                  <p style={{ fontSize: 12, color: "#7dd3fc", textAlign: "center", padding: "0 16px" }}>
+                    Chụp ảnh mã vạch bằng camera
+                  </p>
+                  <p style={{ fontSize: 9, color: "#475569", textAlign: "center" }}>
+                    QR · EAN-13 · Code-128 · UPC
+                  </p>
+                </div>
+                <motion.button
+                  whileTap={{ scale: 0.96 }}
+                  onClick={() => iosFileRef.current?.click()}
+                  disabled={iosDecoding}
+                  style={{
+                    width: "100%", height: 46, borderRadius: 12, border: "none",
+                    background: iosDecoding ? "#e2e8f0" : "linear-gradient(135deg,#0ea5e9,#0284c7)",
+                    color: "#fff", fontSize: 13, fontWeight: 700, cursor: iosDecoding ? "not-allowed" : "pointer",
+                    display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                    boxShadow: iosDecoding ? "none" : "0 4px 14px rgba(14,165,233,0.35)",
+                  }}
+                >
+                  <Camera size={16} />
+                  {iosDecoding ? "Đang đọc mã..." : "Mở Camera"}
+                </motion.button>
+              </div>
+            )}
+
+            {/* Android / Desktop: video stream barcode scan */}
+            {mode === "scan" && !ios && (
               <div style={{ position: "relative", borderRadius: 12, overflow: "hidden", background: "#0c1a2e", aspectRatio: "4/3" }}>
                 <video
                   ref={videoRef}

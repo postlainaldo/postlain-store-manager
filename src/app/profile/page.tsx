@@ -432,16 +432,18 @@ function ShelvesPanel() {
 }
 
 function UsersPanel() {
-  const { users, currentUser, addUser, removeUser, updateUser } = useStore();
+  const { users, currentUser, addUser, removeUser, updateUser, fetchUsersFromDb } = useStore();
   const [showAdd, setShowAdd] = useState(false);
   const [newUser, setNewUser] = useState({ name: "", username: "", password: "", role: "staff" as UserRole });
   const [addMsg, setAddMsg] = useState<string | null>(null);
   const handleAdd = async () => {
     if (!newUser.name.trim() || !newUser.username.trim() || !newUser.password.trim()) { setAddMsg("Điền đầy đủ thông tin"); return; }
     if (users.find(u => u.email === newUser.username.trim())) { setAddMsg("Tên đăng nhập đã tồn tại"); return; }
-    await fetch("/api/auth", { method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "register", name: newUser.name.trim(), username: newUser.username.trim(), password: newUser.password.trim(), role: newUser.role }) });
+    const res = await fetch("/api/auth", { method: "PUT", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: newUser.name.trim(), username: newUser.username.trim(), password: newUser.password.trim(), role: newUser.role }) });
+    if (!res.ok) { setAddMsg("Lỗi tạo tài khoản"); return; }
     setAddMsg("Đã thêm người dùng");
+    await fetchUsersFromDb();
     setTimeout(() => { setAddMsg(null); setShowAdd(false); setNewUser({ name: "", username: "", password: "", role: "staff" }); }, 1200);
   };
   const handleToggleActive = async (u: AppUser) => {
