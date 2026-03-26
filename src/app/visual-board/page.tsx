@@ -962,7 +962,7 @@ function DisplayTab({ products, storeSections, placeInSection, highlightPid, can
         )}
 
         {/* Section content */}
-        <div style={{ flex: 1, overflowY: "auto" }}>
+        <div data-scroll-container style={{ flex: 1, overflowY: "auto" }}>
           <AnimatePresence mode="wait" initial={false}>
             {currentSection ? (
               <motion.div key={currentSection.id} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.18 }}>
@@ -1276,7 +1276,7 @@ function WarehouseTab({ products, warehouseShelves, placeInWarehouse, highlightP
         )}
 
         {/* Shelf content */}
-        <div style={{ flex: 1, overflowY: "auto", overflowX: "auto" }}>
+        <div data-scroll-container style={{ flex: 1, overflowY: "auto", overflowX: "auto" }}>
           <AnimatePresence mode="wait" initial={false}>
             {currentShelf ? (
               <motion.div key={currentShelf.id} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.18 }}>
@@ -1523,40 +1523,51 @@ export default function VisualBoardPage() {
     } catch { /* noop */ }
   }, []);
 
-  // Scroll to highlighted product — poll until element is in DOM
+  // Scroll to highlighted product
   useEffect(() => {
     if (!highlightPid) return;
+
+    // Switch to right section/shelf — runs whenever data changes too
+    if (subtab === "display" && storeSections.length > 0) {
+      const idx = storeSections.findIndex(sec =>
+        sec.subsections.some(sub => sub.rows.some(row => row.products.includes(highlightPid)))
+      );
+      if (idx !== -1) window.dispatchEvent(new CustomEvent("vb:setSection", { detail: idx }));
+    }
+    if (subtab === "warehouse" && warehouseShelves.length > 0) {
+      const idx = warehouseShelves.findIndex(sh => sh.tiers.some(t => t.includes(highlightPid)));
+      if (idx !== -1) window.dispatchEvent(new CustomEvent("vb:setShelf", { detail: idx }));
+    }
+  }, [highlightPid, subtab, storeSections, warehouseShelves]); // eslint-disable-line
+
+  useEffect(() => {
+    if (!highlightPid) return;
+    // Poll for the rendered element, then scroll to it
     let attempts = 0;
     const id = setInterval(() => {
-      // Keep trying to switch to the right section/shelf each tick (data may load late)
-      if (subtab === "display") {
-        const idx = storeSections.findIndex(sec =>
-          sec.subsections.some(sub => sub.rows.some(row => row.products.includes(highlightPid)))
-        );
-        if (idx !== -1) {
-          // Signal child via a custom event — child listens and calls setSectionIdx
-          window.dispatchEvent(new CustomEvent("vb:setSection", { detail: idx }));
-        }
-      } else {
-        const idx = warehouseShelves.findIndex(sh =>
-          sh.tiers.some(t => t.includes(highlightPid))
-        );
-        if (idx !== -1) {
-          window.dispatchEvent(new CustomEvent("vb:setShelf", { detail: idx }));
-        }
-      }
       const el = document.querySelector(`[data-hpid="${highlightPid}"]`);
       if (el) {
         clearInterval(id);
-        el.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
+        const scrollParent = el.closest("[data-scroll-container]") as HTMLElement | null;
+        if (scrollParent) {
+          const rect = el.getBoundingClientRect();
+          const pRect = scrollParent.getBoundingClientRect();
+          scrollParent.scrollTo({
+            top: scrollParent.scrollTop + rect.top - pRect.top - pRect.height / 2 + rect.height / 2,
+            left: scrollParent.scrollLeft + rect.left - pRect.left - pRect.width / 2 + rect.width / 2,
+            behavior: "smooth",
+          });
+        } else {
+          el.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
+        }
         setTimeout(() => setHighlightPid(null), 3000);
-      } else if (++attempts > 80) {
-        clearInterval(id); // give up after 4s
+      } else if (++attempts > 60) {
+        clearInterval(id);
         setHighlightPid(null);
       }
     }, 50);
     return () => clearInterval(id);
-  }, [highlightPid, subtab, storeSections, warehouseShelves]); // eslint-disable-line
+  }, [highlightPid]); // eslint-disable-line
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 8, height: "100%", minHeight: 0 }}>
