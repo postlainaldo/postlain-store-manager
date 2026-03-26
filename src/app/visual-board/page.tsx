@@ -810,12 +810,12 @@ function PickerContent({
 }
 
 // ─── Display Tab ──────────────────────────────────────────────────────────────
-function DisplayTab({ products, storeSections, placeInSection, highlightPid, canEdit }: {
+function DisplayTab({ products, storeSections, placeInSection, highlightPid, canEdit, sectionIdx, onSectionChange }: {
   products: Product[]; storeSections: StoreSection[];
   placeInSection: (sId: string, subId: string, ri: number, si: number, pid: string | null) => void;
   highlightPid: string | null; canEdit: boolean;
+  sectionIdx: number; onSectionChange: (i: number) => void;
 }) {
-  const [sectionIdx, setSectionIdx] = useState(0);
   const [selectedPid, setSelectedPid] = useState<string | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pendingSlot, setPendingSlot] = useState<PendingSlot>(null);
@@ -831,12 +831,6 @@ function DisplayTab({ products, storeSections, placeInSection, highlightPid, can
   const clampedIdx = Math.min(sectionIdx, Math.max(0, storeSections.length - 1));
   const currentSection = storeSections[clampedIdx] ?? null;
   const cfg = currentSection ? (ZONE_CFG[currentSection.sectionType] ?? ZONE_CFG.window) : ZONE_CFG.window;
-
-  useEffect(() => {
-    const handler = (e: Event) => setSectionIdx((e as CustomEvent<number>).detail);
-    window.addEventListener("vb:setSection", handler);
-    return () => window.removeEventListener("vb:setSection", handler);
-  }, []);
 
   const handlePlace = useCallback((sId: string, subId: string, ri: number, si: number) => {
     if (!selectedPid || !canEdit) return;
@@ -939,7 +933,7 @@ function DisplayTab({ products, storeSections, placeInSection, highlightPid, can
             <div style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", width: 4, height: 16, borderRadius: 3, background: cfg.color, boxShadow: `0 0 6px ${cfg.color}60`, zIndex: 1, pointerEvents: "none" }} />
             <select
               value={clampedIdx}
-              onChange={e => setSectionIdx(Number(e.target.value))}
+              onChange={e => onSectionChange(Number(e.target.value))}
               style={{
                 width: "100%", height: 38, borderRadius: 12,
                 border: `1px solid ${cfg.color}35`,
@@ -962,8 +956,8 @@ function DisplayTab({ products, storeSections, placeInSection, highlightPid, can
         )}
 
         {/* Section content */}
-        <div data-scroll-container style={{ flex: 1, overflowY: "auto" }}>
-          <AnimatePresence mode="wait" initial={false}>
+        <div style={{ flex: 1, overflowY: "auto" }}>
+          <AnimatePresence initial={false}>
             {currentSection ? (
               <motion.div key={currentSection.id} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.18 }}>
                 <SectionView
@@ -1089,7 +1083,7 @@ function ShelfManagePanel({
 
 // ─── Warehouse Tab ────────────────────────────────────────────────────────────
 function WarehouseTab({ products, warehouseShelves, placeInWarehouse, highlightPid, canEdit,
-  addWarehouseShelf, removeWarehouseShelf, adjustShelfSlots,
+  addWarehouseShelf, removeWarehouseShelf, adjustShelfSlots, shelfIdx, onShelfChange,
 }: {
   products: Product[]; warehouseShelves: WarehouseShelf[];
   placeInWarehouse: (shelfId: string, ti: number, si: number, pid: string | null) => void;
@@ -1097,8 +1091,8 @@ function WarehouseTab({ products, warehouseShelves, placeInWarehouse, highlightP
   addWarehouseShelf: (type: "shoes" | "bags") => void;
   removeWarehouseShelf: (id: string) => void;
   adjustShelfSlots: (id: string, delta: number) => void;
+  shelfIdx: number; onShelfChange: (i: number) => void;
 }) {
-  const [shelfIdx, setShelfIdx] = useState(0);
   const [selectedPid, setSelectedPid] = useState<string | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [wSearch, setWSearch] = useState("");
@@ -1121,12 +1115,6 @@ function WarehouseTab({ products, warehouseShelves, placeInWarehouse, highlightP
     return products.find(p => p.name.toLowerCase().includes(q) || (p.sku ?? "").toLowerCase().includes(q))?.id ?? null;
   }, [wSearch, products]);
   const effectiveHighlight = highlightPid ?? searchHighlightPid;
-
-  useEffect(() => {
-    const handler = (e: Event) => setShelfIdx((e as CustomEvent<number>).detail);
-    window.addEventListener("vb:setShelf", handler);
-    return () => window.removeEventListener("vb:setShelf", handler);
-  }, []);
 
   const handlePlace = useCallback((shelfId: string, ti: number, si: number) => {
     if (!selectedPid || !canEdit) return;
@@ -1251,7 +1239,7 @@ function WarehouseTab({ products, warehouseShelves, placeInWarehouse, highlightP
             <div style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", width: 4, height: 16, borderRadius: 3, background: shelfTypeColor, boxShadow: `0 0 6px ${shelfTypeColor}60`, zIndex: 1, pointerEvents: "none" }} />
             <select
               value={clampedIdx}
-              onChange={e => setShelfIdx(Number(e.target.value))}
+              onChange={e => onShelfChange(Number(e.target.value))}
               style={{
                 width: "100%", height: 38, borderRadius: 12,
                 border: `1px solid ${shelfTypeColor}35`,
@@ -1276,8 +1264,8 @@ function WarehouseTab({ products, warehouseShelves, placeInWarehouse, highlightP
         )}
 
         {/* Shelf content */}
-        <div data-scroll-container style={{ flex: 1, overflowY: "auto", overflowX: "auto" }}>
-          <AnimatePresence mode="wait" initial={false}>
+        <div style={{ flex: 1, overflowY: "auto", overflowX: "auto" }}>
+          <AnimatePresence initial={false}>
             {currentShelf ? (
               <motion.div key={currentShelf.id} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.18 }}>
                 <ShelfView shelf={currentShelf} products={products}
@@ -1473,6 +1461,8 @@ export default function VisualBoardPage() {
 
   const [subtab, setSubtab] = useState<Subtab>("display");
   const [highlightPid, setHighlightPid] = useState<string | null>(null);
+  const [sectionIdx, setSectionIdx] = useState(0);
+  const [shelfIdx, setShelfIdx] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
 
   // Permission: only admin/manager can edit
@@ -1516,58 +1506,43 @@ export default function VisualBoardPage() {
       const raw = sessionStorage.getItem("postlain_highlight");
       if (!raw) return;
       sessionStorage.removeItem("postlain_highlight");
-      const { pid, mode } = JSON.parse(raw) as { pid: string; mode: Subtab };
+      const { pid, mode } = JSON.parse(raw) as { pid: string; mode: "display" | "warehouse" };
       setSubtab(mode);
-      // Delay until AnimatePresence tab-switch animation finishes (~220ms) + data loads
-      setTimeout(() => setHighlightPid(pid), 350);
+      setHighlightPid(pid);
+      setTimeout(() => setHighlightPid(null), 5000);
     } catch { /* noop */ }
   }, []);
 
-  // Scroll to highlighted product
+  // Switch to the right section/shelf when data loads
   useEffect(() => {
     if (!highlightPid) return;
-
-    // Switch to right section/shelf — runs whenever data changes too
     if (subtab === "display" && storeSections.length > 0) {
       const idx = storeSections.findIndex(sec =>
         sec.subsections.some(sub => sub.rows.some(row => row.products.includes(highlightPid)))
       );
-      if (idx !== -1) window.dispatchEvent(new CustomEvent("vb:setSection", { detail: idx }));
+      if (idx !== -1) setSectionIdx(idx);
     }
     if (subtab === "warehouse" && warehouseShelves.length > 0) {
       const idx = warehouseShelves.findIndex(sh => sh.tiers.some(t => t.includes(highlightPid)));
-      if (idx !== -1) window.dispatchEvent(new CustomEvent("vb:setShelf", { detail: idx }));
+      if (idx !== -1) setShelfIdx(idx);
     }
-  }, [highlightPid, subtab, storeSections, warehouseShelves]); // eslint-disable-line
+  }, [highlightPid, storeSections, warehouseShelves]); // eslint-disable-line
 
+  // Scroll to highlighted product
   useEffect(() => {
     if (!highlightPid) return;
-    // Poll for the rendered element, then scroll to it
     let attempts = 0;
     const id = setInterval(() => {
       const el = document.querySelector(`[data-hpid="${highlightPid}"]`);
       if (el) {
         clearInterval(id);
-        const scrollParent = el.closest("[data-scroll-container]") as HTMLElement | null;
-        if (scrollParent) {
-          const rect = el.getBoundingClientRect();
-          const pRect = scrollParent.getBoundingClientRect();
-          scrollParent.scrollTo({
-            top: scrollParent.scrollTop + rect.top - pRect.top - pRect.height / 2 + rect.height / 2,
-            left: scrollParent.scrollLeft + rect.left - pRect.left - pRect.width / 2 + rect.width / 2,
-            behavior: "smooth",
-          });
-        } else {
-          el.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
-        }
-        setTimeout(() => setHighlightPid(null), 3000);
-      } else if (++attempts > 60) {
+        el.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
+      } else if (++attempts > 80) {
         clearInterval(id);
-        setHighlightPid(null);
       }
     }, 50);
     return () => clearInterval(id);
-  }, [highlightPid]); // eslint-disable-line
+  }, [highlightPid]);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 8, height: "100%", minHeight: 0 }}>
@@ -1626,6 +1601,7 @@ export default function VisualBoardPage() {
               products={products} storeSections={storeSections}
               placeInSection={placeInSection} highlightPid={highlightPid}
               canEdit={canEdit}
+              sectionIdx={sectionIdx} onSectionChange={setSectionIdx}
             />
           ) : (
             <WarehouseTab
@@ -1635,6 +1611,7 @@ export default function VisualBoardPage() {
               addWarehouseShelf={addWarehouseShelf}
               removeWarehouseShelf={removeWarehouseShelf}
               adjustShelfSlots={adjustShelfSlots}
+              shelfIdx={shelfIdx} onShelfChange={setShelfIdx}
             />
           )}
         </motion.div>
