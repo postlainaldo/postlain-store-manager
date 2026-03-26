@@ -836,6 +836,11 @@ function DisplayTab({ products, storeSections, placeInSection, highlightPid, can
     if (!highlightPid) return;
     const idx = storeSections.findIndex(sec => sec.subsections.some(sub => sub.rows.some(row => row.products.includes(highlightPid))));
     if (idx !== -1) setSectionIdx(idx);
+    // Scroll to highlighted product after section renders
+    setTimeout(() => {
+      const el = document.querySelector(`[data-hpid="${highlightPid}"]`);
+      el?.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
+    }, 300);
   }, [highlightPid]); // eslint-disable-line
 
   const handlePlace = useCallback((sId: string, subId: string, ri: number, si: number) => {
@@ -1126,6 +1131,11 @@ function WarehouseTab({ products, warehouseShelves, placeInWarehouse, highlightP
     if (!effectiveHighlight) return;
     const idx = warehouseShelves.findIndex(sh => sh.tiers.some(t => t.includes(effectiveHighlight)));
     if (idx !== -1) setShelfIdx(idx);
+    // Scroll to highlighted product after shelf renders
+    setTimeout(() => {
+      const el = document.querySelector(`[data-hpid="${effectiveHighlight}"]`);
+      el?.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
+    }, 300);
   }, [effectiveHighlight]); // eslint-disable-line
 
   const handlePlace = useCallback((shelfId: string, ti: number, si: number) => {
@@ -1342,8 +1352,10 @@ function ShelfView({ shelf, products, selectedPid, highlightPid, canEdit, onPlac
                 const p = pid && typeof pid === "string" ? products.find(x => x.id === pid) ?? null : null;
                 const isHighlit = !!pid && pid === highlightPid;
                 if (p) return (
-                  <ProductCard key={si} product={p} size={48} highlight={isHighlit}
-                    onRemove={canEdit ? () => onRemove(shelf.id, ti, si) : undefined} />
+                  <div key={si} {...(isHighlit ? { "data-hpid": p.id } : {})}>
+                    <ProductCard product={p} size={48} highlight={isHighlit}
+                      onRemove={canEdit ? () => onRemove(shelf.id, ti, si) : undefined} />
+                  </div>
                 );
                 return (
                   <EmptySlot key={si} size={48}
@@ -1401,10 +1413,13 @@ function SectionView({ section, products, selectedPid, highlightPid, canEdit, on
                     <div style={{ display: "flex", gap: 5, flexWrap: "nowrap", overflowX: "auto", paddingBottom: 2 }}>
                       {row.products.map((pid, si) => {
                         const p = pid && typeof pid === "string" ? products.find(x => x.id === pid) ?? null : null;
+                        const isHighlit = pid === highlightPid;
                         if (p) return (
-                          <ProductCard key={si} product={p} variant="label"
-                            highlight={pid === highlightPid}
-                            onRemove={canEdit ? () => onRemove(section.id, sub.id, ri, si) : undefined} />
+                          <div key={si} {...(isHighlit ? { "data-hpid": p.id } : {})}>
+                            <ProductCard product={p} variant="label"
+                              highlight={isHighlit}
+                              onRemove={canEdit ? () => onRemove(section.id, sub.id, ri, si) : undefined} />
+                          </div>
                         );
                         return (
                           <EmptySlot key={si} size={emptySize}
