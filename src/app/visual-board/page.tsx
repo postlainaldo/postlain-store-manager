@@ -11,6 +11,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { useStore } from "@/store/useStore";
 import type { Product, StoreSection, WarehouseShelf } from "@/types";
+import "barcode-detector/polyfill";
 import { parseMCFromNotes, parseSeasonFromNotes, colorCodeToHex } from "@/lib/categoryMapping";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -511,7 +512,7 @@ function QRScanner({
   }, [scanning, lastCode, onResult]);
 
   useEffect(() => {
-    if (open && !ios) startCamera();
+    if (open) startCamera();
     return () => stop();
   }, [open]); // eslint-disable-line
 
@@ -537,61 +538,21 @@ function QRScanner({
           </button>
         </div>
 
-        {/* iOS: photo capture */}
-        {ios && (
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
-            <input ref={iosFileRef} type="file" accept="image/*" capture="environment"
-              style={{ display: "none" }} onChange={handleIosFile} />
-            <div style={{
-              width: "100%", aspectRatio: "16/9", borderRadius: 16,
-              background: "linear-gradient(135deg,#0c1a2e,#1e3a5f)",
-              display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8,
-              border: "2px dashed rgba(201,165,90,0.4)",
-            }}>
-              <Camera size={28} style={{ color: "#C9A55A", opacity: 0.8 }} />
-              <p style={{ fontSize: 11, color: "#7dd3fc", textAlign: "center" }}>Chụp ảnh mã vạch bằng camera</p>
-              <p style={{ fontSize: 9, color: "#475569" }}>QR · EAN-13 · Code-128 · UPC</p>
+        {/* Video stream (all platforms — iOS via BarcodeDetector polyfill) */}
+        <div style={{ borderRadius: 16, overflow: "hidden", background: "#000", position: "relative", aspectRatio: "16/9" }}>
+          <video ref={videoRef} muted playsInline style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+          <canvas ref={canvasRef} style={{ display: "none" }} />
+          {scanning && (
+            <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}>
+              <div style={{ width: "60%", aspectRatio: "3/2", border: "2px solid rgba(201,165,90,0.8)", borderRadius: 12, boxShadow: "0 0 0 1000px rgba(0,0,0,0.4)" }} />
             </div>
-            <motion.button whileTap={{ scale: 0.96 }}
-              onClick={() => { setIosError(null); setLastCode(null); iosFileRef.current?.click(); }}
-              disabled={iosDecoding}
-              style={{
-                width: "100%", height: 44, borderRadius: 12, border: "none",
-                background: iosDecoding ? "rgba(255,255,255,0.1)" : "linear-gradient(135deg,#0ea5e9,#0284c7)",
-                color: "#fff", fontSize: 13, fontWeight: 700,
-                cursor: iosDecoding ? "not-allowed" : "pointer",
-                display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                fontFamily: "inherit",
-              }}
-            >
-              <Camera size={15} />
-              {iosDecoding ? "Đang đọc mã..." : "Mở Camera"}
-            </motion.button>
-            {iosError && (
-              <div style={{ width: "100%", padding: "8px 12px", borderRadius: 10, background: "rgba(201,165,90,0.12)", border: "1px solid rgba(201,165,90,0.35)" }}>
-                <p style={{ fontSize: 10, color: "#C9A55A" }}>{iosError}</p>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Android/Desktop: video stream */}
-        {!ios && (
-          <div style={{ borderRadius: 16, overflow: "hidden", background: "#000", position: "relative", aspectRatio: "16/9" }}>
-            <video ref={videoRef} muted playsInline style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
-            <canvas ref={canvasRef} style={{ display: "none" }} />
-            {scanning && (
-              <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}>
-                <div style={{ width: "60%", aspectRatio: "3/2", border: "2px solid rgba(201,165,90,0.8)", borderRadius: 12, boxShadow: "0 0 0 1000px rgba(0,0,0,0.4)" }} />
-              </div>
-            )}
-            {!scanning && !camError && (
-              <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <Camera size={32} style={{ color: "rgba(255,255,255,0.3)" }} />
-              </div>
-            )}
-          </div>
-        )}
+          )}
+          {!scanning && !camError && (
+            <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Camera size={32} style={{ color: "rgba(255,255,255,0.3)" }} />
+            </div>
+          )}
+        </div>
 
         {camError && (
           <div style={{ display: "flex", gap: 8, alignItems: "center", padding: "10px 14px", borderRadius: 10, background: "rgba(220,38,38,0.15)", border: "1px solid rgba(220,38,38,0.3)" }}>
@@ -618,7 +579,7 @@ function QRScanner({
           </div>
         )}
 
-        {scanning && !ios && (
+        {scanning && (
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
             <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#C9A55A", animation: "pulse 1.2s ease-in-out infinite" }} />
             <span style={{ fontSize: 10, color: "#94a3b8" }}>Đang quét...</span>

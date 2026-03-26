@@ -7,6 +7,7 @@ import {
   Check, AlertTriangle, ScanLine,
 } from "lucide-react";
 import { useStore } from "@/store/useStore";
+import "barcode-detector/polyfill";
 
 type Product = {
   id: string; name: string; sku: string | null;
@@ -323,7 +324,7 @@ export default function QRScannerModal({ open, onClose }: Props) {
       setFound(null); setNotFound(null); setDone(false);
       setManualInput(""); setCameraError(null); setQty(1);
       setMode("scan");
-      if (!ios) startCamera();
+      startCamera();
     } else {
       stopCamera();
     }
@@ -335,7 +336,7 @@ export default function QRScannerModal({ open, onClose }: Props) {
     if (mode === "manual") {
       stopCamera();
       setTimeout(() => inputRef.current?.focus(), 80);
-    } else if (!ios) {
+    } else {
       startCamera();
     }
   }, [mode]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -455,51 +456,8 @@ export default function QRScannerModal({ open, onClose }: Props) {
 
           <div style={{ padding: "16px 20px", display: "flex", flexDirection: "column", gap: 14 }}>
 
-            {/* iOS: photo-based barcode capture */}
-            {mode === "scan" && ios && (
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
-                <input
-                  ref={iosFileRef}
-                  type="file"
-                  accept="image/*"
-                  capture="environment"
-                  style={{ display: "none" }}
-                  onChange={handleIosFile}
-                />
-                <div style={{
-                  width: "100%", aspectRatio: "4/3", borderRadius: 12,
-                  background: "linear-gradient(135deg,#0c1a2e,#1e3a5f)",
-                  display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10,
-                  border: "2px dashed rgba(201,165,90,0.4)",
-                }}>
-                  <Camera size={32} style={{ color: "#C9A55A", opacity: 0.8 }} />
-                  <p style={{ fontSize: 12, color: "#7dd3fc", textAlign: "center", padding: "0 16px" }}>
-                    Chụp ảnh mã vạch bằng camera
-                  </p>
-                  <p style={{ fontSize: 9, color: "#475569", textAlign: "center" }}>
-                    QR · EAN-13 · Code-128 · UPC
-                  </p>
-                </div>
-                <motion.button
-                  whileTap={{ scale: 0.96 }}
-                  onClick={() => iosFileRef.current?.click()}
-                  disabled={iosDecoding}
-                  style={{
-                    width: "100%", height: 46, borderRadius: 12, border: "none",
-                    background: iosDecoding ? "#e2e8f0" : "linear-gradient(135deg,#0ea5e9,#0284c7)",
-                    color: "#fff", fontSize: 13, fontWeight: 700, cursor: iosDecoding ? "not-allowed" : "pointer",
-                    display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                    boxShadow: iosDecoding ? "none" : "0 4px 14px rgba(14,165,233,0.35)",
-                  }}
-                >
-                  <Camera size={16} />
-                  {iosDecoding ? "Đang đọc mã..." : "Mở Camera"}
-                </motion.button>
-              </div>
-            )}
-
-            {/* Android / Desktop: video stream barcode scan */}
-            {mode === "scan" && !ios && (
+            {/* Video stream barcode scan (all platforms — iOS uses BarcodeDetector polyfill) */}
+            {mode === "scan" && (
               <div style={{ position: "relative", borderRadius: 12, overflow: "hidden", background: "#0c1a2e", aspectRatio: "4/3" }}>
                 <video
                   ref={videoRef}
