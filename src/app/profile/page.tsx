@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Camera, Check, X, Edit2, Phone, FileText,
+  Camera, Check, X, Edit2, Edit3, Phone, FileText,
   Crown, UserCheck, User, Circle, Send,
   Lock, Eye, EyeOff, LogOut, ChevronDown,
   Settings, Users, RefreshCw, Info,
@@ -432,10 +432,15 @@ function ShelvesPanel() {
 }
 
 function UsersPanel() {
-  const { users, currentUser, addUser, removeUser, updateUser, fetchUsersFromDb } = useStore();
+  const { users, currentUser, removeUser, updateUser, fetchUsersFromDb } = useStore();
   const [showAdd, setShowAdd] = useState(false);
   const [newUser, setNewUser] = useState({ name: "", username: "", password: "", role: "staff" as UserRole });
   const [addMsg, setAddMsg] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState({ name: "", role: "staff" as UserRole, password: "" });
+  const [editMsg, setEditMsg] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+
   const handleAdd = async () => {
     if (!newUser.name.trim() || !newUser.username.trim() || !newUser.password.trim()) { setAddMsg("Điền đầy đủ thông tin"); return; }
     if (users.find(u => u.email === newUser.username.trim())) { setAddMsg("Tên đăng nhập đã tồn tại"); return; }
@@ -446,11 +451,31 @@ function UsersPanel() {
     await fetchUsersFromDb();
     setTimeout(() => { setAddMsg(null); setShowAdd(false); setNewUser({ name: "", username: "", password: "", role: "staff" }); }, 1200);
   };
+
   const handleToggleActive = async (u: AppUser) => {
     const body = { id: u.id, name: u.name, username: u.email, role: u.role, active: !u.active };
     await fetch("/api/auth", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
     updateUser(u.id, { active: !u.active });
   };
+
+  const handleEditSave = async (u: AppUser) => {
+    if (!editForm.name.trim()) { setEditMsg("Tên không được trống"); return; }
+    const body: Record<string, unknown> = { id: u.id, name: editForm.name.trim(), username: u.email, role: editForm.role, active: u.active };
+    if (editForm.password.trim()) body.password = editForm.password.trim();
+    const res = await fetch("/api/auth", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    if (!res.ok) { setEditMsg("Lỗi cập nhật"); return; }
+    updateUser(u.id, { name: editForm.name.trim(), role: editForm.role });
+    setEditMsg("Đã lưu");
+    setTimeout(() => { setEditMsg(null); setEditingId(null); }, 1000);
+  };
+
+  const handleDelete = async (u: AppUser) => {
+    const res = await fetch("/api/auth", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: u.id }) });
+    if (!res.ok) return;
+    removeUser(u.id);
+    setConfirmDeleteId(null);
+  };
+
   return (
     <PremiumCard title="NGƯỜI DÙNG" icon={Users} iconColor="#C9A55A" accentColor="#C9A55A">
       <div style={{ padding: "4px 20px 12px" }}>
@@ -458,27 +483,75 @@ function UsersPanel() {
           const rcfg = ROLE_CFG[u.role] ?? ROLE_CFG.staff;
           const RIcon = rcfg.icon;
           const isMe = u.id === currentUser?.id;
+          const isEditing = editingId === u.id;
+          const isConfirmDelete = confirmDeleteId === u.id;
           return (
-            <div key={u.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 0", borderBottom: "1px solid var(--border-subtle)" }}>
-              <div style={{ width: 30, height: 30, borderRadius: "50%", background: `linear-gradient(135deg, ${rcfg.color}20, ${rcfg.color}08)`, border: `1.5px solid ${rcfg.color}30`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                <span style={{ fontSize: 11, fontWeight: 700, color: rcfg.color }}>{u.name.slice(0,1).toUpperCase()}</span>
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                  <span style={{ fontSize: 11, fontWeight: 600, color: "var(--text-primary)" }}>{u.name}</span>
-                  {isMe && <span style={{ fontSize: 7, color: "#0ea5e9", background: "rgba(14,165,233,0.1)", padding: "1px 5px", borderRadius: 10, fontWeight: 700 }}>BẠN</span>}
+            <div key={u.id} style={{ borderBottom: "1px solid var(--border-subtle)" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 0" }}>
+                <div style={{ width: 30, height: 30, borderRadius: "50%", background: `linear-gradient(135deg, ${rcfg.color}20, ${rcfg.color}08)`, border: `1.5px solid ${rcfg.color}30`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: rcfg.color }}>{u.name.slice(0,1).toUpperCase()}</span>
                 </div>
-                <span style={{ fontSize: 8, color: "var(--text-muted)" }}>@{u.email}</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                    <span style={{ fontSize: 11, fontWeight: 600, color: "var(--text-primary)" }}>{u.name}</span>
+                    {isMe && <span style={{ fontSize: 7, color: "#0ea5e9", background: "rgba(14,165,233,0.1)", padding: "1px 5px", borderRadius: 10, fontWeight: 700 }}>BẠN</span>}
+                  </div>
+                  <span style={{ fontSize: 8, color: "var(--text-muted)" }}>@{u.email}</span>
+                </div>
+                <div style={{ padding: "2px 8px", borderRadius: 20, background: `${rcfg.color}12`, border: `1px solid ${rcfg.color}25`, display: "flex", alignItems: "center", gap: 3 }}>
+                  <RIcon size={8} style={{ color: rcfg.color }} />
+                  <span style={{ fontSize: 7.5, fontWeight: 700, color: rcfg.color }}>{rcfg.label}</span>
+                </div>
+                {!isMe && (
+                  <>
+                    <motion.button whileTap={{ scale: 0.94 }} onClick={() => handleToggleActive(u)}
+                      style={{ padding: "3px 10px", borderRadius: 20, border: `1px solid ${u.active ? "rgba(16,185,129,0.3)" : "rgba(148,163,184,0.3)"}`, background: u.active ? "rgba(16,185,129,0.08)" : "rgba(148,163,184,0.06)", color: u.active ? "#10b981" : "#94a3b8", fontSize: 7.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                      {u.active ? "BẬT" : "TẮT"}
+                    </motion.button>
+                    <motion.button whileTap={{ scale: 0.94 }}
+                      onClick={() => { setEditingId(isEditing ? null : u.id); setEditForm({ name: u.name, role: u.role as UserRole, password: "" }); setEditMsg(null); setConfirmDeleteId(null); }}
+                      style={{ width: 26, height: 26, borderRadius: 7, border: `1px solid ${isEditing ? "#0ea5e9" : "var(--border)"}`, background: isEditing ? "rgba(14,165,233,0.1)" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+                      <Edit3 size={11} style={{ color: isEditing ? "#0ea5e9" : "#64748b" }} />
+                    </motion.button>
+                    <motion.button whileTap={{ scale: 0.94 }}
+                      onClick={() => { setConfirmDeleteId(isConfirmDelete ? null : u.id); setEditingId(null); }}
+                      style={{ width: 26, height: 26, borderRadius: 7, border: `1px solid ${isConfirmDelete ? "rgba(220,38,38,0.4)" : "var(--border)"}`, background: isConfirmDelete ? "rgba(220,38,38,0.08)" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+                      <Trash2 size={11} style={{ color: isConfirmDelete ? "#dc2626" : "#94a3b8" }} />
+                    </motion.button>
+                  </>
+                )}
               </div>
-              <div style={{ padding: "2px 8px", borderRadius: 20, background: `${rcfg.color}12`, border: `1px solid ${rcfg.color}25`, display: "flex", alignItems: "center", gap: 3 }}>
-                <RIcon size={8} style={{ color: rcfg.color }} />
-                <span style={{ fontSize: 7.5, fontWeight: 700, color: rcfg.color }}>{rcfg.label}</span>
-              </div>
-              {!isMe && (
-                <motion.button whileTap={{ scale: 0.94 }} onClick={() => handleToggleActive(u)}
-                  style={{ padding: "3px 10px", borderRadius: 20, border: `1px solid ${u.active ? "rgba(16,185,129,0.3)" : "rgba(148,163,184,0.3)"}`, background: u.active ? "rgba(16,185,129,0.08)" : "rgba(148,163,184,0.06)", color: u.active ? "#10b981" : "#94a3b8", fontSize: 7.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-                  {u.active ? "BẬT" : "TẮT"}
-                </motion.button>
+
+              {/* Edit form */}
+              {isEditing && (
+                <div style={{ marginBottom: 10, padding: 12, borderRadius: 10, background: "var(--bg-base)", border: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 7 }}>
+                  {editMsg && <div style={{ padding: "5px 8px", borderRadius: 7, background: editMsg === "Đã lưu" ? "rgba(16,185,129,0.08)" : "rgba(220,38,38,0.06)", fontSize: 10, color: editMsg === "Đã lưu" ? "#10b981" : "#dc2626" }}>{editMsg}</div>}
+                  <input value={editForm.name} onChange={e => setEditForm(v => ({ ...v, name: e.target.value }))}
+                    placeholder="Tên hiển thị"
+                    style={{ background: "#fff", border: "1px solid var(--border)", borderRadius: 8, padding: "6px 10px", fontSize: 11, color: "var(--text-primary)", outline: "none", fontFamily: "inherit" }} />
+                  <select value={editForm.role} onChange={e => setEditForm(v => ({ ...v, role: e.target.value as UserRole }))}
+                    style={{ background: "#fff", border: "1px solid var(--border)", borderRadius: 8, padding: "6px 10px", fontSize: 11, color: "var(--text-primary)", outline: "none", fontFamily: "inherit" }}>
+                    <option value="staff">Nhân Viên</option>
+                    <option value="manager">Quản Lý</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                  <input type="password" value={editForm.password} onChange={e => setEditForm(v => ({ ...v, password: e.target.value }))}
+                    placeholder="Mật khẩu mới (để trống = giữ nguyên)"
+                    style={{ background: "#fff", border: "1px solid var(--border)", borderRadius: 8, padding: "6px 10px", fontSize: 11, color: "var(--text-primary)", outline: "none", fontFamily: "inherit" }} />
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <button onClick={() => handleEditSave(u)} style={{ flex: 1, padding: "7px", borderRadius: 8, border: "none", background: "#0ea5e9", color: "#fff", fontSize: 9, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>LƯU</button>
+                    <button onClick={() => setEditingId(null)} style={{ padding: "7px 12px", borderRadius: 8, border: "1px solid var(--border)", background: "transparent", color: "var(--text-muted)", fontSize: 9, cursor: "pointer", fontFamily: "inherit" }}>HỦY</button>
+                  </div>
+                </div>
+              )}
+
+              {/* Delete confirm */}
+              {isConfirmDelete && (
+                <div style={{ marginBottom: 10, padding: "10px 12px", borderRadius: 10, background: "rgba(220,38,38,0.06)", border: "1px solid rgba(220,38,38,0.2)", display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ flex: 1, fontSize: 10, color: "#dc2626" }}>Xóa tài khoản <strong>{u.name}</strong>?</span>
+                  <button onClick={() => handleDelete(u)} style={{ padding: "5px 12px", borderRadius: 7, border: "none", background: "#dc2626", color: "#fff", fontSize: 9, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>XÓA</button>
+                  <button onClick={() => setConfirmDeleteId(null)} style={{ padding: "5px 10px", borderRadius: 7, border: "1px solid var(--border)", background: "transparent", color: "var(--text-muted)", fontSize: 9, cursor: "pointer", fontFamily: "inherit" }}>HỦY</button>
+                </div>
               )}
             </div>
           );

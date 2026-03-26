@@ -297,6 +297,13 @@ function EmptySlot({
   );
 }
 
+// ─── iOS detection ────────────────────────────────────────────────────────────
+function isIOS() {
+  if (typeof navigator === "undefined") return false;
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+}
+
 // ─── QR Scanner ───────────────────────────────────────────────────────────────
 function QRScanner({
   open, onClose, onResult, slotLabel, notFound,
@@ -305,14 +312,18 @@ function QRScanner({
   onResult: (code: string) => void;
   slotLabel?: string; notFound?: string | null;
 }) {
+  const ios = isIOS();
   const [scanning, setScanning] = useState(false);
   const [camError, setCamError] = useState<string | null>(null);
   const [lastCode, setLastCode] = useState<string | null>(null);
+  const [iosDecoding, setIosDecoding] = useState(false);
+  const [iosError, setIosError] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const rafRef = useRef<number | null>(null);
   const lockRef = useRef(false);
+  const iosFileRef = useRef<HTMLInputElement>(null);
 
   const stop = useCallback(() => {
     if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = null; }
@@ -340,7 +351,85 @@ function QRScanner({
     }
   }, []);
 
-  // Detection loop
+  // iOS: decode barcode from photo
+  const handleIosFile = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIosDecoding(true);
+    setIosError(null);
+    setLastCode(null);
+
+    const loadImage = (f: File): Promise<HTMLImageElement> =>
+      new Promise((res, rej) => {
+        const img = new Image();
+        img.onload = () => res(img);
+        img.onerror = rej;
+        img.src = URL.createObjectURL(f);
+      });
+
+    const prepareCanvas = (img: HTMLImageElement): HTMLCanvasElement => {
+      const MAX = 1200;
+      let w = img.naturalWidth, h = img.naturalHeight;
+      if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; }
+      const c = document.createElement("canvas");
+      c.width = w; c.height = h;
+      c.getContext("2d")!.drawImage(img, 0, 0, w, h);
+      return c;
+    };
+
+    try {
+      const img = await loadImage(file);
+      const canvas = prepareCanvas(img);
+      URL.revokeObjectURL(img.src);
+      const ctx = canvas.getContext("2d")!;
+
+      let code: string | null = null;
+
+      // 1. jsqr for QR codes
+      if (!code) {
+        try {
+          const mod = await import("jsqr");
+          type JsQRFn = (d: Uint8ClampedArray, w: number, h: number) => { data: string } | null;
+          const jsQR = mod.default as unknown as JsQRFn;
+          const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          const result = jsQR(imgData.data, canvas.width, canvas.height);
+          if (result?.data) code = result.data;
+        } catch { /* not available */ }
+      }
+
+      // 2. zxing library — direct canvas decode, no DOM needed
+      if (!code) {
+        try {
+          const zxing = await import("@zxing/library");
+          const { MultiFormatReader, BinaryBitmap, HybridBinarizer, RGBLuminanceSource } = zxing;
+          const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          const len = canvas.width * canvas.height;
+          const luminance = new Uint8ClampedArray(len);
+          for (let i = 0; i < len; i++) {
+            luminance[i] = Math.round(0.299 * imgData.data[i*4] + 0.587 * imgData.data[i*4+1] + 0.114 * imgData.data[i*4+2]);
+          }
+          const source = new RGBLuminanceSource(luminance, canvas.width, canvas.height);
+          const bitmap = new BinaryBitmap(new HybridBinarizer(source));
+          const result = new MultiFormatReader().decode(bitmap);
+          if (result) code = result.getText();
+        } catch { /* NotFoundException is normal */ }
+      }
+
+      if (code) {
+        setLastCode(code);
+        onResult(code);
+      } else {
+        setIosError("Không đọc được mã — chụp sát và rõ hơn");
+      }
+    } catch {
+      setIosError("Lỗi đọc ảnh — thử lại");
+    } finally {
+      setIosDecoding(false);
+      if (iosFileRef.current) iosFileRef.current.value = "";
+    }
+  }, [onResult]);
+
+  // Detection loop (non-iOS)
   useEffect(() => {
     if (!scanning) return;
     let nativeDetector: { detect: (v: HTMLVideoElement) => Promise<{ rawValue: string }[]> } | null = null;
@@ -422,7 +511,7 @@ function QRScanner({
   }, [scanning, lastCode, onResult]);
 
   useEffect(() => {
-    if (open) startCamera();
+    if (open && !ios) startCamera();
     return () => stop();
   }, [open]); // eslint-disable-line
 
@@ -448,20 +537,61 @@ function QRScanner({
           </button>
         </div>
 
-        <div style={{ borderRadius: 16, overflow: "hidden", background: "#000", position: "relative", aspectRatio: "16/9" }}>
-          <video ref={videoRef} muted playsInline style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
-          <canvas ref={canvasRef} style={{ display: "none" }} />
-          {scanning && (
-            <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}>
-              <div style={{ width: "60%", aspectRatio: "3/2", border: "2px solid rgba(201,165,90,0.8)", borderRadius: 12, boxShadow: "0 0 0 1000px rgba(0,0,0,0.4)" }} />
+        {/* iOS: photo capture */}
+        {ios && (
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
+            <input ref={iosFileRef} type="file" accept="image/*" capture="environment"
+              style={{ display: "none" }} onChange={handleIosFile} />
+            <div style={{
+              width: "100%", aspectRatio: "16/9", borderRadius: 16,
+              background: "linear-gradient(135deg,#0c1a2e,#1e3a5f)",
+              display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8,
+              border: "2px dashed rgba(201,165,90,0.4)",
+            }}>
+              <Camera size={28} style={{ color: "#C9A55A", opacity: 0.8 }} />
+              <p style={{ fontSize: 11, color: "#7dd3fc", textAlign: "center" }}>Chụp ảnh mã vạch bằng camera</p>
+              <p style={{ fontSize: 9, color: "#475569" }}>QR · EAN-13 · Code-128 · UPC</p>
             </div>
-          )}
-          {!scanning && !camError && (
-            <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <Camera size={32} style={{ color: "rgba(255,255,255,0.3)" }} />
-            </div>
-          )}
-        </div>
+            <motion.button whileTap={{ scale: 0.96 }}
+              onClick={() => { setIosError(null); setLastCode(null); iosFileRef.current?.click(); }}
+              disabled={iosDecoding}
+              style={{
+                width: "100%", height: 44, borderRadius: 12, border: "none",
+                background: iosDecoding ? "rgba(255,255,255,0.1)" : "linear-gradient(135deg,#0ea5e9,#0284c7)",
+                color: "#fff", fontSize: 13, fontWeight: 700,
+                cursor: iosDecoding ? "not-allowed" : "pointer",
+                display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                fontFamily: "inherit",
+              }}
+            >
+              <Camera size={15} />
+              {iosDecoding ? "Đang đọc mã..." : "Mở Camera"}
+            </motion.button>
+            {iosError && (
+              <div style={{ width: "100%", padding: "8px 12px", borderRadius: 10, background: "rgba(201,165,90,0.12)", border: "1px solid rgba(201,165,90,0.35)" }}>
+                <p style={{ fontSize: 10, color: "#C9A55A" }}>{iosError}</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Android/Desktop: video stream */}
+        {!ios && (
+          <div style={{ borderRadius: 16, overflow: "hidden", background: "#000", position: "relative", aspectRatio: "16/9" }}>
+            <video ref={videoRef} muted playsInline style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+            <canvas ref={canvasRef} style={{ display: "none" }} />
+            {scanning && (
+              <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}>
+                <div style={{ width: "60%", aspectRatio: "3/2", border: "2px solid rgba(201,165,90,0.8)", borderRadius: 12, boxShadow: "0 0 0 1000px rgba(0,0,0,0.4)" }} />
+              </div>
+            )}
+            {!scanning && !camError && (
+              <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <Camera size={32} style={{ color: "rgba(255,255,255,0.3)" }} />
+              </div>
+            )}
+          </div>
+        )}
 
         {camError && (
           <div style={{ display: "flex", gap: 8, alignItems: "center", padding: "10px 14px", borderRadius: 10, background: "rgba(220,38,38,0.15)", border: "1px solid rgba(220,38,38,0.3)" }}>
@@ -488,7 +618,7 @@ function QRScanner({
           </div>
         )}
 
-        {scanning && (
+        {scanning && !ios && (
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
             <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#C9A55A", animation: "pulse 1.2s ease-in-out infinite" }} />
             <span style={{ fontSize: 10, color: "#94a3b8" }}>Đang quét...</span>
