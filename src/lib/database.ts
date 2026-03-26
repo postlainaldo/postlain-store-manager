@@ -311,6 +311,21 @@ function migrateSchema(db: Database.Database) {
     );
     CREATE INDEX IF NOT EXISTS idx_daily_reports_date ON daily_reports(date);
   `);
+
+  // ── attendance (check in / check out) ──────────────────────────────────────
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS attendance (
+      id          TEXT PRIMARY KEY,
+      userId      TEXT NOT NULL,
+      userName    TEXT NOT NULL,
+      checkIn     TEXT NOT NULL,
+      checkOut    TEXT,
+      note        TEXT NOT NULL DEFAULT '',
+      createdAt   TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_attendance_user    ON attendance(userId);
+    CREATE INDEX IF NOT EXISTS idx_attendance_checkin ON attendance(checkIn DESC);
+  `);
 }
 
 function colNames(db: Database.Database, table: string): string[] {
