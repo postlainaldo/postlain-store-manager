@@ -810,11 +810,12 @@ function PickerContent({
 }
 
 // ─── Display Tab ──────────────────────────────────────────────────────────────
-function DisplayTab({ products, storeSections, placeInSection, highlightPid, canEdit, sectionIdx, onSectionChange }: {
+function DisplayTab({ products, storeSections, placeInSection, highlightPid, canEdit, sectionIdx, onSectionChange, subsectionIdx, onSubsectionChange }: {
   products: Product[]; storeSections: StoreSection[];
   placeInSection: (sId: string, subId: string, ri: number, si: number, pid: string | null) => void;
   highlightPid: string | null; canEdit: boolean;
   sectionIdx: number; onSectionChange: (i: number) => void;
+  subsectionIdx: number; onSubsectionChange: (i: number) => void;
 }) {
   const [selectedPid, setSelectedPid] = useState<string | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -964,6 +965,7 @@ function DisplayTab({ products, storeSections, placeInSection, highlightPid, can
                   section={currentSection} products={products}
                   selectedPid={selectedPid} highlightPid={highlightPid}
                   canEdit={canEdit}
+                  subsectionIdx={subsectionIdx} onSubsectionChange={onSubsectionChange}
                   onPlace={handlePlace} onScanToPlace={handleScanToPlace}
                   onRemove={(sId, subId, ri, si) => canEdit && placeInSection(sId, subId, ri, si, null)}
                 />
@@ -1350,70 +1352,103 @@ function ShelfView({ shelf, products, selectedPid, highlightPid, canEdit, onPlac
   );
 }
 
-function SectionView({ section, products, selectedPid, highlightPid, canEdit, onPlace, onScanToPlace, onRemove }: {
+function SectionView({ section, products, selectedPid, highlightPid, canEdit, subsectionIdx, onSubsectionChange, onPlace, onScanToPlace, onRemove }: {
   section: StoreSection; products: Product[];
   selectedPid: string | null; highlightPid: string | null;
   canEdit: boolean;
+  subsectionIdx: number; onSubsectionChange: (i: number) => void;
   onPlace: (sId: string, subId: string, ri: number, si: number) => void;
   onScanToPlace: (sId: string, subId: string, ri: number, si: number) => void;
   onRemove: (sId: string, subId: string, ri: number, si: number) => void;
 }) {
   const cfg = ZONE_CFG[section.sectionType] ?? ZONE_CFG.window;
+  const subs = section.subsections;
+  const clampedSub = Math.min(subsectionIdx, Math.max(0, subs.length - 1));
+  const sub = subs[clampedSub];
+  if (!sub) return null;
+
+  const filled = sub.rows.reduce((s, r) => s + r.products.filter(Boolean).length, 0);
+  const total = sub.rows.reduce((s, r) => s + r.products.length, 0);
+  const pct = total > 0 ? (filled / total) * 100 : 0;
+
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-      {section.subsections.map(sub => {
-        const filled = sub.rows.reduce((s, r) => s + r.products.filter(Boolean).length, 0);
-        const total = sub.rows.reduce((s, r) => s + r.products.length, 0);
-        const pct = total > 0 ? (filled / total) * 100 : 0;
-        return (
-          <div key={sub.id} style={{ background: "#fff", border: `1px solid ${cfg.color}30`, borderRadius: 14, overflow: "visible", boxShadow: `0 2px 10px ${cfg.color}08` }}>
-            <div style={{ padding: "8px 12px", background: `linear-gradient(to right, ${cfg.bg}, transparent)`, borderBottom: `1px solid ${cfg.color}20`, display: "flex", alignItems: "center", gap: 8 }}>
-              <p style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.14em", color: cfg.color, flex: 1 }}>{sub.name}</p>
-              <span style={{ fontSize: 8, color: cfg.color, opacity: 0.7 }}>{filled}/{total}</span>
-              <div style={{ width: 40, height: 3, borderRadius: 2, background: `${cfg.color}22`, overflow: "hidden" }}>
-                <div style={{ height: "100%", width: `${pct}%`, background: cfg.color, borderRadius: 2, transition: "width 0.3s" }} />
-              </div>
-            </div>
-            <div style={{ padding: "8px 12px 10px", display: "flex", flexDirection: "column", gap: 8, overflow: "visible" }}>
-              {[...sub.rows].reverse().map((row, revIdx) => {
-                const ri = sub.rows.length - 1 - revIdx;
-                if (row.type === "image") return (
-                  <div key={ri} style={{ height: 16, borderRadius: 6, background: "#f0f9ff", display: "flex", alignItems: "center", paddingLeft: 8 }}>
-                    <span style={{ fontSize: 7, color: "#94a3b8", letterSpacing: "0.2em" }}>TRANH / DECOR</span>
-                  </div>
-                );
-                const emptySize = row.type === "long" ? 52 : 44;
-                return (
-                  <div key={ri} style={{ display: "flex", alignItems: "flex-start", gap: 5 }}>
-                    <span style={{ fontSize: 7, width: 20, flexShrink: 0, color: "#94a3b8", fontFamily: "monospace", textAlign: "right", paddingTop: 8 }}>
-                      {row.type === "long" ? "D" : "N"}
-                    </span>
-                    <div style={{ display: "flex", gap: 5, flexWrap: "nowrap", overflowX: "auto", paddingBottom: 2 }}>
-                      {row.products.map((pid, si) => {
-                        const p = pid && typeof pid === "string" ? products.find(x => x.id === pid) ?? null : null;
-                        const isHighlit = pid === highlightPid;
-                        if (p) return (
-                          <div key={si} {...(isHighlit ? { "data-hpid": p.id } : {})}>
-                            <ProductCard product={p} variant="label"
-                              highlight={isHighlit}
-                              onRemove={canEdit ? () => onRemove(section.id, sub.id, ri, si) : undefined} />
-                          </div>
-                        );
-                        return (
-                          <EmptySlot key={si} size={emptySize}
-                            canPlace={canEdit && !!selectedPid} canScan={canEdit && !selectedPid}
-                            onPlace={() => onPlace(section.id, sub.id, ri, si)}
-                            onScan={() => onScanToPlace(section.id, sub.id, ri, si)} />
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })}
+    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      {/* Subsection navigator — only show if >1 subsection */}
+      {subs.length > 1 && (
+        <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+          <button
+            onClick={() => onSubsectionChange(Math.max(0, clampedSub - 1))}
+            disabled={clampedSub === 0}
+            style={{ width: 28, height: 28, borderRadius: 8, border: `1px solid ${cfg.color}40`, background: clampedSub === 0 ? "#f8fafc" : "#fff", cursor: clampedSub === 0 ? "default" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <ChevronLeft size={13} style={{ color: clampedSub === 0 ? "#cbd5e1" : cfg.color }} />
+          </button>
+          <div style={{ flex: 1, display: "flex", gap: 4, flexWrap: "wrap" }}>
+            {subs.map((s, i) => (
+              <button key={s.id} onClick={() => onSubsectionChange(i)}
+                style={{ padding: "3px 10px", borderRadius: 20, border: `1px solid ${i === clampedSub ? cfg.color : cfg.color + "30"}`, background: i === clampedSub ? cfg.color : "transparent", color: i === clampedSub ? "#fff" : cfg.color, fontSize: 9, fontWeight: 700, cursor: "pointer", letterSpacing: "0.08em", transition: "all 0.15s" }}>
+                {s.name}
+              </button>
+            ))}
+          </div>
+          <button
+            onClick={() => onSubsectionChange(Math.min(subs.length - 1, clampedSub + 1))}
+            disabled={clampedSub === subs.length - 1}
+            style={{ width: 28, height: 28, borderRadius: 8, border: `1px solid ${cfg.color}40`, background: clampedSub === subs.length - 1 ? "#f8fafc" : "#fff", cursor: clampedSub === subs.length - 1 ? "default" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <ChevronRight size={13} style={{ color: clampedSub === subs.length - 1 ? "#cbd5e1" : cfg.color }} />
+          </button>
+        </div>
+      )}
+
+      {/* Single subsection card */}
+      <AnimatePresence initial={false}>
+        <motion.div key={sub.id} initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -12 }} transition={{ duration: 0.15 }}
+          style={{ background: "#fff", border: `1px solid ${cfg.color}30`, borderRadius: 14, overflow: "visible", boxShadow: `0 2px 10px ${cfg.color}08` }}>
+          <div style={{ padding: "8px 12px", background: `linear-gradient(to right, ${cfg.bg}, transparent)`, borderBottom: `1px solid ${cfg.color}20`, display: "flex", alignItems: "center", gap: 8 }}>
+            <p style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.14em", color: cfg.color, flex: 1 }}>{sub.name}</p>
+            <span style={{ fontSize: 8, color: cfg.color, opacity: 0.7 }}>{filled}/{total}</span>
+            <div style={{ width: 40, height: 3, borderRadius: 2, background: `${cfg.color}22`, overflow: "hidden" }}>
+              <div style={{ height: "100%", width: `${pct}%`, background: cfg.color, borderRadius: 2, transition: "width 0.3s" }} />
             </div>
           </div>
-        );
-      })}
+          <div style={{ padding: "8px 12px 10px", display: "flex", flexDirection: "column", gap: 8, overflow: "visible" }}>
+            {[...sub.rows].reverse().map((row, revIdx) => {
+              const ri = sub.rows.length - 1 - revIdx;
+              if (row.type === "image") return (
+                <div key={ri} style={{ height: 16, borderRadius: 6, background: "#f0f9ff", display: "flex", alignItems: "center", paddingLeft: 8 }}>
+                  <span style={{ fontSize: 7, color: "#94a3b8", letterSpacing: "0.2em" }}>TRANH / DECOR</span>
+                </div>
+              );
+              const emptySize = row.type === "long" ? 52 : 44;
+              return (
+                <div key={ri} style={{ display: "flex", alignItems: "flex-start", gap: 5 }}>
+                  <span style={{ fontSize: 7, width: 20, flexShrink: 0, color: "#94a3b8", fontFamily: "monospace", textAlign: "right", paddingTop: 8 }}>
+                    {row.type === "long" ? "D" : "N"}
+                  </span>
+                  <div style={{ display: "flex", gap: 5, flexWrap: "nowrap", overflowX: "auto", paddingBottom: 2 }}>
+                    {row.products.map((pid, si) => {
+                      const p = pid && typeof pid === "string" ? products.find(x => x.id === pid) ?? null : null;
+                      const isHighlit = pid === highlightPid;
+                      if (p) return (
+                        <div key={si} {...(isHighlit ? { "data-hpid": p.id } : {})}>
+                          <ProductCard product={p} variant="label"
+                            highlight={isHighlit}
+                            onRemove={canEdit ? () => onRemove(section.id, sub.id, ri, si) : undefined} />
+                        </div>
+                      );
+                      return (
+                        <EmptySlot key={si} size={emptySize}
+                          canPlace={canEdit && !!selectedPid} canScan={canEdit && !selectedPid}
+                          onPlace={() => onPlace(section.id, sub.id, ri, si)}
+                          onScan={() => onScanToPlace(section.id, sub.id, ri, si)} />
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </motion.div>
+      </AnimatePresence>
     </div>
   );
 }
@@ -1463,6 +1498,7 @@ export default function VisualBoardPage() {
   const [highlightPid, setHighlightPid] = useState<string | null>(null);
   const [sectionIdx, setSectionIdx] = useState(0);
   const [shelfIdx, setShelfIdx] = useState(0);
+  const [subsectionIdx, setSubsectionIdx] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
 
   // Permission: only admin/manager can edit
@@ -1513,14 +1549,20 @@ export default function VisualBoardPage() {
     } catch { /* noop */ }
   }, []);
 
-  // Switch to the right section/shelf when data loads
+  // Switch to the right section/shelf/subsection when data loads
   useEffect(() => {
     if (!highlightPid) return;
     if (subtab === "display" && storeSections.length > 0) {
-      const idx = storeSections.findIndex(sec =>
+      const secIdx = storeSections.findIndex(sec =>
         sec.subsections.some(sub => sub.rows.some(row => row.products.includes(highlightPid)))
       );
-      if (idx !== -1) setSectionIdx(idx);
+      if (secIdx !== -1) {
+        setSectionIdx(secIdx);
+        const subIdx = storeSections[secIdx].subsections.findIndex(sub =>
+          sub.rows.some(row => row.products.includes(highlightPid))
+        );
+        if (subIdx !== -1) setSubsectionIdx(subIdx);
+      }
     }
     if (subtab === "warehouse" && warehouseShelves.length > 0) {
       const idx = warehouseShelves.findIndex(sh => sh.tiers.some(t => t.includes(highlightPid)));
@@ -1528,21 +1570,41 @@ export default function VisualBoardPage() {
     }
   }, [highlightPid, storeSections, warehouseShelves]); // eslint-disable-line
 
-  // Scroll to highlighted product
+  // Scroll to highlighted product — restarts whenever the visible section/shelf changes
   useEffect(() => {
     if (!highlightPid) return;
+    let intervalId: ReturnType<typeof setInterval> | null = null;
     let attempts = 0;
-    const id = setInterval(() => {
-      const el = document.querySelector(`[data-hpid="${highlightPid}"]`);
-      if (el) {
-        clearInterval(id);
-        el.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
-      } else if (++attempts > 80) {
-        clearInterval(id);
-      }
-    }, 50);
-    return () => clearInterval(id);
-  }, [highlightPid]);
+    const tid = setTimeout(() => {
+      intervalId = setInterval(() => {
+        const el = document.querySelector(`[data-hpid="${highlightPid}"]`) as HTMLElement | null;
+        if (el) {
+          clearInterval(intervalId!);
+          // Find the nearest scrollable ancestor (overflowY: auto/scroll)
+          let scrollable: HTMLElement | null = el.parentElement;
+          while (scrollable) {
+            const { overflowY } = window.getComputedStyle(scrollable);
+            if (overflowY === "auto" || overflowY === "scroll") break;
+            scrollable = scrollable.parentElement;
+          }
+          if (scrollable) {
+            const containerRect = scrollable.getBoundingClientRect();
+            const elRect = el.getBoundingClientRect();
+            const scrollOffset = elRect.top - containerRect.top - containerRect.height / 2 + elRect.height / 2;
+            scrollable.scrollBy({ top: scrollOffset, behavior: "smooth" });
+          } else {
+            el.scrollIntoView({ behavior: "smooth", block: "center" });
+          }
+        } else if (++attempts > 100) {
+          clearInterval(intervalId!);
+        }
+      }, 50);
+    }, 80);
+    return () => {
+      clearTimeout(tid);
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [highlightPid, sectionIdx, shelfIdx, subsectionIdx]);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 8, height: "100%", minHeight: 0 }}>
@@ -1593,7 +1655,7 @@ export default function VisualBoardPage() {
       </div>
 
       {/* Content */}
-      <AnimatePresence mode="wait" initial={false}>
+      <AnimatePresence initial={false}>
         <motion.div key={subtab} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.22 }}
           style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
           {subtab === "display" ? (
@@ -1601,7 +1663,8 @@ export default function VisualBoardPage() {
               products={products} storeSections={storeSections}
               placeInSection={placeInSection} highlightPid={highlightPid}
               canEdit={canEdit}
-              sectionIdx={sectionIdx} onSectionChange={setSectionIdx}
+              sectionIdx={sectionIdx} onSectionChange={idx => { setSectionIdx(idx); setSubsectionIdx(0); }}
+              subsectionIdx={subsectionIdx} onSubsectionChange={setSubsectionIdx}
             />
           ) : (
             <WarehouseTab
