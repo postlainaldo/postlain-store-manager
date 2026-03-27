@@ -53,7 +53,25 @@ export async function GET(req: NextRequest) {
   if (!code) return NextResponse.json({ error: "?code= required" }, { status: 400 });
 
   try {
-    const cookie = await getSession();
+    const ODOO_URL = process.env.ODOO_URL ?? "(not set)";
+    const ODOO_DB  = process.env.ODOO_DB  ?? "(not set)";
+    const ODOO_USERNAME = process.env.ODOO_USERNAME ?? "(not set)";
+
+    let cookie: string;
+    try {
+      cookie = await getSession();
+    } catch (authErr) {
+      return NextResponse.json({
+        error: "Auth failed",
+        detail: String(authErr),
+        env: { ODOO_URL, ODOO_DB, ODOO_USERNAME },
+      }, { status: 500 });
+    }
+
+    // Sanity check: count total active products
+    const totalCount = await callOdoo(cookie, "product.product", "search_count",
+      [[["active", "=", true]]]
+    ).catch((e: unknown) => `error: ${e}`);
 
     // Search by barcode field
     const byBarcode = await callOdoo(cookie, "product.product", "search_read",
@@ -105,6 +123,8 @@ export async function GET(req: NextRequest) {
     ).catch(() => []);
 
     return NextResponse.json({
+      env: { ODOO_URL: process.env.ODOO_URL, ODOO_DB: process.env.ODOO_DB, ODOO_USERNAME: process.env.ODOO_USERNAME },
+      totalActiveProducts: totalCount,
       searchCode: code,
       byBarcode: byBarcode ?? [],
       byDefaultCode: byDefaultCode ?? [],
