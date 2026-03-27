@@ -1343,35 +1343,42 @@ function ShelfView({ shelf, products, selectedPid, highlightPid, canEdit, onPlac
           <div key={ti} style={{ display: "flex", alignItems: "flex-start", gap: 6 }}>
             <span style={{ fontSize: 8, fontWeight: 600, color: "#94a3b8", width: 34, textAlign: "right", flexShrink: 0, paddingTop: 9 }}>{TIER_LABELS[ti]}</span>
             <div style={{ display: "flex", flexWrap: "nowrap", gap: 4, overflowX: "auto", paddingBottom: 2 }}>
-              {tier.map((pid, si) => {
-                const p = pid && typeof pid === "string" ? products.find(x => x.id === pid) ?? null : null;
-                const isHighlit = !!pid && pid === highlightPid;
-                if (p) return (
-                  <div key={si} {...(isHighlit ? { "data-hpid": p.id } : {})}>
-                    <ProductCard product={p} variant="label" highlight={isHighlit}
-                      onRemove={canEdit ? () => onRemove(shelf.id, ti, si) : undefined} />
-                  </div>
-                );
-                // Staff (canEdit=false): hide empty slots
-                if (!canEdit) return null;
-                const canPlace = !!selectedPid;
-                const canScan = !selectedPid;
-                return (
-                  <div key={si}
-                    onClick={() => { if (canPlace) onPlace(shelf.id, ti, si); else if (canScan) onScanToPlace(shelf.id, ti, si); }}
-                    style={{
-                      width: 92, minHeight: 52, borderRadius: 9, flexShrink: 0,
-                      border: `1.5px dashed ${canPlace ? "#0ea5e9" : "#e0f2fe"}`,
-                      background: canPlace ? "rgba(14,165,233,0.05)" : "#f8fafc",
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      cursor: canPlace || canScan ? "pointer" : "default",
-                    }}>
-                    {canPlace
-                      ? <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#0ea5e9", opacity: 0.7 }} />
-                      : <ScanLine size={14} style={{ color: "#cbd5e1" }} />}
-                  </div>
-                );
-              })}
+              {(() => {
+                // Find last filled slot index
+                const lastFilled = tier.reduce((last, pid, i) => (pid ? i : last), -1);
+                // Show all slots up to (lastFilled + 1) — the next empty slot
+                // If no filled slots, show just slot 0 (one empty slot)
+                const showUpTo = Math.min(lastFilled + 1, tier.length - 1);
+                return tier.slice(0, showUpTo + 1).map((pid, si) => {
+                  const p = pid && typeof pid === "string" ? products.find(x => x.id === pid) ?? null : null;
+                  const isHighlit = !!pid && pid === highlightPid;
+                  if (p) return (
+                    <div key={si} {...(isHighlit ? { "data-hpid": p.id } : {})}>
+                      <ProductCard product={p} variant="label" highlight={isHighlit}
+                        onRemove={canEdit ? () => onRemove(shelf.id, ti, si) : undefined} />
+                    </div>
+                  );
+                  // Staff (canEdit=false): hide empty slots
+                  if (!canEdit) return null;
+                  const canPlace = !!selectedPid;
+                  const canScan = !selectedPid;
+                  return (
+                    <div key={si}
+                      onClick={() => { if (canPlace) onPlace(shelf.id, ti, si); else if (canScan) onScanToPlace(shelf.id, ti, si); }}
+                      style={{
+                        width: 92, minHeight: 52, borderRadius: 9, flexShrink: 0,
+                        border: `1.5px dashed ${canPlace ? "#0ea5e9" : "#e0f2fe"}`,
+                        background: canPlace ? "rgba(14,165,233,0.05)" : "#f8fafc",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        cursor: canPlace || canScan ? "pointer" : "default",
+                      }}>
+                      {canPlace
+                        ? <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#0ea5e9", opacity: 0.7 }} />
+                        : <ScanLine size={14} style={{ color: "#cbd5e1" }} />}
+                    </div>
+                  );
+                });
+              })()}
             </div>
           </div>
         ))}
