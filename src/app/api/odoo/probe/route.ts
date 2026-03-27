@@ -91,28 +91,49 @@ export async function GET(req: NextRequest) {
     { fields: ["id", "name", "default_code", "barcode"], limit: 3, offset: 0 }
   );
 
-  // Step 7: total quants at 47GDL with qty>0 (same filter as fetchOdooProducts step 1)
+  // Step 7: total quants at 47GDL with qty>0
   const total47Quants = await callOdoo(cookie, "stock.quant", "search_count",
     [[["location_id", "child_of", 2027], ["quantity", ">", 0]]]
   );
 
-  // Step 8: does OLOEN appear in 47GDL quants WITH qty>0 filter?
+  // Step 8: OLOEN at 47GDL with qty>0 filter
   const oloen47WithFilter = await callOdoo(cookie, "stock.quant", "search_read",
     [[["product_id", "=", 440615], ["location_id", "child_of", 2027], ["quantity", ">", 0]]],
     { fields: ["product_id", "quantity", "reserved_quantity", "location_id"], limit: 5 }
   );
 
-  // Step 9: without filter — raw quant at 47GDL
+  // Step 9: raw quant at 47GDL (no qty filter)
   const oloen47Raw = await callOdoo(cookie, "stock.quant", "search_read",
     [[["product_id", "=", 440615], ["location_id", "child_of", 2027]]],
     { fields: ["product_id", "quantity", "reserved_quantity", "location_id"], limit: 5 }
   );
 
-  // Step 10: check what page OLOEN falls on (its position in the full quant list)
-  const oloenPositionInAllQuants = await callOdoo(cookie, "stock.quant", "search",
-    [[["location_id", "child_of", 2027], ["quantity", ">", 0], ["product_id", "=", 440615]]],
-    { limit: 1 }
-  );
+  // Step 10: fetch ALL quant product_ids at 47GDL (replicate fetchOdooProducts step 1+2)
+  // to build the actual qtyMap and see if 440615 is in it
+  const PAGE = 500;
+  const allQuants47: { product_id: [number, string] | number; quantity: number; reserved_quantity: number }[] = [];
+  for (let offset = 0; offset < 3000; offset += PAGE) {
+    const page = await callOdoo(cookie, "stock.quant", "search_read",
+      [[["location_id", "child_of", 2027], ["quantity", ">", 0]]],
+      { fields: ["product_id", "quantity", "reserved_quantity"], limit: PAGE, offset }
+    ) as typeof allQuants47;
+    if (!page?.length) break;
+    allQuants47.push(...page);
+    if (page.length < PAGE) break;
+  }
+  const qtyMap = new Map<number, number>();
+  for (const q of allQuants47) {
+    const pid = Array.isArray(q.product_id) ? q.product_id[0] : q.product_id as number;
+    const avail = q.quantity - q.reserved_quantity;
+    if (avail > 0) qtyMap.set(pid, (qtyMap.get(pid) ?? 0) + avail);
+  }
+  const oloenInQtyMap = qtyMap.get(440615);
+  const totalDistinctProducts = qtyMap.size;
+
+  // Step 11: is product id 440615 in the chunk that gets fetched?
+  const productIds = [...qtyMap.keys()];
+  const oloenChunkIndex = Math.floor(productIds.indexOf(440615) / PAGE);
+  const oloenPositionInList = productIds.indexOf(440615);
 
   return NextResponse.json({
     env: { ODOO_URL, ODOO_DB, ODOO_USERNAME },
@@ -126,6 +147,12 @@ export async function GET(req: NextRequest) {
     total47QuantsWithQtyFilter: total47Quants,
     oloen47WithQtyFilter: oloen47WithFilter,
     oloen47Raw,
-    oloenInFullQuantList: oloenPositionInAllQuants,
+    qtyMapDebug: {
+      totalDistinctProducts,
+      oloenInQtyMap,
+      oloenPositionInList,
+      oloenChunkIndex,
+      isInProductIds: oloenPositionInList !== -1,
+    },
   });
 }
