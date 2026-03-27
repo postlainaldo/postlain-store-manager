@@ -1344,12 +1344,11 @@ function ShelfView({ shelf, products, selectedPid, highlightPid, canEdit, onPlac
             <span style={{ fontSize: 8, fontWeight: 600, color: "#94a3b8", width: 34, textAlign: "right", flexShrink: 0, paddingTop: 9 }}>{TIER_LABELS[ti]}</span>
             <div style={{ display: "flex", flexWrap: "nowrap", gap: 4, overflowX: "auto", paddingBottom: 2 }}>
               {(() => {
-                // Find last filled slot index
+                // Append a virtual null slot so there's always one empty slot after the last filled one
+                const extTier = [...tier, null];
                 const lastFilled = tier.reduce((last, pid, i) => (pid ? i : last), -1);
-                // Show all slots up to (lastFilled + 1) — the next empty slot
-                // If no filled slots, show just slot 0 (one empty slot)
-                const showUpTo = Math.min(lastFilled + 1, tier.length - 1);
-                return tier.slice(0, showUpTo + 1).map((pid, si) => {
+                const showUpTo = lastFilled + 1; // always show one empty slot beyond last filled
+                return extTier.slice(0, showUpTo + 1).map((pid, si) => {
                   const p = pid && typeof pid === "string" ? products.find(x => x.id === pid) ?? null : null;
                   const isHighlit = !!pid && pid === highlightPid;
                   if (p) return (
@@ -1461,9 +1460,10 @@ function SectionView({ section, products, selectedPid, highlightPid, canEdit, su
                   </span>
                   <div style={{ display: "flex", gap: 5, flexWrap: "nowrap", overflowX: "auto", paddingBottom: 2 }}>
                     {(() => {
+                      const extProducts = [...row.products, null];
                       const lastFilled = row.products.reduce((last, pid, i) => (pid ? i : last), -1);
-                      const showUpTo = Math.min(lastFilled + 1, row.products.length - 1);
-                      return row.products.slice(0, showUpTo + 1).map((pid, si) => {
+                      const showUpTo = lastFilled + 1;
+                      return extProducts.slice(0, showUpTo + 1).map((pid, si) => {
                         const p = pid && typeof pid === "string" ? products.find(x => x.id === pid) ?? null : null;
                         const isHighlit = pid === highlightPid;
                         if (p) return (

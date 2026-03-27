@@ -544,8 +544,11 @@ export const useStore = create<StoreState>()(
               const subMap = displayPlacements?.[sec.id]?.[sub.id];
               const rows = sub.rows.map((row, ri) => {
                 const rowMap = subMap?.[ri];
-                // Replace all slots with DB values; default to null if not in DB
-                const newProducts = row.products.map((_, si) => rowMap?.[si] ?? null);
+                // Merge DB values; extend beyond storeLayout fixed length if DB has more slots
+                const maxLen = rowMap
+                  ? Math.max(row.products.length, ...Object.keys(rowMap).map(Number).map(n => n + 1))
+                  : row.products.length;
+                const newProducts = Array.from({ length: maxLen }, (_, si) => rowMap?.[si] ?? null);
                 return { ...row, products: newProducts };
               });
               return { ...sub, rows };

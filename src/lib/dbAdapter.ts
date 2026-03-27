@@ -1105,9 +1105,12 @@ export async function dbGetWarehouseShelvesForState(): Promise<{
         : { data: [] };
       const plMap: Record<string, string> = {};
       for (const p of (pls ?? []) as { slotId: string; productId: string }[]) plMap[p.slotId] = p.productId;
-      const tiers: (string | null)[][] = Array.from({ length: 4 }, () => Array(25).fill(null));
+      const tiers: (string | null)[][] = Array.from({ length: 4 }, () => []);
       for (const s of (slots ?? []) as { id: string; tier: number; position: number }[]) {
-        if (s.tier < 4 && s.position < 25) tiers[s.tier][s.position] = plMap[s.id] ?? null;
+        if (s.tier < 4) {
+          while (tiers[s.tier].length <= s.position) tiers[s.tier].push(null);
+          tiers[s.tier][s.position] = plMap[s.id] ?? null;
+        }
       }
       result.push({
         id: shelf.id, name: shelf.name,
@@ -1122,9 +1125,14 @@ export async function dbGetWarehouseShelvesForState(): Promise<{
   const db = getDb();
   const shelves = db.prepare("SELECT * FROM shelves WHERE type='WAREHOUSE' ORDER BY sortOrder, name").all() as DBShelf[];
   return shelves.map(shelf => {
-    const tiers: (string | null)[][] = Array.from({ length: 4 }, () => Array(25).fill(null));
+    const tiers: (string | null)[][] = Array.from({ length: 4 }, () => []);
     const rows = db.prepare("SELECT sl.tier, sl.position, p.productId FROM slots sl LEFT JOIN placements p ON p.slotId=sl.id WHERE sl.shelfId=? ORDER BY sl.tier, sl.position").all(shelf.id) as { tier: number; position: number; productId: string | null }[];
-    for (const r of rows) { if (r.tier < 4 && r.position < 25) tiers[r.tier][r.position] = r.productId ?? null; }
+    for (const r of rows) {
+      if (r.tier < 4) {
+        while (tiers[r.tier].length <= r.position) tiers[r.tier].push(null);
+        tiers[r.tier][r.position] = r.productId ?? null;
+      }
+    }
     return { id: shelf.id, name: shelf.name, shelfType: (shelf.subType ?? "shoes") as "shoes" | "bags", number: parseInt(shelf.name.match(/\d+/)?.[0] ?? "1"), tiers, notes: "" };
   });
 }
