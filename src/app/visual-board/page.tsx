@@ -50,17 +50,26 @@ function fmtPrice(n?: number | null) {
 // ─── Barcode fuzzy match ──────────────────────────────────────────────────────
 function findProduct(products: Product[], code: string): Product | null {
   const raw = code.trim();
-  let m = products.find(p => p.sku && p.sku.trim().toLowerCase() === raw.toLowerCase());
+  const rawLower = raw.toLowerCase();
+  // 1. Exact SKU match (EAN barcode)
+  let m = products.find(p => p.sku && p.sku.trim().toLowerCase() === rawLower);
   if (m) return m;
-  m = products.find(p => p.name.toLowerCase() === raw.toLowerCase());
+  // 2. Exact name match
+  m = products.find(p => p.name.toLowerCase() === rawLower);
   if (m) return m;
+  // 3. Leading-zero-stripped SKU match (e.g. 0055804696959 vs 55804696959)
   const norm = raw.replace(/^0+/, "") || "0";
+  m = products.find(p => p.sku && (p.sku.trim().replace(/^0+/, "") || "0") === norm);
+  if (m) return m;
+  // 4. Internal reference stored in notes as "Ref: PIAVETH-001" or "Ref: 16543897"
   m = products.find(p => {
-    if (!p.sku) return false;
-    return (p.sku.trim().replace(/^0+/, "") || "0") === norm;
+    if (!p.notes) return false;
+    const refMatch = p.notes.match(/Ref:\s*(\S+)/i);
+    return refMatch ? refMatch[1].toLowerCase() === rawLower : false;
   });
   if (m) return m;
-  m = products.find(p => p.sku && raw.toLowerCase().includes(p.sku.trim().toLowerCase()));
+  // 5. Partial SKU contains scan code (fallback)
+  m = products.find(p => p.sku && rawLower.includes(p.sku.trim().toLowerCase()));
   if (m) return m;
   return null;
 }

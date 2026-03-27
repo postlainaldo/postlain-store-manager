@@ -442,12 +442,21 @@ export async function dbGetProducts(): Promise<DBProduct[]> {
 }
 
 export async function dbGetProductBySku(sku: string): Promise<DBProduct | null> {
+  const s = sku.trim();
   if (IS_SUPABASE) {
+    // Try exact SKU first (EAN barcode), then internal ref stored in notes
     const { data } = await getSupabase()
-      .from("products").select("*").ilike("sku", sku.trim()).single();
-    return data as DBProduct | null;
+      .from("products").select("*").ilike("sku", s).maybeSingle();
+    if (data) return data as DBProduct;
+    const { data: byRef } = await getSupabase()
+      .from("products").select("*").ilike("notes", `%Ref: ${s}%`).maybeSingle();
+    return byRef as DBProduct | null;
   }
-  return getDb().prepare("SELECT * FROM products WHERE sku = ? COLLATE NOCASE").get(sku.trim()) as DBProduct | null;
+  const db = getDb();
+  const bySkу = db.prepare("SELECT * FROM products WHERE sku = ? COLLATE NOCASE").get(s) as DBProduct | null;
+  if (bySkу) return bySkу;
+  // Fallback: search internal reference in notes field
+  return db.prepare("SELECT * FROM products WHERE notes LIKE ? COLLATE NOCASE").get(`%Ref: ${s}%`) as DBProduct | null;
 }
 
 export async function dbUpsertProduct(p: DBProduct): Promise<DBProduct> {

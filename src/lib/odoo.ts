@@ -24,6 +24,7 @@ const LOCATION_47GDL = 2027;
 export interface OdooProduct {
   id: number;
   default_code: string | false;
+  barcode: string | false;  // physical EAN/UPC on product label
   name: string;
   list_price: number;
   categ_id: [number, string] | false;
@@ -183,7 +184,7 @@ export async function fetchOdooProducts(limit = 0): Promise<(OdooProduct & { qty
       "product.product", "search_read",
       [[["id", "in", chunk], ["active", "=", true]]],
       {
-        fields: ["id", "default_code", "name", "list_price", "categ_id", "description_sale"],
+        fields: ["id", "default_code", "barcode", "name", "list_price", "categ_id", "description_sale"],
         limit: PAGE,
         offset: 0,
       }

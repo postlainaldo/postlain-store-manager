@@ -77,14 +77,17 @@ function mapProduct(op: OdooSyncProduct): DBProduct {
   const mc = parsed.mc;
   const { category, productType } = mcToCategory(mc);
 
-  // Color: extract 3-digit color code from default_code (barcode)
-  const colorCode = extractColorCode(op.default_code);
+  // EAN barcode on physical label (what a scanner reads) — separate from default_code
+  const ean = op.barcode ? String(op.barcode).trim() : null;
+
+  // Color: prefer EAN barcode (12/13-digit), fallback to default_code
+  const colorCode = extractColorCode(ean) ?? extractColorCode(op.default_code);
 
   // Size from parsed Odoo name
   const size = parsed.size;
 
-  // SKU = default_code (barcode) if available, else ODOO-{id}
-  const sku = op.default_code ? String(op.default_code).trim() : `ODOO-${op.id}`;
+  // SKU = EAN barcode if available (scanner-readable), else default_code, else ODOO-{id}
+  const sku = ean ?? (op.default_code ? String(op.default_code).trim() : `ODOO-${op.id}`);
 
   // Price in VND
   const price = op.list_price > 0 ? op.list_price : undefined;
@@ -104,6 +107,8 @@ function mapProduct(op: OdooSyncProduct): DBProduct {
     notes: [
       mc ? `MC: ${mc}` : null,
       parsed.season ? `Season: ${parsed.season}` : null,
+      // Store internal reference so it remains searchable even if sku = EAN
+      op.default_code ? `Ref: ${String(op.default_code).trim()}` : null,
       op.description_sale ? String(op.description_sale) : null,
     ].filter(Boolean).join(" | ") || null,
     createdAt: now,
