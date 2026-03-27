@@ -1,18 +1,19 @@
 /**
  * GET /api/odoo/probe?code=15838139
  * Debug: search Odoo directly by barcode or default_code and show raw result.
+ * Uses the same auth (getSession + execute) as the main sync route.
  * Remove this file after debugging.
  */
 import { NextRequest, NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
-async function getSession(): Promise<string> {
-  const ODOO_URL = process.env.ODOO_URL!;
-  const ODOO_DB  = process.env.ODOO_DB!;
-  const ODOO_USERNAME = process.env.ODOO_USERNAME!;
-  const ODOO_PASSWORD = process.env.ODOO_PASSWORD!;
+const ODOO_URL      = process.env.ODOO_URL!;
+const ODOO_DB       = process.env.ODOO_DB!;
+const ODOO_USERNAME = process.env.ODOO_USERNAME!;
+const ODOO_PASSWORD = process.env.ODOO_PASSWORD ?? process.env.ODOO_API_KEY ?? "";
 
+async function getSession(): Promise<string> {
   const res = await fetch(`${ODOO_URL}/web/session/authenticate`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -20,127 +21,84 @@ async function getSession(): Promise<string> {
       jsonrpc: "2.0", method: "call", id: 1,
       params: { db: ODOO_DB, login: ODOO_USERNAME, password: ODOO_PASSWORD },
     }),
+    cache: "no-store",
   });
-  const setCookie = res.headers.get("set-cookie") ?? "";
-  const m = setCookie.match(/session_id=([^;]+)/);
-  if (!m) throw new Error("No session_id in cookie");
-  return m[1];
+  // Log full response to diagnose auth
+  const body = await res.json() as { result?: { uid?: number; session_token?: string }; error?: unknown };
+  const sc = res.headers.get("set-cookie") ?? "";
+  const m = sc.match(/session_id=([^;]+)/);
+  const cookie = m ? m[1] : "";
+  return JSON.stringify({ uid: body.result?.uid, session_token: body.result?.session_token, cookie_found: !!cookie, cookie, error: body.error });
 }
 
 async function callOdoo(cookie: string, model: string, method: string, args: unknown[], kwargs: Record<string, unknown> = {}) {
-  const ODOO_URL = process.env.ODOO_URL!;
-  const ODOO_DB  = process.env.ODOO_DB!;
   const res = await fetch(`${ODOO_URL}/web/dataset/call_kw`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "Cookie": `session_id=${cookie}`,
+      ...(cookie ? { Cookie: `session_id=${cookie}` } : {}),
     },
     body: JSON.stringify({
       jsonrpc: "2.0", method: "call", id: 1,
       params: {
-        model, method,
-        args, kwargs: { ...kwargs, context: { lang: "vi_VN", db: ODOO_DB } },
+        model, method, args,
+        kwargs: { context: { lang: "vi_VN" }, ...kwargs },
       },
     }),
+    cache: "no-store",
   });
-  const json = await res.json();
+  const json = await res.json() as { result?: unknown; error?: { data?: { message: string }; message: string } };
+  if (json.error) return { rpc_error: json.error.data?.message ?? json.error.message };
   return json.result;
 }
 
 export async function GET(req: NextRequest) {
-  const code = req.nextUrl.searchParams.get("code")?.trim();
-  if (!code) return NextResponse.json({ error: "?code= required" }, { status: 400 });
+  const code = req.nextUrl.searchParams.get("code")?.trim() ?? "OLOEN";
 
-  try {
-    const ODOO_URL = process.env.ODOO_URL ?? "(not set)";
-    const ODOO_DB  = process.env.ODOO_DB  ?? "(not set)";
-    const ODOO_USERNAME = process.env.ODOO_USERNAME ?? "(not set)";
+  // Step 1: authenticate and get raw session info
+  const sessionDebug = await getSession().catch(e => `auth_exception: ${e}`);
+  let sessionInfo: { uid?: number; cookie_found?: boolean; cookie?: string; error?: unknown };
+  try { sessionInfo = JSON.parse(sessionDebug as string); } catch { sessionInfo = { error: sessionDebug }; }
 
-    let cookie: string;
-    try {
-      cookie = await getSession();
-    } catch (authErr) {
-      return NextResponse.json({
-        error: "Auth failed",
-        detail: String(authErr),
-        env: { ODOO_URL, ODOO_DB, ODOO_USERNAME },
-      }, { status: 500 });
-    }
+  const cookie = sessionInfo.cookie ?? "";
 
-    // Sanity check: count total active products
-    const totalCount = await callOdoo(cookie, "product.product", "search_count",
-      [[["active", "=", true]]]
-    ).catch((e: unknown) => `error: ${e}`);
+  // Step 2: sanity — count all active products
+  const totalProducts = await callOdoo(cookie, "product.product", "search_count",
+    [[["active", "=", true]]]
+  ).catch(e => `error: ${e}`);
 
-    // Search by barcode field
-    const byBarcode = await callOdoo(cookie, "product.product", "search_read",
-      [[["barcode", "=", code]]],
-      { fields: ["id", "name", "default_code", "barcode", "list_price", "active", "categ_id"], limit: 5 }
-    );
+  // Step 3: search by barcode exact
+  const byBarcode = await callOdoo(cookie, "product.product", "search_read",
+    [[["barcode", "=", code]]],
+    { fields: ["id", "name", "default_code", "barcode", "list_price", "active", "categ_id"], limit: 5 }
+  );
 
-    // Search by default_code field
-    const byDefaultCode = await callOdoo(cookie, "product.product", "search_read",
-      [[["default_code", "=", code]]],
-      { fields: ["id", "name", "default_code", "barcode", "list_price", "active", "categ_id"], limit: 5 }
-    );
+  // Step 4: search by default_code exact
+  const byDefaultCode = await callOdoo(cookie, "product.product", "search_read",
+    [[["default_code", "=", code]]],
+    { fields: ["id", "name", "default_code", "barcode", "list_price", "active", "categ_id"], limit: 5 }
+  );
 
-    // Check if product is in quants at 47GDL
-    const LOCATION_47GDL = 2027;
-    const allResults = [...(byBarcode ?? []), ...(byDefaultCode ?? [])];
-    const productIds = allResults.map((p: { id: number }) => p.id);
+  // Step 5: search by name ilike
+  const byName = await callOdoo(cookie, "product.product", "search_read",
+    [[["name", "ilike", code]]],
+    { fields: ["id", "name", "default_code", "barcode", "list_price", "active", "categ_id"], limit: 5 }
+  );
 
-    let quants: unknown[] = [];
-    if (productIds.length > 0) {
-      quants = await callOdoo(cookie, "stock.quant", "search_read",
-        [[["product_id", "in", productIds], ["location_id", "child_of", LOCATION_47GDL]]],
-        { fields: ["product_id", "quantity", "reserved_quantity", "location_id"], limit: 20 }
-      ) ?? [];
-    }
+  // Step 6: first 3 products ever (sanity check data exists)
+  const sampleProducts = await callOdoo(cookie, "product.product", "search_read",
+    [[["active", "=", true]]],
+    { fields: ["id", "name", "default_code", "barcode"], limit: 3, offset: 0 }
+  );
 
-    // Also try: search by name contains the code
-    const byName = await callOdoo(cookie, "product.product", "search_read",
-      [[["name", "ilike", code]]],
-      { fields: ["id", "name", "default_code", "barcode", "list_price", "active", "categ_id"], limit: 5 }
-    );
-
-    // Fetch OLOEN specifically to see its actual barcode/default_code
-    const oloenRaw = await callOdoo(cookie, "product.product", "search_read",
-      [[["name", "ilike", "OLOEN"]]],
-      { fields: ["id", "name", "default_code", "barcode", "list_price", "active", "categ_id"], limit: 10 }
-    ).catch(() => []);
-
-    // Also try: search POS barcodes (pos.config or product.barcode)
-    const byPosBarcode = await callOdoo(cookie, "barcode.nomenclature", "search_read",
-      [[]],
-      { fields: ["id", "name", "rule_ids"], limit: 3 }
-    ).catch(() => []);
-
-    // Check in product.barcode if model exists
-    const byProductBarcode = await callOdoo(cookie, "product.product", "search_read",
-      [[["barcode", "ilike", code]]],
-      { fields: ["id", "name", "default_code", "barcode", "list_price", "active"], limit: 5 }
-    ).catch(() => []);
-
-    return NextResponse.json({
-      env: { ODOO_URL: process.env.ODOO_URL, ODOO_DB: process.env.ODOO_DB, ODOO_USERNAME: process.env.ODOO_USERNAME },
-      totalActiveProducts: totalCount,
-      searchCode: code,
-      byBarcode: byBarcode ?? [],
-      byDefaultCode: byDefaultCode ?? [],
-      byName: byName ?? [],
-      byProductBarcodeIlike: byProductBarcode ?? [],
-      byPosNomenclature: byPosBarcode ?? [],
-      oloenRaw: oloenRaw ?? [],
-      quants_at_47GDL: quants,
-      summary: {
-        foundByBarcode: (byBarcode ?? []).length,
-        foundByDefaultCode: (byDefaultCode ?? []).length,
-        foundByName: (byName ?? []).length,
-        hasQuantAt47GDL: (quants as unknown[]).length > 0,
-      }
-    });
-  } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
-  }
+  return NextResponse.json({
+    env: { ODOO_URL, ODOO_DB, ODOO_USERNAME },
+    auth: sessionInfo,
+    totalActiveProducts: totalProducts,
+    sampleProducts,
+    searchCode: code,
+    byBarcode,
+    byDefaultCode,
+    byName,
+  });
 }
