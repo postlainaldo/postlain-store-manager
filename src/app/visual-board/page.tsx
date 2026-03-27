@@ -1395,6 +1395,7 @@ function SectionView({ section, products, selectedPid, highlightPid, canEdit, su
   onScanToPlace: (sId: string, subId: string, ri: number, si: number) => void;
   onRemove: (sId: string, subId: string, ri: number, si: number) => void;
 }) {
+  const { addSubsectionRow, removeSubsectionRow } = useStore();
   const cfg = ZONE_CFG[section.sectionType] ?? ZONE_CFG.window;
   const subs = section.subsections;
   const clampedSub = Math.min(subsectionIdx, Math.max(0, subs.length - 1));
@@ -1404,6 +1405,10 @@ function SectionView({ section, products, selectedPid, highlightPid, canEdit, su
   const filled = sub.rows.reduce((s, r) => s + r.products.filter(Boolean).length, 0);
   const total = sub.rows.reduce((s, r) => s + r.products.length, 0);
   const pct = total > 0 ? (filled / total) * 100 : 0;
+
+  const lastRow = sub.rows[sub.rows.length - 1];
+  const defaultRowType = lastRow?.type === "long" ? "long" : "short";
+  const defaultSlots = lastRow?.products.length ?? 8;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -1443,6 +1448,23 @@ function SectionView({ section, products, selectedPid, highlightPid, canEdit, su
             <div style={{ width: 40, height: 3, borderRadius: 2, background: `${cfg.color}22`, overflow: "hidden" }}>
               <div style={{ height: "100%", width: `${pct}%`, background: cfg.color, borderRadius: 2, transition: "width 0.3s" }} />
             </div>
+            {canEdit && (
+              <div style={{ display: "flex", gap: 3 }}>
+                <button
+                  onClick={() => removeSubsectionRow(section.id, sub.id, sub.rows.length - 1)}
+                  disabled={sub.rows.length <= 1}
+                  title="Bớt hàng"
+                  style={{ width: 20, height: 20, borderRadius: 5, border: `1px solid ${cfg.color}40`, background: sub.rows.length <= 1 ? "#f8fafc" : "#fff", cursor: sub.rows.length <= 1 ? "default" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: sub.rows.length <= 1 ? "#cbd5e1" : cfg.color }}>
+                  <Minus size={10} />
+                </button>
+                <button
+                  onClick={() => addSubsectionRow(section.id, sub.id, defaultRowType, defaultSlots)}
+                  title="Thêm hàng"
+                  style={{ width: 20, height: 20, borderRadius: 5, border: `1px solid ${cfg.color}40`, background: "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: cfg.color }}>
+                  <Plus size={10} />
+                </button>
+              </div>
+            )}
           </div>
           <div style={{ padding: "8px 12px 10px", display: "flex", flexDirection: "column", gap: 8, overflow: "visible" }}>
             {[...sub.rows].reverse().map((row, revIdx) => {

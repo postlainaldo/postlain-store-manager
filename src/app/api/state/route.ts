@@ -14,17 +14,19 @@ import {
   dbGetProducts,
   dbGetWarehouseShelvesForState,
   dbGetDisplayPlacements,
+  dbGetSectionRowOverrides,
   ensureSupabaseSchema,
 } from "@/lib/dbAdapter";
 
 export async function GET() {
   await ensureSupabaseSchema();
 
-  const [products, warehouseShelves, displayPlacements] = await Promise.all([
+  const [products, warehouseShelves, displayPlacements, sectionRowOverrides] = await Promise.all([
     dbGetProducts(),
     dbGetWarehouseShelvesForState(),
     dbGetDisplayPlacements(),
+    dbGetSectionRowOverrides(),
   ]);
 
-  return NextResponse.json({ products, warehouseShelves, displayPlacements });
+  return NextResponse.json({ products, warehouseShelves, displayPlacements, sectionRowOverrides });
 }

@@ -1237,6 +1237,36 @@ export async function dbSetAppSettings(settings: Partial<AppSettings>): Promise<
   }
 }
 
+// ─── Section row overrides ────────────────────────────────────────────────────
+// Stored as JSON in app_settings key "sectionRowOverrides"
+// Shape: { [secId__subId]: number }  — total row count override for that subsection
+
+export async function dbGetSectionRowOverrides(): Promise<Record<string, number>> {
+  const key = "sectionRowOverrides";
+  if (IS_SUPABASE) {
+    const { data } = await getSupabase().from("app_settings").select("value").eq("key", key).single();
+    try { return JSON.parse((data as { value: string } | null)?.value ?? "{}"); } catch { return {}; }
+  }
+  const db = getDb();
+  db.prepare("CREATE TABLE IF NOT EXISTS app_settings (key TEXT PRIMARY KEY, value TEXT NOT NULL DEFAULT '')").run();
+  const row = db.prepare("SELECT value FROM app_settings WHERE key=?").get(key) as { value: string } | undefined;
+  try { return JSON.parse(row?.value ?? "{}"); } catch { return {}; }
+}
+
+export async function dbSetSectionRowOverride(secId: string, subId: string, rowCount: number): Promise<void> {
+  const key = "sectionRowOverrides";
+  const overrides = await dbGetSectionRowOverrides();
+  overrides[`${secId}__${subId}`] = rowCount;
+  const value = JSON.stringify(overrides);
+  if (IS_SUPABASE) {
+    await getSupabase().from("app_settings").upsert({ key, value }, { onConflict: "key" });
+    return;
+  }
+  const db = getDb();
+  db.prepare("CREATE TABLE IF NOT EXISTS app_settings (key TEXT PRIMARY KEY, value TEXT NOT NULL DEFAULT '')").run();
+  db.prepare("INSERT INTO app_settings(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value").run(key, value);
+}
+
 // ─── Customers ────────────────────────────────────────────────────────────────
 
 export type DBCustomer = {
