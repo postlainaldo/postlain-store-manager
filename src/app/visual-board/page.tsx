@@ -1352,9 +1352,11 @@ function ShelfView({ shelf, products, selectedPid, highlightPid, canEdit, onPlac
                       onRemove={canEdit ? () => onRemove(shelf.id, ti, si) : undefined} />
                   </div>
                 );
+                // Staff (canEdit=false): hide empty slots
+                if (!canEdit) return null;
                 return (
                   <EmptySlot key={si} size={48}
-                    canPlace={canEdit && !!selectedPid} canScan={canEdit && !selectedPid}
+                    canPlace={!!selectedPid} canScan={!selectedPid}
                     onPlace={() => onPlace(shelf.id, ti, si)}
                     onScan={() => onScanToPlace(shelf.id, ti, si)} />
                 );
@@ -1450,9 +1452,11 @@ function SectionView({ section, products, selectedPid, highlightPid, canEdit, su
                             onRemove={canEdit ? () => onRemove(section.id, sub.id, ri, si) : undefined} />
                         </div>
                       );
+                      // Staff (canEdit=false): hide empty slots entirely
+                      if (!canEdit) return null;
                       return (
                         <EmptySlot key={si} size={emptySize}
-                          canPlace={canEdit && !!selectedPid} canScan={canEdit && !selectedPid}
+                          canPlace={!!selectedPid} canScan={!selectedPid}
                           onPlace={() => onPlace(section.id, sub.id, ri, si)}
                           onScan={() => onScanToPlace(section.id, sub.id, ri, si)} />
                       );

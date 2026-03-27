@@ -60,13 +60,13 @@ export const INITIAL_STORE_SECTIONS: StoreSection[] = [
     ],
   },
 
-  // ── ACC CENTER UNIT (6 mặt × 50 sản phẩm) ─────────────────────────────────
+  // ── ACC CENTER UNIT (6 mặt × 52 sản phẩm) ─────────────────────────────────
   {
     id: "acc_center",
     name: "ACC CENTER",
     sectionType: "acc",
     subsections: Array.from({ length: 6 }, (_, i) =>
-      sub(`acc_${i + 1}`, `MẶT ${i + 1}`, Array(10).fill(null).map(() => customRow(5)))
+      sub(`acc_${i + 1}`, `MẶT ${i + 1}`, Array(13).fill(null).map(() => customRow(7)))
     ),
   },
 
