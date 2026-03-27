@@ -542,6 +542,37 @@ export async function dbDeleteProducts(ids: string[]): Promise<void> {
   del(ids);
 }
 
+/**
+ * Delete products that are no longer in Odoo (not present in the latest sync set).
+ * Only removes odoo- prefixed products to avoid deleting manually added products.
+ * Placements referencing removed products are cleaned up separately if needed.
+ */
+export async function dbDeleteStaleProducts(currentIds: Set<string>): Promise<number> {
+  if (IS_SUPABASE) {
+    const sb = getSupabase();
+    // Fetch all odoo- product ids currently in DB
+    const { data } = await sb.from("products").select("id").like("id", "odoo-%");
+    const stale = (data ?? []).map((r: { id: string }) => r.id).filter(id => !currentIds.has(id));
+    if (!stale.length) return 0;
+    // Delete in chunks
+    const CHUNK = 200;
+    for (let i = 0; i < stale.length; i += CHUNK) {
+      await sb.from("products").delete().in("id", stale.slice(i, i + CHUNK));
+    }
+    return stale.length;
+  }
+  const db = getDb();
+  const existing = db.prepare("SELECT id FROM products WHERE id LIKE 'odoo-%'").all() as { id: string }[];
+  const stale = existing.map(r => r.id).filter(id => !currentIds.has(id));
+  if (!stale.length) return 0;
+  const del = db.transaction((ids: string[]) => {
+    const stmt = db.prepare("DELETE FROM products WHERE id = ?");
+    for (const id of ids) stmt.run(id);
+  });
+  del(stale);
+  return stale.length;
+}
+
 /** Delete all products whose ID starts with "odoo-" (from previous syncs) */
 export async function dbDeleteAllProducts(): Promise<number> {
   if (IS_SUPABASE) {

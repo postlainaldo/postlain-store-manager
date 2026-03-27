@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { fetchOdooProducts, testOdooConnection } from "@/lib/odoo";
-import { dbBulkUpsertProducts, dbDeleteAllProducts } from "@/lib/dbAdapter";
+import { dbBulkUpsertProducts, dbDeleteStaleProducts } from "@/lib/dbAdapter";
 import type { DBProduct } from "@/lib/dbAdapter";
 import { MC_MAP } from "@/lib/categoryMapping";
 
@@ -153,8 +153,12 @@ export async function POST(req: NextRequest) {
 
     let deleted = 0;
     if (!dryRun) {
-      deleted = await dbDeleteAllProducts();
+      // Upsert new/updated products first — never delete before insert
       await dbBulkUpsertProducts(mapped);
+      // Then delete only products that are no longer in Odoo (stale records)
+      // This preserves placements for products that still exist
+      const newIds = new Set(mapped.map(p => p.id));
+      deleted = await dbDeleteStaleProducts(newIds);
     }
 
     return NextResponse.json({
