@@ -29,7 +29,7 @@ function parseOdooName(raw: string): ParsedOdooName {
   const withoutBarcode = s.replace(/^\[\d+\]\s*/, "");
   // Match: NAME (MCxxxxx) SEASON optional (size)
   const m = withoutBarcode.match(
-    /^(.+?)\s+\(MC(\d+)\)\s+([A-Z]{2}\d{2})(?:\s+\(([^)]+)\))?/
+    /^(.+?)\s+\(MC(\d+)\)\s+([A-Z]{1,2}\d{2})(?:\s+\(([^)]+)\))?/
   );
   if (m) {
     return {
