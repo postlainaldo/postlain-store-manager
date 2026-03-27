@@ -108,6 +108,17 @@ export async function GET(req: NextRequest) {
     { fields: ["product_id", "quantity", "reserved_quantity", "location_id"], limit: 5 }
   );
 
+  // Step 10b: fetch product 440615 exactly as step 3 does (with active=true filter)
+  const step3DirectFetch = await callOdoo(cookie, "product.product", "search_read",
+    [[["id", "in", [440615]], ["active", "=", true]]],
+    { fields: ["id", "name", "default_code", "barcode", "list_price", "categ_id", "description_sale"], limit: 500, offset: 0 }
+  );
+  // Also try without active filter
+  const step3NoActiveFilter = await callOdoo(cookie, "product.product", "search_read",
+    [[["id", "in", [440615]]]],
+    { fields: ["id", "name", "default_code", "barcode", "list_price", "categ_id", "description_sale", "active"], limit: 500, offset: 0 }
+  );
+
   // Step 10: fetch ALL quant product_ids at 47GDL (replicate fetchOdooProducts step 1+2)
   // to build the actual qtyMap and see if 440615 is in it
   const PAGE = 500;
@@ -144,6 +155,8 @@ export async function GET(req: NextRequest) {
     byBarcode,
     byDefaultCode,
     byName,
+    step3DirectFetch,
+    step3NoActiveFilter,
     total47QuantsWithQtyFilter: total47Quants,
     oloen47WithQtyFilter: oloen47WithFilter,
     oloen47Raw,
