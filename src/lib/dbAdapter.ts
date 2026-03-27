@@ -926,6 +926,30 @@ export async function dbUpsertShelf(s: DBShelf): Promise<void> {
   `).run(s);
 }
 
+export async function dbDeleteShelf(shelfId: string): Promise<void> {
+  if (IS_SUPABASE) {
+    const sb = getSupabase();
+    // placements and slots cascade from FK, but delete explicitly to be safe
+    const { data: slots } = await sb.from("slots").select("id").eq("shelfId", shelfId);
+    const slotIds = (slots ?? []).map((s: { id: string }) => s.id);
+    if (slotIds.length) {
+      await sb.from("placements").delete().in("slotId", slotIds);
+      await sb.from("slots").delete().in("id", slotIds);
+    }
+    await sb.from("shelves").delete().eq("id", shelfId);
+    return;
+  }
+  const db = getDb();
+  const slots = db.prepare(`SELECT id FROM slots WHERE "shelfId" = ?`).all(shelfId) as { id: string }[];
+  const slotIds = slots.map(s => s.id);
+  if (slotIds.length) {
+    const ph = slotIds.map(() => "?").join(",");
+    db.prepare(`DELETE FROM placements WHERE "slotId" IN (${ph})`).run(...slotIds);
+    db.prepare(`DELETE FROM slots WHERE id IN (${ph})`).run(...slotIds);
+  }
+  db.prepare("DELETE FROM shelves WHERE id = ?").run(shelfId);
+}
+
 // ─── Slots ────────────────────────────────────────────────────────────────────
 
 export type DBSlot = {

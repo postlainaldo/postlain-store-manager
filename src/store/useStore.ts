@@ -615,26 +615,44 @@ export const useStore = create<StoreState>()(
           ),
         })),
 
-      removeWarehouseShelf: (shelfId) =>
+      removeWarehouseShelf: (shelfId) => {
         set((s) => ({
           warehouseShelves: s.warehouseShelves.filter((shelf) => shelf.id !== shelfId),
-        })),
+        }));
+        // Persist deletion to DB so it survives fetchDbState/realtime sync
+        fetch("/api/placements", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ shelfId }),
+        }).catch(() => {});
+      },
 
-      addWarehouseShelf: (shelfType) =>
-        set((s) => {
-          const sameType = s.warehouseShelves.filter(sh => sh.shelfType === shelfType);
-          const num = sameType.length + 1;
-          const name = shelfType === "shoes" ? `Kệ Giày ${num}` : `Kệ Túi ${num}`;
-          const newShelf: WarehouseShelf = {
-            id: `shelf_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-            name,
-            shelfType,
-            number: num,
-            tiers: Array(4).fill(null).map(() => Array(25).fill(null)),
-            notes: "",
-          };
-          return { warehouseShelves: [...s.warehouseShelves, newShelf] };
-        }),
+      addWarehouseShelf: (shelfType) => {
+        const s = get();
+        const sameType = s.warehouseShelves.filter(sh => sh.shelfType === shelfType);
+        const num = sameType.length + 1;
+        const name = shelfType === "shoes" ? `Kệ Giày ${num}` : `Kệ Túi ${num}`;
+        const newShelf: WarehouseShelf = {
+          id: `shelf_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+          name,
+          shelfType,
+          number: num,
+          tiers: Array(4).fill(null).map(() => Array(25).fill(null)),
+          notes: "",
+        };
+        set(st => ({ warehouseShelves: [...st.warehouseShelves, newShelf] }));
+        // Persist to DB so it survives fetchDbState/realtime sync
+        fetch("/api/placements", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            shelfId: newShelf.id, shelfName: newShelf.name,
+            shelfType: newShelf.shelfType,
+            tier: 0, position: 0, productId: null,
+            _createShelfOnly: true,
+          }),
+        }).catch(() => {});
+      },
 
       renameWarehouseShelf: (shelfId, name) =>
         set((s) => ({

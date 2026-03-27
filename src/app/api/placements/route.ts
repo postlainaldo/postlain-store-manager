@@ -20,6 +20,7 @@ import {
   dbGetWarehouseMap,
   dbGetDisplayMap,
   dbUpsertShelf,
+  dbDeleteShelf,
   dbGetAllShelves,
   dbGetOrCreateSlot,
   dbSetPlacement,
@@ -39,16 +40,18 @@ export async function POST(req: NextRequest) {
   const body = await req.json() as {
     shelfId: string;
     shelfName?: string;
+    shelfType?: string;
     tier: number;
     position: number;
     label?: string;
     productId: string | null;
+    _createShelfOnly?: boolean;
   };
 
-  const { shelfId, shelfName, tier, position, label = "", productId } = body;
+  const { shelfId, shelfName, shelfType, tier, position, label = "", productId, _createShelfOnly } = body;
 
-  if (!shelfId || tier === undefined || position === undefined) {
-    return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+  if (!shelfId) {
+    return NextResponse.json({ error: "Missing shelfId" }, { status: 400 });
   }
 
   // Auto-create shelf record if it doesn't exist yet
@@ -60,9 +63,19 @@ export async function POST(req: NextRequest) {
       id: shelfId,
       name: shelfName ?? shelfId,
       type: isDisplay ? "DISPLAY" : "WAREHOUSE",
-      subType: null,
+      subType: shelfType ?? null,
       sortOrder: 0,
     });
+  }
+
+  // If just creating the shelf record (no placement), return early
+  if (_createShelfOnly) {
+    notifyClients({ type: "placement", shelfId, tier: -1, position: -1, label: "", productId: null, slotId: "" });
+    return NextResponse.json({ ok: true, shelfCreated: true });
+  }
+
+  if (tier === undefined || position === undefined) {
+    return NextResponse.json({ error: "Missing tier/position" }, { status: 400 });
   }
 
   const slotId = await dbGetOrCreateSlot(shelfId, tier, position, label);
@@ -72,4 +85,13 @@ export async function POST(req: NextRequest) {
   notifyClients({ type: "placement", shelfId, tier, position, label, productId, slotId });
 
   return NextResponse.json({ ok: true, slotId });
+}
+
+export async function DELETE(req: NextRequest) {
+  await ensureSupabaseSchema();
+  const { shelfId } = await req.json() as { shelfId: string };
+  if (!shelfId) return NextResponse.json({ error: "Missing shelfId" }, { status: 400 });
+  await dbDeleteShelf(shelfId);
+  notifyClients({ type: "placement", shelfId, tier: -1, position: -1, label: "", productId: null, slotId: "" });
+  return NextResponse.json({ ok: true });
 }
