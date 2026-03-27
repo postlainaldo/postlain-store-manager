@@ -1460,25 +1460,40 @@ function SectionView({ section, products, selectedPid, highlightPid, canEdit, su
                     {row.type === "long" ? "D" : "N"}
                   </span>
                   <div style={{ display: "flex", gap: 5, flexWrap: "nowrap", overflowX: "auto", paddingBottom: 2 }}>
-                    {row.products.map((pid, si) => {
-                      const p = pid && typeof pid === "string" ? products.find(x => x.id === pid) ?? null : null;
-                      const isHighlit = pid === highlightPid;
-                      if (p) return (
-                        <div key={si} {...(isHighlit ? { "data-hpid": p.id } : {})}>
-                          <ProductCard product={p} variant="label"
-                            highlight={isHighlit}
-                            onRemove={canEdit ? () => onRemove(section.id, sub.id, ri, si) : undefined} />
-                        </div>
-                      );
-                      // Staff (canEdit=false): hide empty slots entirely
-                      if (!canEdit) return null;
-                      return (
-                        <EmptySlot key={si} size={emptySize}
-                          canPlace={!!selectedPid} canScan={!selectedPid}
-                          onPlace={() => onPlace(section.id, sub.id, ri, si)}
-                          onScan={() => onScanToPlace(section.id, sub.id, ri, si)} />
-                      );
-                    })}
+                    {(() => {
+                      const lastFilled = row.products.reduce((last, pid, i) => (pid ? i : last), -1);
+                      const showUpTo = Math.min(lastFilled + 1, row.products.length - 1);
+                      return row.products.slice(0, showUpTo + 1).map((pid, si) => {
+                        const p = pid && typeof pid === "string" ? products.find(x => x.id === pid) ?? null : null;
+                        const isHighlit = pid === highlightPid;
+                        if (p) return (
+                          <div key={si} {...(isHighlit ? { "data-hpid": p.id } : {})}>
+                            <ProductCard product={p} variant="label"
+                              highlight={isHighlit}
+                              onRemove={canEdit ? () => onRemove(section.id, sub.id, ri, si) : undefined} />
+                          </div>
+                        );
+                        // Staff (canEdit=false): hide empty slots entirely
+                        if (!canEdit) return null;
+                        const canPlace = !!selectedPid;
+                        const canScan = !selectedPid;
+                        return (
+                          <div key={si}
+                            onClick={() => { if (canPlace) onPlace(section.id, sub.id, ri, si); else if (canScan) onScanToPlace(section.id, sub.id, ri, si); }}
+                            style={{
+                              width: 92, minHeight: 52, borderRadius: 9, flexShrink: 0,
+                              border: `1.5px dashed ${canPlace ? cfg.color : cfg.color + "40"}`,
+                              background: canPlace ? `${cfg.color}08` : "#f8fafc",
+                              display: "flex", alignItems: "center", justifyContent: "center",
+                              cursor: canPlace || canScan ? "pointer" : "default",
+                            }}>
+                            {canPlace
+                              ? <div style={{ width: 8, height: 8, borderRadius: "50%", background: cfg.color, opacity: 0.7 }} />
+                              : <ScanLine size={14} style={{ color: cfg.color + "60" }} />}
+                          </div>
+                        );
+                      });
+                    })()}
                   </div>
                 </div>
               );
