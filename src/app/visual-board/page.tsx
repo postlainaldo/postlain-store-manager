@@ -1448,78 +1448,68 @@ function SectionView({ section, products, selectedPid, highlightPid, canEdit, su
             <div style={{ width: 40, height: 3, borderRadius: 2, background: `${cfg.color}22`, overflow: "hidden" }}>
               <div style={{ height: "100%", width: `${pct}%`, background: cfg.color, borderRadius: 2, transition: "width 0.3s" }} />
             </div>
-            {canEdit && (
-              <div style={{ display: "flex", gap: 3 }}>
-                <button
-                  onClick={() => removeSubsectionRow(section.id, sub.id, sub.rows.length - 1)}
-                  disabled={sub.rows.length <= 1}
-                  title="Bớt hàng"
-                  style={{ width: 20, height: 20, borderRadius: 5, border: `1px solid ${cfg.color}40`, background: sub.rows.length <= 1 ? "#f8fafc" : "#fff", cursor: sub.rows.length <= 1 ? "default" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: sub.rows.length <= 1 ? "#cbd5e1" : cfg.color }}>
-                  <Minus size={10} />
-                </button>
-                <button
-                  onClick={() => addSubsectionRow(section.id, sub.id, defaultRowType, defaultSlots)}
-                  title="Thêm hàng"
-                  style={{ width: 20, height: 20, borderRadius: 5, border: `1px solid ${cfg.color}40`, background: "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: cfg.color }}>
-                  <Plus size={10} />
-                </button>
-              </div>
-            )}
           </div>
           <div style={{ padding: "8px 12px 10px", display: "flex", flexDirection: "column", gap: 8, overflow: "visible" }}>
-            {[...sub.rows].reverse().map((row, revIdx) => {
-              const ri = sub.rows.length - 1 - revIdx;
-              if (row.type === "image") return (
-                <div key={ri} style={{ height: 16, borderRadius: 6, background: "#f0f9ff", display: "flex", alignItems: "center", paddingLeft: 8 }}>
-                  <span style={{ fontSize: 7, color: "#94a3b8", letterSpacing: "0.2em" }}>TRANH / DECOR</span>
-                </div>
-              );
-              const emptySize = row.type === "long" ? 52 : 44;
-              return (
-                <div key={ri} style={{ display: "flex", alignItems: "flex-start", gap: 5 }}>
-                  <span style={{ fontSize: 7, width: 20, flexShrink: 0, color: "#94a3b8", fontFamily: "monospace", textAlign: "right", paddingTop: 8 }}>
-                    {row.type === "long" ? "D" : "N"}
-                  </span>
-                  <div style={{ display: "flex", gap: 5, flexWrap: "nowrap", overflowX: "auto", paddingBottom: 2 }}>
-                    {(() => {
-                      const extProducts = [...row.products, null];
-                      const lastFilled = row.products.reduce((last, pid, i) => (pid ? i : last), -1);
-                      const showUpTo = lastFilled + 1;
-                      return extProducts.slice(0, showUpTo + 1).map((pid, si) => {
-                        const p = pid && typeof pid === "string" ? products.find(x => x.id === pid) ?? null : null;
-                        const isHighlit = pid === highlightPid;
-                        if (p) return (
-                          <div key={si} {...(isHighlit ? { "data-hpid": p.id } : {})}>
-                            <ProductCard product={p} variant="label"
-                              highlight={isHighlit}
-                              onRemove={canEdit ? () => onRemove(section.id, sub.id, ri, si) : undefined} />
-                          </div>
-                        );
-                        // Staff (canEdit=false): hide empty slots entirely
-                        if (!canEdit) return null;
-                        const canPlace = !!selectedPid;
-                        const canScan = !selectedPid;
-                        return (
-                          <div key={si}
-                            onClick={() => { if (canPlace) onPlace(section.id, sub.id, ri, si); else if (canScan) onScanToPlace(section.id, sub.id, ri, si); }}
-                            style={{
-                              width: 92, minHeight: 52, borderRadius: 9, flexShrink: 0,
-                              border: `1.5px dashed ${canPlace ? cfg.color : cfg.color + "40"}`,
-                              background: canPlace ? `${cfg.color}08` : "#f8fafc",
-                              display: "flex", alignItems: "center", justifyContent: "center",
-                              cursor: canPlace || canScan ? "pointer" : "default",
-                            }}>
-                            {canPlace
-                              ? <div style={{ width: 8, height: 8, borderRadius: "50%", background: cfg.color, opacity: 0.7 }} />
-                              : <ScanLine size={14} style={{ color: cfg.color + "60" }} />}
-                          </div>
-                        );
-                      });
-                    })()}
+            {(() => {
+              // A row is visible if any previous row (lower index) has at least 1 product
+              // Row 0 is always visible (first row, bottom of display)
+              // Rows are rendered reversed (top of display = last row index)
+              const reversedRows = [...sub.rows].map((row, ri) => ({ row, ri })).reverse();
+              return reversedRows.map(({ row, ri }) => {
+                // Row ri is visible only if all rows before it (0..ri-1) have at least 1 product
+                const prevRowsFilled = ri === 0 || sub.rows.slice(0, ri).every(r => r.products.some(Boolean));
+                if (!prevRowsFilled) return null;
+
+                if (row.type === "image") return (
+                  <div key={ri} style={{ height: 16, borderRadius: 6, background: "#f0f9ff", display: "flex", alignItems: "center", paddingLeft: 8 }}>
+                    <span style={{ fontSize: 7, color: "#94a3b8", letterSpacing: "0.2em" }}>TRANH / DECOR</span>
                   </div>
-                </div>
-              );
-            })}
+                );
+                return (
+                  <div key={ri} style={{ display: "flex", alignItems: "flex-start", gap: 5 }}>
+                    <span style={{ fontSize: 7, width: 20, flexShrink: 0, color: "#94a3b8", fontFamily: "monospace", textAlign: "right", paddingTop: 8 }}>
+                      {row.type === "long" ? "D" : "N"}
+                    </span>
+                    <div style={{ display: "flex", gap: 5, flexWrap: "nowrap", overflowX: "auto", paddingBottom: 2 }}>
+                      {(() => {
+                        const extProducts = [...row.products, null];
+                        const lastFilled = row.products.reduce((last, pid, i) => (pid ? i : last), -1);
+                        const showUpTo = lastFilled + 1;
+                        return extProducts.slice(0, showUpTo + 1).map((pid, si) => {
+                          const p = pid && typeof pid === "string" ? products.find(x => x.id === pid) ?? null : null;
+                          const isHighlit = pid === highlightPid;
+                          if (p) return (
+                            <div key={si} {...(isHighlit ? { "data-hpid": p.id } : {})}>
+                              <ProductCard product={p} variant="label"
+                                highlight={isHighlit}
+                                onRemove={canEdit ? () => onRemove(section.id, sub.id, ri, si) : undefined} />
+                            </div>
+                          );
+                          if (!canEdit) return null;
+                          const canPlace = !!selectedPid;
+                          const canScan = !selectedPid;
+                          return (
+                            <div key={si}
+                              onClick={() => { if (canPlace) onPlace(section.id, sub.id, ri, si); else if (canScan) onScanToPlace(section.id, sub.id, ri, si); }}
+                              style={{
+                                width: 92, minHeight: 52, borderRadius: 9, flexShrink: 0,
+                                border: `1.5px dashed ${canPlace ? cfg.color : cfg.color + "40"}`,
+                                background: canPlace ? `${cfg.color}08` : "#f8fafc",
+                                display: "flex", alignItems: "center", justifyContent: "center",
+                                cursor: canPlace || canScan ? "pointer" : "default",
+                              }}>
+                              {canPlace
+                                ? <div style={{ width: 8, height: 8, borderRadius: "50%", background: cfg.color, opacity: 0.7 }} />
+                                : <ScanLine size={14} style={{ color: cfg.color + "60" }} />}
+                            </div>
+                          );
+                        });
+                      })()}
+                    </div>
+                  </div>
+                );
+              });
+            })()}
           </div>
         </motion.div>
       </AnimatePresence>
