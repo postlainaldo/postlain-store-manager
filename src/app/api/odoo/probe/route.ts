@@ -91,6 +91,18 @@ export async function GET(req: NextRequest) {
     { fields: ["id", "name", "default_code", "barcode"], limit: 3, offset: 0 }
   );
 
+  // Step 7: check quants for product id=440615 (OLOEN) at ALL locations
+  const oloenAllQuants = await callOdoo(cookie, "stock.quant", "search_read",
+    [[["product_id", "=", 440615]]],
+    { fields: ["product_id", "quantity", "reserved_quantity", "location_id"], limit: 20 }
+  );
+
+  // Step 8: check quants at 47GDL (id=2027) for OLOEN
+  const oloen47Quants = await callOdoo(cookie, "stock.quant", "search_read",
+    [[["product_id", "=", 440615], ["location_id", "child_of", 2027]]],
+    { fields: ["product_id", "quantity", "reserved_quantity", "location_id"], limit: 10 }
+  );
+
   return NextResponse.json({
     env: { ODOO_URL, ODOO_DB, ODOO_USERNAME },
     auth: sessionInfo,
@@ -100,5 +112,7 @@ export async function GET(req: NextRequest) {
     byBarcode,
     byDefaultCode,
     byName,
+    oloenAllQuants,
+    oloen47Quants,
   });
 }
