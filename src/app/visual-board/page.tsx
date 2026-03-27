@@ -1348,17 +1348,28 @@ function ShelfView({ shelf, products, selectedPid, highlightPid, canEdit, onPlac
                 const isHighlit = !!pid && pid === highlightPid;
                 if (p) return (
                   <div key={si} {...(isHighlit ? { "data-hpid": p.id } : {})}>
-                    <ProductCard product={p} size={48} highlight={isHighlit}
+                    <ProductCard product={p} variant="label" highlight={isHighlit}
                       onRemove={canEdit ? () => onRemove(shelf.id, ti, si) : undefined} />
                   </div>
                 );
                 // Staff (canEdit=false): hide empty slots
                 if (!canEdit) return null;
+                const canPlace = !!selectedPid;
+                const canScan = !selectedPid;
                 return (
-                  <EmptySlot key={si} size={48}
-                    canPlace={!!selectedPid} canScan={!selectedPid}
-                    onPlace={() => onPlace(shelf.id, ti, si)}
-                    onScan={() => onScanToPlace(shelf.id, ti, si)} />
+                  <div key={si}
+                    onClick={() => { if (canPlace) onPlace(shelf.id, ti, si); else if (canScan) onScanToPlace(shelf.id, ti, si); }}
+                    style={{
+                      width: 92, minHeight: 52, borderRadius: 9, flexShrink: 0,
+                      border: `1.5px dashed ${canPlace ? "#0ea5e9" : "#e0f2fe"}`,
+                      background: canPlace ? "rgba(14,165,233,0.05)" : "#f8fafc",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      cursor: canPlace || canScan ? "pointer" : "default",
+                    }}>
+                    {canPlace
+                      ? <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#0ea5e9", opacity: 0.7 }} />
+                      : <ScanLine size={14} style={{ color: "#cbd5e1" }} />}
+                  </div>
                 );
               })}
             </div>
