@@ -168,7 +168,7 @@ function QtyPill({ qty }: { qty: number }) {
 // ─── Main list view ──────────────────────────────────────────────────────────
 
 function ListView() {
-  const { products, storeSections, warehouseShelves, fetchProducts, deleteProduct } = useStore();
+  const { products, storeSections, warehouseShelves, fetchProducts, fetchDbState, deleteProduct } = useStore();
   const router = useRouter();
 
   const [search,        setSearch]      = useState("");
@@ -266,7 +266,8 @@ function ListView() {
       if (data.ok) {
         // Also clean up any leftover bad products (category Khác or price 0)
         await fetch("/api/products/cleanup", { method: "POST" }).catch(() => {});
-        await fetchProducts();
+        // Reload full state (products + placements) so location map stays in sync
+        await fetchDbState();
         setOdooMsg(`✓ Đồng bộ ${data.synced} sản phẩm`);
       } else {
         setOdooMsg(`Lỗi: ${data.error}`);

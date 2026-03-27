@@ -482,12 +482,19 @@ export async function dbBulkUpsertProducts(products: DBProduct[]): Promise<void>
     }
     return;
   }
-  // SQLite: wrap in a transaction for speed
+  // SQLite: use INSERT + ON CONFLICT UPDATE (never DELETE+INSERT) to avoid
+  // cascading deletes on placements/other FK tables that reference products(id)
   const db = getDb();
   const stmt = db.prepare(`
-    INSERT OR REPLACE INTO products
+    INSERT INTO products
       (id,name,sku,category,productType,quantity,price,markdownPrice,color,size,imagePath,notes,createdAt,updatedAt)
     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+    ON CONFLICT(id) DO UPDATE SET
+      name=excluded.name, sku=excluded.sku, category=excluded.category,
+      productType=excluded.productType, quantity=excluded.quantity,
+      price=excluded.price, markdownPrice=excluded.markdownPrice,
+      color=excluded.color, size=excluded.size, imagePath=excluded.imagePath,
+      notes=excluded.notes, updatedAt=excluded.updatedAt
   `);
   const tx = db.transaction((rows: DBProduct[]) => {
     for (const p of rows) {
