@@ -149,7 +149,7 @@ export async function POST(req: NextRequest) {
     const odooProducts = await fetchOdooProducts(limit);
     const mapped = odooProducts
       .map(mapProduct)
-      .filter(p => p.category !== "Khác" && p.price != null && p.price > 0);
+      .filter(p => p.category !== "Khác"); // keep all products with known category, price=0 is valid (accessories, bundles)
 
     let deleted = 0;
     if (!dryRun) {
