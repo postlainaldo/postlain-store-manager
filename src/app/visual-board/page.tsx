@@ -6,7 +6,7 @@ import {
   ChevronLeft, ChevronRight, ChevronUp,
   Camera, ScanLine, Check, AlertCircle, QrCode,
   RefreshCw, LayoutGrid, Layers, Plus, Minus,
-  Wifi, WifiOff, Lock, Settings2, Trash2, Edit3,
+  Wifi, WifiOff, Lock, Settings2, Trash2, Edit3, Download, Upload,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useStore } from "@/store/useStore";
@@ -125,25 +125,34 @@ const ProductCard = memo(function ProductCard({
             </span>
           )}
 
-          {/* MÀU + GIÁ row */}
+          {/* MÀU row */}
           <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 1 }}>
-            {product.color && (
+            {colorHex && (
               <div style={{
-                width: 9, height: 9, borderRadius: "50%", background: product.color,
+                width: 9, height: 9, borderRadius: "50%", background: colorHex,
                 border: "1.5px solid rgba(255,255,255,0.8)", flexShrink: 0,
               }} />
             )}
             {product.color && (
-              <span style={{ fontSize: 7.5, color: "#64748b", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              <span style={{ fontSize: 7.5, color: colorHex ?? "#64748b", fontWeight: 700, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {product.color}
               </span>
             )}
-            {price && (
+          </div>
+
+          {/* GIÁ row — full price gạch + markdown */}
+          <div style={{ display: "flex", alignItems: "center", gap: 3, flexWrap: "nowrap" }}>
+            {product.markdownPrice && product.price && (
+              <span style={{ fontSize: 7, color: "#94a3b8", textDecoration: "line-through", whiteSpace: "nowrap" }}>
+                {fmtPrice(product.price)}
+              </span>
+            )}
+            {(product.markdownPrice ?? product.price) && (
               <span style={{
                 fontSize: 8, fontWeight: 700, whiteSpace: "nowrap",
                 color: product.markdownPrice ? "#dc2626" : "#475569",
               }}>
-                {fmtPrice(price)}
+                {fmtPrice(product.markdownPrice ?? product.price)}
               </span>
             )}
           </div>
@@ -205,22 +214,19 @@ const ProductCard = memo(function ProductCard({
           }}>
             {product.name.split(" ")[0].slice(0, isSmall ? 4 : 6)}
           </span>
-          {/* Màu (3-digit code) */}
+          {/* Màu dot + code */}
           {product.color && !isSmall && (
-            <span style={{ fontSize: 6, fontWeight: 700, color: `${cc}bb`, textAlign: "center", lineHeight: 1 }}>
-              {product.color}
-            </span>
+            <div style={{ display: "flex", alignItems: "center", gap: 2, justifyContent: "center" }}>
+              {colorHex && <div style={{ width: 5, height: 5, borderRadius: "50%", background: colorHex, flexShrink: 0 }} />}
+              <span style={{ fontSize: 6, fontWeight: 700, color: colorHex ?? `${cc}bb`, lineHeight: 1 }}>
+                {product.color}
+              </span>
+            </div>
           )}
-          {/* MC code */}
-          {!isSmall && (
-            <span style={{ fontSize: 5.5, fontWeight: 600, color: `${cc}99`, textAlign: "center", lineHeight: 1, maxWidth: "100%", overflow: "hidden" }}>
-              {parseMCFromNotes(product.notes) ?? ""}
-            </span>
-          )}
-          {/* Size */}
-          {product.size && !isSmall && (
-            <span style={{ fontSize: 6, fontWeight: 700, color: `${cc}cc`, textAlign: "center", lineHeight: 1 }}>
-              {product.size}
+          {/* Giá */}
+          {!isSmall && (product.markdownPrice ?? product.price) && (
+            <span style={{ fontSize: 5.5, fontWeight: 700, color: product.markdownPrice ? "#dc2626" : `${cc}99`, textAlign: "center", lineHeight: 1 }}>
+              {fmtPrice(product.markdownPrice ?? product.price)}
             </span>
           )}
         </div>
@@ -1495,6 +1501,76 @@ function useRealtimeSync(onRefresh: () => void) {
   return { online };
 }
 
+// ─── Placements Backup / Restore ─────────────────────────────────────────────
+function PlacementsBackupRestore() {
+  const [msg, setMsg] = useState<{ text: string; ok: boolean } | null>(null);
+  const [restoring, setRestoring] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const showMsg = (text: string, ok: boolean) => {
+    setMsg({ text, ok });
+    setTimeout(() => setMsg(null), 4000);
+  };
+
+  const handleDownload = async () => {
+    try {
+      const res = await fetch("/api/placements/backup");
+      if (!res.ok) { showMsg("Lỗi khi tải backup", false); return; }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `placements-backup-${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showMsg("Đã tải backup vị trí", true);
+    } catch { showMsg("Lỗi kết nối", false); }
+  };
+
+  const handleRestore = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = "";
+    setRestoring(true);
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+      const res = await fetch("/api/placements/backup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      const json = await res.json();
+      if (json.ok) showMsg(`Đã khôi phục ${json.restored} vị trí`, true);
+      else showMsg(`Lỗi: ${json.error}`, false);
+    } catch { showMsg("File không hợp lệ", false); }
+    finally { setRestoring(false); }
+  };
+
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 4, position: "relative" }}>
+      <input ref={fileRef} type="file" accept=".json" onChange={handleRestore} style={{ display: "none" }} />
+      <motion.button onClick={handleDownload} title="Backup vị trí"
+        whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.93 }}
+        style={{ width: 36, height: 36, borderRadius: 11, border: "1px solid rgba(201,165,90,0.35)", background: "rgba(201,165,90,0.07)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+        <Download size={13} style={{ color: "#C9A55A" }} />
+      </motion.button>
+      <motion.button onClick={() => fileRef.current?.click()} title="Restore vị trí"
+        whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.93 }}
+        disabled={restoring}
+        style={{ width: 36, height: 36, borderRadius: 11, border: "1px solid rgba(16,185,129,0.3)", background: "rgba(16,185,129,0.07)", display: "flex", alignItems: "center", justifyContent: "center", cursor: restoring ? "wait" : "pointer", opacity: restoring ? 0.6 : 1 }}>
+        <Upload size={13} style={{ color: "#10b981" }} />
+      </motion.button>
+      {msg && (
+        <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+          style={{ position: "absolute", top: 42, right: 0, whiteSpace: "nowrap", padding: "6px 12px", borderRadius: 8, fontSize: 11, fontWeight: 600, background: msg.ok ? "rgba(16,185,129,0.1)" : "rgba(220,38,38,0.1)", border: `1px solid ${msg.ok ? "rgba(16,185,129,0.3)" : "rgba(220,38,38,0.3)"}`, color: msg.ok ? "#10b981" : "#dc2626", zIndex: 100 }}>
+          {msg.text}
+        </motion.div>
+      )}
+    </div>
+  );
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function VisualBoardPage() {
   const {
@@ -1638,6 +1714,7 @@ export default function VisualBoardPage() {
           style={{ width: 36, height: 36, borderRadius: 11, border: "1px solid var(--border)", background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", boxShadow: "0 1px 4px rgba(14,165,233,0.08)" }}>
           <RefreshCw size={13} style={{ color: "var(--blue)", animation: refreshing ? "spin 0.6s linear infinite" : "none" }} />
         </motion.button>
+        {canEdit && <PlacementsBackupRestore />}
       </div>
 
       {/* Subtab switcher */}
