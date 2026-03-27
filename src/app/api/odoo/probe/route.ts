@@ -80,14 +80,43 @@ export async function GET(req: NextRequest) {
       ) ?? [];
     }
 
+    // Also try: search by name contains the code
+    const byName = await callOdoo(cookie, "product.product", "search_read",
+      [[["name", "ilike", code]]],
+      { fields: ["id", "name", "default_code", "barcode", "list_price", "active", "categ_id"], limit: 5 }
+    );
+
+    // Fetch OLOEN specifically to see its actual barcode/default_code
+    const oloenRaw = await callOdoo(cookie, "product.product", "search_read",
+      [[["name", "ilike", "OLOEN"]]],
+      { fields: ["id", "name", "default_code", "barcode", "list_price", "active", "categ_id"], limit: 10 }
+    ).catch(() => []);
+
+    // Also try: search POS barcodes (pos.config or product.barcode)
+    const byPosBarcode = await callOdoo(cookie, "barcode.nomenclature", "search_read",
+      [[]],
+      { fields: ["id", "name", "rule_ids"], limit: 3 }
+    ).catch(() => []);
+
+    // Check in product.barcode if model exists
+    const byProductBarcode = await callOdoo(cookie, "product.product", "search_read",
+      [[["barcode", "ilike", code]]],
+      { fields: ["id", "name", "default_code", "barcode", "list_price", "active"], limit: 5 }
+    ).catch(() => []);
+
     return NextResponse.json({
       searchCode: code,
       byBarcode: byBarcode ?? [],
       byDefaultCode: byDefaultCode ?? [],
+      byName: byName ?? [],
+      byProductBarcodeIlike: byProductBarcode ?? [],
+      byPosNomenclature: byPosBarcode ?? [],
+      oloenRaw: oloenRaw ?? [],
       quants_at_47GDL: quants,
       summary: {
         foundByBarcode: (byBarcode ?? []).length,
         foundByDefaultCode: (byDefaultCode ?? []).length,
+        foundByName: (byName ?? []).length,
         hasQuantAt47GDL: (quants as unknown[]).length > 0,
       }
     });
