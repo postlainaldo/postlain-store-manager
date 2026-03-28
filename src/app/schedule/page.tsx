@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import {
   ChevronLeft, ChevronRight, Plus, X, Check, Clock,
   Users, Trash2, Edit3, CalendarDays, Settings2,
@@ -159,152 +159,137 @@ function SlotCard({ slot, regs, isAdmin, currentUserId, allStaff, onRegister, on
   onUnassign: (slotId: string, userId: string) => void;
   onDelete: (slotId: string) => void;
 }) {
-  const [expanded, setExpanded] = useState(false);
-  const [showAssign, setShowAssign] = useState(false);
-  const myReg  = regs.find(r => r.userId === currentUserId);
+  const [showAdd, setShowAdd] = useState(false);
+  const myReg = regs.find(r => r.userId === currentUserId);
   const approved = regs.filter(r => r.status === "approved");
-  const pending  = regs.filter(r => r.status === "pending");
+  const pending = regs.filter(r => r.status === "pending");
   const full = approved.length >= slot.maxStaff;
-
-  const unassignedStaff = allStaff.filter(u => !regs.find(r => r.userId === u.id));
+  const unassigned = allStaff.filter(u => !regs.find(r => r.userId === u.id));
 
   return (
-    <div style={{ borderRadius:10, border:`1.5px solid ${slot.color}30`, background:"#fff", overflow:"hidden", boxShadow:`0 1px 6px ${slot.color}10` }}>
+    <div style={{ borderRadius:10, border:`1.5px solid ${slot.color}30`, background:"#fff", overflow:"hidden", marginBottom:0 }}>
+      {/* Color top bar */}
       <div style={{ height:3, background:slot.color }} />
-      <div style={{ padding:"8px 10px" }}>
-        {/* Header */}
-        <div style={{ display:"flex", alignItems:"center", gap:6 }}>
-          <div style={{ flex:1, minWidth:0 }}>
-            <p style={{ fontSize:11, fontWeight:700, color:"#0c1a2e", whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{slot.name}</p>
-            <p style={{ fontSize:9, color:"#64748b", marginTop:1, display:"flex", alignItems:"center", gap:3 }}>
-              <Clock size={8} />{fmt(slot.startTime)} – {fmt(slot.endTime)}
-            </p>
-          </div>
-          <div style={{ display:"flex", flexDirection:"column", alignItems:"center", flexShrink:0 }}>
-            <span style={{ fontSize:13, fontWeight:800, color:full?"#ef4444":slot.color, lineHeight:1 }}>{approved.length}</span>
-            <span style={{ fontSize:7, color:"#94a3b8" }}>/{slot.maxStaff}</span>
-          </div>
-          {isAdmin && (
-            <>
-              <button onClick={()=>setShowAssign(v=>!v)} title="Xếp nhân viên"
-                style={{ width:22, height:22, borderRadius:6, border:`1px solid ${showAssign?"#0ea5e9":"#bae6fd"}`, background:showAssign?"#f0f9ff":"#fff", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
-                <UserPlus size={10} style={{ color:showAssign?"#0ea5e9":"#64748b" }} />
-              </button>
-              <button onClick={()=>onDelete(slot.id)} title="Xoá ca"
-                style={{ width:22, height:22, borderRadius:6, border:"1px solid #fee2e2", background:"#fff5f5", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
-                <Trash2 size={9} style={{ color:"#ef4444" }} />
-              </button>
-            </>
-          )}
-          {regs.length > 0 && (
-            <button onClick={()=>setExpanded(v=>!v)}
-              style={{ width:22, height:22, borderRadius:6, border:"1px solid #e2e8f0", background:"#f8fafc", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
-              <ChevronDown size={10} style={{ color:"#64748b", transform:expanded?"rotate(180deg)":"none", transition:"transform 0.15s" }} />
-            </button>
-          )}
+
+      {/* Header */}
+      <div style={{ padding:"8px 10px 6px", display:"flex", alignItems:"flex-start", justifyContent:"space-between", gap:4 }}>
+        <div>
+          <p style={{ fontSize:12, fontWeight:700, color:"#0c1a2e" }}>{slot.name}</p>
+          <p style={{ fontSize:10, color:"#64748b", marginTop:1 }}>
+            {fmt(slot.startTime)}–{fmt(slot.endTime)} · {approved.length}/{slot.maxStaff}
+          </p>
         </div>
-
-        {/* My registration status */}
-        {myReg && (
-          <div style={{ marginTop:6, display:"flex", alignItems:"center", gap:5, padding:"4px 8px", borderRadius:7, background:`${statusColor(myReg.status)}10`, border:`1px solid ${statusColor(myReg.status)}30` }}>
-            <StatusIcon status={myReg.status} />
-            <span style={{ fontSize:9, fontWeight:700, color:statusColor(myReg.status), flex:1 }}>{statusLabel(myReg.status)}</span>
-            {myReg.status === "pending" && (
-              <button onClick={()=>onCancel(myReg.id)}
-                style={{ fontSize:8, color:"#ef4444", fontWeight:600, background:"none", border:"none", cursor:"pointer", padding:0, fontFamily:"inherit" }}>Huỷ</button>
-            )}
-          </div>
-        )}
-
-        {/* Pending badge */}
-        {isAdmin && pending.length > 0 && (
-          <div style={{ marginTop:6 }}>
-            <span style={{ fontSize:9, fontWeight:700, color:"#f59e0b", background:"rgba(245,158,11,0.1)", padding:"2px 7px", borderRadius:20, border:"1px solid rgba(245,158,11,0.2)" }}>
-              {pending.length} chờ duyệt
-            </span>
-          </div>
-        )}
-
-        {/* Register button (staff only) */}
-        {!myReg && !isAdmin && (
-          <button onClick={()=>!full && onRegister(slot.id)} disabled={full}
-            style={{ marginTop:7, width:"100%", height:28, borderRadius:7, border:`1px solid ${!full?slot.color:slot.color+"40"}`, background:!full?`${slot.color}12`:"#f8fafc", cursor:!full?"pointer":"default", fontSize:10, fontWeight:700, color:!full?slot.color:"#94a3b8", fontFamily:"inherit" }}>
-            {full ? "Đầy ca" : "Đăng ký"}
+        {isAdmin && (
+          <button onClick={() => onDelete(slot.id)}
+            style={{ width:22, height:22, borderRadius:6, border:"1px solid #fee2e2", background:"#fff5f5", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+            <Trash2 size={9} style={{ color:"#ef4444" }} />
           </button>
         )}
       </div>
 
-      {/* Admin assign panel */}
-      <AnimatePresence>
-        {showAssign && isAdmin && (
-          <motion.div initial={{ height:0, opacity:0 }} animate={{ height:"auto", opacity:1 }} exit={{ height:0, opacity:0 }} style={{ overflow:"hidden" }}>
-            <div style={{ borderTop:`1px solid ${slot.color}20`, padding:"8px 10px", background:`${slot.color}05` }}>
-              <p style={{ fontSize:8, fontWeight:700, color:"#64748b", letterSpacing:"0.1em", marginBottom:6 }}>XẾP LỊCH TRỰC TIẾP</p>
-              {/* Assigned */}
+      {/* ADMIN VIEW */}
+      {isAdmin ? (
+        <div style={{ padding:"0 10px 10px" }}>
+          {/* Approved list */}
+          {approved.length > 0 && (
+            <div style={{ marginBottom:6 }}>
+              <p style={{ fontSize:8, fontWeight:700, color:"#10b981", letterSpacing:"0.1em", marginBottom:4 }}>ĐÃ XẾP</p>
               {approved.map(reg => (
-                <div key={reg.id} style={{ display:"flex", alignItems:"center", gap:6, marginBottom:4 }}>
-                  <div style={{ width:18, height:18, borderRadius:"50%", background:"#10b98118", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
-                    <span style={{ fontSize:7, fontWeight:700, color:"#10b981" }}>{reg.userName.slice(0,1).toUpperCase()}</span>
+                <div key={reg.id} style={{ display:"flex", alignItems:"center", gap:6, marginBottom:3 }}>
+                  <div style={{ width:18, height:18, borderRadius:"50%", background:"#dcfce7", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+                    <span style={{ fontSize:7, fontWeight:700, color:"#10b981" }}>{reg.userName[0]?.toUpperCase()}</span>
                   </div>
                   <span style={{ fontSize:10, color:"#0c1a2e", flex:1 }}>{reg.userName}</span>
-                  <span style={{ fontSize:8, color:"#10b981", fontWeight:600 }}>✓ Đã xếp</span>
-                  <button onClick={()=>onUnassign(slot.id, reg.userId)}
-                    style={{ width:20, height:20, borderRadius:5, border:"1px solid #fee2e2", background:"#fff5f5", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" }}>
-                    <UserMinus size={9} style={{ color:"#ef4444" }} />
+                  <button onClick={() => onUnassign(slot.id, reg.userId)}
+                    style={{ width:18, height:18, borderRadius:4, border:"1px solid #fca5a5", background:"#fff", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" }}>
+                    <UserMinus size={8} style={{ color:"#ef4444" }} />
                   </button>
                 </div>
               ))}
-              {/* Unassigned staff to add */}
-              {unassignedStaff.length > 0 && (
-                <div style={{ marginTop:4, display:"flex", flexWrap:"wrap", gap:4 }}>
-                  {unassignedStaff.map(u => (
-                    <button key={u.id} onClick={()=>onAssign(slot.id, u)}
-                      style={{ display:"flex", alignItems:"center", gap:4, padding:"3px 8px", borderRadius:20, border:`1px solid ${slot.color}40`, background:"#fff", cursor:"pointer", fontSize:9, fontWeight:600, color:slot.color, fontFamily:"inherit" }}>
-                      <Plus size={8} />{u.name}
-                    </button>
-                  ))}
-                </div>
-              )}
-              {unassignedStaff.length === 0 && approved.length === 0 && (
-                <p style={{ fontSize:9, color:"#94a3b8" }}>Tất cả đã được xếp ca</p>
-              )}
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          )}
 
-      {/* Expanded registrations (pending/rejected list) */}
-      <AnimatePresence>
-        {expanded && (
-          <motion.div initial={{ height:0, opacity:0 }} animate={{ height:"auto", opacity:1 }} exit={{ height:0, opacity:0 }} style={{ overflow:"hidden" }}>
-            <div style={{ borderTop:`1px solid ${slot.color}20`, padding:"6px 10px 8px", display:"flex", flexDirection:"column", gap:4 }}>
-              {regs.length === 0 && <p style={{ fontSize:9, color:"#94a3b8", textAlign:"center" }}>Chưa có đăng ký</p>}
-              {regs.map(reg => (
-                <div key={reg.id} style={{ display:"flex", alignItems:"center", gap:6 }}>
-                  <div style={{ width:20, height:20, borderRadius:"50%", background:`${statusColor(reg.status)}18`, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
-                    <span style={{ fontSize:8, fontWeight:700, color:statusColor(reg.status) }}>{reg.userName.slice(0,1).toUpperCase()}</span>
-                  </div>
-                  <span style={{ fontSize:10, color:"#0c1a2e", flex:1, fontWeight:500 }}>{reg.userName}</span>
-                  <StatusIcon status={reg.status} />
-                  <span style={{ fontSize:8, color:statusColor(reg.status), fontWeight:600 }}>{statusLabel(reg.status)}</span>
-                  {isAdmin && reg.status === "pending" && (
-                    <div style={{ display:"flex", gap:3 }}>
-                      <button onClick={()=>onApprove(reg)}
-                        style={{ width:22, height:22, borderRadius:6, border:"1px solid #bbf7d0", background:"#f0fdf4", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" }}>
-                        <Check size={10} style={{ color:"#10b981" }} />
-                      </button>
-                      <button onClick={()=>onReject(reg)}
-                        style={{ width:22, height:22, borderRadius:6, border:"1px solid #fee2e2", background:"#fff5f5", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" }}>
-                        <X size={10} style={{ color:"#ef4444" }} />
-                      </button>
-                    </div>
-                  )}
+          {/* Pending list */}
+          {pending.length > 0 && (
+            <div style={{ marginBottom:6 }}>
+              <p style={{ fontSize:8, fontWeight:700, color:"#f59e0b", letterSpacing:"0.1em", marginBottom:4 }}>CHỜ DUYỆT ({pending.length})</p>
+              {pending.map(reg => (
+                <div key={reg.id} style={{ display:"flex", alignItems:"center", gap:4, marginBottom:3, background:"rgba(245,158,11,0.05)", borderRadius:6, padding:"3px 6px" }}>
+                  <span style={{ fontSize:10, color:"#0c1a2e", flex:1 }}>{reg.userName}</span>
+                  <button onClick={() => onApprove(reg)}
+                    style={{ height:20, padding:"0 7px", borderRadius:5, border:"1px solid #bbf7d0", background:"#f0fdf4", cursor:"pointer", fontSize:9, fontWeight:700, color:"#10b981", fontFamily:"inherit" }}>
+                    ✓
+                  </button>
+                  <button onClick={() => onReject(reg)}
+                    style={{ height:20, padding:"0 7px", borderRadius:5, border:"1px solid #fca5a5", background:"#fff5f5", cursor:"pointer", fontSize:9, fontWeight:700, color:"#ef4444", fontFamily:"inherit" }}>
+                    ✗
+                  </button>
                 </div>
               ))}
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          )}
+
+          {/* Add staff button */}
+          {!full && unassigned.length > 0 && (
+            <div>
+              <button onClick={() => setShowAdd(v => !v)}
+                style={{ width:"100%", height:26, borderRadius:7, border:`1px dashed ${slot.color}60`, background:"transparent", cursor:"pointer", fontSize:9, fontWeight:600, color:slot.color, fontFamily:"inherit", display:"flex", alignItems:"center", justifyContent:"center", gap:4 }}>
+                <UserPlus size={9} /> Xếp nhân viên
+              </button>
+              <AnimatePresence>
+                {showAdd && (
+                  <motion.div initial={{ height:0, opacity:0 }} animate={{ height:"auto", opacity:1 }} exit={{ height:0, opacity:0 }} style={{ overflow:"hidden" }}>
+                    <div style={{ marginTop:6, display:"flex", flexWrap:"wrap", gap:4 }}>
+                      {unassigned.map(u => (
+                        <button key={u.id} onClick={() => { onAssign(slot.id, u); setShowAdd(false); }}
+                          style={{ padding:"3px 8px", borderRadius:20, border:`1px solid ${slot.color}40`, background:"#fff", cursor:"pointer", fontSize:9, fontWeight:600, color:slot.color, fontFamily:"inherit" }}>
+                          {u.name}
+                        </button>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          )}
+          {full && <p style={{ fontSize:9, color:"#10b981", fontWeight:600, textAlign:"center" }}>Ca đã đủ người</p>}
+        </div>
+      ) : (
+        /* STAFF VIEW */
+        <div style={{ padding:"0 10px 10px" }}>
+          {/* Who's on this shift */}
+          {approved.length > 0 && (
+            <div style={{ display:"flex", flexWrap:"wrap", gap:3, marginBottom:8 }}>
+              {approved.map(reg => (
+                <span key={reg.id} style={{ fontSize:9, color:"#64748b", background:"#f1f5f9", padding:"2px 7px", borderRadius:20 }}>{reg.userName}</span>
+              ))}
+            </div>
+          )}
+
+          {/* My status */}
+          {!myReg ? (
+            <button onClick={() => !full && onRegister(slot.id)} disabled={full}
+              style={{ width:"100%", height:30, borderRadius:8, border:"none", background:full?"#f1f5f9":`linear-gradient(135deg,${slot.color},${slot.color}cc)`, cursor:full?"default":"pointer", fontSize:10, fontWeight:700, color:full?"#94a3b8":"#fff", fontFamily:"inherit" }}>
+              {full ? "Đầy ca" : "Đăng ký ca này"}
+            </button>
+          ) : myReg.status === "approved" ? (
+            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+              <span style={{ fontSize:10, color:"#10b981", fontWeight:700 }}>✓ Đã được xếp vào ca</span>
+              <button onClick={() => onCancel(myReg.id)} style={{ fontSize:9, color:"#94a3b8", background:"none", border:"none", cursor:"pointer" }}>Huỷ</button>
+            </div>
+          ) : myReg.status === "pending" ? (
+            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+              <span style={{ fontSize:10, color:"#f59e0b", fontWeight:600 }}>⏳ Chờ xếp lịch</span>
+              <button onClick={() => onCancel(myReg.id)} style={{ fontSize:9, color:"#94a3b8", background:"none", border:"none", cursor:"pointer" }}>Huỷ</button>
+            </div>
+          ) : (
+            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+              <span style={{ fontSize:10, color:"#ef4444", fontWeight:600 }}>✗ Không được xếp vào ca này</span>
+              <button onClick={() => onRegister(slot.id)} style={{ fontSize:9, color:"#0ea5e9", background:"none", border:"none", cursor:"pointer" }}>Đăng ký lại</button>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -435,6 +420,15 @@ export default function SchedulePage() {
   const [editTemplate, setEditTemplate]   = useState<ShiftTemplate | null>(null);
   const [addTemplate, setAddTemplate]     = useState(false);
   const [viewMode, setViewMode]           = useState<"week"|"staff">("week");
+
+  // ── Responsive ─────────────────────────────────────────────────────────────
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 680);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
 
   const weekDates = useMemo(() => getWeekDates(weekOffset), [weekOffset]);
   const dateFrom  = toDateStr(weekDates[0]);
@@ -580,8 +574,8 @@ export default function SchedulePage() {
   return (
     <div style={{ display:"flex", flexDirection:"column", height:"100%", minHeight:0, background:"#f8fafc" }}>
       {/* ── Header ── */}
-      <div style={{ padding:"16px 20px 12px", background:"#fff", borderBottom:"1px solid #e0f2fe", flexShrink:0 }}>
-        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:10 }}>
+      <div style={{ padding: isMobile ? "12px 14px 10px" : "16px 20px 12px", background:"#fff", borderBottom:"1px solid #e0f2fe", flexShrink:0 }}>
+        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:8 }}>
           <div>
             <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:2 }}>
               <p style={{ fontSize:9, fontWeight:700, color:"#94a3b8", letterSpacing:"0.2em" }}>LỊCH LÀM · POSTLAIN</p>
@@ -589,20 +583,20 @@ export default function SchedulePage() {
                 W{String(weekNum).padStart(3,"0")}
               </span>
             </div>
-            <h1 style={{ fontSize:20, fontWeight:800, color:"#0c1a2e", margin:0 }}>Lịch Làm Việc</h1>
+            <h1 style={{ fontSize: isMobile ? 17 : 20, fontWeight:800, color:"#0c1a2e", margin:0 }}>Lịch Làm Việc</h1>
           </div>
-          <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+          <div style={{ display:"flex", alignItems:"center", gap:6 }}>
             {isAdmin && pendingCount > 0 && (
-              <div style={{ display:"flex", alignItems:"center", gap:5, padding:"5px 10px", borderRadius:20, background:"rgba(245,158,11,0.1)", border:"1px solid rgba(245,158,11,0.3)" }}>
-                <AlertCircle size={11} style={{ color:"#f59e0b" }} />
-                <span style={{ fontSize:10, fontWeight:700, color:"#f59e0b" }}>{pendingCount} chờ duyệt</span>
+              <div style={{ display:"flex", alignItems:"center", gap:5, padding:"5px 10px", borderRadius:20, background:"rgba(245,158,11,0.12)", border:"1.5px solid rgba(245,158,11,0.4)", cursor:"pointer" }}>
+                <AlertCircle size={12} style={{ color:"#f59e0b" }} />
+                <span style={{ fontSize:10, fontWeight:800, color:"#d97706" }}>{pendingCount} chờ duyệt</span>
               </div>
             )}
             {isAdmin && (
               <button onClick={()=>{ setShowTemplates(v=>!v); setAddTemplate(false); setEditTemplate(null); }}
                 style={{ display:"flex", alignItems:"center", gap:5, padding:"7px 12px", borderRadius:10, border:`1px solid ${showTemplates?"#0ea5e9":"#bae6fd"}`, background:showTemplates?"#f0f9ff":"#fff", cursor:"pointer", fontFamily:"inherit" }}>
                 <Settings2 size={12} style={{ color:"#0ea5e9" }} />
-                <span style={{ fontSize:10, fontWeight:600, color:"#0ea5e9" }}>Mẫu Ca</span>
+                <span style={{ fontSize:10, fontWeight:600, color:"#0ea5e9" }}>{isMobile ? "Mẫu" : "Mẫu Ca"}</span>
                 {templates.length > 0 && (
                   <span style={{ fontSize:8, fontWeight:800, color:"#fff", background:"#0ea5e9", padding:"1px 5px", borderRadius:10 }}>{templates.length}</span>
                 )}
@@ -611,82 +605,82 @@ export default function SchedulePage() {
           </div>
         </div>
 
-        {/* Template panel */}
-        <AnimatePresence>
-          {showTemplates && isAdmin && (
-            <motion.div initial={{ height:0, opacity:0 }} animate={{ height:"auto", opacity:1 }} exit={{ height:0, opacity:0 }} style={{ overflow:"hidden" }}>
-              <div style={{ marginTop:12, padding:14, background:"#f8fafc", borderRadius:12, border:"1px solid #e0f2fe" }}>
-                <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:10 }}>
-                  <p style={{ fontSize:10, fontWeight:700, color:"#64748b", letterSpacing:"0.12em" }}>MẪU CA LÀM VIỆC</p>
-                  <button onClick={()=>{ setAddTemplate(v=>!v); setEditTemplate(null); }}
-                    style={{ display:"flex", alignItems:"center", gap:4, padding:"5px 10px", borderRadius:8, border:`1px solid ${addTemplate?"#0ea5e9":"#bae6fd"}`, background:addTemplate?"#f0f9ff":"#fff", cursor:"pointer", fontSize:10, fontWeight:600, color:"#0ea5e9", fontFamily:"inherit" }}>
-                    <Plus size={11} /> Thêm mẫu
-                  </button>
-                </div>
-
-                {/* Add form */}
-                {addTemplate && !editTemplate && (
-                  <div style={{ marginBottom:12, padding:14, background:"#fff", borderRadius:10, border:"1px solid #bae6fd" }}>
-                    <p style={{ fontSize:10, fontWeight:700, color:"#0ea5e9", marginBottom:10 }}>Tạo mẫu mới</p>
-                    <TemplateForm onSave={handleSaveTemplate} onClose={()=>setAddTemplate(false)} />
+        {/* Template panel — desktop inline accordion */}
+        {!isMobile && (
+          <AnimatePresence>
+            {showTemplates && isAdmin && (
+              <motion.div initial={{ height:0, opacity:0 }} animate={{ height:"auto", opacity:1 }} exit={{ height:0, opacity:0 }} style={{ overflow:"hidden" }}>
+                <div style={{ marginTop:12, padding:14, background:"#f8fafc", borderRadius:12, border:"1px solid #e0f2fe" }}>
+                  <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:10 }}>
+                    <p style={{ fontSize:10, fontWeight:700, color:"#64748b", letterSpacing:"0.12em" }}>MẪU CA LÀM VIỆC</p>
+                    <button onClick={()=>{ setAddTemplate(v=>!v); setEditTemplate(null); }}
+                      style={{ display:"flex", alignItems:"center", gap:4, padding:"5px 10px", borderRadius:8, border:`1px solid ${addTemplate?"#0ea5e9":"#bae6fd"}`, background:addTemplate?"#f0f9ff":"#fff", cursor:"pointer", fontSize:10, fontWeight:600, color:"#0ea5e9", fontFamily:"inherit" }}>
+                      <Plus size={11} /> Thêm mẫu
+                    </button>
                   </div>
-                )}
 
-                {/* Edit form */}
-                {editTemplate && (
-                  <div style={{ marginBottom:12, padding:14, background:"#fff", borderRadius:10, border:`1.5px solid ${editTemplate.color}60` }}>
-                    <p style={{ fontSize:10, fontWeight:700, color:editTemplate.color, marginBottom:10 }}>Chỉnh sửa: {editTemplate.name}</p>
-                    <TemplateForm initial={editTemplate} onSave={handleSaveTemplate} onClose={()=>setEditTemplate(null)} />
-                  </div>
-                )}
-
-                <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
-                  {templates.map(t => (
-                    <div key={t.id} style={{ display:"flex", alignItems:"center", gap:8, padding:"8px 12px", borderRadius:10, background:"#fff", border:`1.5px solid ${t.color}40`, minWidth:160 }}>
-                      <div style={{ width:4, height:32, borderRadius:2, background:t.color, flexShrink:0 }} />
-                      <div style={{ flex:1, minWidth:0 }}>
-                        <p style={{ fontSize:11, fontWeight:700, color:"#0c1a2e" }}>{t.name}</p>
-                        <p style={{ fontSize:9, color:"#64748b" }}>{fmt(t.startTime)}–{fmt(t.endTime)} · {t.maxStaff} người</p>
-                      </div>
-                      <button onClick={()=>{ setEditTemplate(t); setAddTemplate(false); }}
-                        style={{ width:24,height:24,borderRadius:6,border:`1px solid ${editTemplate?.id===t.id?"#0ea5e9":"#e2e8f0"}`,background:editTemplate?.id===t.id?"#f0f9ff":"#fff",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center" }}>
-                        <Edit3 size={10} style={{ color:editTemplate?.id===t.id?"#0ea5e9":"#64748b" }} />
-                      </button>
-                      <button onClick={()=>handleDeleteTemplate(t.id)}
-                        style={{ width:24,height:24,borderRadius:6,border:"1px solid #fee2e2",background:"#fff5f5",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center" }}>
-                        <Trash2 size={10} style={{ color:"#ef4444" }} />
-                      </button>
+                  {addTemplate && !editTemplate && (
+                    <div style={{ marginBottom:12, padding:14, background:"#fff", borderRadius:10, border:"1px solid #bae6fd" }}>
+                      <p style={{ fontSize:10, fontWeight:700, color:"#0ea5e9", marginBottom:10 }}>Tạo mẫu mới</p>
+                      <TemplateForm onSave={handleSaveTemplate} onClose={()=>setAddTemplate(false)} />
                     </div>
-                  ))}
-                  {templates.length === 0 && !addTemplate && (
-                    <p style={{ fontSize:10, color:"#94a3b8" }}>Chưa có mẫu ca nào. Bấm "Thêm mẫu" để tạo.</p>
                   )}
+
+                  {editTemplate && (
+                    <div style={{ marginBottom:12, padding:14, background:"#fff", borderRadius:10, border:`1.5px solid ${editTemplate.color}60` }}>
+                      <p style={{ fontSize:10, fontWeight:700, color:editTemplate.color, marginBottom:10 }}>Chỉnh sửa: {editTemplate.name}</p>
+                      <TemplateForm initial={editTemplate} onSave={handleSaveTemplate} onClose={()=>setEditTemplate(null)} />
+                    </div>
+                  )}
+
+                  <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
+                    {templates.map(t => (
+                      <div key={t.id} style={{ display:"flex", alignItems:"center", gap:8, padding:"8px 12px", borderRadius:10, background:"#fff", border:`1.5px solid ${t.color}40`, minWidth:160 }}>
+                        <div style={{ width:4, height:32, borderRadius:2, background:t.color, flexShrink:0 }} />
+                        <div style={{ flex:1, minWidth:0 }}>
+                          <p style={{ fontSize:11, fontWeight:700, color:"#0c1a2e" }}>{t.name}</p>
+                          <p style={{ fontSize:9, color:"#64748b" }}>{fmt(t.startTime)}–{fmt(t.endTime)} · {t.maxStaff} người</p>
+                        </div>
+                        <button onClick={()=>{ setEditTemplate(t); setAddTemplate(false); }}
+                          style={{ width:24,height:24,borderRadius:6,border:`1px solid ${editTemplate?.id===t.id?"#0ea5e9":"#e2e8f0"}`,background:editTemplate?.id===t.id?"#f0f9ff":"#fff",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center" }}>
+                          <Edit3 size={10} style={{ color:editTemplate?.id===t.id?"#0ea5e9":"#64748b" }} />
+                        </button>
+                        <button onClick={()=>handleDeleteTemplate(t.id)}
+                          style={{ width:24,height:24,borderRadius:6,border:"1px solid #fee2e2",background:"#fff5f5",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center" }}>
+                          <Trash2 size={10} style={{ color:"#ef4444" }} />
+                        </button>
+                      </div>
+                    ))}
+                    {templates.length === 0 && !addTemplate && (
+                      <p style={{ fontSize:10, color:"#94a3b8" }}>Chưa có mẫu ca nào. Bấm "Thêm mẫu" để tạo.</p>
+                    )}
+                  </div>
                 </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        )}
 
         {/* Week nav + view toggle */}
-        <div style={{ display:"flex", alignItems:"center", gap:8, marginTop:12 }}>
+        <div style={{ display:"flex", alignItems:"center", gap:isMobile?6:8, marginTop:12 }}>
           <button onClick={()=>setWeekOffset(v=>v-1)}
-            style={{ width:30,height:30,borderRadius:9,border:"1px solid #e0f2fe",background:"#fff",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center" }}>
+            style={{ width:30,height:30,borderRadius:9,border:"1px solid #e0f2fe",background:"#fff",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}>
             <ChevronLeft size={14} style={{ color:"#64748b" }} />
           </button>
           <button onClick={()=>setWeekOffset(0)}
-            style={{ padding:"5px 12px",borderRadius:9,border:"1px solid #e0f2fe",background:weekOffset===0?"#0c1a2e":"#fff",cursor:"pointer",fontSize:10,fontWeight:700,color:weekOffset===0?"#fff":"#64748b",fontFamily:"inherit" }}>
+            style={{ padding:"5px 10px",borderRadius:9,border:"1px solid #e0f2fe",background:weekOffset===0?"#0c1a2e":"#fff",cursor:"pointer",fontSize:10,fontWeight:700,color:weekOffset===0?"#fff":"#64748b",fontFamily:"inherit",flexShrink:0 }}>
             Tuần này
           </button>
-          <span style={{ fontSize:11, fontWeight:700, color:"#0c1a2e", flex:1, textAlign:"center" }}>{weekLabel}</span>
+          <span style={{ fontSize:isMobile?10:11, fontWeight:700, color:"#0c1a2e", flex:1, textAlign:"center" }}>{weekLabel}</span>
           <button onClick={()=>setWeekOffset(v=>v+1)}
-            style={{ width:30,height:30,borderRadius:9,border:"1px solid #e0f2fe",background:"#fff",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center" }}>
+            style={{ width:30,height:30,borderRadius:9,border:"1px solid #e0f2fe",background:"#fff",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}>
             <ChevronRight size={14} style={{ color:"#64748b" }} />
           </button>
-          <div style={{ display:"flex", gap:2, padding:3, background:"#f0f9ff", borderRadius:10, border:"1px solid #e0f2fe" }}>
-            {([["week","Tuần"],["staff","Nhân viên"]] as const).map(([v,l]) => (
+          <div style={{ display:"flex", gap:2, padding:3, background:"#f0f9ff", borderRadius:10, border:"1px solid #e0f2fe", flexShrink:0 }}>
+            {([["week","Tuần"],["staff","NV"]] as const).map(([v,l]) => (
               <button key={v} onClick={()=>setViewMode(v)}
-                style={{ padding:"4px 10px", borderRadius:7, border:"none", background:viewMode===v?"#0ea5e9":"transparent", cursor:"pointer", fontSize:9, fontWeight:700, color:viewMode===v?"#fff":"#64748b", fontFamily:"inherit" }}>
-                {l}
+                style={{ padding:"4px 8px", borderRadius:7, border:"none", background:viewMode===v?"#0ea5e9":"transparent", cursor:"pointer", fontSize:9, fontWeight:700, color:viewMode===v?"#fff":"#64748b", fontFamily:"inherit" }}>
+                {isMobile ? l : (v === "week" ? "Tuần" : "Nhân viên")}
               </button>
             ))}
           </div>
@@ -694,113 +688,196 @@ export default function SchedulePage() {
       </div>
 
       {/* ── Body ── */}
-      <div style={{ flex:1, overflowY:"auto", padding:"16px 16px 80px" }}>
+      <div style={{ flex:1, overflowY:"auto", padding: isMobile ? "0 0 80px" : "16px 16px 80px" }}>
         {loading ? (
           <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:200, color:"#94a3b8", fontSize:12 }}>Đang tải...</div>
         ) : viewMode === "week" ? (
-          /* ── Weekly grid ── */
-          <div style={{ display:"grid", gridTemplateColumns:"repeat(7, minmax(0, 1fr))", gap:8 }}>
-            {weekDates.map((date) => {
-              const ds = toDateStr(date);
-              const isToday = ds === today;
-              const daySlots = slotsByDate[ds] ?? [];
-              const isPast = ds < today;
-              return (
-                <div key={ds} style={{ display:"flex", flexDirection:"column", gap:6 }}>
-                  {/* Day header */}
-                  <div style={{ textAlign:"center" }}>
-                    <p style={{ fontSize:9, fontWeight:700, color:isToday?"#0ea5e9":"#94a3b8", letterSpacing:"0.1em" }}>{DAYS_VI[date.getDay()]}</p>
-                    <div style={{ width:28, height:28, borderRadius:"50%", background:isToday?"#0ea5e9":"transparent", display:"flex", alignItems:"center", justifyContent:"center", margin:"2px auto" }}>
-                      <span style={{ fontSize:13, fontWeight:800, color:isToday?"#fff":isPast?"#cbd5e1":"#0c1a2e" }}>{date.getDate()}</span>
+          isMobile ? (
+            /* ── Mobile: vertical day list ── */
+            <div style={{ display:"flex", flexDirection:"column", gap:0 }}>
+              {weekDates.map(date => {
+                const ds = toDateStr(date);
+                const isToday = ds === today;
+                const isPast = ds < today;
+                const daySlots = slotsByDate[ds] ?? [];
+                const hasSlots = daySlots.length > 0;
+
+                return (
+                  <div key={ds} style={{ borderBottom:"1px solid #f1f5f9" }}>
+                    {/* Day header */}
+                    <div style={{ display:"flex", alignItems:"center", gap:10, padding:"10px 16px 8px", background:isToday?"#f0f9ff":"transparent" }}>
+                      <div style={{ width:36, height:36, borderRadius:"50%", background:isToday?"#0ea5e9":"#f1f5f9", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+                        <div style={{ textAlign:"center" }}>
+                          <p style={{ fontSize:8, fontWeight:700, color:isToday?"#fff":"#94a3b8", lineHeight:1 }}>{DAYS_VI[date.getDay()]}</p>
+                          <p style={{ fontSize:13, fontWeight:800, color:isToday?"#fff":isPast?"#cbd5e1":"#0c1a2e", lineHeight:1.2 }}>{date.getDate()}</p>
+                        </div>
+                      </div>
+                      <div style={{ flex:1 }}>
+                        <p style={{ fontSize:11, fontWeight:600, color:isToday?"#0ea5e9":"#0c1a2e" }}>{DAYS_FULL[date.getDay()]}</p>
+                        <p style={{ fontSize:9, color:"#94a3b8" }}>{hasSlots ? `${daySlots.length} ca` : "Không có ca"}</p>
+                      </div>
+                      {isAdmin && (
+                        <button onClick={() => setAddingSlot(ds)}
+                          style={{ width:30, height:30, borderRadius:9, border:"1px solid #e0f2fe", background:"#fff", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" }}>
+                          <Plus size={13} style={{ color:"#0ea5e9" }} />
+                        </button>
+                      )}
                     </div>
+
+                    {/* Slots */}
+                    {hasSlots && (
+                      <div style={{ padding:"0 16px 12px", display:"flex", flexDirection:"column", gap:8 }}>
+                        {daySlots.map(slot => (
+                          <SlotCard key={slot.id} slot={slot} regs={regsBySlot[slot.id] ?? []} isAdmin={isAdmin}
+                            currentUserId={currentUser?.id ?? ""} allStaff={activeStaff}
+                            onRegister={handleRegister} onCancel={handleCancel}
+                            onApprove={handleApprove} onReject={handleReject}
+                            onAssign={handleAssign} onUnassign={handleUnassign} onDelete={handleDeleteSlot} />
+                        ))}
+                      </div>
+                    )}
                   </div>
-                  {daySlots.map(slot => (
-                    <SlotCard key={slot.id} slot={slot}
-                      regs={regsBySlot[slot.id] ?? []}
-                      isAdmin={isAdmin}
-                      currentUserId={currentUser?.id ?? ""}
-                      allStaff={activeStaff}
-                      onRegister={handleRegister}
-                      onCancel={handleCancel}
-                      onApprove={handleApprove}
-                      onReject={handleReject}
-                      onAssign={handleAssign}
-                      onUnassign={handleUnassign}
-                      onDelete={handleDeleteSlot} />
-                  ))}
-                  {isAdmin && (
-                    <button onClick={()=>setAddingSlot(ds)}
-                      style={{ height:28, borderRadius:9, border:"1.5px dashed #bae6fd", background:"rgba(14,165,233,0.03)", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:4, color:"#94a3b8", fontSize:9, fontWeight:600, fontFamily:"inherit", transition:"all 0.12s" }}
-                      onMouseEnter={e=>(e.currentTarget.style.borderColor="#0ea5e9", e.currentTarget.style.color="#0ea5e9")}
-                      onMouseLeave={e=>(e.currentTarget.style.borderColor="#bae6fd", e.currentTarget.style.color="#94a3b8")}>
-                      <Plus size={10} /> Ca
-                    </button>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          ) : (
+            /* ── Desktop: 7-column grid ── */
+            <div style={{ display:"grid", gridTemplateColumns:"repeat(7, minmax(0, 1fr))", gap:8 }}>
+              {weekDates.map((date) => {
+                const ds = toDateStr(date);
+                const isToday = ds === today;
+                const daySlots = slotsByDate[ds] ?? [];
+                const isPast = ds < today;
+                return (
+                  <div key={ds} style={{ display:"flex", flexDirection:"column", gap:6 }}>
+                    {/* Day header */}
+                    <div style={{ textAlign:"center" }}>
+                      <p style={{ fontSize:9, fontWeight:700, color:isToday?"#0ea5e9":"#94a3b8", letterSpacing:"0.1em" }}>{DAYS_VI[date.getDay()]}</p>
+                      <div style={{ width:28, height:28, borderRadius:"50%", background:isToday?"#0ea5e9":"transparent", display:"flex", alignItems:"center", justifyContent:"center", margin:"2px auto" }}>
+                        <span style={{ fontSize:13, fontWeight:800, color:isToday?"#fff":isPast?"#cbd5e1":"#0c1a2e" }}>{date.getDate()}</span>
+                      </div>
+                    </div>
+                    {daySlots.map(slot => (
+                      <SlotCard key={slot.id} slot={slot}
+                        regs={regsBySlot[slot.id] ?? []}
+                        isAdmin={isAdmin}
+                        currentUserId={currentUser?.id ?? ""}
+                        allStaff={activeStaff}
+                        onRegister={handleRegister}
+                        onCancel={handleCancel}
+                        onApprove={handleApprove}
+                        onReject={handleReject}
+                        onAssign={handleAssign}
+                        onUnassign={handleUnassign}
+                        onDelete={handleDeleteSlot} />
+                    ))}
+                    {isAdmin && (
+                      <button onClick={()=>setAddingSlot(ds)}
+                        style={{ height:28, borderRadius:9, border:"1.5px dashed #bae6fd", background:"rgba(14,165,233,0.03)", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:4, color:"#94a3b8", fontSize:9, fontWeight:600, fontFamily:"inherit", transition:"all 0.12s" }}
+                        onMouseEnter={e=>(e.currentTarget.style.borderColor="#0ea5e9", e.currentTarget.style.color="#0ea5e9")}
+                        onMouseLeave={e=>(e.currentTarget.style.borderColor="#bae6fd", e.currentTarget.style.color="#94a3b8")}>
+                        <Plus size={10} /> Ca
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )
         ) : (
           /* ── Staff view ── */
-          <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
-            {/* Legend */}
-            <div style={{ display:"grid", gridTemplateColumns:"150px repeat(7,1fr)", gap:4, fontSize:9, fontWeight:700, color:"#94a3b8", letterSpacing:"0.08em", padding:"0 0 6px", borderBottom:"1px solid #e0f2fe" }}>
-              <div style={{ display:"flex", alignItems:"center", gap:6 }}>
-                <Users size={11} style={{ color:"#94a3b8" }} />
-                NHÂN VIÊN ({activeStaff.length})
-              </div>
-              {weekDates.map(d => (
-                <div key={d.getTime()} style={{ textAlign:"center", color:toDateStr(d)===today?"#0ea5e9":"#94a3b8" }}>
-                  {DAYS_VI[d.getDay()]}<br/>{d.getDate()}
+          isMobile ? (
+            /* Mobile: vertical person cards */
+            <div style={{ display:"flex", flexDirection:"column", gap:8, padding:"12px 14px" }}>
+              {staffSchedule.length === 0 && (
+                <p style={{ fontSize:11, color:"#94a3b8", textAlign:"center", padding:"40px 0" }}>Không có nhân viên nào đang hoạt động.</p>
+              )}
+              {staffSchedule.map(({ uid, name, role, slots: mySlots }) => (
+                <div key={uid} style={{ background:"#fff", borderRadius:12, border:"1px solid #e0f2fe", padding:"10px 14px" }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom: mySlots.length > 0 ? 8 : 0 }}>
+                    <div style={{ width:32, height:32, borderRadius:"50%", background:"linear-gradient(135deg,#0c1a2e,#1e3a5f)", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+                      <span style={{ fontSize:11, fontWeight:700, color:"#C9A55A" }}>{name[0]?.toUpperCase()}</span>
+                    </div>
+                    <div style={{ flex:1 }}>
+                      <p style={{ fontSize:12, fontWeight:600, color:"#0c1a2e" }}>{name}</p>
+                      <p style={{ fontSize:9, color:"#94a3b8" }}>{roleLabel(role)} · {mySlots.length} ca tuần này</p>
+                    </div>
+                  </div>
+                  {mySlots.length > 0 && (
+                    <div style={{ display:"flex", flexWrap:"wrap", gap:4 }}>
+                      {mySlots.map(s => (
+                        <div key={s.id} style={{ padding:"3px 8px", borderRadius:20, background:`${s.color}15`, border:`1px solid ${s.color}40` }}>
+                          <span style={{ fontSize:9, fontWeight:600, color:s.color }}>{DAYS_VI[new Date(s.date+"T00:00:00").getDay()]} {new Date(s.date+"T00:00:00").getDate()} · {s.name}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {mySlots.length === 0 && <p style={{ fontSize:10, color:"#cbd5e1" }}>Không có ca tuần này</p>}
                 </div>
               ))}
             </div>
-            {staffSchedule.length === 0 && (
-              <p style={{ fontSize:11, color:"#94a3b8", textAlign:"center", padding:"40px 0" }}>Không có nhân viên nào đang hoạt động.</p>
-            )}
-            {staffSchedule.map(({ uid, name, role, slots: mySlots }) => {
-              const shiftCount = mySlots.length;
-              return (
-                <div key={uid} style={{ display:"grid", gridTemplateColumns:"150px repeat(7,1fr)", gap:4, alignItems:"start", padding:"6px 0", borderBottom:"1px solid #f1f5f9" }}>
-                  <div style={{ display:"flex", alignItems:"center", gap:7, paddingRight:8 }}>
-                    <div style={{ position:"relative", flexShrink:0 }}>
-                      <div style={{ width:28,height:28,borderRadius:"50%",background:"linear-gradient(135deg,#0c1a2e,#1e3a5f)",display:"flex",alignItems:"center",justifyContent:"center" }}>
-                        <span style={{ fontSize:10,fontWeight:700,color:"#C9A55A" }}>{name.slice(0,1).toUpperCase()}</span>
-                      </div>
-                      {shiftCount > 0 && (
-                        <div style={{ position:"absolute",bottom:-2,right:-2,width:14,height:14,borderRadius:"50%",background:"#10b981",border:"1.5px solid #fff",display:"flex",alignItems:"center",justifyContent:"center" }}>
-                          <span style={{ fontSize:7,fontWeight:800,color:"#fff" }}>{shiftCount}</span>
-                        </div>
-                      )}
-                    </div>
-                    <div style={{ minWidth:0 }}>
-                      <p style={{ fontSize:10,fontWeight:600,color:"#0c1a2e",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{name}</p>
-                      <p style={{ fontSize:7.5,color:"#94a3b8",letterSpacing:"0.08em" }}>{roleLabel(role).toUpperCase()}</p>
-                    </div>
+          ) : (
+            /* Desktop: staff grid */
+            <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+              {/* Legend */}
+              <div style={{ display:"grid", gridTemplateColumns:"150px repeat(7,minmax(60px,1fr))", gap:4, fontSize:9, fontWeight:700, color:"#94a3b8", letterSpacing:"0.08em", padding:"0 0 6px", borderBottom:"1px solid #e0f2fe" }}>
+                <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+                  <Users size={11} style={{ color:"#94a3b8" }} />
+                  NHÂN VIÊN ({activeStaff.length})
+                </div>
+                {weekDates.map(d => (
+                  <div key={d.getTime()} style={{ textAlign:"center", color:toDateStr(d)===today?"#0ea5e9":"#94a3b8" }}>
+                    {DAYS_VI[d.getDay()]}<br/>{d.getDate()}
                   </div>
-                  {weekDates.map(d => {
-                    const ds = toDateStr(d);
-                    const dayShifts = mySlots.filter(s => s.date === ds);
-                    return (
-                      <div key={ds} style={{ display:"flex", flexDirection:"column", gap:3 }}>
-                        {dayShifts.map(s => (
-                          <div key={s.id} style={{ padding:"3px 6px", borderRadius:7, background:`${s.color}18`, border:`1px solid ${s.color}40` }}>
-                            <p style={{ fontSize:9, fontWeight:700, color:s.color, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{s.name}</p>
-                            <p style={{ fontSize:7.5, color:"#64748b" }}>{fmt(s.startTime)}–{fmt(s.endTime)}</p>
-                          </div>
-                        ))}
-                        {dayShifts.length === 0 && (
-                          <div style={{ height:34, borderRadius:7, background:"#f8fafc", border:"1px dashed #e2e8f0", display:"flex", alignItems:"center", justifyContent:"center" }}>
-                            <span style={{ fontSize:8, color:"#e2e8f0" }}>—</span>
+                ))}
+              </div>
+              {staffSchedule.length === 0 && (
+                <p style={{ fontSize:11, color:"#94a3b8", textAlign:"center", padding:"40px 0" }}>Không có nhân viên nào đang hoạt động.</p>
+              )}
+              {staffSchedule.map(({ uid, name, role, slots: mySlots }) => {
+                const shiftCount = mySlots.length;
+                return (
+                  <div key={uid} style={{ display:"grid", gridTemplateColumns:"150px repeat(7,minmax(60px,1fr))", gap:4, alignItems:"start", padding:"6px 0", borderBottom:"1px solid #f1f5f9" }}>
+                    <div style={{ display:"flex", alignItems:"center", gap:7, paddingRight:8 }}>
+                      <div style={{ position:"relative", flexShrink:0 }}>
+                        <div style={{ width:28,height:28,borderRadius:"50%",background:"linear-gradient(135deg,#0c1a2e,#1e3a5f)",display:"flex",alignItems:"center",justifyContent:"center" }}>
+                          <span style={{ fontSize:10,fontWeight:700,color:"#C9A55A" }}>{name.slice(0,1).toUpperCase()}</span>
+                        </div>
+                        {shiftCount > 0 && (
+                          <div style={{ position:"absolute",bottom:-2,right:-2,width:14,height:14,borderRadius:"50%",background:"#10b981",border:"1.5px solid #fff",display:"flex",alignItems:"center",justifyContent:"center" }}>
+                            <span style={{ fontSize:7,fontWeight:800,color:"#fff" }}>{shiftCount}</span>
                           </div>
                         )}
                       </div>
-                    );
-                  })}
-                </div>
-              );
-            })}
-          </div>
+                      <div style={{ minWidth:0 }}>
+                        <p style={{ fontSize:10,fontWeight:600,color:"#0c1a2e",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{name}</p>
+                        <p style={{ fontSize:7.5,color:"#94a3b8",letterSpacing:"0.08em" }}>{roleLabel(role).toUpperCase()}</p>
+                      </div>
+                    </div>
+                    {weekDates.map(d => {
+                      const ds = toDateStr(d);
+                      const dayShifts = mySlots.filter(s => s.date === ds);
+                      return (
+                        <div key={ds} style={{ display:"flex", flexDirection:"column", gap:3 }}>
+                          {dayShifts.map(s => (
+                            <div key={s.id} style={{ padding:"3px 6px", borderRadius:7, background:`${s.color}18`, border:`1px solid ${s.color}40` }}>
+                              <p style={{ fontSize:9, fontWeight:700, color:s.color, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{s.name}</p>
+                              <p style={{ fontSize:7.5, color:"#64748b" }}>{fmt(s.startTime)}–{fmt(s.endTime)}</p>
+                            </div>
+                          ))}
+                          {dayShifts.length === 0 && (
+                            <div style={{ height:34, borderRadius:7, background:"#f8fafc", border:"1px dashed #e2e8f0", display:"flex", alignItems:"center", justifyContent:"center" }}>
+                              <span style={{ fontSize:8, color:"#e2e8f0" }}>—</span>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })}
+            </div>
+          )
         )}
       </div>
 
@@ -844,6 +921,68 @@ export default function SchedulePage() {
             date={addingSlot}
             onSave={handleAddSlot}
             onClose={()=>setAddingSlot(null)} />
+        )}
+      </AnimatePresence>
+
+      {/* Mobile template bottom sheet */}
+      <AnimatePresence>
+        {isMobile && showTemplates && isAdmin && (
+          <motion.div
+            initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
+            transition={{ type:"spring", damping:30, stiffness:300 }}
+            style={{ position:"fixed", bottom:0, left:0, right:0, background:"#fff", borderRadius:"16px 16px 0 0",
+                     boxShadow:"0 -4px 32px rgba(0,0,0,0.15)", zIndex:200, maxHeight:"80vh", display:"flex", flexDirection:"column" }}>
+            <div style={{ padding:"12px 16px", borderBottom:"1px solid #f1f5f9", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+              <p style={{ fontSize:13, fontWeight:700, color:"#0c1a2e" }}>Mẫu Ca Làm Việc</p>
+              <button onClick={() => setShowTemplates(false)} style={{ background:"none", border:"none", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" }}>
+                <X size={16} style={{ color:"#94a3b8" }} />
+              </button>
+            </div>
+            <div style={{ flex:1, overflowY:"auto", padding:"12px 16px 32px" }}>
+              {/* Add new template button */}
+              <button onClick={()=>{ setAddTemplate(v=>!v); setEditTemplate(null); }}
+                style={{ display:"flex", alignItems:"center", gap:6, width:"100%", padding:"10px 12px", borderRadius:10, border:`1px solid ${addTemplate?"#0ea5e9":"#bae6fd"}`, background:addTemplate?"#f0f9ff":"#fff", cursor:"pointer", fontSize:11, fontWeight:600, color:"#0ea5e9", fontFamily:"inherit", marginBottom:12 }}>
+                <Plus size={12} /> Thêm mẫu mới
+              </button>
+
+              {addTemplate && !editTemplate && (
+                <div style={{ marginBottom:16, padding:14, background:"#f8fafc", borderRadius:12, border:"1px solid #bae6fd" }}>
+                  <p style={{ fontSize:10, fontWeight:700, color:"#0ea5e9", marginBottom:10 }}>Tạo mẫu mới</p>
+                  <TemplateForm onSave={handleSaveTemplate} onClose={()=>setAddTemplate(false)} />
+                </div>
+              )}
+
+              {editTemplate && (
+                <div style={{ marginBottom:16, padding:14, background:"#f8fafc", borderRadius:12, border:`1.5px solid ${editTemplate.color}60` }}>
+                  <p style={{ fontSize:10, fontWeight:700, color:editTemplate.color, marginBottom:10 }}>Chỉnh sửa: {editTemplate.name}</p>
+                  <TemplateForm initial={editTemplate} onSave={handleSaveTemplate} onClose={()=>setEditTemplate(null)} />
+                </div>
+              )}
+
+              <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+                {templates.map(t => (
+                  <div key={t.id} style={{ display:"flex", alignItems:"center", gap:10, padding:"10px 12px", borderRadius:12, background:"#fff", border:`1.5px solid ${t.color}40` }}>
+                    <div style={{ width:4, height:36, borderRadius:2, background:t.color, flexShrink:0 }} />
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <p style={{ fontSize:12, fontWeight:700, color:"#0c1a2e" }}>{t.name}</p>
+                      <p style={{ fontSize:10, color:"#64748b" }}>{fmt(t.startTime)}–{fmt(t.endTime)} · {t.maxStaff} người</p>
+                    </div>
+                    <button onClick={()=>{ setEditTemplate(t); setAddTemplate(false); }}
+                      style={{ width:28,height:28,borderRadius:8,border:`1px solid ${editTemplate?.id===t.id?"#0ea5e9":"#e2e8f0"}`,background:editTemplate?.id===t.id?"#f0f9ff":"#fff",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center" }}>
+                      <Edit3 size={11} style={{ color:editTemplate?.id===t.id?"#0ea5e9":"#64748b" }} />
+                    </button>
+                    <button onClick={()=>handleDeleteTemplate(t.id)}
+                      style={{ width:28,height:28,borderRadius:8,border:"1px solid #fee2e2",background:"#fff5f5",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center" }}>
+                      <Trash2 size={11} style={{ color:"#ef4444" }} />
+                    </button>
+                  </div>
+                ))}
+                {templates.length === 0 && !addTemplate && (
+                  <p style={{ fontSize:11, color:"#94a3b8", textAlign:"center", padding:"20px 0" }}>Chưa có mẫu ca nào. Bấm "Thêm mẫu mới" để tạo.</p>
+                )}
+              </div>
+            </div>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>
