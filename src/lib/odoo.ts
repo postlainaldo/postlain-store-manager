@@ -295,18 +295,28 @@ export async function fetchPosOrderLines(orderIds: number[]): Promise<OdooPosOrd
   return all;
 }
 
+export interface AdvisorGroupBreakdown {
+  group: string;   // e.g. "MH12001"
+  revenue: number;
+  qty: number;
+}
+
 export interface AdvisorSalesRow {
   advisorId: number;
   advisorName: string;
-  revenue: number;   // sum of price_subtotal_incl (non-reward lines only)
-  qty: number;       // sum of qty
-  lines: number;     // count of lines
-  orders: number;    // count of distinct orders
+  revenue: number;
+  qty: number;
+  lines: number;
+  orders: number;
+  byGroup: AdvisorGroupBreakdown[];  // breakdown by x_productgroup
 }
 
+// POS machine advisors to exclude
+const POS_MACHINE_PATTERN = /^\d+-ALDO\s|^47-ALDO/i;
+
 /**
- * Fetch pos.order.line records for a date range and aggregate by x_advisor.
- * dateFrom / dateTo: "YYYY-MM-DD HH:MM:SS" format (Odoo server time = UTC)
+ * Fetch pos.order.line records for a date range and aggregate by x_advisor × x_productgroup.
+ * dateFrom / dateTo: "YYYY-MM-DD HH:MM:SS" (Odoo server time = UTC)
  */
 export async function fetchAdvisorSales(dateFrom: string, dateTo: string): Promise<AdvisorSalesRow[]> {
   const cookie = await getSession();
@@ -318,42 +328,70 @@ export async function fetchAdvisorSales(dateFrom: string, dateTo: string): Promi
     ["order_id.date_order", "<=", dateTo],
   ];
 
-  const all: OdooPosOrderLine[] = [];
+  // Step 1: fetch all order lines
+  const all: (OdooPosOrderLine & { product_id: [number, string] | false })[] = [];
   let offset = 0;
   while (true) {
     const page = await execute(cookie, "pos.order.line", "search_read", [domain], {
-      fields: ["id", "order_id", "x_advisor", "qty", "price_subtotal_incl", "is_program_reward"],
-      limit: PAGE,
-      offset,
-      order: "id asc",
-    }) as OdooPosOrderLine[];
+      fields: ["id", "order_id", "product_id", "x_advisor", "qty", "price_subtotal_incl", "is_program_reward"],
+      limit: PAGE, offset, order: "id asc",
+    }) as (OdooPosOrderLine & { product_id: [number, string] | false })[];
     if (!page?.length) break;
     all.push(...page);
     if (page.length < PAGE) break;
     offset += PAGE;
   }
 
-  // Aggregate by advisor — exclude discount/reward lines (negative price)
-  const map = new Map<number, { name: string; revenue: number; qty: number; lines: number; orders: Set<number> }>();
+  // Step 2: collect unique product IDs, fetch x_productgroup in batches
+  const productIds = [...new Set(
+    all.filter(l => Array.isArray(l.product_id)).map(l => (l.product_id as [number, string])[0])
+  )];
+  const productGroupMap = new Map<number, string>(); // productId → group code
+  const BATCH = 500;
+  for (let i = 0; i < productIds.length; i += BATCH) {
+    const chunk = productIds.slice(i, i + BATCH);
+    const prods = await execute(cookie, "product.product", "search_read",
+      [[["id", "in", chunk]]],
+      { fields: ["id", "x_productgroup"], limit: BATCH }
+    ) as Array<{ id: number; x_productgroup: string | false }>;
+    for (const p of prods ?? []) {
+      if (p.x_productgroup) productGroupMap.set(p.id, p.x_productgroup);
+    }
+  }
+
+  // Step 3: aggregate by advisor, with nested breakdown by product group
+  type AdvisorAcc = {
+    name: string;
+    revenue: number; qty: number; lines: number; orders: Set<number>;
+    groups: Map<string, { revenue: number; qty: number }>;
+  };
+  const map = new Map<number, AdvisorAcc>();
+
   for (const line of all) {
     if (!Array.isArray(line.x_advisor)) continue;
-    if (line.is_program_reward) continue;              // skip voucher/discount lines
-    if ((line.price_subtotal_incl ?? 0) <= 0) continue; // skip negative lines
-    const [aid, aname] = line.x_advisor;
-    const orderId = Array.isArray(line.order_id) ? line.order_id[0] : 0;
-    const cur = map.get(aid) ?? { name: aname, revenue: 0, qty: 0, lines: 0, orders: new Set<number>() };
-    cur.revenue += line.price_subtotal_incl ?? 0;
-    cur.qty     += line.qty ?? 0;
+    if (line.is_program_reward) continue;
+    if ((line.price_subtotal_incl ?? 0) <= 0) continue;
+    const [aid, aname] = line.x_advisor as [number, string];
+    if (POS_MACHINE_PATTERN.test(aname)) continue;
+    const orderId = Array.isArray(line.order_id) ? (line.order_id as [number, string])[0] : 0;
+    const productId = Array.isArray(line.product_id) ? (line.product_id as [number, string])[0] : 0;
+    const group = productGroupMap.get(productId) ?? "Undefined";
+    const rev = line.price_subtotal_incl ?? 0;
+    const qty = line.qty ?? 0;
+
+    const cur = map.get(aid) ?? { name: aname, revenue: 0, qty: 0, lines: 0, orders: new Set<number>(), groups: new Map() };
+    cur.revenue += rev;
+    cur.qty     += qty;
     cur.lines   += 1;
     cur.orders.add(orderId);
+    const g = cur.groups.get(group) ?? { revenue: 0, qty: 0 };
+    g.revenue += rev;
+    g.qty     += qty;
+    cur.groups.set(group, g);
     map.set(aid, cur);
   }
 
-  // POS machine advisors to exclude (named like the POS config, not real staff)
-  const POS_MACHINE_PATTERN = /^\d+-ALDO\s|^47-ALDO/i;
-
   return Array.from(map.entries())
-    .filter(([, v]) => !POS_MACHINE_PATTERN.test(v.name))
     .map(([aid, v]) => ({
       advisorId:   aid,
       advisorName: v.name,
@@ -361,6 +399,9 @@ export async function fetchAdvisorSales(dateFrom: string, dateTo: string): Promi
       qty:         Math.round(v.qty),
       lines:       v.lines,
       orders:      v.orders.size,
+      byGroup:     Array.from(v.groups.entries())
+        .map(([group, g]) => ({ group, revenue: Math.round(g.revenue), qty: Math.round(g.qty) }))
+        .sort((a, b) => b.revenue - a.revenue),
     }))
     .sort((a, b) => b.revenue - a.revenue);
 }

@@ -1064,7 +1064,7 @@ export default function ProfilePage() {
   const [scheduleStatus, setScheduleStatus] = useState<"working" | "off_shift" | null>(null);
   const [odooStats, setOdooStats] = useState<{ sales: number; ipt: number; rank: string } | null>(null);
   const [lbMonth, setLbMonth] = useState(() => new Date().toISOString().slice(0, 7)); // "2026-03"
-  type StaffSalesRow = { advisorName: string; advisorId: number; orders: number; qty: number; revenue: number; lines: number };
+  type StaffSalesRow = { advisorName: string; advisorId: number; orders: number; qty: number; revenue: number; lines: number; byGroup: { group: string; revenue: number; qty: number }[] };
   const [staffSales, setStaffSales] = useState<StaffSalesRow[]>([]);
   const [lbLoading, setLbLoading] = useState(false);
 
@@ -1667,13 +1667,24 @@ export default function ProfilePage() {
                                   {isMe && <span style={{ fontSize: 7, color: "#0ea5e9", background: "rgba(14,165,233,0.1)", padding: "1px 6px", borderRadius: 10, fontWeight: 700 }}>BẠN</span>}
                                   <span style={{ fontSize: 8, fontWeight: 700, color: rankColor, background: `${rankColor}12`, padding: "1px 8px", borderRadius: 10, border: `1px solid ${rankColor}25` }}>{rank}</span>
                                 </div>
-                                <div style={{ marginTop: 6, height: 4, background: "var(--bg-base)", borderRadius: 4, overflow: "hidden" }}>
+                                {/* Revenue bar */}
+                                <div style={{ marginTop: 5, height: 4, background: "var(--bg-base)", borderRadius: 4, overflow: "hidden" }}>
                                   <motion.div
                                     initial={{ width: 0 }} animate={{ width: `${barPct * 100}%` }}
                                     transition={{ duration: 0.6, delay: i * 0.04, ease: [0.16, 1, 0.3, 1] }}
                                     style={{ height: "100%", borderRadius: 4, background: i === 0 ? "linear-gradient(90deg, #C9A55A, #e6c474)" : i === 1 ? "linear-gradient(90deg, #94a3b8, #cbd5e1)" : i === 2 ? "linear-gradient(90deg, #c07a38, #d4956a)" : `linear-gradient(90deg, ${rankColor}80, ${rankColor})` }}
                                   />
                                 </div>
+                                {/* Product group breakdown pills */}
+                                {row.byGroup && row.byGroup.length > 0 && (
+                                  <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginTop: 5 }}>
+                                    {row.byGroup.filter(g => g.group !== "Undefined").map(g => (
+                                      <span key={g.group} style={{ fontSize: 7.5, padding: "2px 7px", borderRadius: 8, background: "var(--bg-base)", border: "1px solid var(--border)", color: "var(--text-muted)", fontWeight: 600, whiteSpace: "nowrap" }}>
+                                        {g.group}: {g.revenue >= 1e6 ? `${(g.revenue/1e6).toFixed(1)}M` : `${Math.round(g.revenue/1e3)}K`}
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
                               </div>
                               <div style={{ display: "flex", gap: 16, flexShrink: 0 }}>
                                 <div style={{ textAlign: "right" }}>
