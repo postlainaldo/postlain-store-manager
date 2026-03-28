@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  LayoutDashboard, Focus, Box, MessageSquare, UserCircle, ShoppingBag, ClipboardList,
+  LayoutDashboard, Focus, Box, MessageSquare, UserCircle, ShoppingBag, ClipboardList, CalendarDays,
 } from "lucide-react";
 import { useStore } from "@/store/useStore";
 
@@ -15,6 +15,7 @@ const NAV_ITEMS = [
   { id: "sales",        label: "Bán Hàng",  href: "/sales",        icon: ShoppingBag,     exact: false },
   { id: "report",       label: "Báo Cáo",   href: "/report",       icon: ClipboardList,   exact: false },
   { id: "chat",         label: "Chat",       href: "/chat",         icon: MessageSquare,   exact: false },
+  { id: "schedule",     label: "Lịch Làm",  href: "/schedule",     icon: CalendarDays,    exact: false },
   { id: "profile",      label: "Hồ Sơ",     href: "/profile",      icon: UserCircle,      exact: false },
 ] as const;
 

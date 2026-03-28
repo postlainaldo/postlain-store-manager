@@ -300,6 +300,45 @@ export async function ensureSupabaseSchema() {
       "priceSubtotal"  REAL NOT NULL DEFAULT 0
     );
     CREATE INDEX IF NOT EXISTS idx_pos_lines_order ON pos_order_lines("orderId");
+
+    CREATE TABLE IF NOT EXISTS shift_templates (
+      id          TEXT PRIMARY KEY,
+      name        TEXT NOT NULL,
+      "startTime" TEXT NOT NULL,
+      "endTime"   TEXT NOT NULL,
+      color       TEXT NOT NULL DEFAULT '#0ea5e9',
+      "maxStaff"  INTEGER NOT NULL DEFAULT 3,
+      "createdAt" TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS shift_slots (
+      id           TEXT PRIMARY KEY,
+      "templateId" TEXT,
+      date         TEXT NOT NULL,
+      "startTime"  TEXT NOT NULL,
+      "endTime"    TEXT NOT NULL,
+      label        TEXT NOT NULL DEFAULT '',
+      color        TEXT NOT NULL DEFAULT '#0ea5e9',
+      "maxStaff"   INTEGER NOT NULL DEFAULT 3,
+      note         TEXT,
+      "createdAt"  TEXT NOT NULL,
+      "updatedAt"  TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_shift_slots_date ON shift_slots(date);
+
+    CREATE TABLE IF NOT EXISTS shift_registrations (
+      id          TEXT PRIMARY KEY,
+      "slotId"    TEXT NOT NULL REFERENCES shift_slots(id) ON DELETE CASCADE,
+      "userId"    TEXT NOT NULL,
+      "userName"  TEXT NOT NULL,
+      status      TEXT NOT NULL DEFAULT 'pending',
+      note        TEXT,
+      "createdAt" TEXT NOT NULL,
+      "updatedAt" TEXT NOT NULL,
+      UNIQUE("slotId", "userId")
+    );
+    CREATE INDEX IF NOT EXISTS idx_shift_reg_slot ON shift_registrations("slotId");
+    CREATE INDEX IF NOT EXISTS idx_shift_reg_user ON shift_registrations("userId");
   `;
 
   try {
@@ -1633,4 +1672,87 @@ export async function dbUpsertDailyReport(r: DBDailyReport): Promise<void> {
     r.targetDay, r.note, r.preparedBy,
     r.createdAt, r.updatedAt
   );
+}
+
+// ─── Work Schedules ───────────────────────────────────────────────────────────
+
+export type DBShiftTemplate = {
+  id: string; name: string; startTime: string; endTime: string;
+  color: string; maxStaff: number; createdAt: string;
+};
+
+export type DBShiftSlot = {
+  id: string; templateId: string | null; date: string;
+  name: string; startTime: string; endTime: string;
+  color: string; maxStaff: number; note: string | null; createdAt: string;
+};
+
+export type DBShiftRegistration = {
+  id: string; slotId: string; userId: string; userName: string;
+  status: string; note: string | null; createdAt: string; updatedAt: string;
+};
+
+async function ensureShiftTables() {
+  if (IS_SUPABASE) return;
+  const db = getDb();
+  db.prepare(`CREATE TABLE IF NOT EXISTS shift_templates (id TEXT PRIMARY KEY, name TEXT NOT NULL, "startTime" TEXT NOT NULL, "endTime" TEXT NOT NULL, color TEXT NOT NULL DEFAULT '#0ea5e9', "maxStaff" INTEGER NOT NULL DEFAULT 3, "createdAt" TEXT NOT NULL)`).run();
+  db.prepare(`CREATE TABLE IF NOT EXISTS shift_slots (id TEXT PRIMARY KEY, "templateId" TEXT, date TEXT NOT NULL, name TEXT NOT NULL, "startTime" TEXT NOT NULL, "endTime" TEXT NOT NULL, color TEXT NOT NULL DEFAULT '#0ea5e9', "maxStaff" INTEGER NOT NULL DEFAULT 3, note TEXT, "createdAt" TEXT NOT NULL)`).run();
+  db.prepare(`CREATE INDEX IF NOT EXISTS idx_shift_slots_date ON shift_slots(date)`).run();
+  db.prepare(`CREATE TABLE IF NOT EXISTS shift_registrations (id TEXT PRIMARY KEY, "slotId" TEXT NOT NULL REFERENCES shift_slots(id) ON DELETE CASCADE, "userId" TEXT NOT NULL, "userName" TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'pending', note TEXT, "createdAt" TEXT NOT NULL, "updatedAt" TEXT NOT NULL, UNIQUE("slotId","userId"))`).run();
+}
+
+export async function dbGetShiftTemplates(): Promise<DBShiftTemplate[]> {
+  if (IS_SUPABASE) { const { data } = await getSupabase().from("shift_templates").select("*").order("startTime"); return (data ?? []) as DBShiftTemplate[]; }
+  await ensureShiftTables();
+  return getDb().prepare(`SELECT * FROM shift_templates ORDER BY "startTime"`).all() as DBShiftTemplate[];
+}
+
+export async function dbUpsertShiftTemplate(t: DBShiftTemplate): Promise<void> {
+  if (IS_SUPABASE) { await getSupabase().from("shift_templates").upsert(t, { onConflict: "id" }); return; }
+  await ensureShiftTables();
+  getDb().prepare(`INSERT INTO shift_templates(id,name,"startTime","endTime",color,"maxStaff","createdAt") VALUES(@id,@name,@startTime,@endTime,@color,@maxStaff,@createdAt) ON CONFLICT(id) DO UPDATE SET name=excluded.name,"startTime"=excluded."startTime","endTime"=excluded."endTime",color=excluded.color,"maxStaff"=excluded."maxStaff"`).run(t);
+}
+
+export async function dbDeleteShiftTemplate(id: string): Promise<void> {
+  if (IS_SUPABASE) { await getSupabase().from("shift_templates").delete().eq("id", id); return; }
+  await ensureShiftTables();
+  getDb().prepare("DELETE FROM shift_templates WHERE id=?").run(id);
+}
+
+export async function dbGetShiftSlots(dateFrom: string, dateTo: string): Promise<DBShiftSlot[]> {
+  if (IS_SUPABASE) { const { data } = await getSupabase().from("shift_slots").select("*").gte("date", dateFrom).lte("date", dateTo).order("date").order("startTime"); return (data ?? []) as DBShiftSlot[]; }
+  await ensureShiftTables();
+  return getDb().prepare(`SELECT * FROM shift_slots WHERE date>=? AND date<=? ORDER BY date,"startTime"`).all(dateFrom, dateTo) as DBShiftSlot[];
+}
+
+export async function dbUpsertShiftSlot(s: DBShiftSlot): Promise<void> {
+  if (IS_SUPABASE) { await getSupabase().from("shift_slots").upsert(s, { onConflict: "id" }); return; }
+  await ensureShiftTables();
+  getDb().prepare(`INSERT INTO shift_slots(id,"templateId",date,name,"startTime","endTime",color,"maxStaff",note,"createdAt") VALUES(@id,@templateId,@date,@name,@startTime,@endTime,@color,@maxStaff,@note,@createdAt) ON CONFLICT(id) DO UPDATE SET "templateId"=excluded."templateId",date=excluded.date,name=excluded.name,"startTime"=excluded."startTime","endTime"=excluded."endTime",color=excluded.color,"maxStaff"=excluded."maxStaff",note=excluded.note`).run(s);
+}
+
+export async function dbDeleteShiftSlot(id: string): Promise<void> {
+  if (IS_SUPABASE) { await getSupabase().from("shift_slots").delete().eq("id", id); return; }
+  await ensureShiftTables();
+  getDb().prepare("DELETE FROM shift_slots WHERE id=?").run(id);
+}
+
+export async function dbGetShiftRegistrations(slotIds: string[]): Promise<DBShiftRegistration[]> {
+  if (!slotIds.length) return [];
+  if (IS_SUPABASE) { const { data } = await getSupabase().from("shift_registrations").select("*").in("slotId", slotIds); return (data ?? []) as DBShiftRegistration[]; }
+  await ensureShiftTables();
+  const ph = slotIds.map(() => "?").join(",");
+  return getDb().prepare(`SELECT * FROM shift_registrations WHERE "slotId" IN (${ph})`).all(...slotIds) as DBShiftRegistration[];
+}
+
+export async function dbUpsertShiftRegistrationBySlotUser(r: DBShiftRegistration): Promise<void> {
+  if (IS_SUPABASE) { await getSupabase().from("shift_registrations").upsert(r, { onConflict: "slotId,userId" }); return; }
+  await ensureShiftTables();
+  getDb().prepare(`INSERT INTO shift_registrations(id,"slotId","userId","userName",status,note,"createdAt","updatedAt") VALUES(@id,@slotId,@userId,@userName,@status,@note,@createdAt,@updatedAt) ON CONFLICT("slotId","userId") DO UPDATE SET status=excluded.status,note=excluded.note,"updatedAt"=excluded."updatedAt"`).run(r);
+}
+
+export async function dbDeleteShiftRegistration(id: string): Promise<void> {
+  if (IS_SUPABASE) { await getSupabase().from("shift_registrations").delete().eq("id", id); return; }
+  await ensureShiftTables();
+  getDb().prepare("DELETE FROM shift_registrations WHERE id=?").run(id);
 }
