@@ -1064,7 +1064,7 @@ export default function ProfilePage() {
   const [scheduleStatus, setScheduleStatus] = useState<"working" | "off_shift" | null>(null);
   const [odooStats, setOdooStats] = useState<{ sales: number; ipt: number; rank: string } | null>(null);
   const [lbMonth, setLbMonth] = useState(() => new Date().toISOString().slice(0, 7)); // "2026-03"
-  type StaffSalesRow = { salesperson: string; orders: number; qty: number; revenue: number; avgBasket: number; ipt: number };
+  type StaffSalesRow = { advisorName: string; advisorId: number; orders: number; qty: number; revenue: number; lines: number };
   const [staffSales, setStaffSales] = useState<StaffSalesRow[]>([]);
   const [lbLoading, setLbLoading] = useState(false);
 
@@ -1103,21 +1103,18 @@ export default function ProfilePage() {
     // Fetch personal sales stats from pos_orders salesperson field
     try {
       const curMonth = new Date().toISOString().slice(0, 7);
-      const salesRes = await fetch(`/api/pos?action=staffsales&month=${curMonth}`).then(r => r.json()).catch(() => ({}));
-      const rows: StaffSalesRow[] = Array.isArray(salesRes?.staffSales) ? salesRes.staffSales : [];
+      const salesRes = await fetch(`/api/odoo/advisor-sales?month=${curMonth}`).then(r => r.json()).catch(() => ({}));
+      const rows: StaffSalesRow[] = Array.isArray(salesRes?.rows) ? salesRes.rows : [];
       setStaffSales(rows);
       const myName = (p.name ?? currentUser.name).toLowerCase();
-      const myRow = rows.find(r => r.salesperson.toLowerCase().includes(myName) || myName.includes(r.salesperson.toLowerCase()));
+      const myRow = rows.find(r => r.advisorName.toLowerCase().includes(myName) || myName.includes(r.advisorName.toLowerCase()));
       if (myRow) {
-        const totalRev = rows.reduce((s, r) => s + r.revenue, 0);
-        const myShare = totalRev > 0 ? myRow.revenue / totalRev : 0;
         const staffCount = rows.length || 1;
-        // Rank by revenue position
-        const pos = rows.findIndex(r => r.salesperson === myRow.salesperson) + 1;
+        const pos = rows.findIndex(r => r.advisorId === myRow.advisorId) + 1;
         const pct = pos / staffCount;
         const rank = pct <= 0.2 ? "Xuất sắc" : pct <= 0.4 ? "Tốt" : pct <= 0.6 ? "Trung bình" : pct <= 0.8 ? "Yếu" : "Kém";
-        void myShare; // suppress unused warning
-        setOdooStats({ sales: myRow.revenue, ipt: myRow.ipt, rank });
+        const ipt = myRow.orders > 0 ? myRow.qty / myRow.orders : 0;
+        setOdooStats({ sales: myRow.revenue, ipt, rank });
       }
     } catch { /* ignore */ }
   };
@@ -1126,9 +1123,9 @@ export default function ProfilePage() {
 
   useEffect(() => {
     setLbLoading(true);
-    fetch(`/api/pos?action=staffsales&month=${lbMonth}`)
+    fetch(`/api/odoo/advisor-sales?month=${lbMonth}`)
       .then(r => r.json())
-      .then(d => { if (Array.isArray(d?.staffSales)) setStaffSales(d.staffSales); })
+      .then(d => { if (Array.isArray(d?.rows)) setStaffSales(d.rows); })
       .catch(() => {})
       .finally(() => setLbLoading(false));
   }, [lbMonth]);
@@ -1644,14 +1641,15 @@ export default function ProfilePage() {
                   ) : (
                     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                       {staffSales.map((row, i) => {
-                        const isMe = row.salesperson.toLowerCase().includes(myName) || myName.includes(row.salesperson.toLowerCase());
+                        const isMe = row.advisorName.toLowerCase().includes(myName) || myName.includes(row.advisorName.toLowerCase());
                         const barPct = maxRev > 0 ? row.revenue / maxRev : 0;
                         const staffCount = staffSales.length;
                         const posPct = (i + 1) / staffCount;
                         const rank = posPct <= 0.2 ? "Xuất sắc" : posPct <= 0.4 ? "Tốt" : posPct <= 0.6 ? "Trung bình" : posPct <= 0.8 ? "Yếu" : "Kém";
                         const rankColor = rankColors[rank] ?? "#64748b";
+                        const ipt = row.orders > 0 ? row.qty / row.orders : 0;
                         return (
-                          <motion.div key={row.salesperson}
+                          <motion.div key={row.advisorId}
                             initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
                             transition={{ delay: i * 0.04, ease: [0.16, 1, 0.3, 1] }}
                             style={{
@@ -1660,22 +1658,15 @@ export default function ProfilePage() {
                               borderRadius: 14, padding: "14px 16px", boxShadow: isMe ? "0 4px 20px rgba(201,165,90,0.12)" : "0 1px 4px rgba(0,0,0,0.04)",
                             }}>
                             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                              {/* Rank badge */}
                               <div style={{ width: 32, height: 32, borderRadius: 10, background: i < 3 ? `${rankColor}15` : "var(--bg-base)", border: `1.5px solid ${i < 3 ? rankColor : "var(--border)"}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                                {i < 3 ? (
-                                  <span style={{ fontSize: 15 }}>{medals[i]}</span>
-                                ) : (
-                                  <span style={{ fontSize: 11, fontWeight: 800, color: "var(--text-muted)" }}>#{i + 1}</span>
-                                )}
+                                {i < 3 ? <span style={{ fontSize: 15 }}>{medals[i]}</span> : <span style={{ fontSize: 11, fontWeight: 800, color: "var(--text-muted)" }}>#{i + 1}</span>}
                               </div>
-                              {/* Name + rank */}
                               <div style={{ flex: 1, minWidth: 0 }}>
                                 <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-                                  <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-primary)" }}>{row.salesperson}</span>
+                                  <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-primary)" }}>{row.advisorName}</span>
                                   {isMe && <span style={{ fontSize: 7, color: "#0ea5e9", background: "rgba(14,165,233,0.1)", padding: "1px 6px", borderRadius: 10, fontWeight: 700 }}>BẠN</span>}
                                   <span style={{ fontSize: 8, fontWeight: 700, color: rankColor, background: `${rankColor}12`, padding: "1px 8px", borderRadius: 10, border: `1px solid ${rankColor}25` }}>{rank}</span>
                                 </div>
-                                {/* Revenue bar */}
                                 <div style={{ marginTop: 6, height: 4, background: "var(--bg-base)", borderRadius: 4, overflow: "hidden" }}>
                                   <motion.div
                                     initial={{ width: 0 }} animate={{ width: `${barPct * 100}%` }}
@@ -1684,7 +1675,6 @@ export default function ProfilePage() {
                                   />
                                 </div>
                               </div>
-                              {/* Stats */}
                               <div style={{ display: "flex", gap: 16, flexShrink: 0 }}>
                                 <div style={{ textAlign: "right" }}>
                                   <div style={{ fontSize: 14, fontWeight: 800, color: "var(--text-primary)" }}>
@@ -1697,7 +1687,7 @@ export default function ProfilePage() {
                                   <div style={{ fontSize: 7.5, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em" }}>Đơn</div>
                                 </div>
                                 <div style={{ textAlign: "right" }}>
-                                  <div style={{ fontSize: 14, fontWeight: 800, color: "#7c3aed" }}>{row.ipt.toFixed(1)}</div>
+                                  <div style={{ fontSize: 14, fontWeight: 800, color: "#7c3aed" }}>{ipt.toFixed(1)}</div>
                                   <div style={{ fontSize: 7.5, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em" }}>IPT</div>
                                 </div>
                               </div>

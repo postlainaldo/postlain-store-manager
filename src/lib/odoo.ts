@@ -230,6 +230,8 @@ export interface OdooPosOrderLine {
   price_unit: number;
   discount: number;
   price_subtotal_incl: number;
+  x_advisor: [number, string] | false;
+  is_program_reward: boolean;
 }
 
 /**
@@ -283,13 +285,80 @@ export async function fetchPosOrderLines(orderIds: number[]): Promise<OdooPosOrd
       [[["order_id", "in", chunk]]],
       {
         fields: ["id", "order_id", "product_id", "name",
-                 "qty", "price_unit", "discount", "price_subtotal_incl"],
+                 "qty", "price_unit", "discount", "price_subtotal_incl",
+                 "x_advisor", "is_program_reward"],
         limit: PAGE * 20,
       }
     ) as OdooPosOrderLine[];
     all.push(...(page ?? []));
   }
   return all;
+}
+
+export interface AdvisorSalesRow {
+  advisorId: number;
+  advisorName: string;
+  revenue: number;   // sum of price_subtotal_incl (non-reward lines only)
+  qty: number;       // sum of qty
+  lines: number;     // count of lines
+  orders: number;    // count of distinct orders
+}
+
+/**
+ * Fetch pos.order.line records for a date range and aggregate by x_advisor.
+ * dateFrom / dateTo: "YYYY-MM-DD HH:MM:SS" format (Odoo server time = UTC)
+ */
+export async function fetchAdvisorSales(dateFrom: string, dateTo: string): Promise<AdvisorSalesRow[]> {
+  const cookie = await getSession();
+  const PAGE = 1000;
+  const domain: unknown[] = [
+    ["order_id.state", "in", ["paid", "done", "invoiced"]],
+    ["x_advisor", "!=", false],
+    ["order_id.date_order", ">=", dateFrom],
+    ["order_id.date_order", "<=", dateTo],
+  ];
+
+  const all: OdooPosOrderLine[] = [];
+  let offset = 0;
+  while (true) {
+    const page = await execute(cookie, "pos.order.line", "search_read", [domain], {
+      fields: ["id", "order_id", "x_advisor", "qty", "price_subtotal_incl", "is_program_reward"],
+      limit: PAGE,
+      offset,
+      order: "id asc",
+    }) as OdooPosOrderLine[];
+    if (!page?.length) break;
+    all.push(...page);
+    if (page.length < PAGE) break;
+    offset += PAGE;
+  }
+
+  // Aggregate by advisor — exclude discount/reward lines (negative price)
+  const map = new Map<number, { name: string; revenue: number; qty: number; lines: number; orders: Set<number> }>();
+  for (const line of all) {
+    if (!Array.isArray(line.x_advisor)) continue;
+    if (line.is_program_reward) continue;              // skip voucher/discount lines
+    if ((line.price_subtotal_incl ?? 0) <= 0) continue; // skip negative lines
+    const [aid, aname] = line.x_advisor;
+    const orderId = Array.isArray(line.order_id) ? line.order_id[0] : 0;
+    const cur = map.get(aid) ?? { name: aname, revenue: 0, qty: 0, lines: 0, orders: new Set<number>() };
+    cur.revenue += line.price_subtotal_incl ?? 0;
+    cur.qty     += line.qty ?? 0;
+    cur.lines   += 1;
+    cur.orders.add(orderId);
+    map.set(aid, cur);
+  }
+
+  return Array.from(map.entries())
+    .map(([aid, v]) => ({
+      advisorId:   aid,
+      advisorName: v.name,
+      revenue:     Math.round(v.revenue),
+      qty:         Math.round(v.qty),
+      lines:       v.lines,
+      orders:      v.orders.size,
+    }))
+    .sort((a, b) => b.revenue - a.revenue);
 }
 
 // ─── Customers (res.partner) ──────────────────────────────────────────────────
