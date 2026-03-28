@@ -47,6 +47,7 @@ export async function GET() {
         "sessionName"   TEXT,
         "customerId"    TEXT,
         "customerName"  TEXT,
+        salesperson     TEXT,
         state           TEXT NOT NULL DEFAULT 'done',
         "amountTotal"   DOUBLE PRECISION NOT NULL DEFAULT 0,
         "amountTax"     DOUBLE PRECISION NOT NULL DEFAULT 0,
@@ -56,6 +57,10 @@ export async function GET() {
         "updatedAt"     TEXT NOT NULL
       )
     `;
+
+    // Migration: add salesperson column if it doesn't exist yet
+    await sql`ALTER TABLE pos_orders ADD COLUMN IF NOT EXISTS salesperson TEXT`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_pos_orders_salesperson ON pos_orders(salesperson)`;
 
     await sql`
       CREATE TABLE IF NOT EXISTS pos_order_lines (

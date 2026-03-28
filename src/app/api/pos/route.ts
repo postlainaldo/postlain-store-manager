@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { dbGetPosOrders, dbGetPosOrderLines, dbGetPosSummary, dbGetTopProducts } from "@/lib/dbAdapter";
+import { dbGetPosOrders, dbGetPosOrderLines, dbGetPosSummary, dbGetTopProducts, dbGetStaffSales } from "@/lib/dbAdapter";
 
 export const dynamic = "force-dynamic";
 
@@ -36,6 +36,22 @@ export async function GET(req: NextRequest) {
       const dateFrom = period === "today" ? todayStart : period === "week" ? weekStart : monthStart;
       const topProducts = await dbGetTopProducts(dateFrom, 20);
       return NextResponse.json({ ok: true, topProducts });
+    }
+
+    if (action === "staffsales") {
+      const month = searchParams.get("month"); // e.g. "2026-03"
+      let dateFrom: string, dateTo: string;
+      if (month) {
+        dateFrom = `${month}-01T00:00:00.000Z`;
+        const [y, m] = month.split("-").map(Number);
+        const lastDay = new Date(y, m, 0).getDate();
+        dateTo = `${month}-${String(lastDay).padStart(2, "0")}`;
+      } else {
+        dateFrom = monthStart;
+        dateTo = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().slice(0, 10);
+      }
+      const staffSales = await dbGetStaffSales(dateFrom, dateTo);
+      return NextResponse.json({ ok: true, staffSales });
     }
 
     // Default: orders list

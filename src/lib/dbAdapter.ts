@@ -1400,6 +1400,7 @@ export type DBPosOrder = {
   sessionName?: string | null;
   customerId?: string | null;
   customerName?: string | null;
+  salesperson?: string | null;
   state: string;
   amountTotal: number;
   amountTax: number;
@@ -1476,22 +1477,76 @@ export async function dbBulkUpsertPosOrders(orders: DBPosOrder[]): Promise<void>
     return;
   }
   const db = getDb();
+  // Ensure salesperson column exists (SQLite ALTER TABLE is safe to run multiple times via try/catch)
+  try { db.prepare(`ALTER TABLE pos_orders ADD COLUMN salesperson TEXT`).run(); } catch { /* already exists */ }
   const stmt = db.prepare(`
-    INSERT INTO pos_orders (id,odooId,name,sessionName,customerId,customerName,state,amountTotal,amountTax,amountPaid,lineCount,createdAt,updatedAt)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
+    INSERT INTO pos_orders (id,odooId,name,sessionName,customerId,customerName,salesperson,state,amountTotal,amountTax,amountPaid,lineCount,createdAt,updatedAt)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
     ON CONFLICT(id) DO UPDATE SET
       state=excluded.state, amountTotal=excluded.amountTotal, amountTax=excluded.amountTax,
-      amountPaid=excluded.amountPaid, lineCount=excluded.lineCount, updatedAt=excluded.updatedAt
+      amountPaid=excluded.amountPaid, lineCount=excluded.lineCount, salesperson=excluded.salesperson, updatedAt=excluded.updatedAt
   `);
   const tx = db.transaction((rows: DBPosOrder[]) => {
     for (const o of rows) {
       stmt.run(o.id, o.odooId ?? null, o.name, o.sessionName ?? null,
-        o.customerId ?? null, o.customerName ?? null, o.state,
+        o.customerId ?? null, o.customerName ?? null, o.salesperson ?? null, o.state,
         o.amountTotal, o.amountTax, o.amountPaid, o.lineCount,
         o.createdAt, o.updatedAt);
     }
   });
   tx(orders);
+}
+
+export type DBStaffSales = {
+  salesperson: string;
+  orders: number;
+  qty: number;
+  revenue: number;
+  avgBasket: number;
+  ipt: number;
+};
+
+export async function dbGetStaffSales(dateFrom: string, dateTo: string): Promise<DBStaffSales[]> {
+  if (IS_SUPABASE) {
+    const { data } = await getSupabase()
+      .from("pos_orders")
+      .select("salesperson,amountTotal,lineCount")
+      .not("salesperson", "is", null)
+      .gte("createdAt", dateFrom)
+      .lte("createdAt", dateTo + "T23:59:59.999Z")
+      .gt("amountTotal", 0);
+    const rows = (data ?? []) as { salesperson: string; amountTotal: number; lineCount: number }[];
+    // Aggregate in JS
+    const map = new Map<string, { orders: number; revenue: number; qty: number }>();
+    for (const r of rows) {
+      const name = r.salesperson;
+      const cur = map.get(name) ?? { orders: 0, revenue: 0, qty: 0 };
+      map.set(name, { orders: cur.orders + 1, revenue: cur.revenue + r.amountTotal, qty: cur.qty + r.lineCount });
+    }
+    return Array.from(map.entries()).map(([salesperson, v]) => ({
+      salesperson,
+      orders: v.orders,
+      qty: v.qty,
+      revenue: v.revenue,
+      avgBasket: v.orders > 0 ? v.revenue / v.orders : 0,
+      ipt: v.orders > 0 ? v.qty / v.orders : 0,
+    })).sort((a, b) => b.revenue - a.revenue);
+  }
+  const db = getDb();
+  try { db.prepare(`ALTER TABLE pos_orders ADD COLUMN salesperson TEXT`).run(); } catch { /* already exists */ }
+  return db.prepare(`
+    SELECT salesperson,
+           COUNT(*) AS orders,
+           SUM(lineCount) AS qty,
+           SUM(amountTotal) AS revenue,
+           CASE WHEN COUNT(*) > 0 THEN SUM(amountTotal)/COUNT(*) ELSE 0 END AS avgBasket,
+           CASE WHEN COUNT(*) > 0 THEN SUM(lineCount)/COUNT(*) ELSE 0 END AS ipt
+    FROM pos_orders
+    WHERE salesperson IS NOT NULL AND amountTotal > 0
+      AND createdAt >= ? AND createdAt <= ?
+    GROUP BY salesperson
+    ORDER BY revenue DESC
+  `).all(dateFrom, dateTo + "T23:59:59.999Z") as DBStaffSales[];
 }
 
 export async function dbBulkUpsertPosOrderLines(lines: DBPosOrderLine[]): Promise<void> {

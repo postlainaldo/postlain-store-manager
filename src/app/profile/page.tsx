@@ -8,7 +8,7 @@ import {
   Lock, Eye, EyeOff, LogOut, ChevronDown,
   Settings, Users, RefreshCw, Info,
   Plus, Trash2, UserPlus, Activity,
-  Award, Bell, Zap, Shield, Store,
+  Award, Bell, Zap, Shield, Store, Trophy, BarChart2, TrendingUp, ChevronLeft, ChevronRight,
   Download, Upload, Database, AlertTriangle,
 } from "lucide-react";
 import { useStore } from "@/store/useStore";
@@ -1049,7 +1049,7 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState<TeamMember | null>(null);
   const [team, setTeam] = useState<TeamMember[]>([]);
   const [activity, setActivity] = useState<Activity[]>([]);
-  const [tab, setTab] = useState<"profile" | "team" | "feed" | "settings">("profile");
+  const [tab, setTab] = useState<"profile" | "team" | "leaderboard" | "settings">("profile");
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({ name: "", fullName: "", bio: "", phone: "", status: "working" as Status });
   const [saved, setSaved] = useState(false);
@@ -1063,6 +1063,10 @@ export default function ProfilePage() {
   const [viewingMember, setViewingMember] = useState<TeamMember | null>(null);
   const [scheduleStatus, setScheduleStatus] = useState<"working" | "off_shift" | null>(null);
   const [odooStats, setOdooStats] = useState<{ sales: number; ipt: number; rank: string } | null>(null);
+  const [lbMonth, setLbMonth] = useState(() => new Date().toISOString().slice(0, 7)); // "2026-03"
+  type StaffSalesRow = { salesperson: string; orders: number; qty: number; revenue: number; avgBasket: number; ipt: number };
+  const [staffSales, setStaffSales] = useState<StaffSalesRow[]>([]);
+  const [lbLoading, setLbLoading] = useState(false);
 
   const load = async () => {
     if (!currentUser) return;
@@ -1096,22 +1100,39 @@ export default function ProfilePage() {
       }
     } catch { /* ignore schedule fetch errors */ }
 
-    // Fetch odoo daily reports for personal stats
+    // Fetch personal sales stats from pos_orders salesperson field
     try {
-      const rptRes = await fetch("/api/daily-report").then(r => r.json()).catch(() => []);
-      const reports: Array<{ revTotal: number; ipt: number; targetDay: number; preparedBy: string }> = Array.isArray(rptRes) ? rptRes : [];
-      const myName = p.name ?? currentUser.name;
-      const myReports = reports.filter(r => r.preparedBy && r.preparedBy.toLowerCase().includes(myName.toLowerCase()));
-      const totalSales = myReports.reduce((s, r) => s + (r.revTotal ?? 0), 0);
-      const avgIpt = myReports.length > 0 ? myReports.reduce((s, r) => s + (r.ipt ?? 0), 0) / myReports.length : 0;
-      const avgTarget = myReports.length > 0 ? myReports.reduce((s, r) => s + (r.targetDay ?? 0), 0) / myReports.length : 0;
-      const pct = avgTarget > 0 ? totalSales / (avgTarget * myReports.length) : 0;
-      const rank = pct >= 1.2 ? "Xuất sắc" : pct >= 0.9 ? "Tốt" : pct >= 0.7 ? "Trung bình" : pct >= 0.5 ? "Yếu" : "Kém";
-      setOdooStats({ sales: totalSales, ipt: avgIpt, rank });
+      const curMonth = new Date().toISOString().slice(0, 7);
+      const salesRes = await fetch(`/api/pos?action=staffsales&month=${curMonth}`).then(r => r.json()).catch(() => ({}));
+      const rows: StaffSalesRow[] = Array.isArray(salesRes?.staffSales) ? salesRes.staffSales : [];
+      setStaffSales(rows);
+      const myName = (p.name ?? currentUser.name).toLowerCase();
+      const myRow = rows.find(r => r.salesperson.toLowerCase().includes(myName) || myName.includes(r.salesperson.toLowerCase()));
+      if (myRow) {
+        const totalRev = rows.reduce((s, r) => s + r.revenue, 0);
+        const myShare = totalRev > 0 ? myRow.revenue / totalRev : 0;
+        const staffCount = rows.length || 1;
+        // Rank by revenue position
+        const pos = rows.findIndex(r => r.salesperson === myRow.salesperson) + 1;
+        const pct = pos / staffCount;
+        const rank = pct <= 0.2 ? "Xuất sắc" : pct <= 0.4 ? "Tốt" : pct <= 0.6 ? "Trung bình" : pct <= 0.8 ? "Yếu" : "Kém";
+        void myShare; // suppress unused warning
+        setOdooStats({ sales: myRow.revenue, ipt: myRow.ipt, rank });
+      }
     } catch { /* ignore */ }
   };
 
   useEffect(() => { load(); }, [currentUser]);
+
+  useEffect(() => {
+    setLbLoading(true);
+    fetch(`/api/pos?action=staffsales&month=${lbMonth}`)
+      .then(r => r.json())
+      .then(d => { if (Array.isArray(d?.staffSales)) setStaffSales(d.staffSales); })
+      .catch(() => {})
+      .finally(() => setLbLoading(false));
+  }, [lbMonth]);
+
   if (!currentUser) { router.replace("/login"); return null; }
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1169,9 +1190,10 @@ export default function ProfilePage() {
   const activeMembers = team.filter(m => m.active).length;
 
   const TABS = [
-    { id: "profile" as const,  label: "Hồ Sơ",    icon: User     },
-    { id: "team" as const,     label: "Nhóm",      icon: Users    },
-    { id: "settings" as const, label: "Cài Đặt",   icon: Settings },
+    { id: "profile" as const,      label: "Hồ Sơ",       icon: User       },
+    { id: "team" as const,         label: "Nhóm",         icon: Users      },
+    { id: "leaderboard" as const,  label: "Xếp Hạng",    icon: Trophy     },
+    { id: "settings" as const,     label: "Cài Đặt",      icon: Settings   },
   ];
 
   const pwStrength = newPw.length === 0 ? 0 : newPw.length < 6 ? 1 : newPw.length < 10 ? 2 : 3;
@@ -1571,6 +1593,153 @@ export default function ProfilePage() {
                 )}
               </div>
             )}
+
+            {/* ── Leaderboard tab ── */}
+            {tab === "leaderboard" && (() => {
+              const myName = (profile?.name ?? currentUser.name).toLowerCase();
+              const maxRev = staffSales[0]?.revenue ?? 1;
+              const rankColors: Record<string, string> = { "Xuất sắc": "#C9A55A", "Tốt": "#10b981", "Trung bình": "#0ea5e9", "Yếu": "#f59e0b", "Kém": "#ef4444" };
+              const medals = ["🥇", "🥈", "🥉"];
+              // Month navigation
+              const prevMonth = () => {
+                const [y, m] = lbMonth.split("-").map(Number);
+                const d = new Date(y, m - 2, 1);
+                setLbMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+              };
+              const nextMonth = () => {
+                const [y, m] = lbMonth.split("-").map(Number);
+                const d = new Date(y, m, 1);
+                const now = new Date();
+                if (d.getFullYear() > now.getFullYear() || (d.getFullYear() === now.getFullYear() && d.getMonth() >= now.getMonth())) return;
+                setLbMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+              };
+              const [ly, lm] = lbMonth.split("-").map(Number);
+              const monthLabel = new Date(ly, lm - 1, 1).toLocaleDateString("vi-VN", { month: "long", year: "numeric" });
+              return (
+                <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                  {/* Month selector */}
+                  <div style={{ background: "#fff", borderRadius: 16, border: "1px solid var(--border)", padding: "14px 20px", display: "flex", alignItems: "center", gap: 12, boxShadow: "0 2px 12px rgba(14,165,233,0.05)" }}>
+                    <Trophy size={16} style={{ color: "#C9A55A" }} />
+                    <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)", flex: 1, fontFamily: "var(--font-montserrat), sans-serif" }}>BẢNG XẾP HẠNG DOANH SỐ</span>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <motion.button whileTap={{ scale: 0.9 }} onClick={prevMonth}
+                        style={{ width: 26, height: 26, borderRadius: 8, border: "1px solid var(--border)", background: "transparent", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+                        <ChevronLeft size={12} style={{ color: "var(--text-muted)" }} />
+                      </motion.button>
+                      <span style={{ fontSize: 11, fontWeight: 600, color: "var(--text-primary)", minWidth: 100, textAlign: "center" }}>{monthLabel}</span>
+                      <motion.button whileTap={{ scale: 0.9 }} onClick={nextMonth}
+                        style={{ width: 26, height: 26, borderRadius: 8, border: "1px solid var(--border)", background: "transparent", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+                        <ChevronRight size={12} style={{ color: "var(--text-muted)" }} />
+                      </motion.button>
+                    </div>
+                  </div>
+
+                  {lbLoading ? (
+                    <div style={{ textAlign: "center", padding: 40, color: "var(--text-muted)", fontSize: 12 }}>Đang tải...</div>
+                  ) : staffSales.length === 0 ? (
+                    <div style={{ textAlign: "center", padding: 40, color: "var(--text-muted)", fontSize: 12 }}>
+                      <BarChart2 size={32} style={{ color: "var(--border-strong)", marginBottom: 8 }} />
+                      <div>Chưa có dữ liệu — chạy đồng bộ Odoo để cập nhật</div>
+                    </div>
+                  ) : (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                      {staffSales.map((row, i) => {
+                        const isMe = row.salesperson.toLowerCase().includes(myName) || myName.includes(row.salesperson.toLowerCase());
+                        const barPct = maxRev > 0 ? row.revenue / maxRev : 0;
+                        const staffCount = staffSales.length;
+                        const posPct = (i + 1) / staffCount;
+                        const rank = posPct <= 0.2 ? "Xuất sắc" : posPct <= 0.4 ? "Tốt" : posPct <= 0.6 ? "Trung bình" : posPct <= 0.8 ? "Yếu" : "Kém";
+                        const rankColor = rankColors[rank] ?? "#64748b";
+                        return (
+                          <motion.div key={row.salesperson}
+                            initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: i * 0.04, ease: [0.16, 1, 0.3, 1] }}
+                            style={{
+                              background: isMe ? "linear-gradient(135deg, rgba(201,165,90,0.06), rgba(14,165,233,0.04))" : "#fff",
+                              border: isMe ? "1.5px solid rgba(201,165,90,0.35)" : "1px solid var(--border)",
+                              borderRadius: 14, padding: "14px 16px", boxShadow: isMe ? "0 4px 20px rgba(201,165,90,0.12)" : "0 1px 4px rgba(0,0,0,0.04)",
+                            }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                              {/* Rank badge */}
+                              <div style={{ width: 32, height: 32, borderRadius: 10, background: i < 3 ? `${rankColor}15` : "var(--bg-base)", border: `1.5px solid ${i < 3 ? rankColor : "var(--border)"}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                                {i < 3 ? (
+                                  <span style={{ fontSize: 15 }}>{medals[i]}</span>
+                                ) : (
+                                  <span style={{ fontSize: 11, fontWeight: 800, color: "var(--text-muted)" }}>#{i + 1}</span>
+                                )}
+                              </div>
+                              {/* Name + rank */}
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                                  <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-primary)" }}>{row.salesperson}</span>
+                                  {isMe && <span style={{ fontSize: 7, color: "#0ea5e9", background: "rgba(14,165,233,0.1)", padding: "1px 6px", borderRadius: 10, fontWeight: 700 }}>BẠN</span>}
+                                  <span style={{ fontSize: 8, fontWeight: 700, color: rankColor, background: `${rankColor}12`, padding: "1px 8px", borderRadius: 10, border: `1px solid ${rankColor}25` }}>{rank}</span>
+                                </div>
+                                {/* Revenue bar */}
+                                <div style={{ marginTop: 6, height: 4, background: "var(--bg-base)", borderRadius: 4, overflow: "hidden" }}>
+                                  <motion.div
+                                    initial={{ width: 0 }} animate={{ width: `${barPct * 100}%` }}
+                                    transition={{ duration: 0.6, delay: i * 0.04, ease: [0.16, 1, 0.3, 1] }}
+                                    style={{ height: "100%", borderRadius: 4, background: i === 0 ? "linear-gradient(90deg, #C9A55A, #e6c474)" : i === 1 ? "linear-gradient(90deg, #94a3b8, #cbd5e1)" : i === 2 ? "linear-gradient(90deg, #c07a38, #d4956a)" : `linear-gradient(90deg, ${rankColor}80, ${rankColor})` }}
+                                  />
+                                </div>
+                              </div>
+                              {/* Stats */}
+                              <div style={{ display: "flex", gap: 16, flexShrink: 0 }}>
+                                <div style={{ textAlign: "right" }}>
+                                  <div style={{ fontSize: 14, fontWeight: 800, color: "var(--text-primary)" }}>
+                                    {row.revenue >= 1e9 ? `${(row.revenue / 1e9).toFixed(2)}B` : row.revenue >= 1e6 ? `${(row.revenue / 1e6).toFixed(1)}M` : `${Math.round(row.revenue / 1e3)}K`}
+                                  </div>
+                                  <div style={{ fontSize: 7.5, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em" }}>Doanh số</div>
+                                </div>
+                                <div style={{ textAlign: "right" }}>
+                                  <div style={{ fontSize: 14, fontWeight: 800, color: "#0ea5e9" }}>{row.orders}</div>
+                                  <div style={{ fontSize: 7.5, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em" }}>Đơn</div>
+                                </div>
+                                <div style={{ textAlign: "right" }}>
+                                  <div style={{ fontSize: 14, fontWeight: 800, color: "#7c3aed" }}>{row.ipt.toFixed(1)}</div>
+                                  <div style={{ fontSize: 7.5, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em" }}>IPT</div>
+                                </div>
+                              </div>
+                            </div>
+                          </motion.div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Summary totals */}
+                  {staffSales.length > 0 && (() => {
+                    const totalRev = staffSales.reduce((s, r) => s + r.revenue, 0);
+                    const totalOrders = staffSales.reduce((s, r) => s + r.orders, 0);
+                    return (
+                      <div style={{ background: "linear-gradient(135deg, rgba(12,26,46,0.04), rgba(14,165,233,0.04))", borderRadius: 14, border: "1px solid var(--border)", padding: "12px 16px" }}>
+                        <div style={{ display: "flex", gap: 4, alignItems: "center", marginBottom: 8 }}>
+                          <TrendingUp size={12} style={{ color: "#C9A55A" }} />
+                          <span style={{ fontSize: 9, fontWeight: 700, color: "var(--text-muted)", letterSpacing: "0.08em", textTransform: "uppercase" }}>Tổng Cộng Tháng</span>
+                        </div>
+                        <div style={{ display: "flex", gap: 20 }}>
+                          <div>
+                            <div style={{ fontSize: 16, fontWeight: 800, color: "var(--text-primary)" }}>
+                              {totalRev >= 1e9 ? `${(totalRev / 1e9).toFixed(2)}B` : `${(totalRev / 1e6).toFixed(1)}M`}
+                            </div>
+                            <div style={{ fontSize: 7.5, color: "var(--text-muted)", textTransform: "uppercase" }}>Doanh số team</div>
+                          </div>
+                          <div>
+                            <div style={{ fontSize: 16, fontWeight: 800, color: "#0ea5e9" }}>{totalOrders}</div>
+                            <div style={{ fontSize: 7.5, color: "var(--text-muted)", textTransform: "uppercase" }}>Đơn hàng</div>
+                          </div>
+                          <div>
+                            <div style={{ fontSize: 16, fontWeight: 800, color: "#10b981" }}>{staffSales.length}</div>
+                            <div style={{ fontSize: 7.5, color: "var(--text-muted)", textTransform: "uppercase" }}>Nhân viên</div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+              );
+            })()}
 
             {/* ── Settings tab ── */}
             {tab === "settings" && (
