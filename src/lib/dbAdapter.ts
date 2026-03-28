@@ -315,15 +315,16 @@ export async function ensureSupabaseSchema() {
       id           TEXT PRIMARY KEY,
       "templateId" TEXT,
       date         TEXT NOT NULL,
+      name         TEXT NOT NULL DEFAULT '',
       "startTime"  TEXT NOT NULL,
       "endTime"    TEXT NOT NULL,
-      label        TEXT NOT NULL DEFAULT '',
       color        TEXT NOT NULL DEFAULT '#0ea5e9',
       "maxStaff"   INTEGER NOT NULL DEFAULT 3,
       note         TEXT,
       "createdAt"  TEXT NOT NULL,
       "updatedAt"  TEXT NOT NULL
     );
+    ALTER TABLE shift_slots ADD COLUMN IF NOT EXISTS name TEXT NOT NULL DEFAULT '';
     CREATE INDEX IF NOT EXISTS idx_shift_slots_date ON shift_slots(date);
 
     CREATE TABLE IF NOT EXISTS shift_registrations (
