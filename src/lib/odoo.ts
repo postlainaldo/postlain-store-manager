@@ -212,6 +212,7 @@ export interface OdooPosOrder {
   session_id: [number, string] | false;
   partner_id: [number, string] | false;
   employee_id: [number, string] | false;
+  user_id: [number, string] | false;
   state: string;
   amount_total: number;
   amount_tax: number;
@@ -251,7 +252,7 @@ export async function fetchPosOrders(dateFrom?: string, limit = 500): Promise<Od
       "pos.order", "search_read",
       [domain],
       {
-        fields: ["id", "name", "session_id", "partner_id", "employee_id", "state",
+        fields: ["id", "name", "session_id", "partner_id", "employee_id", "user_id", "state",
                  "amount_total", "amount_tax", "amount_paid", "date_order", "lines"],
         limit: PAGE,
         offset,

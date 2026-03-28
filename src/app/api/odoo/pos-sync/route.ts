@@ -38,7 +38,9 @@ function mapOrder(o: Awaited<ReturnType<typeof fetchPosOrders>>[number]): DBPosO
   const sessionName = Array.isArray(o.session_id) ? o.session_id[1] : null;
   const partnerId = Array.isArray(o.partner_id) ? o.partner_id[0] : null;
   const partnerName = Array.isArray(o.partner_id) ? o.partner_id[1] : null;
-  const salesperson = Array.isArray(o.employee_id) ? o.employee_id[1] : null;
+  const salesperson = Array.isArray(o.employee_id) ? o.employee_id[1]
+    : Array.isArray(o.user_id) ? o.user_id[1]
+    : null;
   return {
     id: `pos-${o.id}`,
     odooId: o.id,
