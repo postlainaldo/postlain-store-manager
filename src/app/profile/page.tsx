@@ -1083,10 +1083,39 @@ export default function ProfilePage() {
 
     // Compute schedule-based shift status for today
     try {
-      const today = new Date().toISOString().slice(0, 10);
+      const now = new Date();
+      // Use Vietnam time (UTC+7) for date and current time
+      const vnNow = new Date(now.getTime() + 7 * 3600000);
+      const today = vnNow.toISOString().slice(0, 10); // "YYYY-MM-DD" in VN time
+      const nowMins = vnNow.getUTCHours() * 60 + vnNow.getUTCMinutes(); // minutes since midnight VN
+
       const shiftData = await fetch(`/api/shifts?dateFrom=${today}&dateTo=${today}`).then(r => r.json()).catch(() => ({}));
-      const registrations: Array<{ userId: string; status: string }> = Array.isArray(shiftData?.registrations) ? shiftData.registrations : [];
-      const foundWorking = registrations.some(r => r.userId === currentUser.id && r.status === "approved");
+      const slots: Array<{ id: string; startTime: string; endTime: string }> = Array.isArray(shiftData?.slots) ? shiftData.slots : [];
+      const registrations: Array<{ slotId: string; userId: string; status: string }> = Array.isArray(shiftData?.registrations) ? shiftData.registrations : [];
+
+      // Find slots where current user has approved registration
+      const myApprovedSlotIds = new Set(
+        registrations.filter(r => r.userId === currentUser.id && r.status === "approved").map(r => r.slotId)
+      );
+
+      // Check if current VN time is inside any of those slots
+      const toMins = (t: string) => {
+        const [h, m] = t.split(":").map(Number);
+        return h * 60 + (m || 0);
+      };
+      const foundWorking = slots.some(slot => {
+        if (!myApprovedSlotIds.has(slot.id)) return false;
+        const start = toMins(slot.startTime);
+        const end   = toMins(slot.endTime);
+        if (end > start) {
+          // Normal shift: e.g. 08:00–17:00
+          return nowMins >= start && nowMins < end;
+        } else {
+          // Overnight shift: e.g. 22:00–06:00
+          return nowMins >= start || nowMins < end;
+        }
+      });
+
       setScheduleStatus(foundWorking ? "working" : "off_shift");
       // Auto-update shift status (but not if user is on leave)
       const isLeave = STATUS_CFG[savedStatus]?.group === "leave";
