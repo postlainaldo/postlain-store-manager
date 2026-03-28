@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   ChevronLeft, ChevronRight, Plus, X, Check, Clock,
   Users, Trash2, Edit3, CalendarDays, Settings2,
-  ChevronDown, AlertCircle, CheckCircle2, XCircle,
+  ChevronDown, AlertCircle, CheckCircle2, XCircle, UserPlus, UserMinus,
 } from "lucide-react";
 import { useStore } from "@/store/useStore";
 import { motion, AnimatePresence } from "framer-motion";
@@ -17,43 +17,58 @@ type ShiftTemplate = {
 type ShiftSlot = {
   id: string; templateId: string | null; date: string;
   name: string; startTime: string; endTime: string;
-  color: string; maxStaff: number; note: string | null; createdAt: string;
+  color: string; maxStaff: number; note: string | null;
+  createdAt: string; updatedAt: string;
 };
 type ShiftRegistration = {
   id: string; slotId: string; userId: string; userName: string;
   status: string; note: string | null; createdAt: string; updatedAt: string;
 };
+type DBUser = { id: string; name: string; role: string; active: number };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-const DAYS_VI = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
-const DAYS_FULL = ["Chủ Nhật", "Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy"];
-const MONTHS_VI = ["Tháng 1","Tháng 2","Tháng 3","Tháng 4","Tháng 5","Tháng 6","Tháng 7","Tháng 8","Tháng 9","Tháng 10","Tháng 11","Tháng 12"];
+const DAYS_VI   = ["CN","T2","T3","T4","T5","T6","T7"];
+const DAYS_FULL = ["Chủ Nhật","Thứ Hai","Thứ Ba","Thứ Tư","Thứ Năm","Thứ Sáu","Thứ Bảy"];
+const MONTHS_VI = ["Tháng 1","Tháng 2","Tháng 3","Tháng 4","Tháng 5","Tháng 6",
+                   "Tháng 7","Tháng 8","Tháng 9","Tháng 10","Tháng 11","Tháng 12"];
 
-function toDateStr(d: Date) {
-  return d.toISOString().slice(0, 10);
+function toDateStr(d: Date) { return d.toISOString().slice(0, 10); }
+
+/** ISO week number (Mon–Sun weeks). W001 = first week with Thu in Jan. */
+function getISOWeek(d: Date): number {
+  const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  date.setUTCDate(date.getUTCDate() + 4 - (date.getUTCDay() || 7));
+  const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+  return Math.ceil((((date.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
 }
+
 function getWeekDates(weekOffset: number): Date[] {
   const today = new Date();
-  const day = today.getDay(); // 0=Sun
+  const day = today.getDay();
   const monday = new Date(today);
   monday.setDate(today.getDate() - ((day + 6) % 7) + weekOffset * 7);
+  monday.setHours(0, 0, 0, 0);
   return Array.from({ length: 7 }, (_, i) => {
     const d = new Date(monday);
     d.setDate(monday.getDate() + i);
     return d;
   });
 }
+
 function fmt(t: string) { return t.slice(0, 5); }
 function statusColor(s: string) {
   return s === "approved" ? "#10b981" : s === "rejected" ? "#ef4444" : "#f59e0b";
 }
 function statusLabel(s: string) {
-  return s === "approved" ? "Đã duyệt" : s === "rejected" ? "Từ chối" : "Chờ duyệt";
+  return s === "approved" ? "Đã xếp" : s === "rejected" ? "Từ chối" : "Chờ duyệt";
 }
 function StatusIcon({ status }: { status: string }) {
   if (status === "approved") return <CheckCircle2 size={11} style={{ color: "#10b981" }} />;
   if (status === "rejected") return <XCircle size={11} style={{ color: "#ef4444" }} />;
   return <AlertCircle size={11} style={{ color: "#f59e0b" }} />;
+}
+function roleLabel(r: string) {
+  return r === "admin" ? "Admin" : r === "manager" ? "Quản lý" : "Nhân viên";
 }
 
 const PRESET_COLORS = ["#0ea5e9","#10b981","#f59e0b","#8b5cf6","#ef4444","#ec4899","#06b6d4","#84cc16"];
@@ -64,11 +79,11 @@ function TemplateForm({ initial, onSave, onClose }: {
   onSave: (t: Omit<ShiftTemplate, "id"|"createdAt">) => void;
   onClose: () => void;
 }) {
-  const [name, setName] = useState(initial?.name ?? "");
+  const [name, setName]   = useState(initial?.name ?? "");
   const [start, setStart] = useState(initial?.startTime ?? "08:00");
-  const [end, setEnd] = useState(initial?.endTime ?? "14:00");
+  const [end, setEnd]     = useState(initial?.endTime ?? "14:00");
   const [color, setColor] = useState(initial?.color ?? "#0ea5e9");
-  const [max, setMax] = useState(initial?.maxStaff ?? 3);
+  const [max, setMax]     = useState(initial?.maxStaff ?? 3);
 
   return (
     <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
@@ -115,9 +130,10 @@ function TemplateForm({ initial, onSave, onClose }: {
           style={{ flex:1, height:36, borderRadius:9, border:"1px solid #e2e8f0", background:"#fff", cursor:"pointer", fontSize:11, fontWeight:600, color:"#64748b", fontFamily:"inherit" }}>
           Huỷ
         </button>
-        <button onClick={()=>{ if(name.trim()) onSave({name:name.trim(),startTime:start,endTime:end,color,maxStaff:max}); }}
+        <button
+          onClick={()=>{ if(name.trim()) onSave({name:name.trim(),startTime:start,endTime:end,color,maxStaff:max}); }}
           disabled={!name.trim()}
-          style={{ flex:2, height:36, borderRadius:9, border:"none", background: name.trim() ? "#0ea5e9":"#e2e8f0", cursor: name.trim()?"pointer":"default", fontSize:11, fontWeight:700, color:"#fff", fontFamily:"inherit" }}>
+          style={{ flex:2, height:36, borderRadius:9, border:"none", background:name.trim()?"#0ea5e9":"#e2e8f0", cursor:name.trim()?"pointer":"default", fontSize:11, fontWeight:700, color:"#fff", fontFamily:"inherit" }}>
           Lưu ca
         </button>
       </div>
@@ -126,28 +142,31 @@ function TemplateForm({ initial, onSave, onClose }: {
 }
 
 // ─── Slot Card ────────────────────────────────────────────────────────────────
-function SlotCard({ slot, regs, isAdmin, currentUserId, currentUserName, onRegister, onCancel, onApprove, onReject, onDelete }: {
+function SlotCard({ slot, regs, isAdmin, currentUserId, allStaff, onRegister, onCancel, onApprove, onReject, onAssign, onUnassign, onDelete }: {
   slot: ShiftSlot;
   regs: ShiftRegistration[];
   isAdmin: boolean;
   currentUserId: string;
-  currentUserName: string;
+  allStaff: DBUser[];
   onRegister: (slotId: string) => void;
   onCancel: (regId: string) => void;
   onApprove: (reg: ShiftRegistration) => void;
   onReject: (reg: ShiftRegistration) => void;
+  onAssign: (slotId: string, user: DBUser) => void;
+  onUnassign: (slotId: string, userId: string) => void;
   onDelete: (slotId: string) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
-  const myReg = regs.find(r => r.userId === currentUserId);
+  const [showAssign, setShowAssign] = useState(false);
+  const myReg  = regs.find(r => r.userId === currentUserId);
   const approved = regs.filter(r => r.status === "approved");
   const pending  = regs.filter(r => r.status === "pending");
   const full = approved.length >= slot.maxStaff;
-  const canRegister = !myReg && !full;
+
+  const unassignedStaff = allStaff.filter(u => !regs.find(r => r.userId === u.id));
 
   return (
     <div style={{ borderRadius:10, border:`1.5px solid ${slot.color}30`, background:"#fff", overflow:"hidden", boxShadow:`0 1px 6px ${slot.color}10` }}>
-      {/* Color bar */}
       <div style={{ height:3, background:slot.color }} />
       <div style={{ padding:"8px 10px" }}>
         {/* Header */}
@@ -158,21 +177,26 @@ function SlotCard({ slot, regs, isAdmin, currentUserId, currentUserName, onRegis
               <Clock size={8} />{fmt(slot.startTime)} – {fmt(slot.endTime)}
             </p>
           </div>
-          {/* Slots filled indicator */}
           <div style={{ display:"flex", flexDirection:"column", alignItems:"center", flexShrink:0 }}>
-            <span style={{ fontSize:13, fontWeight:800, color: full?"#ef4444":slot.color, lineHeight:1 }}>{approved.length}</span>
+            <span style={{ fontSize:13, fontWeight:800, color:full?"#ef4444":slot.color, lineHeight:1 }}>{approved.length}</span>
             <span style={{ fontSize:7, color:"#94a3b8" }}>/{slot.maxStaff}</span>
           </div>
           {isAdmin && (
-            <button onClick={()=>onDelete(slot.id)}
-              style={{ width:22, height:22, borderRadius:6, border:"1px solid #fee2e2", background:"#fff5f5", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
-              <Trash2 size={9} style={{ color:"#ef4444" }} />
-            </button>
+            <>
+              <button onClick={()=>setShowAssign(v=>!v)} title="Xếp nhân viên"
+                style={{ width:22, height:22, borderRadius:6, border:`1px solid ${showAssign?"#0ea5e9":"#bae6fd"}`, background:showAssign?"#f0f9ff":"#fff", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+                <UserPlus size={10} style={{ color:showAssign?"#0ea5e9":"#64748b" }} />
+              </button>
+              <button onClick={()=>onDelete(slot.id)} title="Xoá ca"
+                style={{ width:22, height:22, borderRadius:6, border:"1px solid #fee2e2", background:"#fff5f5", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+                <Trash2 size={9} style={{ color:"#ef4444" }} />
+              </button>
+            </>
           )}
           {regs.length > 0 && (
             <button onClick={()=>setExpanded(v=>!v)}
               style={{ width:22, height:22, borderRadius:6, border:"1px solid #e2e8f0", background:"#f8fafc", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
-              <ChevronDown size={10} style={{ color:"#64748b", transform: expanded?"rotate(180deg)":"none", transition:"transform 0.15s" }} />
+              <ChevronDown size={10} style={{ color:"#64748b", transform:expanded?"rotate(180deg)":"none", transition:"transform 0.15s" }} />
             </button>
           )}
         </div>
@@ -189,25 +213,64 @@ function SlotCard({ slot, regs, isAdmin, currentUserId, currentUserName, onRegis
           </div>
         )}
 
-        {/* Pending count badge for admin */}
+        {/* Pending badge */}
         {isAdmin && pending.length > 0 && (
-          <div style={{ marginTop:6, display:"flex", alignItems:"center", gap:4 }}>
+          <div style={{ marginTop:6 }}>
             <span style={{ fontSize:9, fontWeight:700, color:"#f59e0b", background:"rgba(245,158,11,0.1)", padding:"2px 7px", borderRadius:20, border:"1px solid rgba(245,158,11,0.2)" }}>
               {pending.length} chờ duyệt
             </span>
           </div>
         )}
 
-        {/* Register button */}
+        {/* Register button (staff only) */}
         {!myReg && !isAdmin && (
-          <button onClick={()=>canRegister && onRegister(slot.id)} disabled={!canRegister}
-            style={{ marginTop:7, width:"100%", height:28, borderRadius:7, border:`1px solid ${canRegister?slot.color:slot.color+"40"}`, background: canRegister?`${slot.color}12`:"#f8fafc", cursor: canRegister?"pointer":"default", fontSize:10, fontWeight:700, color: canRegister?slot.color:"#94a3b8", fontFamily:"inherit" }}>
+          <button onClick={()=>!full && onRegister(slot.id)} disabled={full}
+            style={{ marginTop:7, width:"100%", height:28, borderRadius:7, border:`1px solid ${!full?slot.color:slot.color+"40"}`, background:!full?`${slot.color}12`:"#f8fafc", cursor:!full?"pointer":"default", fontSize:10, fontWeight:700, color:!full?slot.color:"#94a3b8", fontFamily:"inherit" }}>
             {full ? "Đầy ca" : "Đăng ký"}
           </button>
         )}
       </div>
 
-      {/* Expanded registrations */}
+      {/* Admin assign panel */}
+      <AnimatePresence>
+        {showAssign && isAdmin && (
+          <motion.div initial={{ height:0, opacity:0 }} animate={{ height:"auto", opacity:1 }} exit={{ height:0, opacity:0 }} style={{ overflow:"hidden" }}>
+            <div style={{ borderTop:`1px solid ${slot.color}20`, padding:"8px 10px", background:`${slot.color}05` }}>
+              <p style={{ fontSize:8, fontWeight:700, color:"#64748b", letterSpacing:"0.1em", marginBottom:6 }}>XẾP LỊCH TRỰC TIẾP</p>
+              {/* Assigned */}
+              {approved.map(reg => (
+                <div key={reg.id} style={{ display:"flex", alignItems:"center", gap:6, marginBottom:4 }}>
+                  <div style={{ width:18, height:18, borderRadius:"50%", background:"#10b98118", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+                    <span style={{ fontSize:7, fontWeight:700, color:"#10b981" }}>{reg.userName.slice(0,1).toUpperCase()}</span>
+                  </div>
+                  <span style={{ fontSize:10, color:"#0c1a2e", flex:1 }}>{reg.userName}</span>
+                  <span style={{ fontSize:8, color:"#10b981", fontWeight:600 }}>✓ Đã xếp</span>
+                  <button onClick={()=>onUnassign(slot.id, reg.userId)}
+                    style={{ width:20, height:20, borderRadius:5, border:"1px solid #fee2e2", background:"#fff5f5", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" }}>
+                    <UserMinus size={9} style={{ color:"#ef4444" }} />
+                  </button>
+                </div>
+              ))}
+              {/* Unassigned staff to add */}
+              {unassignedStaff.length > 0 && (
+                <div style={{ marginTop:4, display:"flex", flexWrap:"wrap", gap:4 }}>
+                  {unassignedStaff.map(u => (
+                    <button key={u.id} onClick={()=>onAssign(slot.id, u)}
+                      style={{ display:"flex", alignItems:"center", gap:4, padding:"3px 8px", borderRadius:20, border:`1px solid ${slot.color}40`, background:"#fff", cursor:"pointer", fontSize:9, fontWeight:600, color:slot.color, fontFamily:"inherit" }}>
+                      <Plus size={8} />{u.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {unassignedStaff.length === 0 && approved.length === 0 && (
+                <p style={{ fontSize:9, color:"#94a3b8" }}>Tất cả đã được xếp ca</p>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Expanded registrations (pending/rejected list) */}
       <AnimatePresence>
         {expanded && (
           <motion.div initial={{ height:0, opacity:0 }} animate={{ height:"auto", opacity:1 }} exit={{ height:0, opacity:0 }} style={{ overflow:"hidden" }}>
@@ -246,17 +309,17 @@ function SlotCard({ slot, regs, isAdmin, currentUserId, currentUserName, onRegis
 // ─── Add Slot Modal ───────────────────────────────────────────────────────────
 function AddSlotModal({ templates, date, onSave, onClose }: {
   templates: ShiftTemplate[]; date: string;
-  onSave: (slot: Omit<ShiftSlot,"id"|"createdAt">) => void;
+  onSave: (slot: Omit<ShiftSlot,"id"|"createdAt"|"updatedAt">) => void;
   onClose: () => void;
 }) {
   const [mode, setMode] = useState<"template"|"custom">(templates.length ? "template" : "custom");
   const [selectedTmpl, setSelectedTmpl] = useState<ShiftTemplate | null>(templates[0] ?? null);
-  const [name, setName] = useState("");
+  const [name, setName]   = useState("");
   const [start, setStart] = useState("08:00");
-  const [end, setEnd] = useState("14:00");
+  const [end, setEnd]     = useState("14:00");
   const [color, setColor] = useState("#0ea5e9");
-  const [max, setMax] = useState(3);
-  const [note, setNote] = useState("");
+  const [max, setMax]     = useState(3);
+  const [note, setNote]   = useState("");
 
   const dateObj = new Date(date + "T00:00:00");
   const dayLabel = `${DAYS_FULL[dateObj.getDay()]}, ${dateObj.getDate()} tháng ${dateObj.getMonth()+1}`;
@@ -279,7 +342,7 @@ function AddSlotModal({ templates, date, onSave, onClose }: {
         style={{ background:"#fff", borderRadius:16, padding:20, width:"100%", maxWidth:360, boxShadow:"0 20px 60px rgba(0,0,0,0.15)" }}>
         <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:14 }}>
           <div>
-            <p style={{ fontSize:13, fontWeight:700, color:"#0c1a2e" }}>Thêm ca</p>
+            <p style={{ fontSize:13, fontWeight:700, color:"#0c1a2e" }}>Thêm ca làm</p>
             <p style={{ fontSize:10, color:"#64748b" }}>{dayLabel}</p>
           </div>
           <button onClick={onClose} style={{ width:28, height:28, borderRadius:8, border:"1px solid #e2e8f0", background:"#f8fafc", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" }}>
@@ -359,21 +422,21 @@ export default function SchedulePage() {
   const { currentUser, users, fetchUsersFromDb } = useStore();
   const isAdmin = currentUser?.role === "admin" || currentUser?.role === "manager";
 
-  const [weekOffset, setWeekOffset] = useState(0);
-  const [templates, setTemplates] = useState<ShiftTemplate[]>([]);
-  const [slots, setSlots] = useState<ShiftSlot[]>([]);
+  const [weekOffset, setWeekOffset]       = useState(0);
+  const [templates, setTemplates]         = useState<ShiftTemplate[]>([]);
+  const [slots, setSlots]                 = useState<ShiftSlot[]>([]);
   const [registrations, setRegistrations] = useState<ShiftRegistration[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [addingSlot, setAddingSlot] = useState<string | null>(null); // date
+  const [loading, setLoading]             = useState(true);
+  const [addingSlot, setAddingSlot]       = useState<string | null>(null);
   const [showTemplates, setShowTemplates] = useState(false);
-  const [editTemplate, setEditTemplate] = useState<ShiftTemplate | null>(null);
-  const [addTemplate, setAddTemplate] = useState(false);
-  const [viewMode, setViewMode] = useState<"week"|"staff">("week");
-  const [selectedStaff, setSelectedStaff] = useState<string | null>(null);
+  const [editTemplate, setEditTemplate]   = useState<ShiftTemplate | null>(null);
+  const [addTemplate, setAddTemplate]     = useState(false);
+  const [viewMode, setViewMode]           = useState<"week"|"staff">("week");
 
   const weekDates = useMemo(() => getWeekDates(weekOffset), [weekOffset]);
-  const dateFrom = toDateStr(weekDates[0]);
-  const dateTo   = toDateStr(weekDates[6]);
+  const dateFrom  = toDateStr(weekDates[0]);
+  const dateTo    = toDateStr(weekDates[6]);
+  const weekNum   = getISOWeek(weekDates[0]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -389,13 +452,26 @@ export default function SchedulePage() {
   }, [dateFrom, dateTo]);
 
   useEffect(() => { load(); }, [load]);
-  useEffect(() => { if (isAdmin) fetchUsersFromDb(); }, [isAdmin]);
+  useEffect(() => { fetchUsersFromDb(); }, []);
+
+  // ── Active staff (all roles) from DB ──────────────────────────────────────
+  const activeStaff: DBUser[] = useMemo(() =>
+    (users as DBUser[]).filter(u => u.active),
+    [users]
+  );
 
   // ── Actions ────────────────────────────────────────────────────────────────
   async function handleSaveTemplate(data: Omit<ShiftTemplate,"id"|"createdAt">) {
-    const t: ShiftTemplate = { ...data, id: editTemplate?.id ?? `tmpl_${Date.now()}`, createdAt: editTemplate?.createdAt ?? new Date().toISOString() };
-    await fetch("/api/shifts", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({kind:"template",data:t}) });
-    setEditTemplate(null); setAddTemplate(false);
+    const id  = editTemplate?.id ?? `tmpl_${Date.now()}`;
+    const cat = editTemplate?.createdAt ?? new Date().toISOString();
+    const t: ShiftTemplate = { ...data, id, createdAt: cat };
+    const res = await fetch("/api/shifts", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ kind:"template", data:t }),
+    });
+    if (!res.ok) { alert("Lưu mẫu thất bại, thử lại."); return; }
+    setEditTemplate(null);
+    setAddTemplate(false);
     load();
   }
 
@@ -405,8 +481,12 @@ export default function SchedulePage() {
     load();
   }
 
-  async function handleAddSlot(slotData: Omit<ShiftSlot,"id"|"createdAt">) {
-    await fetch("/api/shifts", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({kind:"slot",data:slotData}) });
+  async function handleAddSlot(slotData: Omit<ShiftSlot,"id"|"createdAt"|"updatedAt">) {
+    const now = new Date().toISOString();
+    await fetch("/api/shifts", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ kind:"slot", data:{ ...slotData, createdAt:now, updatedAt:now } }),
+    });
     setAddingSlot(null);
     load();
   }
@@ -444,6 +524,18 @@ export default function SchedulePage() {
     load();
   }
 
+  async function handleAssign(slotId: string, user: DBUser) {
+    await fetch("/api/shifts/register", { method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ action:"assign", slotId, userId:user.id, userName:user.name }) });
+    load();
+  }
+
+  async function handleUnassign(slotId: string, userId: string) {
+    await fetch("/api/shifts/register", { method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ action:"unassign", slotId, userId, userName:"" }) });
+    load();
+  }
+
   // ── Derived ────────────────────────────────────────────────────────────────
   const slotsByDate = useMemo(() => {
     const m: Record<string, ShiftSlot[]> = {};
@@ -463,35 +555,36 @@ export default function SchedulePage() {
     return m;
   }, [registrations]);
 
-  // Staff view: approved shifts per person per week
+  // Staff view: ALL active staff, show approved shifts
   const staffSchedule = useMemo(() => {
-    const staffIds = [...new Set(registrations.filter(r=>r.status==="approved").map(r=>r.userId))];
-    return staffIds.map(uid => {
-      const name = registrations.find(r=>r.userId===uid)?.userName ?? uid;
-      const myRegs = registrations.filter(r=>r.userId===uid && r.status==="approved");
-      const mySlots = myRegs.map(r => slots.find(s=>s.id===r.slotId)).filter(Boolean) as ShiftSlot[];
-      return { uid, name, slots: mySlots };
+    return activeStaff.map(u => {
+      const myRegs  = registrations.filter(r => r.userId === u.id && r.status === "approved");
+      const mySlots = myRegs.map(r => slots.find(s => s.id === r.slotId)).filter(Boolean) as ShiftSlot[];
+      return { uid: u.id, name: u.name, role: u.role, slots: mySlots };
     });
-  }, [registrations, slots]);
+  }, [activeStaff, registrations, slots]);
 
-  const pendingCount = registrations.filter(r=>r.status==="pending").length;
+  const pendingCount = registrations.filter(r => r.status === "pending").length;
   const today = toDateStr(new Date());
 
   const weekLabel = (() => {
     const m0 = weekDates[0]; const m6 = weekDates[6];
     if (m0.getMonth() === m6.getMonth())
-      return `${MONTHS_VI[m0.getMonth()]} ${m0.getFullYear()}`;
+      return `${m0.getDate()}–${m6.getDate()} ${MONTHS_VI[m0.getMonth()]} ${m0.getFullYear()}`;
     return `${m0.getDate()} ${MONTHS_VI[m0.getMonth()]} – ${m6.getDate()} ${MONTHS_VI[m6.getMonth()]} ${m6.getFullYear()}`;
   })();
 
   return (
     <div style={{ display:"flex", flexDirection:"column", height:"100%", minHeight:0, background:"#f8fafc" }}>
-      {/* Header */}
+      {/* ── Header ── */}
       <div style={{ padding:"16px 20px 12px", background:"#fff", borderBottom:"1px solid #e0f2fe", flexShrink:0 }}>
         <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:10 }}>
           <div>
-            <div style={{ display:"flex", alignItems:"center", gap:6, marginBottom:2 }}>
+            <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:2 }}>
               <p style={{ fontSize:9, fontWeight:700, color:"#94a3b8", letterSpacing:"0.2em" }}>LỊCH LÀM · POSTLAIN</p>
+              <span style={{ fontSize:9, fontWeight:800, color:"#fff", background:"#0c1a2e", padding:"1px 7px", borderRadius:5, letterSpacing:"0.08em" }}>
+                W{String(weekNum).padStart(3,"0")}
+              </span>
             </div>
             <h1 style={{ fontSize:20, fontWeight:800, color:"#0c1a2e", margin:0 }}>Lịch Làm Việc</h1>
           </div>
@@ -503,10 +596,13 @@ export default function SchedulePage() {
               </div>
             )}
             {isAdmin && (
-              <button onClick={()=>setShowTemplates(v=>!v)}
-                style={{ display:"flex", alignItems:"center", gap:5, padding:"7px 12px", borderRadius:10, border:"1px solid #bae6fd", background: showTemplates?"#f0f9ff":"#fff", cursor:"pointer", fontFamily:"inherit" }}>
+              <button onClick={()=>{ setShowTemplates(v=>!v); setAddTemplate(false); setEditTemplate(null); }}
+                style={{ display:"flex", alignItems:"center", gap:5, padding:"7px 12px", borderRadius:10, border:`1px solid ${showTemplates?"#0ea5e9":"#bae6fd"}`, background:showTemplates?"#f0f9ff":"#fff", cursor:"pointer", fontFamily:"inherit" }}>
                 <Settings2 size={12} style={{ color:"#0ea5e9" }} />
                 <span style={{ fontSize:10, fontWeight:600, color:"#0ea5e9" }}>Mẫu Ca</span>
+                {templates.length > 0 && (
+                  <span style={{ fontSize:8, fontWeight:800, color:"#fff", background:"#0ea5e9", padding:"1px 5px", borderRadius:10 }}>{templates.length}</span>
+                )}
               </button>
             )}
           </div>
@@ -519,32 +615,39 @@ export default function SchedulePage() {
               <div style={{ marginTop:12, padding:14, background:"#f8fafc", borderRadius:12, border:"1px solid #e0f2fe" }}>
                 <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:10 }}>
                   <p style={{ fontSize:10, fontWeight:700, color:"#64748b", letterSpacing:"0.12em" }}>MẪU CA LÀM VIỆC</p>
-                  <button onClick={()=>setAddTemplate(v=>!v)}
-                    style={{ display:"flex", alignItems:"center", gap:4, padding:"5px 10px", borderRadius:8, border:"1px solid #bae6fd", background:"#fff", cursor:"pointer", fontSize:10, fontWeight:600, color:"#0ea5e9", fontFamily:"inherit" }}>
+                  <button onClick={()=>{ setAddTemplate(v=>!v); setEditTemplate(null); }}
+                    style={{ display:"flex", alignItems:"center", gap:4, padding:"5px 10px", borderRadius:8, border:`1px solid ${addTemplate?"#0ea5e9":"#bae6fd"}`, background:addTemplate?"#f0f9ff":"#fff", cursor:"pointer", fontSize:10, fontWeight:600, color:"#0ea5e9", fontFamily:"inherit" }}>
                     <Plus size={11} /> Thêm mẫu
                   </button>
                 </div>
-                {addTemplate && (
-                  <div style={{ marginBottom:12, padding:12, background:"#fff", borderRadius:10, border:"1px solid #e0f2fe" }}>
+
+                {/* Add form */}
+                {addTemplate && !editTemplate && (
+                  <div style={{ marginBottom:12, padding:14, background:"#fff", borderRadius:10, border:"1px solid #bae6fd" }}>
+                    <p style={{ fontSize:10, fontWeight:700, color:"#0ea5e9", marginBottom:10 }}>Tạo mẫu mới</p>
                     <TemplateForm onSave={handleSaveTemplate} onClose={()=>setAddTemplate(false)} />
                   </div>
                 )}
+
+                {/* Edit form */}
                 {editTemplate && (
-                  <div style={{ marginBottom:12, padding:12, background:"#fff", borderRadius:10, border:`1.5px solid ${editTemplate.color}40` }}>
+                  <div style={{ marginBottom:12, padding:14, background:"#fff", borderRadius:10, border:`1.5px solid ${editTemplate.color}60` }}>
+                    <p style={{ fontSize:10, fontWeight:700, color:editTemplate.color, marginBottom:10 }}>Chỉnh sửa: {editTemplate.name}</p>
                     <TemplateForm initial={editTemplate} onSave={handleSaveTemplate} onClose={()=>setEditTemplate(null)} />
                   </div>
                 )}
+
                 <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
                   {templates.map(t => (
-                    <div key={t.id} style={{ display:"flex", alignItems:"center", gap:8, padding:"8px 12px", borderRadius:10, background:"#fff", border:`1.5px solid ${t.color}30`, minWidth:160 }}>
-                      <div style={{ width:10, height:28, borderRadius:3, background:t.color, flexShrink:0 }} />
+                    <div key={t.id} style={{ display:"flex", alignItems:"center", gap:8, padding:"8px 12px", borderRadius:10, background:"#fff", border:`1.5px solid ${t.color}40`, minWidth:160 }}>
+                      <div style={{ width:4, height:32, borderRadius:2, background:t.color, flexShrink:0 }} />
                       <div style={{ flex:1, minWidth:0 }}>
                         <p style={{ fontSize:11, fontWeight:700, color:"#0c1a2e" }}>{t.name}</p>
                         <p style={{ fontSize:9, color:"#64748b" }}>{fmt(t.startTime)}–{fmt(t.endTime)} · {t.maxStaff} người</p>
                       </div>
-                      <button onClick={()=>setEditTemplate(t)}
-                        style={{ width:24,height:24,borderRadius:6,border:"1px solid #e2e8f0",background:"#fff",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center" }}>
-                        <Edit3 size={10} style={{ color:"#64748b" }} />
+                      <button onClick={()=>{ setEditTemplate(t); setAddTemplate(false); }}
+                        style={{ width:24,height:24,borderRadius:6,border:`1px solid ${editTemplate?.id===t.id?"#0ea5e9":"#e2e8f0"}`,background:editTemplate?.id===t.id?"#f0f9ff":"#fff",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center" }}>
+                        <Edit3 size={10} style={{ color:editTemplate?.id===t.id?"#0ea5e9":"#64748b" }} />
                       </button>
                       <button onClick={()=>handleDeleteTemplate(t.id)}
                         style={{ width:24,height:24,borderRadius:6,border:"1px solid #fee2e2",background:"#fff5f5",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center" }}>
@@ -552,7 +655,9 @@ export default function SchedulePage() {
                       </button>
                     </div>
                   ))}
-                  {templates.length === 0 && <p style={{ fontSize:10, color:"#94a3b8" }}>Chưa có mẫu ca nào. Tạo mẫu để dùng nhanh khi phân ca.</p>}
+                  {templates.length === 0 && !addTemplate && (
+                    <p style={{ fontSize:10, color:"#94a3b8" }}>Chưa có mẫu ca nào. Bấm "Thêm mẫu" để tạo.</p>
+                  )}
                 </div>
               </div>
             </motion.div>
@@ -566,7 +671,7 @@ export default function SchedulePage() {
             <ChevronLeft size={14} style={{ color:"#64748b" }} />
           </button>
           <button onClick={()=>setWeekOffset(0)}
-            style={{ padding:"5px 12px",borderRadius:9,border:"1px solid #e0f2fe",background:weekOffset===0?"#0ea5e9":"#fff",cursor:"pointer",fontSize:10,fontWeight:700,color:weekOffset===0?"#fff":"#64748b",fontFamily:"inherit" }}>
+            style={{ padding:"5px 12px",borderRadius:9,border:"1px solid #e0f2fe",background:weekOffset===0?"#0c1a2e":"#fff",cursor:"pointer",fontSize:10,fontWeight:700,color:weekOffset===0?"#fff":"#64748b",fontFamily:"inherit" }}>
             Tuần này
           </button>
           <span style={{ fontSize:11, fontWeight:700, color:"#0c1a2e", flex:1, textAlign:"center" }}>{weekLabel}</span>
@@ -574,7 +679,6 @@ export default function SchedulePage() {
             style={{ width:30,height:30,borderRadius:9,border:"1px solid #e0f2fe",background:"#fff",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center" }}>
             <ChevronRight size={14} style={{ color:"#64748b" }} />
           </button>
-          {/* View toggle */}
           <div style={{ display:"flex", gap:2, padding:3, background:"#f0f9ff", borderRadius:10, border:"1px solid #e0f2fe" }}>
             {([["week","Tuần"],["staff","Nhân viên"]] as const).map(([v,l]) => (
               <button key={v} onClick={()=>setViewMode(v)}
@@ -586,14 +690,14 @@ export default function SchedulePage() {
         </div>
       </div>
 
-      {/* Body */}
-      <div style={{ flex:1, overflowY:"auto", padding:"16px 16px 24px" }}>
+      {/* ── Body ── */}
+      <div style={{ flex:1, overflowY:"auto", padding:"16px 16px 80px" }}>
         {loading ? (
           <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:200, color:"#94a3b8", fontSize:12 }}>Đang tải...</div>
         ) : viewMode === "week" ? (
           /* ── Weekly grid ── */
           <div style={{ display:"grid", gridTemplateColumns:"repeat(7, minmax(0, 1fr))", gap:8 }}>
-            {weekDates.map((date, di) => {
+            {weekDates.map((date) => {
               const ds = toDateStr(date);
               const isToday = ds === today;
               const daySlots = slotsByDate[ds] ?? [];
@@ -602,26 +706,26 @@ export default function SchedulePage() {
                 <div key={ds} style={{ display:"flex", flexDirection:"column", gap:6 }}>
                   {/* Day header */}
                   <div style={{ textAlign:"center" }}>
-                    <p style={{ fontSize:9, fontWeight:700, color: isToday?"#0ea5e9":"#94a3b8", letterSpacing:"0.1em" }}>{DAYS_VI[date.getDay()]}</p>
+                    <p style={{ fontSize:9, fontWeight:700, color:isToday?"#0ea5e9":"#94a3b8", letterSpacing:"0.1em" }}>{DAYS_VI[date.getDay()]}</p>
                     <div style={{ width:28, height:28, borderRadius:"50%", background:isToday?"#0ea5e9":"transparent", display:"flex", alignItems:"center", justifyContent:"center", margin:"2px auto" }}>
                       <span style={{ fontSize:13, fontWeight:800, color:isToday?"#fff":isPast?"#cbd5e1":"#0c1a2e" }}>{date.getDate()}</span>
                     </div>
                   </div>
-                  {/* Shift slots */}
                   {daySlots.map(slot => (
                     <SlotCard key={slot.id} slot={slot}
                       regs={regsBySlot[slot.id] ?? []}
                       isAdmin={isAdmin}
                       currentUserId={currentUser?.id ?? ""}
-                      currentUserName={currentUser?.name ?? ""}
+                      allStaff={activeStaff}
                       onRegister={handleRegister}
                       onCancel={handleCancel}
                       onApprove={handleApprove}
                       onReject={handleReject}
+                      onAssign={handleAssign}
+                      onUnassign={handleUnassign}
                       onDelete={handleDeleteSlot} />
                   ))}
-                  {/* Add slot button (admin only, not past) */}
-                  {isAdmin && !isPast && (
+                  {isAdmin && (
                     <button onClick={()=>setAddingSlot(ds)}
                       style={{ height:28, borderRadius:9, border:"1.5px dashed #bae6fd", background:"rgba(14,165,233,0.03)", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:4, color:"#94a3b8", fontSize:9, fontWeight:600, fontFamily:"inherit", transition:"all 0.12s" }}
                       onMouseEnter={e=>(e.currentTarget.style.borderColor="#0ea5e9", e.currentTarget.style.color="#0ea5e9")}
@@ -635,65 +739,64 @@ export default function SchedulePage() {
           </div>
         ) : (
           /* ── Staff view ── */
-          <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
-            {/* Legend row */}
-            <div style={{ display:"grid", gridTemplateColumns:"140px repeat(7,1fr)", gap:6, fontSize:9, fontWeight:700, color:"#94a3b8", letterSpacing:"0.08em" }}>
-              <div>NHÂN VIÊN</div>
+          <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+            {/* Legend */}
+            <div style={{ display:"grid", gridTemplateColumns:"150px repeat(7,1fr)", gap:4, fontSize:9, fontWeight:700, color:"#94a3b8", letterSpacing:"0.08em", padding:"0 0 6px", borderBottom:"1px solid #e0f2fe" }}>
+              <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+                <Users size={11} style={{ color:"#94a3b8" }} />
+                NHÂN VIÊN ({activeStaff.length})
+              </div>
               {weekDates.map(d => (
-                <div key={d.getTime()} style={{ textAlign:"center", color: toDateStr(d)===today?"#0ea5e9":"#94a3b8" }}>
+                <div key={d.getTime()} style={{ textAlign:"center", color:toDateStr(d)===today?"#0ea5e9":"#94a3b8" }}>
                   {DAYS_VI[d.getDay()]}<br/>{d.getDate()}
                 </div>
               ))}
             </div>
-            {/* Per-staff rows */}
             {staffSchedule.length === 0 && (
-              <p style={{ fontSize:11, color:"#94a3b8", textAlign:"center", padding:"40px 0" }}>Chưa có ca nào được duyệt trong tuần này.</p>
+              <p style={{ fontSize:11, color:"#94a3b8", textAlign:"center", padding:"40px 0" }}>Không có nhân viên nào đang hoạt động.</p>
             )}
-            {staffSchedule.map(({ uid, name, slots: mySlots }) => (
-              <div key={uid} style={{ display:"grid", gridTemplateColumns:"140px repeat(7,1fr)", gap:6, alignItems:"start" }}>
-                <div style={{ display:"flex", alignItems:"center", gap:7, padding:"6px 0" }}>
-                  <div style={{ width:26,height:26,borderRadius:"50%",background:"linear-gradient(135deg,#0c1a2e,#1e3a5f)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}>
-                    <span style={{ fontSize:10,fontWeight:700,color:"#C9A55A" }}>{name.slice(0,1).toUpperCase()}</span>
-                  </div>
-                  <span style={{ fontSize:10,fontWeight:600,color:"#0c1a2e",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{name}</span>
-                </div>
-                {weekDates.map(d => {
-                  const ds = toDateStr(d);
-                  const dayShifts = mySlots.filter(s=>s.date===ds);
-                  return (
-                    <div key={ds} style={{ display:"flex", flexDirection:"column", gap:3 }}>
-                      {dayShifts.map(s => (
-                        <div key={s.id} style={{ padding:"4px 6px", borderRadius:7, background:`${s.color}18`, border:`1px solid ${s.color}40` }}>
-                          <p style={{ fontSize:9, fontWeight:700, color:s.color, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{s.name}</p>
-                          <p style={{ fontSize:8, color:"#64748b" }}>{fmt(s.startTime)}–{fmt(s.endTime)}</p>
-                        </div>
-                      ))}
-                      {dayShifts.length === 0 && (
-                        <div style={{ height:36, borderRadius:7, background:"#f8fafc", border:"1px dashed #e2e8f0", display:"flex", alignItems:"center", justifyContent:"center" }}>
-                          <span style={{ fontSize:8, color:"#cbd5e1" }}>—</span>
+            {staffSchedule.map(({ uid, name, role, slots: mySlots }) => {
+              const shiftCount = mySlots.length;
+              return (
+                <div key={uid} style={{ display:"grid", gridTemplateColumns:"150px repeat(7,1fr)", gap:4, alignItems:"start", padding:"6px 0", borderBottom:"1px solid #f1f5f9" }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:7, paddingRight:8 }}>
+                    <div style={{ position:"relative", flexShrink:0 }}>
+                      <div style={{ width:28,height:28,borderRadius:"50%",background:"linear-gradient(135deg,#0c1a2e,#1e3a5f)",display:"flex",alignItems:"center",justifyContent:"center" }}>
+                        <span style={{ fontSize:10,fontWeight:700,color:"#C9A55A" }}>{name.slice(0,1).toUpperCase()}</span>
+                      </div>
+                      {shiftCount > 0 && (
+                        <div style={{ position:"absolute",bottom:-2,right:-2,width:14,height:14,borderRadius:"50%",background:"#10b981",border:"1.5px solid #fff",display:"flex",alignItems:"center",justifyContent:"center" }}>
+                          <span style={{ fontSize:7,fontWeight:800,color:"#fff" }}>{shiftCount}</span>
                         </div>
                       )}
                     </div>
-                  );
-                })}
-              </div>
-            ))}
-            {/* All staff (even those with no shifts) */}
-            {isAdmin && users.filter(u=>u.role==="staff" && u.active && !staffSchedule.find(s=>s.uid===u.id)).map(u => (
-              <div key={u.id} style={{ display:"grid", gridTemplateColumns:"140px repeat(7,1fr)", gap:6, alignItems:"center", opacity:0.45 }}>
-                <div style={{ display:"flex", alignItems:"center", gap:7 }}>
-                  <div style={{ width:26,height:26,borderRadius:"50%",background:"#e2e8f0",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}>
-                    <span style={{ fontSize:10,fontWeight:700,color:"#94a3b8" }}>{u.name.slice(0,1).toUpperCase()}</span>
+                    <div style={{ minWidth:0 }}>
+                      <p style={{ fontSize:10,fontWeight:600,color:"#0c1a2e",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{name}</p>
+                      <p style={{ fontSize:7.5,color:"#94a3b8",letterSpacing:"0.08em" }}>{roleLabel(role).toUpperCase()}</p>
+                    </div>
                   </div>
-                  <span style={{ fontSize:10,fontWeight:600,color:"#94a3b8",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{u.name}</span>
+                  {weekDates.map(d => {
+                    const ds = toDateStr(d);
+                    const dayShifts = mySlots.filter(s => s.date === ds);
+                    return (
+                      <div key={ds} style={{ display:"flex", flexDirection:"column", gap:3 }}>
+                        {dayShifts.map(s => (
+                          <div key={s.id} style={{ padding:"3px 6px", borderRadius:7, background:`${s.color}18`, border:`1px solid ${s.color}40` }}>
+                            <p style={{ fontSize:9, fontWeight:700, color:s.color, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{s.name}</p>
+                            <p style={{ fontSize:7.5, color:"#64748b" }}>{fmt(s.startTime)}–{fmt(s.endTime)}</p>
+                          </div>
+                        ))}
+                        {dayShifts.length === 0 && (
+                          <div style={{ height:34, borderRadius:7, background:"#f8fafc", border:"1px dashed #e2e8f0", display:"flex", alignItems:"center", justifyContent:"center" }}>
+                            <span style={{ fontSize:8, color:"#e2e8f0" }}>—</span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
-                {weekDates.map(d => (
-                  <div key={d.getTime()} style={{ height:36,borderRadius:7,background:"#f8fafc",border:"1px dashed #e2e8f0",display:"flex",alignItems:"center",justifyContent:"center" }}>
-                    <span style={{ fontSize:8,color:"#cbd5e1" }}>—</span>
-                  </div>
-                ))}
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
