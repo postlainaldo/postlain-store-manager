@@ -6,7 +6,7 @@ import {
   Users, Trash2, Edit3, CalendarDays, Settings2,
   ChevronDown, AlertCircle, CheckCircle2, XCircle, UserPlus, UserMinus,
 } from "lucide-react";
-import { useStore } from "@/store/useStore";
+import { useStore, AppUser } from "@/store/useStore";
 import { motion, AnimatePresence } from "framer-motion";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -24,7 +24,6 @@ type ShiftRegistration = {
   id: string; slotId: string; userId: string; userName: string;
   status: string; note: string | null; createdAt: string; updatedAt: string;
 };
-type DBUser = { id: string; name: string; role: string; active: number };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const DAYS_VI   = ["CN","T2","T3","T4","T5","T6","T7"];
@@ -147,12 +146,12 @@ function SlotCard({ slot, regs, isAdmin, currentUserId, allStaff, onRegister, on
   regs: ShiftRegistration[];
   isAdmin: boolean;
   currentUserId: string;
-  allStaff: DBUser[];
+  allStaff: AppUser[];
   onRegister: (slotId: string) => void;
   onCancel: (regId: string) => void;
   onApprove: (reg: ShiftRegistration) => void;
   onReject: (reg: ShiftRegistration) => void;
-  onAssign: (slotId: string, user: DBUser) => void;
+  onAssign: (slotId: string, user: AppUser) => void;
   onUnassign: (slotId: string, userId: string) => void;
   onDelete: (slotId: string) => void;
 }) {
@@ -455,8 +454,8 @@ export default function SchedulePage() {
   useEffect(() => { fetchUsersFromDb(); }, []);
 
   // ── Active staff (all roles) from DB ──────────────────────────────────────
-  const activeStaff: DBUser[] = useMemo(() =>
-    (users as DBUser[]).filter(u => u.active),
+  const activeStaff: AppUser[] = useMemo(() =>
+    users.filter(u => u.active),
     [users]
   );
 
@@ -524,7 +523,7 @@ export default function SchedulePage() {
     load();
   }
 
-  async function handleAssign(slotId: string, user: DBUser) {
+  async function handleAssign(slotId: string, user: AppUser) {
     await fetch("/api/shifts/register", { method:"POST", headers:{"Content-Type":"application/json"},
       body: JSON.stringify({ action:"assign", slotId, userId:user.id, userName:user.name }) });
     load();

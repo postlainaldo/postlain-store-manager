@@ -1473,9 +1473,15 @@ function SectionView({ section, products, selectedPid, highlightPid, canEdit, su
           </div>
           <div style={{ padding: "8px 12px 10px", display: "flex", flexDirection: "column", gap: 8, overflow: "visible" }}>
             {(() => {
-              const reversedRows = [...sub.rows].map((row, ri) => ({ row, ri })).reverse();
               // Last row index that has at least 1 product
               const lastFilledRow = sub.rows.reduce((last, r, i) => r.products.some(Boolean) ? i : last, -1);
+              // Virtual rows: existing rows + always one extra empty row at the end
+              const lastRow = sub.rows[sub.rows.length - 1];
+              const virtualRows = [
+                ...sub.rows.map((row, ri) => ({ row, ri })),
+                { row: { type: lastRow?.type ?? "short" as const, products: [] }, ri: sub.rows.length },
+              ];
+              const reversedRows = [...virtualRows].reverse();
               // Show row if: it has data OR it's the next empty row right after the last filled row
               return reversedRows.map(({ row, ri }) => {
                 const hasProd = row.products.some(Boolean);
