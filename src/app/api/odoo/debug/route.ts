@@ -1,5 +1,5 @@
 /**
- * GET /api/odoo/debug?mode=fields_order|fields_line|fields_sa|sa_sample|order
+ * GET /api/odoo/debug?mode=product_fields|product_sample|categ_sample|advisor_group
  */
 import { NextResponse } from "next/server";
 import { NextRequest } from "next/server";
@@ -36,50 +36,73 @@ async function callKw(cookie: string, model: string, method: string, args: unkno
 
 export async function GET(req: NextRequest) {
   if (!ODOO_URL) return NextResponse.json({ error: "ODOO_URL not set" }, { status: 400 });
-  const mode = new URL(req.url).searchParams.get("mode") ?? "sa_sample";
+  const mode = new URL(req.url).searchParams.get("mode") ?? "advisor_group";
 
   try {
     const cookie = await getSession();
 
-    // Get all fields of the sa_lines model (pos.sale.advisor.line or similar)
-    if (mode === "fields_sa") {
-      // First find what model sa_lines points to by reading the field definition
-      const orderFields = await callKw(cookie, "pos.order", "fields_get", [], { attributes: ["string", "type", "relation"] }) as Record<string, { string: string; type: string; relation?: string }>;
-      const saField = orderFields["sa_lines"];
-      const relation = saField?.relation ?? "unknown";
-
-      // Now get fields of that model
-      const saFields = await callKw(cookie, relation, "fields_get", [], { attributes: ["string", "type"] });
-      return NextResponse.json({ ok: true, mode, sa_lines_relation: relation, fields: saFields });
+    // Fields on product.product relevant to grouping
+    if (mode === "product_fields") {
+      const result = await callKw(cookie, "product.product", "fields_get", [], { attributes: ["string", "type"] }) as Record<string, { string: string; type: string }>;
+      const interesting = Object.entries(result)
+        .filter(([k, v]) => {
+          const s = (v.string ?? "").toLowerCase();
+          return s.includes("categ") || s.includes("group") || s.includes("type") || s.includes("mh") ||
+                 k.includes("categ") || k.includes("group") || k.includes("pos_categ") || k.includes("attribute");
+        })
+        .map(([k, v]) => ({ field: k, label: v.string, type: v.type }));
+      return NextResponse.json({ ok: true, mode, interesting });
     }
 
-    // Sample actual sa_lines records — find orders with sa_lines then read them
-    if (mode === "sa_sample") {
-      // Get the relation model name first
-      const orderFields = await callKw(cookie, "pos.order", "fields_get", [], { attributes: ["string", "type", "relation"] }) as Record<string, { string: string; type: string; relation?: string }>;
-      const relation = orderFields["sa_lines"]?.relation ?? null;
+    // Sample 3 products with all category fields — use known product IDs from sa_lines
+    if (mode === "product_sample") {
+      const productIds = [545037, 557566, 560166]; // from sa_lines debug
+      const result = await callKw(cookie, "product.product", "search_read",
+        [[["id", "in", productIds]]],
+        { fields: ["id", "name", "categ_id", "pos_category_id", "attribute_line_ids", "default_code", "product_tmpl_id"] }
+      );
+      // Also get product.template for same ids
+      const tmplIds = (result as Array<{ product_tmpl_id: [number, string] }>).map(p => p.product_tmpl_id[0]);
+      const tmpls = await callKw(cookie, "product.template", "search_read",
+        [[["id", "in", tmplIds]]],
+        { fields: ["id", "name", "categ_id", "pos_category_id", "type"] }
+      );
+      return NextResponse.json({ ok: true, mode, products: result, templates: tmpls });
+    }
 
-      // Read 5 recent orders with sa_lines IDs
-      const orders = await callKw(cookie, "pos.order", "search_read",
-        [[["state", "in", ["paid", "done", "invoiced"]]]],
-        { fields: ["id", "name", "sa_lines", "amount_total", "date_order"], limit: 20, order: "id desc" }
-      ) as Array<{ id: number; name: string; sa_lines: number[]; amount_total: number }>;
+    // Sample product.category tree — find MH12001 etc
+    if (mode === "categ_sample") {
+      const result = await callKw(cookie, "product.category", "search_read",
+        [[["name", "like", "MH1"]]],
+        { fields: ["id", "name", "parent_id", "complete_name"], limit: 30 }
+      );
+      return NextResponse.json({ ok: true, mode, categories: result });
+    }
 
-      // Find first order that has sa_lines
-      const withLines = orders.filter((o) => Array.isArray(o.sa_lines) && o.sa_lines.length > 0);
+    // mode === "advisor_group" — get recent lines with x_advisor + product category
+    // Fetch lines with product detail to find which field holds MH12001..MH12006
+    if (mode === "advisor_group") {
+      // Get 10 recent lines with x_advisor set
+      const lines = await callKw(cookie, "pos.order.line", "search_read",
+        [[["x_advisor", "!=", false], ["order_id.state", "in", ["paid", "done", "invoiced"]]]],
+        { fields: ["id", "product_id", "x_advisor", "qty", "price_subtotal_incl", "is_program_reward"], limit: 10, order: "id desc" }
+      ) as Array<{ id: number; product_id: [number, string]; x_advisor: [number, string]; qty: number; price_subtotal_incl: number }>;
 
-      if (!relation || withLines.length === 0) {
-        return NextResponse.json({ ok: true, mode, relation, orders_checked: orders.length, withLines: withLines.length, note: "No sa_lines found in recent orders" });
-      }
+      const productIds = [...new Set(lines.map(l => Array.isArray(l.product_id) ? l.product_id[0] : 0).filter(Boolean))];
 
-      // Read sa_lines records
-      const lineIds = withLines.slice(0, 3).flatMap((o) => o.sa_lines).slice(0, 20);
-      const saLines = await callKw(cookie, relation, "search_read",
-        [[["id", "in", lineIds]]],
-        { fields: [] } // get all fields
+      // Get categories for these products
+      const products = await callKw(cookie, "product.product", "search_read",
+        [[["id", "in", productIds]]],
+        { fields: ["id", "name", "categ_id", "pos_category_id"] }
+      ) as Array<{ id: number; categ_id: [number, string]; pos_category_id: [number, string] | false }>;
+
+      const categIds = [...new Set(products.map(p => Array.isArray(p.categ_id) ? p.categ_id[0] : 0).filter(Boolean))];
+      const categories = await callKw(cookie, "product.category", "search_read",
+        [[["id", "in", categIds]]],
+        { fields: ["id", "name", "complete_name", "parent_id"] }
       );
 
-      return NextResponse.json({ ok: true, mode, relation, sample_orders: withLines.slice(0, 3), sa_lines: saLines });
+      return NextResponse.json({ ok: true, mode, lines: lines.slice(0, 5), products, categories });
     }
 
     return NextResponse.json({ ok: false, error: "Unknown mode" }, { status: 400 });
