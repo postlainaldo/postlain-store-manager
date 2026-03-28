@@ -1337,7 +1337,7 @@ function ShelfView({ shelf, products, selectedPid, highlightPid, canEdit, onPlac
   onRemove: (shelfId: string, ti: number, si: number) => void;
 }) {
   const filled = shelf.tiers.reduce((s, t) => s + t.filter(Boolean).length, 0);
-  const total = shelf.tiers.length * (shelf.tiers[0]?.length ?? 25);
+  const total = shelf.tiers.reduce((s, t) => s + t.length, 0);
   const density = total > 0 ? filled / total : 0;
   const densityColor = density >= 0.85 ? "#dc2626" : density >= 0.6 ? "#C9A55A" : "#10b981";
 
@@ -1352,54 +1352,62 @@ function ShelfView({ shelf, products, selectedPid, highlightPid, canEdit, onPlac
         <span style={{ fontSize: 9, color: "#64748b" }}>{filled}/{total}</span>
       </div>
       <div style={{ padding: "10px 12px", display: "flex", flexDirection: "column", gap: 8 }}>
-        {shelf.tiers.map((tier, ti) => {
-          const tierFilled = tier.filter(Boolean).length;
-          return (
-          <div key={ti} style={{ display: "flex", alignItems: "flex-start", gap: 6 }}>
-            <div style={{ width: 34, flexShrink: 0, paddingTop: 9, display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 1 }}>
-              <span style={{ fontSize: 8, fontWeight: 600, color: "#94a3b8" }}>{TIER_LABELS[ti]}</span>
-              <span style={{ fontSize: 7.5, fontWeight: 700, color: tierFilled > 0 ? "#0ea5e9" : "#cbd5e1" }}>{tierFilled}</span>
+        {(() => {
+          // Only show tiers that have data OR the next empty tier after the last filled one
+          const lastFilledTier = shelf.tiers.reduce((last, t, i) => t.some(Boolean) ? i : last, -1);
+          return shelf.tiers.map((tier, ti) => {
+            const hasTierProd = tier.some(Boolean);
+            const isNextEmptyTier = ti === lastFilledTier + 1;
+            if (!hasTierProd && !isNextEmptyTier) return null;
+
+            const tierFilled = tier.filter(Boolean).length;
+            return (
+            <div key={ti} style={{ display: "flex", alignItems: "flex-start", gap: 6 }}>
+              <div style={{ width: 34, flexShrink: 0, paddingTop: 9, display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 1 }}>
+                <span style={{ fontSize: 8, fontWeight: 600, color: "#94a3b8" }}>{TIER_LABELS[ti]}</span>
+                <span style={{ fontSize: 7.5, fontWeight: 700, color: tierFilled > 0 ? "#0ea5e9" : "#cbd5e1" }}>{tierFilled}</span>
+              </div>
+              <div style={{ display: "flex", flexWrap: "nowrap", gap: 4, overflowX: "auto", paddingBottom: 2 }}>
+                {(() => {
+                  // Always show one empty slot beyond the last filled slot in this tier
+                  const extTier = [...tier, null];
+                  const lastFilled = tier.reduce((last, pid, i) => (pid ? i : last), -1);
+                  const showUpTo = lastFilled + 1;
+                  return extTier.slice(0, showUpTo + 1).map((pid, si) => {
+                    const p = pid && typeof pid === "string" ? products.find(x => x.id === pid) ?? null : null;
+                    const isHighlit = !!pid && pid === highlightPid;
+                    if (p) return (
+                      <div key={si} {...(isHighlit ? { "data-hpid": p.id } : {})}>
+                        <ProductCard product={p} variant="label" highlight={isHighlit}
+                          onRemove={canEdit ? () => onRemove(shelf.id, ti, si) : undefined} />
+                      </div>
+                    );
+                    // Staff (canEdit=false): hide empty slots
+                    if (!canEdit) return null;
+                    const canPlace = !!selectedPid;
+                    const canScan = !selectedPid;
+                    return (
+                      <div key={si}
+                        onClick={() => { if (canPlace) onPlace(shelf.id, ti, si); else if (canScan) onScanToPlace(shelf.id, ti, si); }}
+                        style={{
+                          width: 92, minHeight: 52, borderRadius: 9, flexShrink: 0,
+                          border: `1.5px dashed ${canPlace ? "#0ea5e9" : "#e0f2fe"}`,
+                          background: canPlace ? "rgba(14,165,233,0.05)" : "#f8fafc",
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          cursor: canPlace || canScan ? "pointer" : "default",
+                        }}>
+                        {canPlace
+                          ? <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#0ea5e9", opacity: 0.7 }} />
+                          : <ScanLine size={14} style={{ color: "#cbd5e1" }} />}
+                      </div>
+                    );
+                  });
+                })()}
+              </div>
             </div>
-            <div style={{ display: "flex", flexWrap: "nowrap", gap: 4, overflowX: "auto", paddingBottom: 2 }}>
-              {(() => {
-                // Append a virtual null slot so there's always one empty slot after the last filled one
-                const extTier = [...tier, null];
-                const lastFilled = tier.reduce((last, pid, i) => (pid ? i : last), -1);
-                const showUpTo = lastFilled + 1; // always show one empty slot beyond last filled
-                return extTier.slice(0, showUpTo + 1).map((pid, si) => {
-                  const p = pid && typeof pid === "string" ? products.find(x => x.id === pid) ?? null : null;
-                  const isHighlit = !!pid && pid === highlightPid;
-                  if (p) return (
-                    <div key={si} {...(isHighlit ? { "data-hpid": p.id } : {})}>
-                      <ProductCard product={p} variant="label" highlight={isHighlit}
-                        onRemove={canEdit ? () => onRemove(shelf.id, ti, si) : undefined} />
-                    </div>
-                  );
-                  // Staff (canEdit=false): hide empty slots
-                  if (!canEdit) return null;
-                  const canPlace = !!selectedPid;
-                  const canScan = !selectedPid;
-                  return (
-                    <div key={si}
-                      onClick={() => { if (canPlace) onPlace(shelf.id, ti, si); else if (canScan) onScanToPlace(shelf.id, ti, si); }}
-                      style={{
-                        width: 92, minHeight: 52, borderRadius: 9, flexShrink: 0,
-                        border: `1.5px dashed ${canPlace ? "#0ea5e9" : "#e0f2fe"}`,
-                        background: canPlace ? "rgba(14,165,233,0.05)" : "#f8fafc",
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        cursor: canPlace || canScan ? "pointer" : "default",
-                      }}>
-                      {canPlace
-                        ? <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#0ea5e9", opacity: 0.7 }} />
-                        : <ScanLine size={14} style={{ color: "#cbd5e1" }} />}
-                    </div>
-                  );
-                });
-              })()}
-            </div>
-          </div>
-          );
-        })}
+            );
+          });
+        })()}
       </div>
     </div>
   );
