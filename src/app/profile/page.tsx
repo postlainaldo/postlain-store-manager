@@ -1084,10 +1084,9 @@ export default function ProfilePage() {
     // Compute schedule-based shift status for today
     try {
       const now = new Date();
-      // Use Vietnam time (UTC+7) for date and current time
-      const vnNow = new Date(now.getTime() + 7 * 3600000);
-      const today = vnNow.toISOString().slice(0, 10); // "YYYY-MM-DD" in VN time
-      const nowMins = vnNow.getUTCHours() * 60 + vnNow.getUTCMinutes(); // minutes since midnight VN
+      // Browser already runs in local (VN) time — use local date and time directly
+      const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+      const nowMins = now.getHours() * 60 + now.getMinutes();
 
       const shiftData = await fetch(`/api/shifts?dateFrom=${today}&dateTo=${today}`).then(r => r.json()).catch(() => ({}));
       const slots: Array<{ id: string; startTime: string; endTime: string }> = Array.isArray(shiftData?.slots) ? shiftData.slots : [];
