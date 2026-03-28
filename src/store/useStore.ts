@@ -379,13 +379,19 @@ export const useStore = create<StoreState>()(
               ...sec,
               subsections: sec.subsections.map((sub) => {
                 if (sub.id !== subsectionId) return sub;
-                const rows = sub.rows.map((row, ri) => {
+                // Extend rows array if placing beyond current row count
+                const rows = [...sub.rows];
+                while (rows.length <= rowIndex) {
+                  const lastRow = rows[rows.length - 1];
+                  rows.push({ type: lastRow?.type ?? "short", products: [] });
+                }
+                const updatedRows = rows.map((row, ri) => {
                   if (ri !== rowIndex) return row;
                   const products = [...row.products];
                   products[slotIndex] = productId;
                   return { ...row, products };
                 });
-                return { ...sub, rows };
+                return { ...sub, rows: updatedRows };
               }),
             };
           }),
@@ -555,15 +561,29 @@ export const useStore = create<StoreState>()(
             ...sec,
             subsections: sec.subsections.map(sub => {
               const subMap = displayPlacements?.[sec.id]?.[sub.id];
+              // Merge existing rows
               const rows = sub.rows.map((row, ri) => {
                 const rowMap = subMap?.[ri];
-                // Merge DB values; extend beyond storeLayout fixed length if DB has more slots
+                // Extend slots beyond layout fixed length if DB has more
                 const maxLen = rowMap
                   ? Math.max(row.products.length, ...Object.keys(rowMap).map(Number).map(n => n + 1))
                   : row.products.length;
                 const newProducts = Array.from({ length: maxLen }, (_, si) => rowMap?.[si] ?? null);
                 return { ...row, products: newProducts };
               });
+              // Append extra rows from DB that are beyond the layout's row count
+              if (subMap) {
+                const extraRowIndices = Object.keys(subMap).map(Number).filter(ri => ri >= sub.rows.length);
+                extraRowIndices.sort((a, b) => a - b);
+                for (const ri of extraRowIndices) {
+                  const rowMap = subMap[ri];
+                  const maxSlot = Math.max(...Object.keys(rowMap).map(Number).map(n => n + 1));
+                  const products = Array.from({ length: maxSlot }, (_, si) => rowMap[si] ?? null);
+                  // Use same row type as last layout row (or "short" as fallback)
+                  const lastRow = sub.rows[sub.rows.length - 1];
+                  rows.push({ type: lastRow?.type ?? "short", products });
+                }
+              }
               return { ...sub, rows };
             }),
           }));
