@@ -76,9 +76,9 @@ function StoreStep({
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
       <Field label="Tên cửa hàng *" value={data.name} onChange={v => onChange("name", v)}
-        placeholder="VD: ALDO — Vincom Đồng Khởi" />
+        placeholder="VD: POSTLAIN ALDO GO! ĐÀ LẠT" />
       <Field label="Địa chỉ" value={data.address} onChange={v => onChange("address", v)}
-        placeholder="72 Lê Thánh Tôn, Q.1, TP.HCM" />
+        placeholder="Trung Tâm GO! Đà Lạt, Đà Lạt, Lâm Đồng" />
       <Field label="Số điện thoại" value={data.phone} onChange={v => onChange("phone", v)}
         placeholder="+84 28 3822 1234" type="tel" />
       <Field label="Email cửa hàng" value={data.email} onChange={v => onChange("email", v)}

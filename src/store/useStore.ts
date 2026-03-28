@@ -26,7 +26,7 @@ export interface ShelfConfig {
   maxInventory: number;
 }
 
-export type UserRole = "admin" | "manager" | "staff";
+export type UserRole = "admin" | "manager" | "staff" | "staff_ft" | "staff_pt";
 
 export interface AppUser {
   id: string;
@@ -231,10 +231,10 @@ export const useStore = create<StoreState>()(
       storeSections: INITIAL_STORE_SECTIONS,
       warehouseShelves: INITIAL_WAREHOUSE,
       storeLayout: INITIAL_LAYOUT,
-      storeName: "ALDO — Vincom Đồng Khởi",
-      storeAddress: "72 Lê Thánh Tôn, Q.1, TP.HCM",
-      storePhone: "+84 28 3822 1234",
-      storeEmail: "store.hcm@aldo.com",
+      storeName: "POSTLAIN ALDO GO! ĐÀ LẠT",
+      storeAddress: "Trung Tâm GO! Đà Lạt, Đà Lạt, Lâm Đồng",
+      storePhone: "+84 263 3822 000",
+      storeEmail: "store.dalat@aldo.com",
       setStoreSetting: (key, value) => set({ [key]: value }),
       notifyLowStock: true,
       notifyMovement: true,

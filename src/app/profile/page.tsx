@@ -7,7 +7,7 @@ import {
   Crown, UserCheck, User, Circle, Send,
   Lock, Eye, EyeOff, LogOut, ChevronDown,
   Settings, Users, RefreshCw, Info,
-  Plus, Trash2, UserPlus, Activity, MessageSquare,
+  Plus, Trash2, UserPlus, Activity,
   Award, Bell, Zap, Shield, Store,
   Download, Upload, Database, AlertTriangle,
 } from "lucide-react";
@@ -63,9 +63,11 @@ const STATUS_CFG: Record<string, { label: string; color: string; group: string }
 };
 
 const ROLE_CFG: Record<string, { label: string; color: string; icon: typeof User }> = {
-  admin:   { label: "Admin",     color: "#C9A55A", icon: Crown     },
-  manager: { label: "Quản Lý",  color: "#0ea5e9", icon: UserCheck },
-  staff:   { label: "Nhân Viên", color: "#64748b", icon: User      },
+  admin:    { label: "Admin",                   color: "#C9A55A", icon: Crown     },
+  manager:  { label: "Quản Lý",                 color: "#0ea5e9", icon: UserCheck },
+  staff:    { label: "Nhân Viên",               color: "#64748b", icon: User      },
+  staff_ft: { label: "Nhân Viên (Full Time)",   color: "#10b981", icon: User      },
+  staff_pt: { label: "Nhân Viên (Part Time)",   color: "#7c3aed", icon: User      },
 };
 
 function timeAgo(iso: string) {
@@ -654,6 +656,8 @@ function UsersPanel() {
                     style={{ background: "#fff", border: "1px solid var(--border)", borderRadius: 8, padding: "6px 10px", fontSize: 11, color: "var(--text-primary)", outline: "none", fontFamily: "inherit" }} />
                   <select value={editForm.role} onChange={e => setEditForm(v => ({ ...v, role: e.target.value as UserRole }))}
                     style={{ background: "#fff", border: "1px solid var(--border)", borderRadius: 8, padding: "6px 10px", fontSize: 11, color: "var(--text-primary)", outline: "none", fontFamily: "inherit" }}>
+                    <option value="staff_ft">Nhân Viên (Full Time)</option>
+                    <option value="staff_pt">Nhân Viên (Part Time)</option>
                     <option value="staff">Nhân Viên</option>
                     <option value="manager">Quản Lý</option>
                     <option value="admin">Admin</option>
@@ -694,6 +698,8 @@ function UsersPanel() {
             ))}
             <select value={newUser.role} onChange={e => setNewUser(v => ({ ...v, role: e.target.value as UserRole }))}
               style={{ background: "#fff", border: "1px solid var(--border)", borderRadius: 8, padding: "7px 12px", fontSize: 11, color: "var(--text-primary)", outline: "none", fontFamily: "inherit" }}>
+              <option value="staff_ft">Nhân Viên (Full Time)</option>
+              <option value="staff_pt">Nhân Viên (Part Time)</option>
               <option value="staff">Nhân Viên</option>
               <option value="manager">Quản Lý</option>
               <option value="admin">Admin</option>
@@ -1055,6 +1061,8 @@ export default function ProfilePage() {
   const [posting, setPosting] = useState(false);
   const [statusOpen, setStatusOpen] = useState(false);
   const [viewingMember, setViewingMember] = useState<TeamMember | null>(null);
+  const [scheduleStatus, setScheduleStatus] = useState<"working" | "off_shift" | null>(null);
+  const [odooStats, setOdooStats] = useState<{ sales: number; ipt: number; rank: string } | null>(null);
 
   const load = async () => {
     if (!currentUser) return;
@@ -1066,7 +1074,41 @@ export default function ProfilePage() {
     setProfile(p);
     setTeam(Array.isArray(t) ? t : []);
     setActivity(Array.isArray(a) ? a : []);
-    setForm({ name: p.name ?? "", fullName: p.fullName ?? "", bio: p.bio ?? "", phone: p.phone ?? "", status: (p.status ?? "working") as Status });
+    const savedStatus = (p.status ?? "working") as Status;
+    setForm({ name: p.name ?? "", fullName: p.fullName ?? "", bio: p.bio ?? "", phone: p.phone ?? "", status: savedStatus });
+
+    // Compute schedule-based shift status for today
+    try {
+      const today = new Date().toISOString().slice(0, 10);
+      const shiftData = await fetch(`/api/shifts?dateFrom=${today}&dateTo=${today}`).then(r => r.json()).catch(() => ({}));
+      const registrations: Array<{ userId: string; status: string }> = Array.isArray(shiftData?.registrations) ? shiftData.registrations : [];
+      const foundWorking = registrations.some(r => r.userId === currentUser.id && r.status === "approved");
+      setScheduleStatus(foundWorking ? "working" : "off_shift");
+      // Auto-update shift status (but not if user is on leave)
+      const isLeave = STATUS_CFG[savedStatus]?.group === "leave";
+      if (!isLeave) {
+        const autoStatus: Status = foundWorking ? "working" : "off_shift";
+        if (autoStatus !== savedStatus) {
+          setForm(f => ({ ...f, status: autoStatus }));
+          await fetch("/api/profile", { method: "PUT", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id: currentUser.id, name: p.name ?? "", fullName: p.fullName ?? "", bio: p.bio ?? "", phone: p.phone ?? "", status: autoStatus, avatar: p.avatar }) });
+        }
+      }
+    } catch { /* ignore schedule fetch errors */ }
+
+    // Fetch odoo daily reports for personal stats
+    try {
+      const rptRes = await fetch("/api/daily-report").then(r => r.json()).catch(() => []);
+      const reports: Array<{ revTotal: number; ipt: number; targetDay: number; preparedBy: string }> = Array.isArray(rptRes) ? rptRes : [];
+      const myName = p.name ?? currentUser.name;
+      const myReports = reports.filter(r => r.preparedBy && r.preparedBy.toLowerCase().includes(myName.toLowerCase()));
+      const totalSales = myReports.reduce((s, r) => s + (r.revTotal ?? 0), 0);
+      const avgIpt = myReports.length > 0 ? myReports.reduce((s, r) => s + (r.ipt ?? 0), 0) / myReports.length : 0;
+      const avgTarget = myReports.length > 0 ? myReports.reduce((s, r) => s + (r.targetDay ?? 0), 0) / myReports.length : 0;
+      const pct = avgTarget > 0 ? totalSales / (avgTarget * myReports.length) : 0;
+      const rank = pct >= 1.2 ? "Xuất sắc" : pct >= 0.9 ? "Tốt" : pct >= 0.7 ? "Trung bình" : pct >= 0.5 ? "Yếu" : "Kém";
+      setOdooStats({ sales: totalSales, ipt: avgIpt, rank });
+    } catch { /* ignore */ }
   };
 
   useEffect(() => { load(); }, [currentUser]);
@@ -1124,11 +1166,7 @@ export default function ProfilePage() {
   const isManager = currentUser.role === "admin" || currentUser.role === "manager";
   const canViewProfiles = isManager;
 
-  const myActivity = activity.filter(a => a.userId === currentUser.id);
-  const msgCount = myActivity.filter(a => a.type === "message").length;
   const activeMembers = team.filter(m => m.active).length;
-  const memberSince = profile?.createdAt ? new Date(profile.createdAt).toLocaleDateString("vi-VN", { month: "short", year: "numeric" }) : "—";
-  const totalActivity = myActivity.length;
 
   const TABS = [
     { id: "profile" as const,  label: "Hồ Sơ",    icon: User     },
@@ -1235,39 +1273,58 @@ export default function ProfilePage() {
               {/* Actions */}
               <div style={{ display: "flex", gap: 8, paddingTop: 52, paddingBottom: 4 }}>
                 <div style={{ position: "relative" }}>
-                  <motion.button
-                    whileHover={{ background: "var(--bg-base)" }} whileTap={{ scale: 0.97 }}
-                    onClick={() => setStatusOpen(v => !v)}
-                    style={{ display: "flex", alignItems: "center", gap: 5, padding: "7px 12px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--bg-base)", cursor: "pointer", fontFamily: "inherit" }}>
-                    <div style={{ position: "relative", width: 8, height: 8 }}>
-                      <div style={{ width: 8, height: 8, borderRadius: "50%", background: scfg.color }} />
-                      {form.status === "working" && (
-                        <motion.div animate={{ scale: [1, 2], opacity: [0.5, 0] }} transition={{ duration: 1.5, repeat: Infinity }}
-                          style={{ position: "absolute", inset: 0, borderRadius: "50%", background: scfg.color }} />
-                      )}
+                  {/* Shift status: auto-computed (read-only badge); leave: manual dropdown */}
+                  {scfg.group === "shift" ? (
+                    <div style={{ display: "flex", alignItems: "center", gap: 5, padding: "7px 12px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--bg-base)" }}>
+                      <div style={{ position: "relative", width: 8, height: 8 }}>
+                        <div style={{ width: 8, height: 8, borderRadius: "50%", background: scfg.color }} />
+                        {form.status === "working" && (
+                          <motion.div animate={{ scale: [1, 2], opacity: [0.5, 0] }} transition={{ duration: 1.5, repeat: Infinity }}
+                            style={{ position: "absolute", inset: 0, borderRadius: "50%", background: scfg.color }} />
+                        )}
+                      </div>
+                      <span style={{ fontSize: 9, color: "var(--text-muted)", fontWeight: 600 }}>{scfg.label}</span>
+                      <motion.button
+                        whileHover={{ background: "rgba(14,165,233,0.08)" }} whileTap={{ scale: 0.97 }}
+                        onClick={() => setStatusOpen(v => !v)}
+                        title="Khai báo phép"
+                        style={{ marginLeft: 2, width: 18, height: 18, borderRadius: 5, border: "1px solid var(--border)", background: "transparent", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+                        <ChevronDown size={9} style={{ color: "var(--text-muted)", transform: statusOpen ? "rotate(180deg)" : "none", transition: "transform 0.2s" }} />
+                      </motion.button>
                     </div>
-                    <span style={{ fontSize: 9, color: "var(--text-muted)", fontWeight: 600 }}>{scfg.label}</span>
-                    <ChevronDown size={9} style={{ color: "var(--text-muted)", transform: statusOpen ? "rotate(180deg)" : "none", transition: "transform 0.2s" }} />
-                  </motion.button>
+                  ) : (
+                    <motion.button
+                      whileHover={{ background: "var(--bg-base)" }} whileTap={{ scale: 0.97 }}
+                      onClick={() => setStatusOpen(v => !v)}
+                      style={{ display: "flex", alignItems: "center", gap: 5, padding: "7px 12px", borderRadius: 10, border: `1px solid ${scfg.color}40`, background: `${scfg.color}08`, cursor: "pointer", fontFamily: "inherit" }}>
+                      <Circle size={8} style={{ color: scfg.color, fill: scfg.color }} />
+                      <span style={{ fontSize: 9, color: scfg.color, fontWeight: 600 }}>{scfg.label}</span>
+                      <ChevronDown size={9} style={{ color: scfg.color, transform: statusOpen ? "rotate(180deg)" : "none", transition: "transform 0.2s" }} />
+                    </motion.button>
+                  )}
                   <AnimatePresence>
                     {statusOpen && (
                       <motion.div
                         initial={{ opacity: 0, y: -4, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -4, scale: 0.97 }}
-                        style={{ position: "absolute", right: 0, top: "calc(100% + 4px)", background: "#fff", border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden", zIndex: 50, minWidth: 170, boxShadow: "0 8px 32px rgba(0,0,0,0.12)" }}>
-                        {(["shift", "leave"] as const).map(group => (
-                          <div key={group}>
-                            <div style={{ padding: "7px 14px 3px", fontSize: 8.5, fontWeight: 700, color: "var(--text-muted)", letterSpacing: "0.09em", textTransform: "uppercase", borderTop: group === "leave" ? "1px solid var(--border)" : "none", marginTop: group === "leave" ? 4 : 0 }}>
-                              {group === "shift" ? "CA LÀM" : "LOẠI PHÉP"}
-                            </div>
-                            {Object.entries(STATUS_CFG).filter(([, cfg]) => cfg.group === group).map(([key, cfg]) => (
-                              <motion.button key={key} whileHover={{ background: "var(--bg-base)" }} onClick={() => handleStatusChange(key)}
-                                style={{ width: "100%", padding: "8px 14px", display: "flex", alignItems: "center", gap: 8, background: form.status === key ? "var(--bg-base)" : "transparent", border: "none", cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
-                                <Circle size={8} style={{ color: cfg.color, fill: cfg.color }} />
-                                <span style={{ fontSize: 11, color: "var(--text-primary)", flex: 1 }}>{cfg.label}</span>
-                                {form.status === key && <Check size={9} style={{ color: "#0ea5e9" }} />}
-                              </motion.button>
-                            ))}
-                          </div>
+                        style={{ position: "absolute", right: 0, top: "calc(100% + 4px)", background: "#fff", border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden", zIndex: 50, minWidth: 200, boxShadow: "0 8px 32px rgba(0,0,0,0.12)" }}>
+                        <div style={{ padding: "8px 14px 4px", fontSize: 8.5, fontWeight: 700, color: "var(--text-muted)", letterSpacing: "0.09em", textTransform: "uppercase" }}>KHAI BÁO NGHỈ PHÉP</div>
+                        {/* Reset to auto shift status */}
+                        {scfg.group === "leave" && (
+                          <motion.button whileHover={{ background: "var(--bg-base)" }}
+                            onClick={() => { const s: Status = scheduleStatus ?? "off_shift"; handleStatusChange(s); }}
+                            style={{ width: "100%", padding: "7px 14px", display: "flex", alignItems: "center", gap: 8, background: "transparent", border: "none", cursor: "pointer", fontFamily: "inherit", textAlign: "left", borderTop: "1px solid var(--border)" }}>
+                            <Circle size={8} style={{ color: scheduleStatus === "working" ? "#10b981" : "#64748b", fill: scheduleStatus === "working" ? "#10b981" : "#64748b" }} />
+                            <span style={{ fontSize: 11, color: "var(--text-primary)", flex: 1 }}>Hủy phép — về lịch ca</span>
+                          </motion.button>
+                        )}
+                        <div style={{ borderTop: "1px solid var(--border)", marginTop: 2 }} />
+                        {Object.entries(STATUS_CFG).filter(([, cfg]) => cfg.group === "leave").map(([key, cfg]) => (
+                          <motion.button key={key} whileHover={{ background: "var(--bg-base)" }} onClick={() => handleStatusChange(key)}
+                            style={{ width: "100%", padding: "7px 14px", display: "flex", alignItems: "center", gap: 8, background: form.status === key ? "var(--bg-base)" : "transparent", border: "none", cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
+                            <Circle size={8} style={{ color: cfg.color, fill: cfg.color }} />
+                            <span style={{ fontSize: 11, color: "var(--text-primary)", flex: 1 }}>{cfg.label}</span>
+                            {form.status === key && <Check size={9} style={{ color: "#0ea5e9" }} />}
+                          </motion.button>
                         ))}
                       </motion.div>
                     )}
@@ -1285,10 +1342,10 @@ export default function ProfilePage() {
             {/* Stats row */}
             <div style={{ display: "flex", gap: 8, marginTop: 18 }}>
               {[
-                { label: "Tin nhắn",  value: msgCount,      icon: MessageSquare, color: "#0ea5e9" },
-                { label: "Thành viên", value: activeMembers, icon: Users,         color: "#10b981" },
-                { label: "Hoạt động", value: totalActivity,  icon: Activity,      color: "#7c3aed" },
-                { label: "Tham gia",  value: memberSince,    icon: Award,         color: "#C9A55A" },
+                { label: "Thành viên", value: activeMembers, icon: Users,    color: "#10b981", fmt: (v: number | string) => String(v) },
+                { label: "Doanh số",   value: odooStats?.sales ?? null, icon: Zap,     color: "#C9A55A", fmt: (v: number | string) => typeof v === "number" ? (v >= 1e6 ? `${(v/1e6).toFixed(1)}M` : `${Math.round(v/1e3)}K`) : "—" },
+                { label: "IPT",        value: odooStats?.ipt ?? null,   icon: Activity, color: "#0ea5e9", fmt: (v: number | string) => typeof v === "number" ? (v >= 1000 ? `${(v/1000).toFixed(0)}K` : String(Math.round(v as number))) : "—" },
+                { label: "Xếp hạng",  value: odooStats?.rank ?? null,  icon: Award,   color: "#7c3aed", fmt: (v: number | string) => v == null ? "—" : String(v) },
               ].map((s, i) => (
                 <motion.div
                   key={i}
@@ -1302,7 +1359,7 @@ export default function ProfilePage() {
                   }}
                 >
                   <s.icon size={12} style={{ color: s.color }} />
-                  <span style={{ fontSize: typeof s.value === "number" ? 16 : 11, fontWeight: 800, color: "var(--text-primary)", lineHeight: 1 }}>{s.value}</span>
+                  <span style={{ fontSize: s.value == null ? 10 : 14, fontWeight: 800, color: "var(--text-primary)", lineHeight: 1 }}>{s.value == null ? "—" : s.fmt(s.value)}</span>
                   <span style={{ fontSize: 7.5, color: "var(--text-muted)", letterSpacing: "0.06em", textTransform: "uppercase" }}>{s.label}</span>
                 </motion.div>
               ))}
@@ -1410,10 +1467,10 @@ export default function ProfilePage() {
 
                 {/* Stats chips */}
                 <div style={{ display: "flex", gap: 8 }}>
-                  <StatChip icon={MessageSquare} value={msgCount}     label="Tin nhắn"  color="#0ea5e9" />
-                  <StatChip icon={Activity}      value={totalActivity} label="Hoạt động" color="#7c3aed" />
-                  <StatChip icon={Users}         value={activeMembers} label="Nhóm"      color="#10b981" />
-                  <StatChip icon={Award}         value={memberSince}   label="Tham gia"  color="#C9A55A" />
+                  <StatChip icon={Users}    value={activeMembers}                                                                 label="Thành viên" color="#10b981" />
+                  <StatChip icon={Zap}      value={odooStats ? (odooStats.sales >= 1e6 ? `${(odooStats.sales/1e6).toFixed(1)}M` : `${Math.round(odooStats.sales/1e3)}K`) : "—"} label="Doanh số"   color="#C9A55A" />
+                  <StatChip icon={Activity} value={odooStats ? (odooStats.ipt >= 1000 ? `${(odooStats.ipt/1000).toFixed(0)}K` : String(Math.round(odooStats.ipt))) : "—"}           label="IPT"        color="#0ea5e9" />
+                  <StatChip icon={Award}    value={odooStats?.rank ?? "—"}                                                        label="Xếp hạng"   color="#7c3aed" />
                 </div>
 
                 {/* Password change */}
