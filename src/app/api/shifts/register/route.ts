@@ -6,12 +6,12 @@ import {
   DBShiftRegistration,
 } from "@/lib/dbAdapter";
 
-// POST /api/shifts/register — register, cancel, or approve/reject
-// body: { action: "register"|"cancel"|"approve"|"reject", slotId, userId, userName, registrationId?, note? }
+// POST /api/shifts/register — register, cancel, approve/reject, or assign (admin direct)
+// body: { action: "register"|"cancel"|"approve"|"reject"|"assign"|"unassign", slotId, userId, userName, registrationId?, note? }
 export async function POST(req: NextRequest) {
   const { action, slotId, userId, userName, registrationId, note } =
     await req.json() as {
-      action: "register" | "cancel" | "approve" | "reject";
+      action: "register" | "cancel" | "approve" | "reject" | "assign" | "unassign";
       slotId: string; userId: string; userName: string;
       registrationId?: string; note?: string;
     };
@@ -49,6 +49,27 @@ export async function POST(req: NextRequest) {
       updatedAt: now,
     };
     await dbUpsertShiftRegistrationBySlotUser(updated);
+    return NextResponse.json({ ok: true });
+  }
+
+  // Admin directly assigns a user to a slot (status = approved immediately)
+  if (action === "assign") {
+    const reg: DBShiftRegistration = {
+      id: registrationId ?? `reg_${Date.now()}_${Math.random().toString(36).slice(2,5)}`,
+      slotId, userId, userName,
+      status: "approved",
+      note: note ?? null,
+      createdAt: now, updatedAt: now,
+    };
+    await dbUpsertShiftRegistrationBySlotUser(reg);
+    return NextResponse.json({ ok: true, id: reg.id });
+  }
+
+  // Admin removes a direct assignment
+  if (action === "unassign") {
+    const regs = await dbGetShiftRegistrations([slotId]);
+    const existing = regs.find(r => r.userId === userId);
+    if (existing) await dbDeleteShiftRegistration(existing.id);
     return NextResponse.json({ ok: true });
   }
 

@@ -39,6 +39,7 @@ export async function POST(req: NextRequest) {
   const s = data as DBShiftSlot;
   if (!s.id) s.id = `slot_${Date.now()}_${Math.random().toString(36).slice(2,5)}`;
   if (!s.createdAt) s.createdAt = now;
+  if (!s.updatedAt) s.updatedAt = now;
   await dbUpsertShiftSlot(s);
   return NextResponse.json({ ok: true, id: s.id });
 }
