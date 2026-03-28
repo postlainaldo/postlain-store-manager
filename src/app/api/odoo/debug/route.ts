@@ -1,5 +1,5 @@
 /**
- * GET /api/odoo/debug?mode=fields_order|fields_line|order|line
+ * GET /api/odoo/debug?mode=fields_order|fields_line|fields_sa|sa_sample|order
  */
 import { NextResponse } from "next/server";
 import { NextRequest } from "next/server";
@@ -36,54 +36,53 @@ async function callKw(cookie: string, model: string, method: string, args: unkno
 
 export async function GET(req: NextRequest) {
   if (!ODOO_URL) return NextResponse.json({ error: "ODOO_URL not set" }, { status: 400 });
-  const mode = new URL(req.url).searchParams.get("mode") ?? "order";
+  const mode = new URL(req.url).searchParams.get("mode") ?? "sa_sample";
 
   try {
     const cookie = await getSession();
 
-    // List fields on pos.order
-    if (mode === "fields_order") {
-      const result = await callKw(cookie, "pos.order", "fields_get", [], { attributes: ["string", "type"] });
-      const interesting = Object.entries(result as Record<string, { string: string; type: string }>)
-        .filter(([k, v]) => {
-          const s = (v.string ?? "").toLowerCase();
-          return s.includes("sale") || s.includes("advisor") || s.includes("employee") ||
-                 s.includes("staff") || s.includes("cashier") || s.includes("seller") ||
-                 k.includes("employee") || k.includes("sale") || k.includes("cashier") || k.includes("seller");
-        })
-        .map(([k, v]) => ({ field: k, label: v.string, type: v.type }));
-      return NextResponse.json({ ok: true, mode, interesting });
+    // Get all fields of the sa_lines model (pos.sale.advisor.line or similar)
+    if (mode === "fields_sa") {
+      // First find what model sa_lines points to by reading the field definition
+      const orderFields = await callKw(cookie, "pos.order", "fields_get", [], { attributes: ["string", "type", "relation"] }) as Record<string, { string: string; type: string; relation?: string }>;
+      const saField = orderFields["sa_lines"];
+      const relation = saField?.relation ?? "unknown";
+
+      // Now get fields of that model
+      const saFields = await callKw(cookie, relation, "fields_get", [], { attributes: ["string", "type"] });
+      return NextResponse.json({ ok: true, mode, sa_lines_relation: relation, fields: saFields });
     }
 
-    // List fields on pos.order.line
-    if (mode === "fields_line") {
-      const result = await callKw(cookie, "pos.order.line", "fields_get", [], { attributes: ["string", "type"] });
-      const interesting = Object.entries(result as Record<string, { string: string; type: string }>)
-        .filter(([k, v]) => {
-          const s = (v.string ?? "").toLowerCase();
-          return s.includes("sale") || s.includes("advisor") || s.includes("employee") ||
-                 s.includes("staff") || s.includes("cashier") || s.includes("seller") ||
-                 k.includes("employee") || k.includes("sale") || k.includes("cashier") || k.includes("seller");
-        })
-        .map(([k, v]) => ({ field: k, label: v.string, type: v.type }));
-      return NextResponse.json({ ok: true, mode, interesting });
-    }
+    // Sample actual sa_lines records — find orders with sa_lines then read them
+    if (mode === "sa_sample") {
+      // Get the relation model name first
+      const orderFields = await callKw(cookie, "pos.order", "fields_get", [], { attributes: ["string", "type", "relation"] }) as Record<string, { string: string; type: string; relation?: string }>;
+      const relation = orderFields["sa_lines"]?.relation ?? null;
 
-    // Fetch 5 recent order lines with all plausible fields
-    if (mode === "line") {
-      const result = await callKw(cookie, "pos.order.line", "search_read",
-        [[["order_id.state", "in", ["paid", "done", "invoiced"]]]],
-        { fields: ["id", "order_id", "product_id", "employee_id", "sale_advisor_id", "salesperson_id", "qty", "price_subtotal_incl"], limit: 5, order: "id desc" }
+      // Read 5 recent orders with sa_lines IDs
+      const orders = await callKw(cookie, "pos.order", "search_read",
+        [[["state", "in", ["paid", "done", "invoiced"]]]],
+        { fields: ["id", "name", "sa_lines", "amount_total", "date_order"], limit: 20, order: "id desc" }
+      ) as Array<{ id: number; name: string; sa_lines: number[]; amount_total: number }>;
+
+      // Find first order that has sa_lines
+      const withLines = orders.filter((o) => Array.isArray(o.sa_lines) && o.sa_lines.length > 0);
+
+      if (!relation || withLines.length === 0) {
+        return NextResponse.json({ ok: true, mode, relation, orders_checked: orders.length, withLines: withLines.length, note: "No sa_lines found in recent orders" });
+      }
+
+      // Read sa_lines records
+      const lineIds = withLines.slice(0, 3).flatMap((o) => o.sa_lines).slice(0, 20);
+      const saLines = await callKw(cookie, relation, "search_read",
+        [[["id", "in", lineIds]]],
+        { fields: [] } // get all fields
       );
-      return NextResponse.json({ ok: true, mode, lines: result });
+
+      return NextResponse.json({ ok: true, mode, relation, sample_orders: withLines.slice(0, 3), sa_lines: saLines });
     }
 
-    // Default: fetch recent orders with every plausible field
-    const result = await callKw(cookie, "pos.order", "search_read",
-      [[["state", "in", ["paid", "done", "invoiced"]]]],
-      { fields: ["id", "name", "employee_id", "user_id", "cashier", "sale_advisor_id", "salesperson_id", "amount_total", "date_order"], limit: 5, order: "id desc" }
-    );
-    return NextResponse.json({ ok: true, mode, orders: result });
+    return NextResponse.json({ ok: false, error: "Unknown mode" }, { status: 400 });
 
   } catch (err) {
     return NextResponse.json({ ok: false, error: String(err) }, { status: 500 });
