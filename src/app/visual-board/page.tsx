@@ -1395,7 +1395,6 @@ function SectionView({ section, products, selectedPid, highlightPid, canEdit, su
   onScanToPlace: (sId: string, subId: string, ri: number, si: number) => void;
   onRemove: (sId: string, subId: string, ri: number, si: number) => void;
 }) {
-  const { addSubsectionRow, removeSubsectionRow } = useStore();
   const cfg = ZONE_CFG[section.sectionType] ?? ZONE_CFG.window;
   const subs = section.subsections;
   const clampedSub = Math.min(subsectionIdx, Math.max(0, subs.length - 1));
@@ -1405,10 +1404,6 @@ function SectionView({ section, products, selectedPid, highlightPid, canEdit, su
   const filled = sub.rows.reduce((s, r) => s + r.products.filter(Boolean).length, 0);
   const total = sub.rows.reduce((s, r) => s + r.products.length, 0);
   const pct = total > 0 ? (filled / total) * 100 : 0;
-
-  const lastRow = sub.rows[sub.rows.length - 1];
-  const defaultRowType = lastRow?.type === "long" ? "long" : "short";
-  const defaultSlots = lastRow?.products.length ?? 8;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>

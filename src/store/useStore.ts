@@ -543,43 +543,19 @@ export const useStore = create<StoreState>()(
         try {
           const res = await fetch("/api/state");
           if (!res.ok) return;
-          const { products, warehouseShelves: dbWarehouse, displayPlacements, sectionRowOverrides } = await res.json() as {
+          const { products, warehouseShelves: dbWarehouse, displayPlacements } = await res.json() as {
             products: Product[];
             warehouseShelves: WarehouseShelf[];
             displayPlacements: Record<string, Record<string, Record<number, Record<number, string>>>>;
-            sectionRowOverrides: Record<string, number>;
           };
 
-          // DB is the single source of truth for placements.
-          // Always replace products and warehouse from DB.
-          // For storeSections: keep the section/subsection structure from Zustand
-          // (it defines which shelves exist and how many rows/slots each has),
-          // but replace every product slot with what the DB says.
           const state = get();
 
           const sections = state.storeSections.map(sec => ({
             ...sec,
             subsections: sec.subsections.map(sub => {
               const subMap = displayPlacements?.[sec.id]?.[sub.id];
-              const overrideCount = sectionRowOverrides?.[`${sec.id}__${sub.id}`];
-              // Start from layout rows, extend if override says more rows
-              let baseRows = sub.rows;
-              if (overrideCount && overrideCount > sub.rows.length) {
-                const extra = overrideCount - sub.rows.length;
-                const lastRow = sub.rows[sub.rows.length - 1];
-                const rowType = lastRow?.type === "long" ? "long" : "short";
-                const rowSlots = lastRow?.products.length ?? 8;
-                baseRows = [
-                  ...sub.rows,
-                  ...Array.from({ length: extra }, () => ({
-                    type: rowType as "long" | "short",
-                    products: Array(rowSlots).fill(null) as (string | null)[],
-                  })),
-                ];
-              } else if (overrideCount && overrideCount < sub.rows.length) {
-                baseRows = sub.rows.slice(0, overrideCount);
-              }
-              const rows = baseRows.map((row, ri) => {
+              const rows = sub.rows.map((row, ri) => {
                 const rowMap = subMap?.[ri];
                 // Merge DB values; extend beyond storeLayout fixed length if DB has more slots
                 const maxLen = rowMap
