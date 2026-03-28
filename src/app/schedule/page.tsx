@@ -804,6 +804,38 @@ export default function SchedulePage() {
         )}
       </div>
 
+      {/* Leave Type Legend */}
+      <div style={{ padding:"12px 20px 16px", background:"#fff", borderTop:"1px solid #e0f2fe", flexShrink:0 }}>
+        <p style={{ fontSize:8.5, fontWeight:700, color:"#94a3b8", letterSpacing:"0.12em", marginBottom:8 }}>LOẠI NGÀY VẮNG / PHÉP</p>
+        <div style={{ display:"flex", flexWrap:"wrap", gap:"5px 10px" }}>
+          {[
+            { code:"AL",   label:"Nghỉ phép năm",         color:"#0ea5e9" },
+            { code:"SL",   label:"Nghỉ ốm đau",            color:"#f59e0b" },
+            { code:"MAL",  label:"Nghỉ kết hôn",           color:"#ec4899" },
+            { code:"PCU",  label:"Paternity Leave",         color:"#8b5cf6" },
+            { code:"UL",   label:"Nghỉ không lương",       color:"#ef4444" },
+            { code:"OIL",  label:"Nghỉ bù",                color:"#06b6d4" },
+            { code:"BT",   label:"Đi công tác",            color:"#C9A55A" },
+            { code:"MML",  label:"Thai sản (nam)",          color:"#10b981" },
+            { code:"CSL",  label:"Nghỉ con bệnh",          color:"#f97316" },
+            { code:"CML",  label:"Nghỉ cưới con",          color:"#ec4899" },
+            { code:"CL",   label:"Tang chế",               color:"#475569" },
+            { code:"PX",   label:"Nghỉ khám thai",         color:"#8b5cf6" },
+            { code:"NDF",  label:"Thiên tai, bão lũ",      color:"#64748b" },
+            { code:"PHC",  label:"Dưỡng sức sau sinh",     color:"#0ea5e9" },
+            { code:"Xmas", label:"Lễ Giáng Sinh",          color:"#ef4444" },
+            { code:"MS",   label:"Làm ngoài văn phòng",    color:"#10b981" },
+          ].map(({ code, label, color }) => (
+            <div key={code} style={{ display:"flex", alignItems:"center", gap:4 }}>
+              <div style={{ width:16, height:16, borderRadius:4, background:`${color}18`, border:`1px solid ${color}50`, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+                <span style={{ fontSize:7, fontWeight:800, color, letterSpacing:"0.02em" }}>{code.length <= 3 ? code : code.slice(0,3)}</span>
+              </div>
+              <span style={{ fontSize:9, color:"#64748b", whiteSpace:"nowrap" }}>{label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* Add Slot Modal */}
       <AnimatePresence>
         {addingSlot && (

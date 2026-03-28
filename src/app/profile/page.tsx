@@ -16,7 +16,13 @@ import { useRouter } from "next/navigation";
 import type { UserRole, AppUser } from "@/store/useStore";
 import { useUpdateContext } from "@/components/Providers";
 
-const APP_VERSION = process.env.NEXT_PUBLIC_APP_VERSION ?? "1.0.0";
+const APP_VERSION = process.env.NEXT_PUBLIC_APP_VERSION ?? "2.1.0";
+const BUILD_DATE = process.env.NEXT_PUBLIC_BUILD_DATE
+  ? (() => {
+      const d = new Date(process.env.NEXT_PUBLIC_BUILD_DATE!);
+      return `${d.getDate().toString().padStart(2, "0")}/${(d.getMonth() + 1).toString().padStart(2, "0")}/${d.getFullYear()} ${d.getHours().toString().padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}`;
+    })()
+  : null;
 
 function urlB64ToUint8Array(base64String: string) {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
@@ -27,15 +33,33 @@ function urlB64ToUint8Array(base64String: string) {
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
-type Status = "online" | "busy" | "away" | "offline";
+type Status = "working" | "off_shift" | "day_off" | "AL" | "SL" | "MAL" | "PCU" | "UL" | "OIL" | "BT" | "MML" | "CSL" | "CML" | "CL" | "PX" | "NDF" | "PHC" | "Xmas" | "MS";
 type Activity = { id: string; userId: string; userName: string; type: string; content: string; createdAt: string };
 type TeamMember = { id: string; name: string; fullName: string; username: string; role: string; active: number; avatar: string | null; status: string; bio: string; phone: string; createdAt: string };
 
-const STATUS_CFG: Record<Status, { label: string; color: string }> = {
-  online:  { label: "Đang hoạt động", color: "#10b981" },
-  busy:    { label: "Bận",            color: "#f59e0b" },
-  away:    { label: "Vắng mặt",       color: "#94a3b8" },
-  offline: { label: "Ngoại tuyến",    color: "#cbd5e1" },
+// Grouped status config: schedule-based + leave codes
+const STATUS_CFG: Record<string, { label: string; color: string; group: string }> = {
+  // ── Ca làm ──
+  working:   { label: "Hoạt động",           color: "#10b981", group: "shift" },
+  off_shift: { label: "Không trong ca",       color: "#64748b", group: "shift" },
+  day_off:   { label: "Nghỉ tuần",            color: "#94a3b8", group: "shift" },
+  // ── Phép ──
+  AL:  { label: "AL – Nghỉ phép năm",         color: "#0ea5e9", group: "leave" },
+  SL:  { label: "SL – Nghỉ ốm đau",           color: "#f59e0b", group: "leave" },
+  MAL: { label: "MAL – Nghỉ kết hôn",         color: "#ec4899", group: "leave" },
+  PCU: { label: "PCU – Paternity Leave",       color: "#8b5cf6", group: "leave" },
+  UL:  { label: "UL – Nghỉ không lương",       color: "#ef4444", group: "leave" },
+  OIL: { label: "OIL – Nghỉ bù",              color: "#06b6d4", group: "leave" },
+  BT:  { label: "BT – Đi công tác",            color: "#C9A55A", group: "leave" },
+  MML: { label: "MML – Thai sản (nam)",        color: "#10b981", group: "leave" },
+  CSL: { label: "CSL – Nghỉ con bệnh",         color: "#f97316", group: "leave" },
+  CML: { label: "CML – Nghỉ cưới con",         color: "#ec4899", group: "leave" },
+  CL:  { label: "CL – Tang chế",               color: "#475569", group: "leave" },
+  PX:  { label: "PX – Nghỉ khám thai",         color: "#8b5cf6", group: "leave" },
+  NDF: { label: "NDF – Thiên tai, bão lũ",     color: "#64748b", group: "leave" },
+  PHC: { label: "PHC – Dưỡng sức sau sinh",    color: "#0ea5e9", group: "leave" },
+  Xmas:{ label: "Xmas – Lễ Giáng Sinh",        color: "#ef4444", group: "leave" },
+  MS:  { label: "MS – Làm ngoài văn phòng",    color: "#10b981", group: "leave" },
 };
 
 const ROLE_CFG: Record<string, { label: string; color: string; icon: typeof User }> = {
@@ -74,7 +98,7 @@ function FloatingOrb({ x, y, size, color, delay }: { x: string; y: string; size:
 // ─── Avatar ────────────────────────────────────────────────────────────────────
 
 function Avatar({ src, name, size = 80, status, ring = false }: { src?: string | null; name: string; size?: number; status?: string; ring?: boolean }) {
-  const color = STATUS_CFG[(status as Status) ?? "offline"]?.color ?? "#cbd5e1";
+  const color = STATUS_CFG[status ?? "off_shift"]?.color ?? "#cbd5e1";
   return (
     <div style={{ position: "relative", width: size, height: size, flexShrink: 0 }}>
       {ring && (
@@ -260,7 +284,7 @@ function ActivityItem({ item, members, currentUserId }: { item: Activity; member
 
 function StaffProfileModal({ member, onClose }: { member: TeamMember; onClose: () => void }) {
   const rcfg = ROLE_CFG[member.role] ?? ROLE_CFG.staff;
-  const scfg = STATUS_CFG[(member.status as Status)] ?? STATUS_CFG.offline;
+  const scfg = STATUS_CFG[member.status] ?? STATUS_CFG.off_shift;
   const RIcon = rcfg.icon;
   return (
     <motion.div
@@ -356,7 +380,7 @@ function StaffProfileModal({ member, onClose }: { member: TeamMember; onClose: (
 
 function TeamCard({ member, isMe, onView, canView }: { member: TeamMember; isMe: boolean; onView?: () => void; canView?: boolean }) {
   const rcfg = ROLE_CFG[member.role] ?? ROLE_CFG.staff;
-  const scfg = STATUS_CFG[(member.status as Status)] ?? STATUS_CFG.offline;
+  const scfg = STATUS_CFG[member.status] ?? STATUS_CFG.off_shift;
   const RIcon = rcfg.icon;
   return (
     <motion.div
@@ -988,7 +1012,7 @@ function VersionPanel() {
           </div>
           <div>
             <p style={{ fontSize: 12, color: "var(--text-primary)", fontWeight: 700 }}>Postlain Store Manager</p>
-            <p style={{ fontSize: 9, color: "var(--text-muted)", marginTop: 1 }}>v{APP_VERSION} · Đà Lạt</p>
+            <p style={{ fontSize: 9, color: "var(--text-muted)", marginTop: 1 }}>v{APP_VERSION} · Đà Lạt{BUILD_DATE && <span style={{ color: "var(--text-muted)", opacity: 0.7 }}> · Build {BUILD_DATE}</span>}</p>
           </div>
         </div>
         {updateReady ? (
@@ -1021,7 +1045,7 @@ export default function ProfilePage() {
   const [activity, setActivity] = useState<Activity[]>([]);
   const [tab, setTab] = useState<"profile" | "team" | "feed" | "settings">("profile");
   const [editing, setEditing] = useState(false);
-  const [form, setForm] = useState({ name: "", fullName: "", bio: "", phone: "", status: "online" as Status });
+  const [form, setForm] = useState({ name: "", fullName: "", bio: "", phone: "", status: "working" as Status });
   const [saved, setSaved] = useState(false);
   const [pwOpen, setPwOpen] = useState(false);
   const [oldPw, setOldPw] = useState(""); const [newPw, setNewPw] = useState(""); const [confirmPw, setConfirmPw] = useState("");
@@ -1042,7 +1066,7 @@ export default function ProfilePage() {
     setProfile(p);
     setTeam(Array.isArray(t) ? t : []);
     setActivity(Array.isArray(a) ? a : []);
-    setForm({ name: p.name ?? "", fullName: p.fullName ?? "", bio: p.bio ?? "", phone: p.phone ?? "", status: (p.status ?? "online") as Status });
+    setForm({ name: p.name ?? "", fullName: p.fullName ?? "", bio: p.bio ?? "", phone: p.phone ?? "", status: (p.status ?? "working") as Status });
   };
 
   useEffect(() => { load(); }, [currentUser]);
@@ -1066,9 +1090,9 @@ export default function ProfilePage() {
     load();
   };
 
-  const handleStatusChange = async (s: Status) => {
+  const handleStatusChange = async (s: string) => {
     setStatusOpen(false);
-    const updated = { ...form, status: s };
+    const updated = { ...form, status: s as Status };
     setForm(updated);
     await fetch("/api/profile", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: currentUser.id, ...updated, avatar: profile?.avatar }) });
     load();
@@ -1091,10 +1115,9 @@ export default function ProfilePage() {
     setMsg("");
     await load();
     setPosting(false);
-    setTab("feed");
   };
 
-  const scfg = STATUS_CFG[form.status] ?? STATUS_CFG.online;
+  const scfg = STATUS_CFG[form.status] ?? STATUS_CFG.working;
   const rcfg = ROLE_CFG[currentUser.role] ?? ROLE_CFG.staff;
   const RIcon = rcfg.icon;
   const isAdmin = currentUser.role === "admin";
@@ -1110,7 +1133,6 @@ export default function ProfilePage() {
   const TABS = [
     { id: "profile" as const,  label: "Hồ Sơ",    icon: User     },
     { id: "team" as const,     label: "Nhóm",      icon: Users    },
-    { id: "feed" as const,     label: "Feed",      icon: Activity },
     { id: "settings" as const, label: "Cài Đặt",   icon: Settings },
   ];
 
@@ -1219,7 +1241,7 @@ export default function ProfilePage() {
                     style={{ display: "flex", alignItems: "center", gap: 5, padding: "7px 12px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--bg-base)", cursor: "pointer", fontFamily: "inherit" }}>
                     <div style={{ position: "relative", width: 8, height: 8 }}>
                       <div style={{ width: 8, height: 8, borderRadius: "50%", background: scfg.color }} />
-                      {form.status === "online" && (
+                      {form.status === "working" && (
                         <motion.div animate={{ scale: [1, 2], opacity: [0.5, 0] }} transition={{ duration: 1.5, repeat: Infinity }}
                           style={{ position: "absolute", inset: 0, borderRadius: "50%", background: scfg.color }} />
                       )}
@@ -1232,13 +1254,20 @@ export default function ProfilePage() {
                       <motion.div
                         initial={{ opacity: 0, y: -4, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -4, scale: 0.97 }}
                         style={{ position: "absolute", right: 0, top: "calc(100% + 4px)", background: "#fff", border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden", zIndex: 50, minWidth: 170, boxShadow: "0 8px 32px rgba(0,0,0,0.12)" }}>
-                        {(Object.entries(STATUS_CFG) as [Status, { label: string; color: string }][]).map(([key, cfg]) => (
-                          <motion.button key={key} whileHover={{ background: "var(--bg-base)" }} onClick={() => handleStatusChange(key)}
-                            style={{ width: "100%", padding: "9px 14px", display: "flex", alignItems: "center", gap: 8, background: form.status === key ? "var(--bg-base)" : "transparent", border: "none", cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
-                            <Circle size={8} style={{ color: cfg.color, fill: cfg.color }} />
-                            <span style={{ fontSize: 11, color: "var(--text-primary)", flex: 1 }}>{cfg.label}</span>
-                            {form.status === key && <Check size={9} style={{ color: "#0ea5e9" }} />}
-                          </motion.button>
+                        {(["shift", "leave"] as const).map(group => (
+                          <div key={group}>
+                            <div style={{ padding: "7px 14px 3px", fontSize: 8.5, fontWeight: 700, color: "var(--text-muted)", letterSpacing: "0.09em", textTransform: "uppercase", borderTop: group === "leave" ? "1px solid var(--border)" : "none", marginTop: group === "leave" ? 4 : 0 }}>
+                              {group === "shift" ? "CA LÀM" : "LOẠI PHÉP"}
+                            </div>
+                            {Object.entries(STATUS_CFG).filter(([, cfg]) => cfg.group === group).map(([key, cfg]) => (
+                              <motion.button key={key} whileHover={{ background: "var(--bg-base)" }} onClick={() => handleStatusChange(key)}
+                                style={{ width: "100%", padding: "8px 14px", display: "flex", alignItems: "center", gap: 8, background: form.status === key ? "var(--bg-base)" : "transparent", border: "none", cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
+                                <Circle size={8} style={{ color: cfg.color, fill: cfg.color }} />
+                                <span style={{ fontSize: 11, color: "var(--text-primary)", flex: 1 }}>{cfg.label}</span>
+                                {form.status === key && <Check size={9} style={{ color: "#0ea5e9" }} />}
+                              </motion.button>
+                            ))}
+                          </div>
                         ))}
                       </motion.div>
                     )}
@@ -1486,70 +1515,12 @@ export default function ProfilePage() {
               </div>
             )}
 
-            {/* ── Feed tab ── */}
-            {tab === "feed" && (
-              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                {/* Post box */}
-                <div style={{ borderRadius: 16, border: "1px solid var(--border)", background: "rgba(255,255,255,0.9)", padding: "16px", boxShadow: "0 2px 12px rgba(14,165,233,0.05)", backdropFilter: "blur(8px)" }}>
-                  <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-                    <Avatar src={profile?.avatar} name={currentUser.name} size={36} />
-                    <div style={{ flex: 1 }}>
-                      <textarea
-                        value={msg} onChange={e => setMsg(e.target.value)}
-                        onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handlePost(); } }}
-                        placeholder="Chia sẻ cập nhật với nhóm... (Enter để gửi)"
-                        rows={2}
-                        style={{ width: "100%", background: "var(--bg-base)", border: "1px solid var(--border)", borderRadius: 12, padding: "10px 14px", fontSize: 12, color: "var(--text-primary)", fontFamily: "inherit", resize: "none", outline: "none", boxSizing: "border-box", lineHeight: 1.6, transition: "border-color 0.15s, box-shadow 0.15s" }}
-                        onFocus={e => { e.target.style.borderColor = "#0ea5e9"; e.target.style.boxShadow = "0 0 0 3px rgba(14,165,233,0.1)"; }}
-                        onBlur={e => { e.target.style.borderColor = "var(--border)"; e.target.style.boxShadow = "none"; }}
-                      />
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 8 }}>
-                        <span style={{ fontSize: 9, color: msg.length > 200 ? "#dc2626" : "var(--text-muted)" }}>{msg.length}/300</span>
-                        <motion.button
-                          whileTap={{ scale: 0.96 }}
-                          onClick={handlePost} disabled={!msg.trim() || posting}
-                          style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 18px", borderRadius: 10, border: "none", background: msg.trim() ? "linear-gradient(135deg, #0ea5e9, #0284c7)" : "var(--border)", color: msg.trim() ? "#fff" : "var(--text-muted)", fontSize: 9.5, fontWeight: 700, cursor: msg.trim() ? "pointer" : "default", fontFamily: "inherit", transition: "all 0.2s", boxShadow: msg.trim() ? "0 2px 10px rgba(14,165,233,0.3)" : "none" }}>
-                          {posting
-                            ? <motion.div animate={{ rotate: 360 }} transition={{ duration: 0.6, repeat: Infinity, ease: "linear" }}><RefreshCw size={10} /></motion.div>
-                            : <Send size={10} />}
-                          GỬI
-                        </motion.button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Feed */}
-                <div style={{ borderRadius: 16, border: "1px solid var(--border)", background: "rgba(255,255,255,0.9)", overflow: "hidden", boxShadow: "0 2px 12px rgba(14,165,233,0.05)" }}>
-                  <div style={{ padding: "11px 16px", borderBottom: "1px solid var(--border-subtle)", background: "linear-gradient(90deg, rgba(14,165,233,0.05), #fff)", display: "flex", alignItems: "center", gap: 8 }}>
-                    <div style={{ width: 3, height: 14, borderRadius: 2, background: "#0ea5e9", boxShadow: "0 0 6px rgba(14,165,233,0.5)" }} />
-                    <p style={{ fontSize: 8.5, fontWeight: 700, color: "var(--text-muted)", letterSpacing: "0.18em", textTransform: "uppercase" }}>HOẠT ĐỘNG GẦN ĐÂY</p>
-                  </div>
-                  <div style={{ padding: "0 16px" }}>
-                    {activity.length === 0 && (
-                      <p style={{ padding: "24px 0", fontSize: 11, color: "var(--text-muted)", textAlign: "center" }}>Chưa có hoạt động nào</p>
-                    )}
-                    <AnimatePresence>
-                      {activity.map((item, i) => (
-                        <div key={item.id}>
-                          {i > 0 && <div style={{ height: 1, background: "var(--border-subtle)" }} />}
-                          <ActivityItem item={item} members={team} currentUserId={currentUser.id} />
-                        </div>
-                      ))}
-                    </AnimatePresence>
-                  </div>
-                </div>
-              </div>
-            )}
-
             {/* ── Settings tab ── */}
             {tab === "settings" && (
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                 <DisplayPanel />
-                <NotifyPanel />
                 <PushPanel userId={currentUser.id} />
                 <SecurityPanel currentUser={{ id: currentUser.id, email: currentUser.email, name: currentUser.name, role: currentUser.role }} />
-                {isManager && <StorePanel />}
                 {isAdmin && <UsersPanel />}
                 {isAdmin && <BackupPanel currentUser={{ id: currentUser.id }} />}
                 <VersionPanel />
