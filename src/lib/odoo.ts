@@ -349,7 +349,11 @@ export async function fetchAdvisorSales(dateFrom: string, dateTo: string): Promi
     map.set(aid, cur);
   }
 
+  // POS machine advisors to exclude (named like the POS config, not real staff)
+  const POS_MACHINE_PATTERN = /^\d+-ALDO\s|^47-ALDO/i;
+
   return Array.from(map.entries())
+    .filter(([, v]) => !POS_MACHINE_PATTERN.test(v.name))
     .map(([aid, v]) => ({
       advisorId:   aid,
       advisorName: v.name,
