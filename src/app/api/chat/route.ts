@@ -4,6 +4,7 @@ import {
   dbCreateRoom, dbDeleteRoom, dbSoftDeleteMessage,
   dbGetMessageSender, dbUpdateReactions, dbGetUserRole,
   dbPinMessage, dbGetPinnedMessages, dbSearchMessages,
+  dbClearRoomMessages,
 } from "@/lib/dbAdapter";
 
 // GET /api/chat?rooms=1             — list rooms with last message + count
@@ -94,6 +95,16 @@ export async function PUT(req: NextRequest) {
 // PATCH /api/chat — soft delete / edit message / update reactions / update room / pin
 export async function PATCH(req: NextRequest) {
   const { msgId, roomId, userId, action, reactions, content, icon, color, name, pin } = await req.json();
+
+  // ── Clear all messages in room (admin only) ──────────────────────────────
+  if (roomId && action === "clearRoom") {
+    const role = await dbGetUserRole(userId);
+    if (role !== "admin" && role !== "manager") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+    await dbClearRoomMessages(roomId);
+    return NextResponse.json({ ok: true });
+  }
 
   // ── Room customization (admin only) ──────────────────────────────────────
   if (roomId && action === "updateRoom") {

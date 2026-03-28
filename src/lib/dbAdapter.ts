@@ -775,6 +775,14 @@ export async function dbDeleteRoom(roomId: string): Promise<void> {
   getDb().prepare("DELETE FROM chat_rooms WHERE id=?").run(roomId);
 }
 
+export async function dbClearRoomMessages(roomId: string): Promise<void> {
+  if (IS_SUPABASE) {
+    await getSupabase().from("chat_messages").delete().eq("roomId", roomId);
+    return;
+  }
+  getDb().prepare("DELETE FROM chat_messages WHERE roomId=?").run(roomId);
+}
+
 export async function dbSoftDeleteMessage(msgId: string, deletedAt: string): Promise<{ found: boolean }> {
   if (IS_SUPABASE) {
     const { data: msg } = await getSupabase().from("chat_messages").select("userId").eq("id", msgId).single();

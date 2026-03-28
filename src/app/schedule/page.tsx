@@ -33,12 +33,16 @@ const MONTHS_VI = ["Tháng 1","Tháng 2","Tháng 3","Tháng 4","Tháng 5","Thán
 
 function toDateStr(d: Date) { return d.toISOString().slice(0, 10); }
 
-/** ISO week number (Mon–Sun weeks). W001 = first week with Thu in Jan. */
+/** Business week counter from store epoch: W001 starts 2026-01-26 (Mon). */
+const WEEK_EPOCH = new Date("2026-01-26T00:00:00+07:00");
 function getISOWeek(d: Date): number {
-  const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-  date.setUTCDate(date.getUTCDate() + 4 - (date.getUTCDay() || 7));
-  const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
-  return Math.ceil((((date.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+  const monday = new Date(d);
+  const day = monday.getDay();
+  monday.setDate(monday.getDate() - ((day + 6) % 7));
+  monday.setHours(0, 0, 0, 0);
+  const diffMs = monday.getTime() - WEEK_EPOCH.getTime();
+  const weekNum = Math.floor(diffMs / (7 * 24 * 60 * 60 * 1000)) + 1;
+  return Math.max(1, weekNum);
 }
 
 function getWeekDates(weekOffset: number): Date[] {

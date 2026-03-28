@@ -154,9 +154,9 @@ function MediaContent({ msg, isMe }: { msg: Message; isMe: boolean }) {
   );
 }
 
-// ─── Message Bubble ───────────────────────────────────────────────────────────
+// ─── Discord-style Message Row ────────────────────────────────────────────────
 
-function MsgBubble({ msg, isMe, showHeader, members, onDelete, onReply, onReact, onEdit, onPin, canDelete, replyTo, roomColor, searchQuery, isPinned }: {
+function MsgBubble({ msg, isMe, showHeader, members, onDelete, onReply, onReact, onEdit, onPin, canDelete, replyTo, searchQuery, isPinned }: {
   msg: Message; isMe: boolean; showHeader: boolean;
   members: Member[]; canDelete: boolean; isPinned?: boolean;
   replyTo?: Message | null; roomColor?: string | null; searchQuery?: string;
@@ -176,151 +176,149 @@ function MsgBubble({ msg, isMe, showHeader, members, onDelete, onReply, onReact,
 
   let reactions: Record<string, string[]> = {};
   try { if (msg.reactions) reactions = JSON.parse(msg.reactions); } catch { /* */ }
-
-  const senderRole = members.find(m => m.id === msg.userId)?.role ?? "staff";
-  const isAdminSender = senderRole === "admin" || senderRole === "manager";
-
-  const bubbleStyle = (own: boolean, deleted: boolean): React.CSSProperties => ({
-    background: deleted
-      ? "rgba(100,116,139,0.07)"
-      : own
-        ? (roomColor && isAdminSender ? roomColor : "#0ea5e9")
-        : "#f0f9ff",
-    border: deleted ? "1px solid rgba(100,116,139,0.18)" : own ? "none" : "1px solid #e0f2fe",
-    borderRadius: own ? "14px 14px 2px 14px" : "2px 14px 14px 14px",
-    padding: "9px 13px",
-  });
-
-  const textStyle = (own: boolean, deleted: boolean): React.CSSProperties => ({
-    fontSize: 12, lineHeight: 1.5, wordBreak: "break-word",
-    color: deleted ? "#94a3b8" : own ? "#fff" : "#0c1a2e",
-    fontStyle: deleted ? "italic" : "normal",
-  });
-
   const hasReactions = Object.keys(reactions).some(k => reactions[k].length > 0);
 
-  const ActionBar = () => (
-    <AnimatePresence>
-      {hover && !isDeleted && (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0 }} transition={{ duration: 0.1 }}
-          style={{ display: "flex", alignItems: "center", gap: 3, alignSelf: "flex-end", marginBottom: 2 }}
-        >
-          <button onClick={() => onReply(msg)} style={iconBtn} title="Trả lời"><Reply size={10} style={{ color: "#64748b" }} /></button>
-          <div style={{ position: "relative" }}>
-            <button onClick={() => setShowReact(v => !v)} style={iconBtn}><Smile size={10} style={{ color: "#94a3b8" }} /></button>
-            <AnimatePresence>
-              {showReact && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.9, y: 4 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0 }}
-                  style={{
-                    position: "absolute", [isMe ? "right" : "left"]: 0, bottom: "calc(100% + 4px)",
-                    background: "#fff", border: "1px solid #e0f2fe", borderRadius: 20, padding: "5px 8px",
-                    display: "flex", flexWrap: "wrap", gap: 2, maxWidth: 200,
-                    boxShadow: "0 4px 16px rgba(12,26,46,0.12)", zIndex: 20,
-                  }}
-                >
-                  {QUICK_REACTIONS.map(e => (
-                    <button key={e} onClick={() => { onReact(msg.id, e); setShowReact(false); }}
-                      style={{ background: "none", border: "none", cursor: "pointer", fontSize: 16, padding: "2px 3px", borderRadius: 6, lineHeight: 1 }}
-                    >{e}</button>
-                  ))}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-          {canDelete && (
-            <>
-              <button onClick={() => { onEdit(msg); setHover(false); }} style={iconBtn}><Pencil size={10} style={{ color: "#64748b" }} /></button>
-              <button onClick={() => { onPin(msg); setHover(false); }} style={iconBtn} title={isPinned ? "Bỏ ghim" : "Ghim"}>
-                <Pin size={10} style={{ color: isPinned ? "#C9A55A" : "#64748b" }} />
-              </button>
-              <button onClick={() => { onDelete(msg.id); setHover(false); }} style={{ ...iconBtn, background: "#fff5f5", borderColor: "#fecaca" }}>
-                <Trash2 size={10} style={{ color: "#ef4444" }} />
-              </button>
-            </>
-          )}
-        </motion.div>
-      )}
-    </AnimatePresence>
-  );
-
-  const ReplyPreview = () => replyTo && !isDeleted ? (
-    <div style={{ borderLeft: `2px solid ${isMe ? "rgba(255,255,255,0.5)" : "#0ea5e9"}`, paddingLeft: 8, marginBottom: 6, opacity: 0.75 }}>
-      <p style={{ fontSize: 9, fontWeight: 600, color: isMe ? "rgba(255,255,255,0.8)" : "#0ea5e9" }}>{replyTo.userName}</p>
-      <p style={{ fontSize: 10, color: isMe ? "rgba(255,255,255,0.7)" : "#64748b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 200 }}>
-        {replyTo.mediaType === "image" ? "📷 Ảnh" : replyTo.mediaType === "file" ? "📎 File" : replyTo.content}
-      </p>
-    </div>
-  ) : null;
-
-  const ReactionBar = () => hasReactions ? (
-    <div style={{ display: "flex", flexWrap: "wrap", gap: 3, marginTop: 4 }}>
-      {Object.entries(reactions).map(([emoji, users]) =>
-        users.length > 0 && (
-          <button key={emoji} onClick={() => onReact(msg.id, emoji)}
-            style={{ display: "flex", alignItems: "center", gap: 3, background: "#f0f9ff", border: "1px solid #e0f2fe", borderRadius: 12, padding: "1px 6px", cursor: "pointer", fontSize: 11, lineHeight: 1.4 }}>
-            {emoji} <span style={{ fontSize: 9, color: "#64748b" }}>{users.length}</span>
-          </button>
-        )
-      )}
-    </div>
-  ) : null;
-
-  const contentEl = msg.content ? (
-    <p style={textStyle(isMe, isDeleted)}>
-      {searchQuery ? highlightText(msg.content, searchQuery) : msg.content}
-    </p>
-  ) : null;
-
-  if (isMe) return (
-    <div style={{ display: "flex", justifyContent: "flex-end", gap: 6, marginBottom: 2 }}
-      onMouseEnter={() => setHover(true)} onMouseLeave={() => { setHover(false); setShowReact(false); }}>
-      <ActionBar />
-      <div style={{ maxWidth: "min(74%, 520px)" }}>
-        {showHeader && (
-          <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 5, marginBottom: 3 }}>
-            <span style={{ fontSize: 8, color: "#b0c4d8" }}>{formatTime(msg.createdAt)}</span>
-            {msg.editedAt && <span style={{ fontSize: 7.5, color: "#94a3b8", fontStyle: "italic" }}>đã chỉnh sửa</span>}
-            {isPinned && <Pin size={8} style={{ color: "#C9A55A" }} />}
-          </div>
-        )}
-        <div style={bubbleStyle(true, isDeleted)}>
-          <ReplyPreview />
-          {contentEl}
-          <MediaContent msg={msg} isMe />
-        </div>
-        <ReactionBar />
-      </div>
-    </div>
-  );
-
   return (
-    <div style={{ display: "flex", gap: 8, marginBottom: 2, alignItems: "flex-start" }}
-      onMouseEnter={() => setHover(true)} onMouseLeave={() => { setHover(false); setShowReact(false); }}>
-      {showHeader
-        ? <Avatar src={member?.avatar} name={msg.userName} size={30} />
-        : <div style={{ width: 30, flexShrink: 0 }} />
-      }
-      <div style={{ maxWidth: "min(74%, 520px)" }}>
-        {showHeader && (
-          <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 3 }}>
-            <span style={{ fontSize: 10, fontWeight: 700, color: "#0c1a2e" }}>{msg.userName}</span>
-            <RIcon size={8} style={{ color: rcfg.color }} />
-            <span style={{ fontSize: 8, color: "#b0c4d8" }}>{formatTime(msg.createdAt)}</span>
-            {msg.editedAt && <span style={{ fontSize: 7.5, color: "#94a3b8", fontStyle: "italic" }}>đã chỉnh sửa</span>}
-            {isPinned && <Pin size={8} style={{ color: "#C9A55A" }} />}
+    <div
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => { setHover(false); setShowReact(false); }}
+      style={{
+        display: "flex", gap: 14, padding: "2px 16px 2px 16px",
+        background: hover ? "rgba(0,0,0,0.03)" : "transparent",
+        borderRadius: 4, position: "relative", marginTop: showHeader ? 16 : 0,
+        transition: "background 0.05s",
+      }}
+    >
+      {/* Avatar or spacer */}
+      <div style={{ width: 40, flexShrink: 0, paddingTop: showHeader ? 2 : 0 }}>
+        {showHeader
+          ? <Avatar src={member?.avatar} name={msg.userName} size={40} />
+          : hover
+            ? <span style={{ fontSize: 8, color: "#94a3b8", lineHeight: "20px", display: "block", textAlign: "right", paddingRight: 4 }}>{formatTime(msg.createdAt).slice(0, 5)}</span>
+            : null
+        }
+      </div>
+
+      {/* Content */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        {/* Reply preview */}
+        {replyTo && !isDeleted && (
+          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4, opacity: 0.75 }}>
+            <div style={{ width: 20, height: 10, borderTop: "2px solid #94a3b8", borderLeft: "2px solid #94a3b8", borderRadius: "4px 0 0 0", marginLeft: 4, flexShrink: 0 }} />
+            <Avatar src={members.find(m => m.id === replyTo.userId)?.avatar} name={replyTo.userName} size={16} />
+            <span style={{ fontSize: 10, fontWeight: 600, color: "#64748b" }}>{replyTo.userName}</span>
+            <span style={{ fontSize: 10, color: "#94a3b8", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {replyTo.mediaType === "image" ? "📷 Ảnh" : replyTo.mediaType === "file" ? "📎 File" : replyTo.content}
+            </span>
           </div>
         )}
-        <div style={bubbleStyle(false, isDeleted)}>
-          <ReplyPreview />
-          {contentEl}
-          <MediaContent msg={msg} isMe={false} />
-        </div>
-        <ReactionBar />
+
+        {/* Name + timestamp header */}
+        {showHeader && (
+          <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginBottom: 2 }}>
+            <span style={{ fontSize: 13, fontWeight: 700, color: isMe ? "#0ea5e9" : rcfg.color }}>{msg.userName}</span>
+            <RIcon size={9} style={{ color: rcfg.color, flexShrink: 0 }} />
+            <span style={{ fontSize: 9.5, color: "#94a3b8" }}>{formatTime(msg.createdAt)}</span>
+            {msg.editedAt && <span style={{ fontSize: 9, color: "#b0c4d8", fontStyle: "italic" }}>đã sửa</span>}
+            {isPinned && <Pin size={9} style={{ color: "#C9A55A" }} />}
+          </div>
+        )}
+
+        {/* Text */}
+        {msg.content && (
+          <p style={{
+            fontSize: 13, lineHeight: 1.5, wordBreak: "break-word",
+            color: isDeleted ? "#94a3b8" : "#0c1a2e",
+            fontStyle: isDeleted ? "italic" : "normal",
+          }}>
+            {searchQuery ? highlightText(msg.content, searchQuery) : msg.content}
+          </p>
+        )}
+
+        {/* Media */}
+        <MediaContent msg={msg} isMe={false} />
+
+        {/* Reactions */}
+        {hasReactions && (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 3, marginTop: 4 }}>
+            {Object.entries(reactions).map(([emoji, users]) =>
+              users.length > 0 && (
+                <button key={emoji} onClick={() => onReact(msg.id, emoji)}
+                  style={{ display: "flex", alignItems: "center", gap: 3, background: "#f0f9ff", border: "1px solid #e0f2fe", borderRadius: 12, padding: "2px 7px", cursor: "pointer", fontSize: 12, lineHeight: 1.4 }}>
+                  {emoji} <span style={{ fontSize: 9.5, color: "#64748b" }}>{users.length}</span>
+                </button>
+              )
+            )}
+          </div>
+        )}
       </div>
-      <ActionBar />
+
+      {/* Floating action toolbar (Discord hover bar) */}
+      <AnimatePresence>
+        {hover && !isDeleted && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, y: -2 }} animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9 }} transition={{ duration: 0.08 }}
+            style={{
+              position: "absolute", top: -14, right: 16,
+              display: "flex", alignItems: "center", gap: 2,
+              background: "#fff", border: "1px solid #e0f2fe", borderRadius: 10,
+              padding: "3px 5px",
+              boxShadow: "0 4px 16px rgba(12,26,46,0.12)",
+              zIndex: 10,
+            }}
+          >
+            {/* Emoji picker */}
+            <div style={{ position: "relative" }}>
+              <button onClick={() => setShowReact(v => !v)} title="Thêm cảm xúc"
+                style={{ ...iconBtn, width: 26, height: 26 }}>
+                <Smile size={12} style={{ color: "#64748b" }} />
+              </button>
+              <AnimatePresence>
+                {showReact && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.9, y: 4 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0 }}
+                    style={{
+                      position: "absolute", right: 0, bottom: "calc(100% + 4px)",
+                      background: "#fff", border: "1px solid #e0f2fe", borderRadius: 20, padding: "6px 10px",
+                      display: "flex", flexWrap: "wrap", gap: 2, width: 200,
+                      boxShadow: "0 4px 20px rgba(12,26,46,0.14)", zIndex: 30,
+                    }}
+                  >
+                    {QUICK_REACTIONS.map(e => (
+                      <button key={e} onClick={() => { onReact(msg.id, e); setShowReact(false); }}
+                        style={{ background: "none", border: "none", cursor: "pointer", fontSize: 18, padding: "3px 4px", borderRadius: 6, lineHeight: 1 }}
+                        onMouseEnter={el => (el.currentTarget.style.background = "#f0f9ff")}
+                        onMouseLeave={el => (el.currentTarget.style.background = "none")}
+                      >{e}</button>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+            <button onClick={() => onReply(msg)} title="Trả lời" style={{ ...iconBtn, width: 26, height: 26 }}>
+              <Reply size={12} style={{ color: "#64748b" }} />
+            </button>
+            {canDelete && (
+              <>
+                <button onClick={() => { onEdit(msg); setHover(false); }} title="Chỉnh sửa" style={{ ...iconBtn, width: 26, height: 26 }}>
+                  <Pencil size={12} style={{ color: "#64748b" }} />
+                </button>
+                <button onClick={() => { onPin(msg); setHover(false); }} title={isPinned ? "Bỏ ghim" : "Ghim"} style={{ ...iconBtn, width: 26, height: 26 }}>
+                  <Pin size={12} style={{ color: isPinned ? "#C9A55A" : "#64748b" }} />
+                </button>
+                <button onClick={() => { onDelete(msg.id); setHover(false); }} title="Xóa"
+                  style={{ ...iconBtn, width: 26, height: 26, borderColor: "#fecaca" }}
+                  onMouseEnter={el => (el.currentTarget.style.background = "#fff5f5")}
+                  onMouseLeave={el => (el.currentTarget.style.background = "#f8fafc")}
+                >
+                  <Trash2 size={12} style={{ color: "#ef4444" }} />
+                </button>
+              </>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -711,6 +709,19 @@ export default function ChatPage() {
     }).catch(() => {});
   };
 
+  const handleClearRoom = async () => {
+    if (!activeRoom || !currentUser) return;
+    if (!window.confirm(`Xóa toàn bộ tin nhắn trong #${activeRoom.name}? Hành động này không thể hoàn tác.`)) return;
+    await fetch("/api/chat", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ roomId: activeRoom.id, userId: currentUser.id, action: "clearRoom" }),
+    }).catch(() => {});
+    setMessages([]);
+    setPinnedMessages([]);
+    setRooms(prev => prev.map(r => r.id === activeRoom.id ? { ...r, lastMessage: null, messageCount: 0 } : r));
+  };
+
   const handleSaveRoomSettings = async () => {
     if (!activeRoom || !currentUser) return;
     await fetch("/api/chat", {
@@ -798,89 +809,103 @@ export default function ChatPage() {
   const roomListEl = (
     <div style={{
       display: "flex", flexDirection: "column", height: "100%",
-      ...(isMobile ? { flex: 1 } : { width: 220, flexShrink: 0, borderRight: "1px solid #e0f2fe", background: "#f8fafc" }),
+      ...(isMobile ? { flex: 1, background: "#2B2D31" } : { width: 232, flexShrink: 0, borderRight: "1px solid #1e1f22", background: "#2B2D31" }),
     }}>
-      {/* Sidebar header */}
-      <div style={{ padding: "12px 14px 8px", borderBottom: "1px solid #e0f2fe", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <p style={{ fontSize: 8.5, fontWeight: 700, color: "#64748b", letterSpacing: "0.2em" }}>KÊNH CHAT</p>
-        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-          <Circle size={6} style={{ color: connected ? "#10b981" : "#f59e0b", fill: connected ? "#10b981" : "#f59e0b" }} />
-          <span style={{ fontSize: 7.5, color: "#94a3b8" }}>{connected ? "live" : "..."}</span>
+      {/* Server header — Discord style */}
+      <div style={{ padding: "0 12px", height: 48, borderBottom: "1px solid rgba(0,0,0,0.2)", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0, background: "#2B2D31", boxShadow: "0 1px 0 rgba(0,0,0,0.2)" }}>
+        <p style={{ fontSize: 14, fontWeight: 700, color: "#f2f3f5", letterSpacing: "-0.01em", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>POSTLAIN</p>
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <div style={{ width: 8, height: 8, borderRadius: "50%", background: connected ? "#23a55a" : "#f0b232", boxShadow: connected ? "0 0 6px #23a55a" : "none" }} />
         </div>
       </div>
 
-      {/* Room list */}
-      <div style={{ flex: 1, overflowY: "auto", padding: "4px 0" }}>
+      {/* Channel / DM list */}
+      <div style={{ flex: 1, overflowY: "auto", padding: "8px 0" }}>
         {(() => {
-          // Split rooms: channels/announce first, then DM rooms (only visible to admin/manager)
           const channelRooms = rooms.filter(r => r.type !== "direct");
           const dmRooms = isAdmin ? rooms.filter(r => r.type === "direct") : [];
-          const sections: Array<{ label?: string; items: Room[] }> = [
-            { items: channelRooms },
+          const sections: Array<{ label: string; items: Room[]; canAdd?: boolean }> = [
+            { label: "KÊNH CHAT", items: channelRooms, canAdd: isAdmin },
             ...(dmRooms.length > 0 ? [{ label: "TIN NHẮN RIÊNG", items: dmRooms }] : []),
           ];
-          return sections.map(({ label, items }) => (
-            <div key={label ?? "channels"}>
-              {label && (
-                <p style={{ fontSize: 7.5, fontWeight: 700, color: "#94a3b8", letterSpacing: "0.15em", padding: "8px 12px 2px" }}>{label} · {items.length}</p>
+          return sections.map(({ label, items, canAdd }) => (
+            <div key={label} style={{ marginBottom: 12 }}>
+              {/* Category label */}
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 8px 4px 8px" }}>
+                <span style={{ fontSize: 10, fontWeight: 700, color: "#949ba4", letterSpacing: "0.04em" }}>{label}</span>
+                {canAdd && (
+                  <button onClick={() => setNewRoom(true)} title="Thêm kênh"
+                    style={{ background: "none", border: "none", cursor: "pointer", padding: "2px", borderRadius: 4 }}
+                    onMouseEnter={e => (e.currentTarget.style.color = "#dbdee1")}
+                    onMouseLeave={e => (e.currentTarget.style.color = "#949ba4")}
+                  >
+                    <Plus size={14} style={{ color: "#949ba4" }} />
+                  </button>
+                )}
+              </div>
+
+              {/* New room input */}
+              {canAdd && newRoom && (
+                <div style={{ margin: "2px 8px 6px", display: "flex", gap: 4 }}>
+                  <input value={newRoomName} onChange={e => setNewRoomName(e.target.value)} autoFocus
+                    onKeyDown={e => { if (e.key === "Enter") handleCreateRoom(); if (e.key === "Escape") { setNewRoom(false); setNewRoomName(""); } }}
+                    placeholder="tên-kênh..."
+                    style={{ flex: 1, fontSize: 11, background: "#383a40", border: "1px solid #5c5f66", borderRadius: 4, padding: "5px 8px", outline: "none", fontFamily: "inherit", color: "#dbdee1" }}
+                  />
+                  <button onClick={handleCreateRoom} style={{ background: "#5865f2", border: "none", borderRadius: 4, padding: "4px 8px", cursor: "pointer" }}>
+                    <Check size={11} style={{ color: "#fff" }} />
+                  </button>
+                </div>
               )}
+
+              {/* Room items */}
               {items.map(room => {
                 const isActive = activeRoom?.id === room.id;
                 const isDM = room.type === "direct";
                 const Icon = room.type === "announce" ? Megaphone : isDM ? MessageCircle : Hash;
                 const unread = unreadCounts[room.id] ?? 0;
-                const lastContent = room.lastMessage?.mediaType === "image" ? "📷 Ảnh"
-                  : room.lastMessage?.mediaType === "file" ? "📎 File"
-                  : (room.lastMessage?.content ?? "");
                 const canDelete = isAdmin && room.id !== "room_general" && room.id !== "room_announce";
                 return (
                   <div key={room.id}
                     onClick={() => selectRoom(room)}
                     style={{
-                      padding: isMobile ? "10px 14px" : "7px 12px", cursor: "pointer",
-                      display: "flex", alignItems: "center", gap: isMobile ? 10 : 7,
-                      background: isActive && !isMobile ? "rgba(14,165,233,0.08)" : "transparent",
-                      borderLeft: `2px solid ${isActive && !isMobile ? "#0ea5e9" : "transparent"}`,
+                      margin: "1px 8px", padding: isMobile ? "10px 10px" : "6px 8px",
+                      cursor: "pointer", display: "flex", alignItems: "center", gap: 8,
+                      borderRadius: 4,
+                      background: isActive ? "rgba(255,255,255,0.12)" : "transparent",
                     }}
-                    onMouseEnter={e => { if (!isActive || isMobile) e.currentTarget.style.background = "#f0f9ff"; }}
-                    onMouseLeave={e => { e.currentTarget.style.background = isActive && !isMobile ? "rgba(14,165,233,0.08)" : "transparent"; }}
+                    onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = "rgba(255,255,255,0.06)"; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = isActive ? "rgba(255,255,255,0.12)" : "transparent"; }}
                   >
                     {isMobile
-                      ? <div style={{ width: 42, height: 42, borderRadius: "50%", background: isDM ? "linear-gradient(135deg,#fef3c7,#fde68a)" : "linear-gradient(135deg,#e0f2fe,#bae6fd)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                          {room.icon
-                            ? <span style={{ fontSize: 20 }}>{room.icon}</span>
-                            : <Icon size={18} style={{ color: isDM ? "#C9A55A" : "#0ea5e9" }} />
-                          }
+                      ? <div style={{ width: 38, height: 38, borderRadius: "50%", background: isDM ? "#5865f2" : "#36393f", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                          {room.icon ? <span style={{ fontSize: 18 }}>{room.icon}</span> : <Icon size={17} style={{ color: isDM ? "#fff" : "#96989d" }} />}
                         </div>
-                      : <Icon size={11} style={{ color: isActive ? (isDM ? "#C9A55A" : "#0ea5e9") : "#94a3b8", flexShrink: 0 }} />
+                      : <>
+                          {room.icon
+                            ? <span style={{ fontSize: 14, flexShrink: 0 }}>{room.icon}</span>
+                            : <Icon size={16} style={{ color: isActive ? "#dbdee1" : "#8d9096", flexShrink: 0 }} />
+                          }
+                        </>
                     }
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ fontSize: isMobile ? 13 : 11, color: isActive && !isMobile ? "#0c1a2e" : "#475569", fontWeight: isActive || unread > 0 ? 700 : 400, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      <p style={{ fontSize: 13, color: isActive ? "#f2f3f5" : "#8d9096", fontWeight: isActive || unread > 0 ? 600 : 400, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", transition: "color 0.1s" }}>
                         {room.name}
                       </p>
-                      {lastContent && (
-                        <p style={{ fontSize: isMobile ? 11 : 8, color: "#94a3b8", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginTop: 1 }}>
-                          {lastContent.startsWith("[Tin nhắn") ? "Đã xóa" : lastContent}
-                        </p>
-                      )}
                     </div>
-                    <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
-                      {room.lastMessage && (
-                        <span style={{ fontSize: 8, color: "#b0c4d8", whiteSpace: "nowrap" }}>
-                          {formatTime(room.lastMessage.createdAt)}
-                        </span>
-                      )}
-                      {unread > 0 && (
-                        <div style={{ minWidth: 18, height: 18, borderRadius: 9, background: "#0ea5e9", display: "flex", alignItems: "center", justifyContent: "center", padding: "0 4px" }}>
-                          <span style={{ fontSize: 7.5, fontWeight: 700, color: "#fff" }}>{unread > 99 ? "99+" : unread}</span>
-                        </div>
-                      )}
-                    </div>
+                    {unread > 0 && (
+                      <div style={{ minWidth: 18, height: 18, borderRadius: 9, background: "#ed4245", display: "flex", alignItems: "center", justifyContent: "center", padding: "0 4px", flexShrink: 0 }}>
+                        <span style={{ fontSize: 8, fontWeight: 800, color: "#fff" }}>{unread > 99 ? "99+" : unread}</span>
+                      </div>
+                    )}
                     {canDelete && (
                       <button onClick={e => { e.stopPropagation(); handleDeleteRoom(room.id); }}
-                        style={{ ...iconBtn, width: 18, height: 18, flexShrink: 0 }}
+                        title="Xóa kênh"
+                        style={{ background: "none", border: "none", cursor: "pointer", padding: 2, borderRadius: 3, flexShrink: 0 }}
+                        onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.08)")}
+                        onMouseLeave={e => (e.currentTarget.style.background = "none")}
                       >
-                        <X size={8} style={{ color: "#dc2626" }} />
+                        <X size={12} style={{ color: "#ed4245" }} />
                       </button>
                     )}
                   </div>
@@ -889,95 +914,75 @@ export default function ChatPage() {
             </div>
           ));
         })()}
-
-        {isAdmin && (
-          <div style={{ padding: isMobile ? "6px 14px" : "4px 12px" }}>
-            {!newRoom ? (
-              <button onClick={() => setNewRoom(true)}
-                style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 9, color: "#94a3b8", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", padding: "4px 0" }}
-                onMouseEnter={e => (e.currentTarget.style.color = "#0ea5e9")}
-                onMouseLeave={e => (e.currentTarget.style.color = "#94a3b8")}
-              >
-                <Plus size={10} /> Thêm kênh
-              </button>
-            ) : (
-              <div style={{ display: "flex", gap: 4 }}>
-                <input value={newRoomName} onChange={e => setNewRoomName(e.target.value)} autoFocus
-                  onKeyDown={e => { if (e.key === "Enter") handleCreateRoom(); if (e.key === "Escape") { setNewRoom(false); setNewRoomName(""); } }}
-                  placeholder="Tên kênh..."
-                  style={{ flex: 1, fontSize: 10, background: "#fff", border: "1px solid #bae6fd", borderRadius: 6, padding: "4px 8px", outline: "none", fontFamily: "inherit", color: "#0c1a2e" }}
-                />
-                <button onClick={handleCreateRoom} style={{ background: "#0ea5e9", border: "none", borderRadius: 6, padding: "4px 7px", cursor: "pointer" }}>
-                  <Check size={9} style={{ color: "#fff" }} />
-                </button>
-              </div>
-            )}
-          </div>
-        )}
       </div>
 
-      {/* Online members */}
-      {!isMobile && onlineMembers.length > 0 && (
-        <div style={{ borderTop: "1px solid #e0f2fe", padding: "6px 0" }}>
-          <p style={{ fontSize: 7.5, fontWeight: 700, color: "#94a3b8", letterSpacing: "0.15em", padding: "0 12px 4px" }}>ONLINE · {onlineMembers.length}</p>
-          {onlineMembers.slice(0, 5).map(m => (
-            <div key={m.id} style={{ padding: "3px 12px", display: "flex", alignItems: "center", gap: 7 }}>
-              <Avatar src={m.avatar} name={m.name} size={20} status={m.status} />
-              <span style={{ fontSize: 9.5, color: "#475569", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.name}</span>
-            </div>
-          ))}
+      {/* Self user bar (Discord style) */}
+      {!isMobile && currentUser && (
+        <div style={{ height: 52, background: "#232428", borderTop: "1px solid rgba(0,0,0,0.2)", display: "flex", alignItems: "center", padding: "0 8px", gap: 8, flexShrink: 0 }}>
+          <Avatar src={null} name={currentUser.name} size={32} status="online" />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p style={{ fontSize: 12, fontWeight: 600, color: "#f2f3f5", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{currentUser.name}</p>
+            <p style={{ fontSize: 10, color: "#a3a6aa" }}>{currentUser.role === "admin" ? "Admin" : currentUser.role === "manager" ? "Quản Lý" : "Nhân viên"}</p>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+            <Circle size={7} style={{ color: "#23a55a", fill: "#23a55a" }} />
+            <span style={{ fontSize: 9, color: "#949ba4" }}>{onlineMembers.length}</span>
+          </div>
         </div>
       )}
     </div>
   );
 
   const chatMainEl = (
-    <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, position: "relative" }}>
-      {/* Header */}
-      <div style={{ height: 50, padding: "0 12px 0 10px", borderBottom: "1px solid #e0f2fe", display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+    <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, position: "relative", background: "#fff" }}>
+      {/* Discord-style header */}
+      <div style={{ height: 48, padding: "0 16px 0 12px", borderBottom: "1px solid #e3e5e8", display: "flex", alignItems: "center", gap: 10, flexShrink: 0, boxShadow: "0 1px 0 rgba(0,0,0,0.06)" }}>
         {isMobile ? (
-          <button onClick={() => setMobileView("rooms")} style={{ ...iconBtn, flexShrink: 0 }}>
-            <ChevronLeft size={14} style={{ color: "#64748b" }} />
+          <button onClick={() => setMobileView("rooms")} style={{ ...iconBtn, background: "transparent", border: "none", flexShrink: 0 }}>
+            <ChevronLeft size={16} style={{ color: "#4e5058" }} />
           </button>
         ) : (
-          <button onClick={() => setSidebarOpen(v => !v)} style={{ ...iconBtn, flexShrink: 0 }}>
-            <ChevronLeft size={13} style={{ color: "#64748b", transition: "transform 0.18s", transform: sidebarOpen ? "rotate(0deg)" : "rotate(180deg)" }} />
+          <button onClick={() => setSidebarOpen(v => !v)} style={{ ...iconBtn, background: "transparent", border: "none", flexShrink: 0 }}>
+            <ChevronLeft size={15} style={{ color: "#4e5058", transition: "transform 0.18s", transform: sidebarOpen ? "rotate(0deg)" : "rotate(180deg)" }} />
           </button>
         )}
 
         {activeRoom ? (
           <>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                {activeRoom.icon
-                  ? <span style={{ fontSize: 16 }}>{activeRoom.icon}</span>
-                  : activeRoom.type === "announce"
-                    ? <Megaphone size={13} style={{ color: "#C9A55A" }} />
-                    : <Hash size={13} style={{ color: "#0ea5e9" }} />
-                }
-                <p style={{ fontSize: 13, fontWeight: 700, color: "#0c1a2e", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{activeRoom.name}</p>
-                {activeRoom.type === "announce" && (
-                  <span style={{ fontSize: 7.5, color: "#C9A55A", background: "rgba(201,165,90,0.1)", padding: "1px 7px", borderRadius: 10, fontWeight: 700, whiteSpace: "nowrap" }}>THÔNG BÁO</span>
-                )}
-              </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, flex: 1, minWidth: 0 }}>
+              {activeRoom.icon
+                ? <span style={{ fontSize: 18 }}>{activeRoom.icon}</span>
+                : activeRoom.type === "announce"
+                  ? <Megaphone size={16} style={{ color: "#4e5058" }} />
+                  : activeRoom.type === "direct"
+                    ? <MessageCircle size={16} style={{ color: "#4e5058" }} />
+                    : <Hash size={16} style={{ color: "#4e5058" }} />
+              }
+              <p style={{ fontSize: 15, fontWeight: 700, color: "#0c1a2e", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{activeRoom.name}</p>
+              {activeRoom.type === "announce" && (
+                <span style={{ fontSize: 9, color: "#fff", background: "#f59e0b", padding: "1px 7px", borderRadius: 10, fontWeight: 700, whiteSpace: "nowrap", flexShrink: 0 }}>THÔNG BÁO</span>
+              )}
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 5, flexShrink: 0 }}>
-              <Circle size={6} style={{ color: "#10b981", fill: "#10b981" }} />
-              <span style={{ fontSize: 8.5, color: "#64748b", whiteSpace: "nowrap" }}>{onlineMembers.length} online</span>
+            <div style={{ display: "flex", alignItems: "center", gap: 2, flexShrink: 0 }}>
               <button onClick={() => { setShowSearch(v => !v); setTimeout(() => searchInputRef.current?.focus(), 50); }}
-                style={{ ...iconBtn, background: showSearch ? "rgba(14,165,233,0.08)" : "#f8fafc", borderColor: showSearch ? "#bae6fd" : "#e0f2fe" }}
-                title="Tìm kiếm">
-                <Search size={11} style={{ color: showSearch ? "#0ea5e9" : "#64748b" }} />
+                title="Tìm kiếm (Ctrl+F)"
+                style={{ ...iconBtn, background: showSearch ? "#e9f0fd" : "transparent", border: showSearch ? "1px solid #c3cef9" : "1px solid transparent", width: 32, height: 32 }}>
+                <Search size={14} style={{ color: showSearch ? "#5865f2" : "#4e5058" }} />
               </button>
               <button onClick={openInfoPanel}
-                style={{ ...iconBtn, background: showInfoPanel ? "rgba(14,165,233,0.08)" : "#f8fafc", borderColor: showInfoPanel ? "#bae6fd" : "#e0f2fe" }}
-                title="Thông tin nhóm">
-                <Info size={11} style={{ color: showInfoPanel ? "#0ea5e9" : "#64748b" }} />
+                title="Thành viên & cài đặt"
+                style={{ ...iconBtn, background: showInfoPanel ? "#e9f0fd" : "transparent", border: showInfoPanel ? "1px solid #c3cef9" : "1px solid transparent", width: 32, height: 32 }}>
+                <Users size={14} style={{ color: showInfoPanel ? "#5865f2" : "#4e5058" }} />
               </button>
+              <div style={{ width: 1, height: 20, background: "#e3e5e8", margin: "0 2px" }} />
+              <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                <Circle size={7} style={{ color: "#23a55a", fill: "#23a55a" }} />
+                <span style={{ fontSize: 10, color: "#64748b", whiteSpace: "nowrap" }}>{onlineMembers.length} online</span>
+              </div>
             </div>
           </>
         ) : (
-          <p style={{ fontSize: 12, color: "#94a3b8" }}>Chọn kênh để bắt đầu</p>
+          <p style={{ fontSize: 13, color: "#94a3b8" }}>Chọn kênh để bắt đầu</p>
         )}
       </div>
 
@@ -1012,40 +1017,43 @@ export default function ChatPage() {
 
       {/* Pinned banner */}
       {latestPinned && !showSearch && (
-        <div style={{ borderBottom: "1px solid #e0f2fe", background: "rgba(201,165,90,0.04)", padding: "6px 14px", display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-          <Pin size={10} style={{ color: "#C9A55A", flexShrink: 0 }} />
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <span style={{ fontSize: 8.5, fontWeight: 700, color: "#C9A55A" }}>Tin nhắn đã ghim · </span>
-            <span style={{ fontSize: 8.5, color: "#64748b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{latestPinned.content}</span>
+        <div style={{ borderBottom: "1px solid #e3e5e8", background: "rgba(88,101,242,0.04)", padding: "6px 16px", display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
+          <Pin size={11} style={{ color: "#5865f2", flexShrink: 0 }} />
+          <div style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 6 }}>
+            <span style={{ fontSize: 9.5, fontWeight: 700, color: "#5865f2", whiteSpace: "nowrap" }}>Tin nhắn đã ghim</span>
+            <span style={{ fontSize: 9.5, color: "#64748b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{latestPinned.content}</span>
           </div>
           {pinnedMessages.length > 1 && (
-            <span style={{ fontSize: 8, color: "#94a3b8", whiteSpace: "nowrap" }}>+{pinnedMessages.length - 1}</span>
+            <span style={{ fontSize: 9, color: "#94a3b8", whiteSpace: "nowrap", background: "#e9f0fd", padding: "1px 6px", borderRadius: 10, fontWeight: 600 }}>+{pinnedMessages.length - 1}</span>
           )}
         </div>
       )}
 
       {/* Messages */}
-      <div style={{ flex: 1, overflowY: "auto", padding: "12px 16px", display: "flex", flexDirection: "column" }}>
+      <div style={{ flex: 1, overflowY: "auto", padding: "8px 0 4px", display: "flex", flexDirection: "column" }}>
         {searchResults !== null && searchResults.length === 0 && (
-          <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 6, opacity: 0.5 }}>
-            <Search size={24} style={{ color: "#bae6fd" }} strokeWidth={1} />
-            <p style={{ fontSize: 12, color: "#94a3b8" }}>Không tìm thấy tin nhắn nào</p>
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8, opacity: 0.5 }}>
+            <Search size={32} style={{ color: "#94a3b8" }} strokeWidth={1} />
+            <p style={{ fontSize: 13, color: "#94a3b8" }}>Không tìm thấy tin nhắn nào</p>
           </div>
         )}
         {displayMessages.length === 0 && searchResults === null && activeRoom && (
-          <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 6, opacity: 0.5, marginTop: "auto", marginBottom: "auto" }}>
-            <Hash size={28} style={{ color: "#bae6fd" }} strokeWidth={1} />
-            <p style={{ fontSize: 12, color: "#94a3b8" }}>Chưa có tin nhắn trong #{activeRoom.name}</p>
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8, padding: 24 }}>
+            <div style={{ width: 68, height: 68, borderRadius: "50%", background: "#f2f3f5", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              {activeRoom.icon ? <span style={{ fontSize: 32 }}>{activeRoom.icon}</span> : <Hash size={32} style={{ color: "#4e5058" }} strokeWidth={1.5} />}
+            </div>
+            <p style={{ fontSize: 20, fontWeight: 800, color: "#0c1a2e" }}>Chào mừng đến #{activeRoom.name}!</p>
+            <p style={{ fontSize: 13, color: "#64748b", textAlign: "center" }}>Đây là phần đầu của kênh <strong>#{activeRoom.name}</strong>. Gửi tin nhắn để bắt đầu cuộc trò chuyện.</p>
           </div>
         )}
 
         {displayMessages.map((item, i) => {
           if (item.type === "date") {
             return (
-              <div key={`date-${item.date}-${i}`} style={{ display: "flex", alignItems: "center", gap: 8, margin: "10px 0 6px" }}>
-                <div style={{ flex: 1, height: 1, background: "#e0f2fe" }} />
-                <span style={{ fontSize: 8.5, color: "#94a3b8", fontWeight: 600, whiteSpace: "nowrap", padding: "0 4px" }}>{item.date}</span>
-                <div style={{ flex: 1, height: 1, background: "#e0f2fe" }} />
+              <div key={`date-${item.date}-${i}`} style={{ display: "flex", alignItems: "center", gap: 10, margin: "16px 16px 8px" }}>
+                <div style={{ flex: 1, height: 1, background: "#e3e5e8" }} />
+                <span style={{ fontSize: 10, color: "#94a3b8", fontWeight: 700, whiteSpace: "nowrap", padding: "0 6px", background: "#fff", borderRadius: 8, border: "1px solid #e3e5e8" }}>{item.date}</span>
+                <div style={{ flex: 1, height: 1, background: "#e3e5e8" }} />
               </div>
             );
           }
@@ -1053,9 +1061,8 @@ export default function ChatPage() {
           return (
             <motion.div
               key={msg.id}
-              initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.14 }}
-              style={{ marginTop: showHeader && i > 0 ? 10 : 2 }}
+              initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.1 }}
             >
               <MsgBubble
                 msg={msg}
@@ -1077,18 +1084,19 @@ export default function ChatPage() {
           );
         })}
 
-        {typingUsers.length > 0 && <TypingDots name={typingUsers[0]} />}
+        {typingUsers.length > 0 && <div style={{ paddingLeft: 16 }}><TypingDots name={typingUsers[0]} /></div>}
         <div ref={bottomRef} />
       </div>
 
       {/* Edit message bar */}
       {editingMsg && (
-        <div style={{ padding: "8px 16px", borderTop: "1px solid #e0f2fe", background: "rgba(14,165,233,0.04)", flexShrink: 0 }}>
+        <div style={{ padding: "8px 16px", borderTop: "1px solid #e3e5e8", background: "#f2f3f5", flexShrink: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
-            <Pencil size={10} style={{ color: "#0ea5e9" }} />
-            <span style={{ fontSize: 9, color: "#0ea5e9", fontWeight: 600 }}>Chỉnh sửa tin nhắn</span>
+            <Pencil size={11} style={{ color: "#5865f2" }} />
+            <span style={{ fontSize: 10, color: "#5865f2", fontWeight: 600 }}>Đang chỉnh sửa tin nhắn</span>
+            <span style={{ fontSize: 9.5, color: "#64748b", marginLeft: 4 }}>· ESC để hủy · Enter để lưu</span>
             <button onClick={() => { setEditingMsg(null); setEditContent(""); }} style={{ background: "none", border: "none", cursor: "pointer", marginLeft: "auto" }}>
-              <X size={11} style={{ color: "#94a3b8" }} />
+              <X size={13} style={{ color: "#64748b" }} />
             </button>
           </div>
           <div style={{ display: "flex", gap: 6 }}>
@@ -1100,70 +1108,75 @@ export default function ChatPage() {
                 if (e.key === "Escape") { setEditingMsg(null); setEditContent(""); }
               }}
               rows={1}
-              style={{ flex: 1, fontSize: 12, color: "#0c1a2e", fontFamily: "inherit", background: "#fff", border: "1px solid #bae6fd", borderRadius: 10, padding: "8px 12px", outline: "none", resize: "none", lineHeight: 1.5, maxHeight: 100, overflowY: "auto" }}
+              style={{ flex: 1, fontSize: 13, color: "#0c1a2e", fontFamily: "inherit", background: "#fff", border: "1px solid #d4d7dc", borderRadius: 8, padding: "8px 12px", outline: "none", resize: "none", lineHeight: 1.5, maxHeight: 100, overflowY: "auto" }}
               onInput={e => { const t = e.currentTarget; t.style.height = "auto"; t.style.height = Math.min(t.scrollHeight, 100) + "px"; }}
             />
-            <button onClick={handleSaveEdit} style={{ width: 34, height: 34, borderRadius: 10, border: "none", background: "#0ea5e9", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}>
-              <Check size={13} style={{ color: "#fff" }} />
+            <button onClick={handleSaveEdit} style={{ width: 36, height: 36, borderRadius: 8, border: "none", background: "#5865f2", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}>
+              <Check size={14} style={{ color: "#fff" }} />
             </button>
           </div>
         </div>
       )}
 
-      {/* Input area */}
-      <div style={{ padding: "8px 16px 12px", borderTop: editingMsg ? "none" : "1px solid #e0f2fe", flexShrink: 0 }}>
+      {/* Input area — Discord style */}
+      <div style={{ padding: "0 16px 16px", flexShrink: 0 }}>
         {isReadOnly ? (
-          <div style={{ padding: "10px 14px", borderRadius: 10, background: "rgba(201,165,90,0.06)", border: "1px solid rgba(201,165,90,0.2)", display: "flex", alignItems: "center", gap: 8 }}>
-            <Megaphone size={12} style={{ color: "#C9A55A" }} />
-            <span style={{ fontSize: 10, color: "#92712a" }}>Kênh thông báo — chỉ Admin/Quản Lý có thể đăng tin</span>
+          <div style={{ padding: "12px 16px", borderRadius: 10, background: "rgba(245,158,11,0.06)", border: "1px solid rgba(245,158,11,0.25)", display: "flex", alignItems: "center", gap: 10 }}>
+            <Megaphone size={14} style={{ color: "#f59e0b" }} />
+            <span style={{ fontSize: 12, color: "#92400e" }}>Kênh thông báo — chỉ Admin/Quản Lý có thể đăng tin</span>
           </div>
         ) : (
-          <>
+          <div style={{ background: "#ebedef", borderRadius: 10, overflow: "hidden" }}>
             {replyTo && (
-              <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 10px", borderRadius: 8, marginBottom: 6, background: "rgba(14,165,233,0.06)", border: "1px solid rgba(14,165,233,0.2)" }}>
-                <Reply size={10} style={{ color: "#0ea5e9", flexShrink: 0 }} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <span style={{ fontSize: 9, fontWeight: 700, color: "#0ea5e9" }}>{replyTo.userName}</span>
-                  <p style={{ fontSize: 9.5, color: "#64748b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {replyTo.mediaType === "image" ? "📷 Ảnh" : replyTo.mediaType === "file" ? "📎 File" : replyTo.content}
-                  </p>
-                </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: "#e3e5e8", borderBottom: "1px solid #d4d7dc" }}>
+                <Reply size={11} style={{ color: "#5865f2", flexShrink: 0 }} />
+                <span style={{ fontSize: 10, fontWeight: 700, color: "#5865f2" }}>Trả lời</span>
+                <span style={{ fontSize: 10, fontWeight: 600, color: "#0c1a2e" }}>{replyTo.userName}</span>
+                <span style={{ fontSize: 10, color: "#64748b", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {replyTo.mediaType === "image" ? "📷 Ảnh" : replyTo.mediaType === "file" ? "📎 File" : replyTo.content}
+                </span>
                 <button onClick={() => setReplyTo(null)} style={{ background: "none", border: "none", cursor: "pointer" }}>
-                  <X size={11} style={{ color: "#94a3b8" }} />
+                  <X size={13} style={{ color: "#64748b" }} />
                 </button>
               </div>
             )}
-            {pendingFile && <UploadPreview file={pendingFile} onCancel={() => setPendingFile(null)} />}
-            <div style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
-              <Avatar src={null} name={currentUser?.name ?? "?"} size={28} />
-              <div style={{ flex: 1, background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 14, padding: "8px 10px 8px 12px", display: "flex", alignItems: "flex-end", gap: 6 }}>
-                <button onClick={() => fileInputRef.current?.click()} disabled={!activeRoom} title="Đính kèm file/ảnh" style={{ background: "none", border: "none", cursor: "pointer", padding: "2px", flexShrink: 0 }}>
-                  <Paperclip size={14} style={{ color: "#94a3b8" }} />
-                </button>
-                <textarea
-                  ref={inputRef}
-                  value={input}
-                  onChange={e => handleInputChange(e.target.value)}
-                  onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
-                  placeholder={activeRoom ? `Nhắn vào #${activeRoom.name}...` : "Chọn kênh..."}
-                  disabled={!activeRoom}
-                  rows={1}
-                  style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: 12, color: "#0c1a2e", fontFamily: "inherit", resize: "none", lineHeight: 1.5, maxHeight: 120, overflowY: "auto" }}
-                  onInput={e => { const t = e.currentTarget; t.style.height = "auto"; t.style.height = Math.min(t.scrollHeight, 120) + "px"; }}
-                />
-                <button
-                  onClick={handleSend}
-                  disabled={(!input.trim() && !pendingFile) || sending || uploading || !activeRoom}
-                  style={{ width: 32, height: 32, borderRadius: 10, border: "none", flexShrink: 0, background: (input.trim() || pendingFile) && activeRoom ? "#0ea5e9" : "#e0f2fe", display: "flex", alignItems: "center", justifyContent: "center", cursor: (input.trim() || pendingFile) && activeRoom ? "pointer" : "default", transition: "background 0.12s" }}
-                >
-                  {uploading
-                    ? <div style={{ width: 12, height: 12, borderRadius: "50%", border: "2px solid #fff", borderTopColor: "transparent", animation: "spin 0.6s linear infinite" }} />
-                    : <Send size={13} style={{ color: (input.trim() || pendingFile) && activeRoom ? "#fff" : "#94a3b8" }} />
-                  }
-                </button>
+            {pendingFile && (
+              <div style={{ padding: "6px 12px 0" }}>
+                <UploadPreview file={pendingFile} onCancel={() => setPendingFile(null)} />
               </div>
+            )}
+            <div style={{ display: "flex", alignItems: "flex-end", padding: "4px 8px 4px 12px", gap: 4 }}>
+              <button onClick={() => fileInputRef.current?.click()} disabled={!activeRoom} title="Đính kèm"
+                style={{ background: "none", border: "none", cursor: "pointer", padding: "6px", flexShrink: 0, borderRadius: 6 }}
+                onMouseEnter={e => (e.currentTarget.style.background = "rgba(0,0,0,0.06)")}
+                onMouseLeave={e => (e.currentTarget.style.background = "none")}
+              >
+                <Paperclip size={18} style={{ color: "#6d6f78" }} />
+              </button>
+              <textarea
+                ref={inputRef}
+                value={input}
+                onChange={e => handleInputChange(e.target.value)}
+                onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
+                placeholder={activeRoom ? `Nhắn vào #${activeRoom.name}` : "Chọn kênh..."}
+                disabled={!activeRoom}
+                rows={1}
+                style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: 13, color: "#0c1a2e", fontFamily: "inherit", resize: "none", lineHeight: 1.5, maxHeight: 140, overflowY: "auto", padding: "8px 4px" }}
+                onInput={e => { const t = e.currentTarget; t.style.height = "auto"; t.style.height = Math.min(t.scrollHeight, 140) + "px"; }}
+              />
+              <button
+                onClick={handleSend}
+                disabled={(!input.trim() && !pendingFile) || sending || uploading || !activeRoom}
+                title="Gửi (Enter)"
+                style={{ width: 34, height: 34, borderRadius: 7, border: "none", flexShrink: 0, marginBottom: 2, background: (input.trim() || pendingFile) && activeRoom ? "#5865f2" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", cursor: (input.trim() || pendingFile) && activeRoom ? "pointer" : "default", transition: "background 0.1s" }}
+              >
+                {uploading
+                  ? <div style={{ width: 13, height: 13, borderRadius: "50%", border: "2px solid #fff", borderTopColor: "transparent", animation: "spin 0.6s linear infinite" }} />
+                  : <Send size={15} style={{ color: (input.trim() || pendingFile) && activeRoom ? "#fff" : "#8d9096" }} />
+                }
+              </button>
             </div>
-          </>
+          </div>
         )}
       </div>
 
@@ -1228,8 +1241,12 @@ export default function ChatPage() {
                     </div>
                   </div>
                   <button onClick={handleSaveRoomSettings}
-                    style={{ width: "100%", padding: "8px", borderRadius: 8, border: "none", background: "#0ea5e9", fontSize: 11, color: "#fff", cursor: "pointer", fontWeight: 600, fontFamily: "inherit" }}>
+                    style={{ width: "100%", padding: "8px", borderRadius: 8, border: "none", background: "#5865f2", fontSize: 11, color: "#fff", cursor: "pointer", fontWeight: 600, fontFamily: "inherit" }}>
                     Lưu thay đổi
+                  </button>
+                  <button onClick={handleClearRoom}
+                    style={{ width: "100%", marginTop: 6, padding: "8px", borderRadius: 8, border: "1px solid #fca5a5", background: "rgba(239,68,68,0.06)", fontSize: 11, color: "#dc2626", cursor: "pointer", fontWeight: 600, fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                    <Trash2 size={12} /> Xóa tất cả tin nhắn
                   </button>
                 </div>
               )}
@@ -1317,9 +1334,9 @@ export default function ChatPage() {
 
       <div style={{
         display: "flex", flex: 1, minHeight: 0, height: "100%",
-        borderRadius: 16, overflow: "hidden",
-        border: "1px solid #bae6fd", background: "#fff",
-        boxShadow: "0 2px 16px rgba(12,26,46,0.07)",
+        borderRadius: 12, overflow: "hidden",
+        border: "1px solid #1e1f22",
+        boxShadow: "0 4px 24px rgba(0,0,0,0.14)",
       }}>
         {isMobile ? (
           // Mobile: full-screen toggle between rooms and chat
