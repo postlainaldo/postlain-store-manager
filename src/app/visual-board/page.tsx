@@ -1446,14 +1446,14 @@ function SectionView({ section, products, selectedPid, highlightPid, canEdit, su
           </div>
           <div style={{ padding: "8px 12px 10px", display: "flex", flexDirection: "column", gap: 8, overflow: "visible" }}>
             {(() => {
-              // A row is visible if any previous row (lower index) has at least 1 product
-              // Row 0 is always visible (first row, bottom of display)
-              // Rows are rendered reversed (top of display = last row index)
               const reversedRows = [...sub.rows].map((row, ri) => ({ row, ri })).reverse();
+              // Last row index that has at least 1 product
+              const lastFilledRow = sub.rows.reduce((last, r, i) => r.products.some(Boolean) ? i : last, -1);
+              // Show row if: it has data OR it's the next empty row right after the last filled row
               return reversedRows.map(({ row, ri }) => {
-                // Row ri is visible only if all rows before it (0..ri-1) have at least 1 product
-                const prevRowsFilled = ri === 0 || sub.rows.slice(0, ri).every(r => r.products.some(Boolean));
-                if (!prevRowsFilled) return null;
+                const hasProd = row.products.some(Boolean);
+                const isNextEmpty = ri === lastFilledRow + 1;
+                if (!hasProd && !isNextEmpty) return null;
 
                 if (row.type === "image") return (
                   <div key={ri} style={{ height: 16, borderRadius: 6, background: "#f0f9ff", display: "flex", alignItems: "center", paddingLeft: 8 }}>
