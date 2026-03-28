@@ -33,8 +33,8 @@ const MONTHS_VI = ["Tháng 1","Tháng 2","Tháng 3","Tháng 4","Tháng 5","Thán
 
 function toDateStr(d: Date) { return d.toISOString().slice(0, 10); }
 
-/** Business week counter from store epoch: W001 starts 2026-01-19 (Mon). */
-const WEEK_EPOCH = new Date("2026-01-19T00:00:00+07:00");
+/** Business week counter from store epoch: W001 starts 2026-02-02 (Mon). Mar 23 = W008. */
+const WEEK_EPOCH = new Date("2026-02-02T00:00:00+07:00");
 function getISOWeek(d: Date): number {
   const monday = new Date(d);
   const day = monday.getDay();

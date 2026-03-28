@@ -103,13 +103,67 @@ export async function GET() {
       )
     `;
 
+    await sql`
+      CREATE TABLE IF NOT EXISTS shift_templates (
+        id          TEXT PRIMARY KEY,
+        name        TEXT NOT NULL,
+        "startTime" TEXT NOT NULL,
+        "endTime"   TEXT NOT NULL,
+        color       TEXT NOT NULL DEFAULT '#0ea5e9',
+        "maxStaff"  INTEGER NOT NULL DEFAULT 3,
+        "createdAt" TEXT NOT NULL
+      )
+    `;
+
+    await sql`
+      CREATE TABLE IF NOT EXISTS shift_slots (
+        id           TEXT PRIMARY KEY,
+        "templateId" TEXT,
+        date         TEXT NOT NULL,
+        name         TEXT NOT NULL DEFAULT '',
+        "startTime"  TEXT NOT NULL,
+        "endTime"    TEXT NOT NULL,
+        color        TEXT NOT NULL DEFAULT '#0ea5e9',
+        "maxStaff"   INTEGER NOT NULL DEFAULT 3,
+        note         TEXT,
+        "createdAt"  TEXT NOT NULL,
+        "updatedAt"  TEXT NOT NULL
+      )
+    `;
+
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_shift_slots_date ON shift_slots(date)
+    `;
+
+    await sql`
+      CREATE TABLE IF NOT EXISTS shift_registrations (
+        id          TEXT PRIMARY KEY,
+        "slotId"    TEXT NOT NULL REFERENCES shift_slots(id) ON DELETE CASCADE,
+        "userId"    TEXT NOT NULL,
+        "userName"  TEXT NOT NULL,
+        status      TEXT NOT NULL DEFAULT 'pending',
+        note        TEXT,
+        "createdAt" TEXT NOT NULL,
+        "updatedAt" TEXT NOT NULL,
+        UNIQUE("slotId", "userId")
+      )
+    `;
+
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_shift_reg_slot ON shift_registrations("slotId")
+    `;
+
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_shift_reg_user ON shift_registrations("userId")
+    `;
+
     await sql.end();
 
     // Verify tables exist via Supabase client
     const { getSupabase } = await import("@/lib/supabase");
     const sb = getSupabase();
     const status: Record<string, boolean> = {};
-    for (const t of ["customers", "pos_orders", "pos_order_lines", "daily_reports"]) {
+    for (const t of ["customers", "pos_orders", "pos_order_lines", "daily_reports", "shift_templates", "shift_slots", "shift_registrations"]) {
       const { error } = await sb.from(t).select("id").limit(1);
       status[t] = !error;
     }
