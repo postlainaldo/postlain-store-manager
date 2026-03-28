@@ -9,7 +9,7 @@ import {
   Crown, UserCheck, User, Circle, X, Check,
   Smile, ChevronLeft, Paperclip,
   File as FileIcon, Download, Reply, Pencil, Info,
-  Pin, Search, Image as ImageIcon, Users,
+  Pin, Search, Image as ImageIcon, Users, MessageCircle,
 } from "lucide-react";
 import { useStore } from "@/store/useStore";
 
@@ -416,11 +416,36 @@ export default function ChatPage() {
 
   // Initial data
   useEffect(() => {
-    fetch("/api/profile").then(r => r.json()).then(d => setMembers(Array.isArray(d) ? d : [])).catch(() => {});
-    fetch("/api/chat?rooms=1").then(r => r.json()).then(d => {
+    let fetchedMembers: Member[] = [];
+    fetch("/api/profile").then(r => r.json()).then(d => {
+      fetchedMembers = Array.isArray(d) ? d : [];
+      setMembers(fetchedMembers);
+    }).catch(() => {});
+    fetch("/api/chat?rooms=1").then(r => r.json()).then(async (d) => {
       if (Array.isArray(d)) {
-        setRooms(d);
-        if (!activeRoomRef.current && d.length > 0) setActiveRoom(d[0]);
+        let roomList: Room[] = d;
+        // Admin/manager: auto-create DM rooms for each active non-admin staff
+        if (isAdmin && currentUser) {
+          const activeStaff = fetchedMembers.filter(m => m.status !== "deleted");
+          for (const m of activeStaff) {
+            if (m.id === currentUser.id) continue;
+            const dmId = `dm_${m.id}`;
+            const exists = d.find((r: Room) => r.id === dmId);
+            if (!exists) {
+              const res = await fetch("/api/chat", {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ id: dmId, name: m.name, type: "direct", createdBy: currentUser.id }),
+              }).catch(() => null);
+              if (res?.ok) {
+                const newR: Room = { id: dmId, name: m.name, type: "direct", lastMessage: null, messageCount: 0 };
+                if (!roomList.find(r => r.id === dmId)) roomList = [...roomList, newR];
+              }
+            }
+          }
+        }
+        setRooms(roomList);
+        if (!activeRoomRef.current && roomList.length > 0) setActiveRoom(roomList[0]);
       }
     }).catch(() => {});
   }, []);
@@ -786,68 +811,84 @@ export default function ChatPage() {
 
       {/* Room list */}
       <div style={{ flex: 1, overflowY: "auto", padding: "4px 0" }}>
-        {rooms.map(room => {
-          const isActive = activeRoom?.id === room.id;
-          const Icon = room.type === "announce" ? Megaphone : Hash;
-          const unread = unreadCounts[room.id] ?? 0;
-          const lastContent = room.lastMessage?.mediaType === "image" ? "📷 Ảnh"
-            : room.lastMessage?.mediaType === "file" ? "📎 File"
-            : (room.lastMessage?.content ?? "");
-          return (
-            <div key={room.id}
-              onClick={() => selectRoom(room)}
-              style={{
-                padding: isMobile ? "10px 14px" : "7px 12px", cursor: "pointer",
-                display: "flex", alignItems: "center", gap: isMobile ? 10 : 7,
-                background: isActive && !isMobile ? "rgba(14,165,233,0.08)" : "transparent",
-                borderLeft: `2px solid ${isActive && !isMobile ? "#0ea5e9" : "transparent"}`,
-              }}
-              onMouseEnter={e => { if (!isActive || isMobile) e.currentTarget.style.background = "#f0f9ff"; }}
-              onMouseLeave={e => { e.currentTarget.style.background = isActive && !isMobile ? "rgba(14,165,233,0.08)" : "transparent"; }}
-            >
-              {isMobile
-                ? <div style={{ width: 42, height: 42, borderRadius: "50%", background: "linear-gradient(135deg,#e0f2fe,#bae6fd)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                    {room.icon
-                      ? <span style={{ fontSize: 20 }}>{room.icon}</span>
-                      : <Icon size={18} style={{ color: "#0ea5e9" }} />
-                    }
-                  </div>
-                : <Icon size={11} style={{ color: isActive ? "#0ea5e9" : "#94a3b8", flexShrink: 0 }} />
-              }
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ fontSize: isMobile ? 13 : 11, color: isActive && !isMobile ? "#0c1a2e" : "#475569", fontWeight: isActive || unread > 0 ? 700 : 400, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {room.name}
-                </p>
-                {lastContent && (
-                  <p style={{ fontSize: isMobile ? 11 : 8, color: "#94a3b8", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginTop: 1 }}>
-                    {lastContent.startsWith("[Tin nhắn") ? "Đã xóa" : lastContent}
-                  </p>
-                )}
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
-                {room.lastMessage && (
-                  <span style={{ fontSize: 8, color: "#b0c4d8", whiteSpace: "nowrap" }}>
-                    {formatTime(room.lastMessage.createdAt)}
-                  </span>
-                )}
-                {unread > 0 && (
-                  <div style={{ minWidth: 18, height: 18, borderRadius: 9, background: "#0ea5e9", display: "flex", alignItems: "center", justifyContent: "center", padding: "0 4px" }}>
-                    <span style={{ fontSize: 7.5, fontWeight: 700, color: "#fff" }}>{unread > 99 ? "99+" : unread}</span>
-                  </div>
-                )}
-              </div>
-              {isAdmin && !isMobile && room.id !== "room_general" && room.id !== "room_announce" && (
-                <button onClick={e => { e.stopPropagation(); handleDeleteRoom(room.id); }}
-                  style={{ ...iconBtn, width: 18, height: 18, opacity: 0, transition: "opacity 0.1s" }}
-                  onMouseEnter={e => (e.currentTarget.style.opacity = "1")}
-                  onMouseLeave={e => (e.currentTarget.style.opacity = "0")}
-                >
-                  <X size={8} style={{ color: "#dc2626" }} />
-                </button>
+        {(() => {
+          // Split rooms: channels/announce first, then DM rooms (only visible to admin/manager)
+          const channelRooms = rooms.filter(r => r.type !== "direct");
+          const dmRooms = isAdmin ? rooms.filter(r => r.type === "direct") : [];
+          const sections: Array<{ label?: string; items: Room[] }> = [
+            { items: channelRooms },
+            ...(dmRooms.length > 0 ? [{ label: "TIN NHẮN RIÊNG", items: dmRooms }] : []),
+          ];
+          return sections.map(({ label, items }) => (
+            <div key={label ?? "channels"}>
+              {label && (
+                <p style={{ fontSize: 7.5, fontWeight: 700, color: "#94a3b8", letterSpacing: "0.15em", padding: "8px 12px 2px" }}>{label} · {items.length}</p>
               )}
+              {items.map(room => {
+                const isActive = activeRoom?.id === room.id;
+                const isDM = room.type === "direct";
+                const Icon = room.type === "announce" ? Megaphone : isDM ? MessageCircle : Hash;
+                const unread = unreadCounts[room.id] ?? 0;
+                const lastContent = room.lastMessage?.mediaType === "image" ? "📷 Ảnh"
+                  : room.lastMessage?.mediaType === "file" ? "📎 File"
+                  : (room.lastMessage?.content ?? "");
+                const canDelete = isAdmin && room.id !== "room_general" && room.id !== "room_announce";
+                return (
+                  <div key={room.id}
+                    onClick={() => selectRoom(room)}
+                    style={{
+                      padding: isMobile ? "10px 14px" : "7px 12px", cursor: "pointer",
+                      display: "flex", alignItems: "center", gap: isMobile ? 10 : 7,
+                      background: isActive && !isMobile ? "rgba(14,165,233,0.08)" : "transparent",
+                      borderLeft: `2px solid ${isActive && !isMobile ? "#0ea5e9" : "transparent"}`,
+                    }}
+                    onMouseEnter={e => { if (!isActive || isMobile) e.currentTarget.style.background = "#f0f9ff"; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = isActive && !isMobile ? "rgba(14,165,233,0.08)" : "transparent"; }}
+                  >
+                    {isMobile
+                      ? <div style={{ width: 42, height: 42, borderRadius: "50%", background: isDM ? "linear-gradient(135deg,#fef3c7,#fde68a)" : "linear-gradient(135deg,#e0f2fe,#bae6fd)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                          {room.icon
+                            ? <span style={{ fontSize: 20 }}>{room.icon}</span>
+                            : <Icon size={18} style={{ color: isDM ? "#C9A55A" : "#0ea5e9" }} />
+                          }
+                        </div>
+                      : <Icon size={11} style={{ color: isActive ? (isDM ? "#C9A55A" : "#0ea5e9") : "#94a3b8", flexShrink: 0 }} />
+                    }
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontSize: isMobile ? 13 : 11, color: isActive && !isMobile ? "#0c1a2e" : "#475569", fontWeight: isActive || unread > 0 ? 700 : 400, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {room.name}
+                      </p>
+                      {lastContent && (
+                        <p style={{ fontSize: isMobile ? 11 : 8, color: "#94a3b8", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginTop: 1 }}>
+                          {lastContent.startsWith("[Tin nhắn") ? "Đã xóa" : lastContent}
+                        </p>
+                      )}
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
+                      {room.lastMessage && (
+                        <span style={{ fontSize: 8, color: "#b0c4d8", whiteSpace: "nowrap" }}>
+                          {formatTime(room.lastMessage.createdAt)}
+                        </span>
+                      )}
+                      {unread > 0 && (
+                        <div style={{ minWidth: 18, height: 18, borderRadius: 9, background: "#0ea5e9", display: "flex", alignItems: "center", justifyContent: "center", padding: "0 4px" }}>
+                          <span style={{ fontSize: 7.5, fontWeight: 700, color: "#fff" }}>{unread > 99 ? "99+" : unread}</span>
+                        </div>
+                      )}
+                    </div>
+                    {canDelete && (
+                      <button onClick={e => { e.stopPropagation(); handleDeleteRoom(room.id); }}
+                        style={{ ...iconBtn, width: 18, height: 18, flexShrink: 0 }}
+                      >
+                        <X size={8} style={{ color: "#dc2626" }} />
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
             </div>
-          );
-        })}
+          ));
+        })()}
 
         {isAdmin && (
           <div style={{ padding: isMobile ? "6px 14px" : "4px 12px" }}>

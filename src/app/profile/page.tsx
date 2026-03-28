@@ -256,9 +256,105 @@ function ActivityItem({ item, members, currentUserId }: { item: Activity; member
   );
 }
 
+// ─── StaffProfileModal ─────────────────────────────────────────────────────────
+
+function StaffProfileModal({ member, onClose }: { member: TeamMember; onClose: () => void }) {
+  const rcfg = ROLE_CFG[member.role] ?? ROLE_CFG.staff;
+  const scfg = STATUS_CFG[(member.status as Status)] ?? STATUS_CFG.offline;
+  const RIcon = rcfg.icon;
+  return (
+    <motion.div
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      style={{ position: "fixed", inset: 0, zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 16px" }}
+      onClick={onClose}
+    >
+      <div style={{ position: "absolute", inset: 0, background: "rgba(12,26,46,0.55)", backdropFilter: "blur(4px)" }} />
+      <motion.div
+        initial={{ opacity: 0, y: 24, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 24, scale: 0.96 }}
+        transition={{ type: "spring", stiffness: 320, damping: 28 }}
+        onClick={e => e.stopPropagation()}
+        style={{
+          position: "relative", zIndex: 1, width: "100%", maxWidth: 360,
+          borderRadius: 20, overflow: "hidden",
+          boxShadow: "0 24px 80px rgba(12,26,46,0.28)",
+          border: "1px solid rgba(14,165,233,0.2)",
+        }}
+      >
+        {/* Cover */}
+        <div style={{ height: 90, background: `linear-gradient(135deg, ${rcfg.color}22, #e0f2fe)`, position: "relative", overflow: "hidden" }}>
+          <div style={{ position: "absolute", inset: 0, backgroundImage: "repeating-linear-gradient(0deg,transparent,transparent 18px,rgba(14,165,233,0.05) 18px,rgba(14,165,233,0.05) 19px),repeating-linear-gradient(90deg,transparent,transparent 18px,rgba(14,165,233,0.05) 18px,rgba(14,165,233,0.05) 19px)" }} />
+          <div style={{ position: "absolute", top: -30, right: -30, width: 100, height: 100, borderRadius: "50%", background: `radial-gradient(circle, ${rcfg.color}30 0%, transparent 70%)` }} />
+          <button onClick={onClose} style={{ position: "absolute", top: 10, right: 10, width: 28, height: 28, borderRadius: 8, border: "1px solid rgba(14,165,233,0.2)", background: "rgba(255,255,255,0.9)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+            <X size={12} style={{ color: "#64748b" }} />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div style={{ background: "#fff", padding: "0 20px 20px" }}>
+          {/* Avatar row */}
+          <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginTop: -28, marginBottom: 14 }}>
+            <div style={{ position: "relative" }}>
+              <div style={{ width: 64, height: 64, borderRadius: "50%", background: member.avatar ? "transparent" : "linear-gradient(135deg,#0c1a2e,#1e3a5f)", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", border: `3px solid ${rcfg.color}`, boxShadow: `0 0 0 3px #fff, 0 4px 16px ${rcfg.color}40` }}>
+                {member.avatar
+                  ? <img src={member.avatar} alt={member.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  : <span style={{ fontSize: 22, fontWeight: 700, color: "#C9A55A" }}>{member.name.slice(0,1).toUpperCase()}</span>
+                }
+              </div>
+              <div style={{ position: "absolute", bottom: 2, right: 2, width: 14, height: 14, borderRadius: "50%", background: scfg.color, border: "2px solid #fff", boxShadow: `0 0 6px ${scfg.color}` }} />
+            </div>
+            <div style={{ padding: "5px 12px", borderRadius: 20, background: `${rcfg.color}12`, border: `1px solid ${rcfg.color}30`, display: "flex", alignItems: "center", gap: 5, boxShadow: `0 0 8px ${rcfg.color}20` }}>
+              <RIcon size={10} style={{ color: rcfg.color }} />
+              <span style={{ fontSize: 9, fontWeight: 700, color: rcfg.color }}>{rcfg.label}</span>
+            </div>
+          </div>
+
+          {/* Name */}
+          <p style={{ fontSize: 16, fontWeight: 800, color: "var(--text-primary)", letterSpacing: "0.01em" }}>{member.name}</p>
+          {member.fullName && <p style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 2 }}>{member.fullName}</p>}
+          {member.username && <p style={{ fontSize: 9, color: "rgba(14,165,233,0.8)", marginTop: 1 }}>@{member.username}</p>}
+
+          {/* Status */}
+          <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 8 }}>
+            <div style={{ width: 7, height: 7, borderRadius: "50%", background: scfg.color, boxShadow: `0 0 5px ${scfg.color}` }} />
+            <span style={{ fontSize: 9.5, color: "var(--text-muted)" }}>{scfg.label}</span>
+          </div>
+
+          {/* Divider */}
+          <div style={{ height: 1, background: "var(--border)", margin: "14px 0" }} />
+
+          {/* Details */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {member.bio && (
+              <div style={{ padding: "8px 12px", borderRadius: 10, background: "var(--bg-base)", border: "1px solid var(--border)" }}>
+                <p style={{ fontSize: 10, color: "var(--text-muted)", fontStyle: "italic", lineHeight: 1.5 }}>"{member.bio}"</p>
+              </div>
+            )}
+            {member.phone && (
+              <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 10, background: "var(--bg-base)", border: "1px solid var(--border)" }}>
+                <Phone size={11} style={{ color: "#0ea5e9", flexShrink: 0 }} />
+                <span style={{ fontSize: 10, color: "var(--text-primary)" }}>{member.phone}</span>
+              </div>
+            )}
+            {member.createdAt && (
+              <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 10, background: "var(--bg-base)", border: "1px solid var(--border)" }}>
+                <Info size={11} style={{ color: "#64748b", flexShrink: 0 }} />
+                <span style={{ fontSize: 10, color: "var(--text-muted)" }}>Tham gia: {new Date(member.createdAt).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" })}</span>
+              </div>
+            )}
+            <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 10, background: member.active ? "rgba(16,185,129,0.06)" : "rgba(148,163,184,0.06)", border: `1px solid ${member.active ? "rgba(16,185,129,0.2)" : "rgba(148,163,184,0.2)"}` }}>
+              <div style={{ width: 7, height: 7, borderRadius: "50%", background: member.active ? "#10b981" : "#94a3b8" }} />
+              <span style={{ fontSize: 10, color: member.active ? "#10b981" : "#94a3b8", fontWeight: 600 }}>{member.active ? "Đang hoạt động" : "Đã vô hiệu hóa"}</span>
+            </div>
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
 // ─── TeamCard ──────────────────────────────────────────────────────────────────
 
-function TeamCard({ member, isMe }: { member: TeamMember; isMe: boolean }) {
+function TeamCard({ member, isMe, onView, canView }: { member: TeamMember; isMe: boolean; onView?: () => void; canView?: boolean }) {
   const rcfg = ROLE_CFG[member.role] ?? ROLE_CFG.staff;
   const scfg = STATUS_CFG[(member.status as Status)] ?? STATUS_CFG.offline;
   const RIcon = rcfg.icon;
@@ -266,6 +362,7 @@ function TeamCard({ member, isMe }: { member: TeamMember; isMe: boolean }) {
     <motion.div
       initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
       whileHover={{ y: -3, boxShadow: `0 8px 32px rgba(12,26,46,0.1)` }}
+      onClick={canView && !isMe ? onView : undefined}
       style={{
         padding: "16px", borderRadius: 16,
         border: `1px solid ${isMe ? "rgba(201,165,90,0.35)" : "var(--border)"}`,
@@ -273,6 +370,7 @@ function TeamCard({ member, isMe }: { member: TeamMember; isMe: boolean }) {
         boxShadow: "0 2px 8px rgba(14,165,233,0.05)",
         position: "relative", overflow: "hidden",
         transition: "box-shadow 0.2s",
+        cursor: canView && !isMe ? "pointer" : "default",
       }}
     >
       {/* Accent bar */}
@@ -932,6 +1030,7 @@ export default function ProfilePage() {
   const [msg, setMsg] = useState("");
   const [posting, setPosting] = useState(false);
   const [statusOpen, setStatusOpen] = useState(false);
+  const [viewingMember, setViewingMember] = useState<TeamMember | null>(null);
 
   const load = async () => {
     if (!currentUser) return;
@@ -1000,6 +1099,7 @@ export default function ProfilePage() {
   const RIcon = rcfg.icon;
   const isAdmin = currentUser.role === "admin";
   const isManager = currentUser.role === "admin" || currentUser.role === "manager";
+  const canViewProfiles = isManager;
 
   const myActivity = activity.filter(a => a.userId === currentUser.id);
   const msgCount = myActivity.filter(a => a.type === "message").length;
@@ -1019,6 +1119,12 @@ export default function ProfilePage() {
 
   return (
     <div style={{ position: "relative", maxWidth: 860, margin: "0 auto" }}>
+      {/* Staff profile modal */}
+      <AnimatePresence>
+        {viewingMember && (
+          <StaffProfileModal member={viewingMember} onClose={() => setViewingMember(null)} />
+        )}
+      </AnimatePresence>
 
       {/* ── Floating Background Orbs ─────────────────────────────────────── */}
       <FloatingOrb x="5%"  y="10%" size={280} color="rgba(14,165,233,0.18)"   delay={0}   />
@@ -1355,9 +1461,15 @@ export default function ProfilePage() {
                     {team.filter(m => m.active).length} THÀNH VIÊN ĐANG HOẠT ĐỘNG
                   </span>
                 </div>
+                {canViewProfiles && (
+                  <div style={{ fontSize: 9, color: "rgba(14,165,233,0.7)", padding: "0 2px 4px", display: "flex", alignItems: "center", gap: 4 }}>
+                    <Info size={9} style={{ color: "rgba(14,165,233,0.6)" }} />
+                    Nhấn vào thẻ nhân viên để xem hồ sơ chi tiết
+                  </div>
+                )}
                 {team.filter(m => m.active).map((m, i) => (
                   <motion.div key={m.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
-                    <TeamCard member={m} isMe={m.id === currentUser.id} />
+                    <TeamCard member={m} isMe={m.id === currentUser.id} canView={canViewProfiles} onView={() => setViewingMember(m)} />
                   </motion.div>
                 ))}
                 {team.filter(m => !m.active).length > 0 && (
@@ -1367,7 +1479,7 @@ export default function ProfilePage() {
                       <span style={{ fontSize: 9, color: "#94a3b8", letterSpacing: "0.15em", fontWeight: 600 }}>ĐÃ VÔ HIỆU HÓA</span>
                     </div>
                     {team.filter(m => !m.active).map(m => (
-                      <div key={m.id} style={{ opacity: 0.4 }}><TeamCard member={m} isMe={false} /></div>
+                      <div key={m.id} style={{ opacity: 0.4 }}><TeamCard member={m} isMe={false} canView={canViewProfiles} onView={() => setViewingMember(m)} /></div>
                     ))}
                   </>
                 )}

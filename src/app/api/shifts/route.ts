@@ -3,12 +3,14 @@ import {
   dbGetShiftTemplates, dbUpsertShiftTemplate, dbDeleteShiftTemplate,
   dbGetShiftSlots, dbUpsertShiftSlot, dbDeleteShiftSlot,
   dbGetShiftRegistrations,
+  ensureSupabaseSchema,
   DBShiftTemplate, DBShiftSlot,
 } from "@/lib/dbAdapter";
 
 // GET /api/shifts?dateFrom=2026-03-24&dateTo=2026-03-30
 // Returns: { templates, slots, registrations }
 export async function GET(req: NextRequest) {
+  await ensureSupabaseSchema();
   const { searchParams } = new URL(req.url);
   const dateFrom = searchParams.get("dateFrom") ?? new Date().toISOString().slice(0, 10);
   const dateTo   = searchParams.get("dateTo")   ?? new Date().toISOString().slice(0, 10);

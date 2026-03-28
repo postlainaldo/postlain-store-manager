@@ -1481,9 +1481,8 @@ function SectionView({ section, products, selectedPid, highlightPid, canEdit, su
                 ...sub.rows.map((row, ri) => ({ row, ri })),
                 { row: { type: lastRow?.type ?? "short" as const, products: [] }, ri: sub.rows.length },
               ];
-              const reversedRows = [...virtualRows].reverse();
               // Show row if: it has data OR it's the next empty row right after the last filled row
-              return reversedRows.map(({ row, ri }) => {
+              return virtualRows.map(({ row, ri }) => {
                 const hasProd = row.products.some(Boolean);
                 const isNextEmpty = ri === lastFilledRow + 1;
                 if (!hasProd && !isNextEmpty) return null;

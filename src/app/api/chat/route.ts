@@ -77,13 +77,17 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({ ok: true, id, createdAt: now });
 }
 
-// PUT /api/chat — create room
+// PUT /api/chat — create room (optionally with explicit id for idempotent upsert)
 export async function PUT(req: NextRequest) {
-  const { name, type, createdBy } = await req.json();
+  const { name, type, createdBy, id: requestedId } = await req.json();
   if (!name?.trim()) return NextResponse.json({ error: "Missing name" }, { status: 400 });
-  const id = `room_${Date.now()}`;
+  const id = requestedId?.trim() || `room_${Date.now()}`;
   const now = new Date().toISOString();
-  await dbCreateRoom(id, name.trim(), type ?? "channel", createdBy ?? "user_admin", now);
+  // Check if room already exists (idempotent)
+  const exists = await dbRoomExists(id);
+  if (!exists) {
+    await dbCreateRoom(id, name.trim(), type ?? "channel", createdBy ?? "user_admin", now);
+  }
   return NextResponse.json({ ok: true, id });
 }
 
