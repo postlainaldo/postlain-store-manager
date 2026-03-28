@@ -1008,16 +1008,27 @@ function DisplayTab({ products, storeSections, placeInSection, highlightPid, can
 
 // ─── Shelf Management Panel ───────────────────────────────────────────────────
 function ShelfManagePanel({
-  warehouseShelves, onAdd, onRemove, onAdjustSlots,
+  warehouseShelves, onAdd, onRemove, onRename,
 }: {
   warehouseShelves: WarehouseShelf[];
   onAdd: (type: "shoes" | "bags") => void;
   onRemove: (id: string) => void;
-  onAdjustSlots: (id: string, delta: number) => void;
+  onRename: (id: string, name: string) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
   const shoes = warehouseShelves.filter(s => s.shelfType === "shoes");
   const bags  = warehouseShelves.filter(s => s.shelfType === "bags");
+
+  function startEdit(shelf: WarehouseShelf) {
+    setEditingId(shelf.id);
+    setEditName(shelf.name);
+  }
+  function commitEdit(id: string) {
+    if (editName.trim()) onRename(id, editName.trim());
+    setEditingId(null);
+  }
 
   return (
     <div style={{ flexShrink: 0 }}>
@@ -1057,28 +1068,30 @@ function ShelfManagePanel({
                   <p style={{ fontSize: 8.5, fontWeight: 700, color: group.color, letterSpacing: "0.15em", marginBottom: 6 }}>{group.label} ({group.shelves.length})</p>
                   <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
                     {group.shelves.map(shelf => {
-                      const slotsPerTier = shelf.tiers[0]?.length ?? 25;
                       const filled = shelf.tiers.reduce((s, t) => s + t.filter(Boolean).length, 0);
+                      const isEditing = editingId === shelf.id;
                       return (
                         <div key={shelf.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 10, background: "#fff", border: `1px solid ${group.color}22` }}>
                           <div style={{ width: 3, height: 28, borderRadius: 2, background: group.color, flexShrink: 0 }} />
                           <div style={{ flex: 1, minWidth: 0 }}>
-                            <p style={{ fontSize: 11, fontWeight: 600, color: "#0c1a2e" }}>{shelf.name}</p>
-                            <p style={{ fontSize: 9, color: "#94a3b8", marginTop: 1 }}>{shelf.tiers.length} tầng · {slotsPerTier} ô/tầng · {filled} SP</p>
+                            {isEditing ? (
+                              <input
+                                autoFocus value={editName}
+                                onChange={e => setEditName(e.target.value)}
+                                onBlur={() => commitEdit(shelf.id)}
+                                onKeyDown={e => { if (e.key === "Enter") commitEdit(shelf.id); if (e.key === "Escape") setEditingId(null); }}
+                                style={{ width: "100%", fontSize: 11, fontWeight: 600, color: "#0c1a2e", border: "none", borderBottom: `1px solid ${group.color}`, outline: "none", background: "transparent", padding: "1px 0", fontFamily: "inherit" }}
+                              />
+                            ) : (
+                              <p style={{ fontSize: 11, fontWeight: 600, color: "#0c1a2e" }}>{shelf.name}</p>
+                            )}
+                            <p style={{ fontSize: 9, color: "#94a3b8", marginTop: 1 }}>{shelf.tiers.length} tầng · {filled} SP</p>
                           </div>
-                          {/* Adjust slots per tier */}
-                          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                            <span style={{ fontSize: 8, color: "#64748b" }}>Ô:</span>
-                            <button onClick={() => onAdjustSlots(shelf.id, -1)} disabled={slotsPerTier <= 5}
-                              style={{ width: 22, height: 22, borderRadius: 6, border: "1px solid #e2e8f0", background: slotsPerTier <= 5 ? "#f8fafc" : "#fff", cursor: slotsPerTier <= 5 ? "default" : "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                              <Minus size={10} style={{ color: slotsPerTier <= 5 ? "#cbd5e1" : "#0c1a2e" }} />
-                            </button>
-                            <span style={{ fontSize: 11, fontWeight: 700, color: "#0c1a2e", minWidth: 20, textAlign: "center" }}>{slotsPerTier}</span>
-                            <button onClick={() => onAdjustSlots(shelf.id, 1)} disabled={slotsPerTier >= 50}
-                              style={{ width: 22, height: 22, borderRadius: 6, border: "1px solid #e2e8f0", background: slotsPerTier >= 50 ? "#f8fafc" : "#fff", cursor: slotsPerTier >= 50 ? "default" : "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                              <Plus size={10} style={{ color: slotsPerTier >= 50 ? "#cbd5e1" : "#0c1a2e" }} />
-                            </button>
-                          </div>
+                          {/* Rename */}
+                          <button onClick={() => startEdit(shelf)}
+                            style={{ width: 26, height: 26, borderRadius: 7, border: "1px solid #e2e8f0", background: "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                            <Edit3 size={11} style={{ color: "#64748b" }} />
+                          </button>
                           {/* Remove shelf */}
                           <button onClick={() => { if (confirm(`Xoá kệ "${shelf.name}"?`)) onRemove(shelf.id); }}
                             style={{ width: 26, height: 26, borderRadius: 7, border: "1px solid #fee2e2", background: "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -1100,14 +1113,14 @@ function ShelfManagePanel({
 
 // ─── Warehouse Tab ────────────────────────────────────────────────────────────
 function WarehouseTab({ products, warehouseShelves, placeInWarehouse, highlightPid, canEdit,
-  addWarehouseShelf, removeWarehouseShelf, adjustShelfSlots, shelfIdx, onShelfChange,
+  addWarehouseShelf, removeWarehouseShelf, renameWarehouseShelf, shelfIdx, onShelfChange,
 }: {
   products: Product[]; warehouseShelves: WarehouseShelf[];
   placeInWarehouse: (shelfId: string, ti: number, si: number, pid: string | null) => void;
   highlightPid: string | null; canEdit: boolean;
   addWarehouseShelf: (type: "shoes" | "bags") => void;
   removeWarehouseShelf: (id: string) => void;
-  adjustShelfSlots: (id: string, delta: number) => void;
+  renameWarehouseShelf: (id: string, name: string) => void;
   shelfIdx: number; onShelfChange: (i: number) => void;
 }) {
   const [selectedPid, setSelectedPid] = useState<string | null>(null);
@@ -1218,7 +1231,7 @@ function WarehouseTab({ products, warehouseShelves, placeInWarehouse, highlightP
             warehouseShelves={warehouseShelves}
             onAdd={addWarehouseShelf}
             onRemove={removeWarehouseShelf}
-            onAdjustSlots={adjustShelfSlots}
+            onRename={renameWarehouseShelf}
           />
         )}
 
@@ -1339,9 +1352,14 @@ function ShelfView({ shelf, products, selectedPid, highlightPid, canEdit, onPlac
         <span style={{ fontSize: 9, color: "#64748b" }}>{filled}/{total}</span>
       </div>
       <div style={{ padding: "10px 12px", display: "flex", flexDirection: "column", gap: 8 }}>
-        {shelf.tiers.map((tier, ti) => (
+        {shelf.tiers.map((tier, ti) => {
+          const tierFilled = tier.filter(Boolean).length;
+          return (
           <div key={ti} style={{ display: "flex", alignItems: "flex-start", gap: 6 }}>
-            <span style={{ fontSize: 8, fontWeight: 600, color: "#94a3b8", width: 34, textAlign: "right", flexShrink: 0, paddingTop: 9 }}>{TIER_LABELS[ti]}</span>
+            <div style={{ width: 34, flexShrink: 0, paddingTop: 9, display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 1 }}>
+              <span style={{ fontSize: 8, fontWeight: 600, color: "#94a3b8" }}>{TIER_LABELS[ti]}</span>
+              <span style={{ fontSize: 7.5, fontWeight: 700, color: tierFilled > 0 ? "#0ea5e9" : "#cbd5e1" }}>{tierFilled}</span>
+            </div>
             <div style={{ display: "flex", flexWrap: "nowrap", gap: 4, overflowX: "auto", paddingBottom: 2 }}>
               {(() => {
                 // Append a virtual null slot so there's always one empty slot after the last filled one
@@ -1380,7 +1398,8 @@ function ShelfView({ shelf, products, selectedPid, highlightPid, canEdit, onPlac
               })()}
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
@@ -1620,7 +1639,7 @@ export default function VisualBoardPage() {
   const {
     products, storeSections, warehouseShelves,
     placeInSection, placeInWarehouse, fetchDbState,
-    currentUser, addWarehouseShelf, removeWarehouseShelf,
+    currentUser, addWarehouseShelf, removeWarehouseShelf, renameWarehouseShelf,
   } = useStore();
 
   const [subtab, setSubtab] = useState<Subtab>("display");
@@ -1632,28 +1651,6 @@ export default function VisualBoardPage() {
 
   // Permission: only admin/manager can edit
   const canEdit = currentUser?.role === "admin" || currentUser?.role === "manager";
-
-  // Adjust slots per tier for a shelf (client-side only — modifies tiers array width)
-  const adjustShelfSlots = useCallback((shelfId: string, delta: number) => {
-    // We use placeInWarehouse with a trick: adjust via Zustand directly
-    // This is a client-side layout change only
-    const store = useStore.getState();
-    const shelf = store.warehouseShelves.find(s => s.id === shelfId);
-    if (!shelf) return;
-    const current = shelf.tiers[0]?.length ?? 25;
-    const next = Math.max(5, Math.min(50, current + delta));
-    if (next === current) return;
-    // Rebuild tiers with new slot count
-    const newTiers = shelf.tiers.map(tier => {
-      if (next > current) return [...tier, ...Array(next - current).fill(null)];
-      return tier.slice(0, next);
-    });
-    useStore.setState(s => ({
-      warehouseShelves: s.warehouseShelves.map(sh =>
-        sh.id === shelfId ? { ...sh, tiers: newTiers } : sh
-      ),
-    }));
-  }, []);
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -1803,7 +1800,7 @@ export default function VisualBoardPage() {
               canEdit={canEdit}
               addWarehouseShelf={addWarehouseShelf}
               removeWarehouseShelf={removeWarehouseShelf}
-              adjustShelfSlots={adjustShelfSlots}
+              renameWarehouseShelf={renameWarehouseShelf}
               shelfIdx={shelfIdx} onShelfChange={setShelfIdx}
             />
           )}
