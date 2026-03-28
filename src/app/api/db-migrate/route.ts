@@ -157,6 +157,11 @@ export async function GET() {
       CREATE INDEX IF NOT EXISTS idx_shift_reg_user ON shift_registrations("userId")
     `;
 
+    // Grant PostgREST access (needed for Supabase REST layer)
+    for (const table of ["shift_templates", "shift_slots", "shift_registrations"]) {
+      await sql`GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE ${sql(table)} TO anon, authenticated, service_role`;
+    }
+
     await sql.end();
 
     // Verify tables exist via Supabase client
