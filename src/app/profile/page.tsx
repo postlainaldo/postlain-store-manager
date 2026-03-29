@@ -1092,10 +1092,9 @@ export default function ProfilePage() {
       const slots: Array<{ id: string; startTime: string; endTime: string }> = Array.isArray(shiftData?.slots) ? shiftData.slots : [];
       const registrations: Array<{ slotId: string; userId: string; status: string }> = Array.isArray(shiftData?.registrations) ? shiftData.registrations : [];
 
-      // Find slots where current user has approved registration
-      console.log("[shift-debug] currentUser.id:", currentUser.id, "registrations:", registrations);
+      // Find slots where current user has approved or pending registration (pending = registered but not yet reviewed)
       const myApprovedSlotIds = new Set(
-        registrations.filter(r => r.userId === currentUser.id && r.status === "approved").map(r => r.slotId)
+        registrations.filter(r => r.userId === currentUser.id && (r.status === "approved" || r.status === "pending")).map(r => r.slotId)
       );
 
       // Check if current VN time is inside any of those slots
