@@ -1859,7 +1859,17 @@ export async function dbGetShiftRegistrations(slotIds: string[]): Promise<DBShif
 }
 
 export async function dbUpsertShiftRegistrationBySlotUser(r: DBShiftRegistration): Promise<void> {
-  if (IS_SUPABASE) { await getSupabase().from("shift_registrations").upsert(r, { onConflict: "slotId,userId" }); return; }
+  if (IS_SUPABASE) {
+    // Try update first (if existing pending row for same slot+user); insert if not found
+    const sb = getSupabase();
+    const { data: existing } = await sb.from("shift_registrations").select("id").eq("slotId", r.slotId).eq("userId", r.userId).maybeSingle();
+    if (existing) {
+      await sb.from("shift_registrations").update({ status: r.status, note: r.note, updatedAt: r.updatedAt }).eq("slotId", r.slotId).eq("userId", r.userId);
+    } else {
+      await sb.from("shift_registrations").insert(r);
+    }
+    return;
+  }
   await ensureShiftTables();
   getDb().prepare(`INSERT INTO shift_registrations(id,"slotId","userId","userName",status,note,"createdAt","updatedAt") VALUES(@id,@slotId,@userId,@userName,@status,@note,@createdAt,@updatedAt) ON CONFLICT("slotId","userId") DO UPDATE SET status=excluded.status,note=excluded.note,"updatedAt"=excluded."updatedAt"`).run(r);
 }
