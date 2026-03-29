@@ -1360,11 +1360,13 @@ function ShelfView({ shelf, products, selectedPid, highlightPid, canEdit, onPlac
                 <span style={{ fontSize: 8, fontWeight: 600, color: "#94a3b8" }}>{TIER_LABELS[ti]}</span>
                 <span style={{ fontSize: 7.5, fontWeight: 700, color: tierFilled > 0 ? "#0ea5e9" : "#cbd5e1" }}>{tierFilled}</span>
               </div>
-              <div style={{ display: "flex", flexWrap: "nowrap", gap: 4, overflowX: "auto", paddingBottom: 2 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 4, overflowX: "auto", paddingBottom: 2 }}>
                 {(() => {
-                  // Show all filled slots + 1 empty slot at end (same as Display tab)
+                  // slots = all filled + 1 trailing empty
                   const slots: (string | null)[] = [...tier, null];
-                  return slots.map((pid, si) => {
+                  const colCount = slots.length; // number of visible columns
+
+                  const renderSlot = (pid: string | null, si: number, isTopRow: boolean) => {
                     const p = pid && typeof pid === "string" ? products.find(x => x.id === pid) ?? null : null;
                     const isHighlit = !!pid && pid === highlightPid;
                     if (p) return (
@@ -1373,25 +1375,39 @@ function ShelfView({ shelf, products, selectedPid, highlightPid, canEdit, onPlac
                           onRemove={canEdit ? () => onRemove(shelf.id, ti, si) : undefined} />
                       </div>
                     );
-                    if (!canEdit) return null;
+                    if (!canEdit) return <div key={si} style={{ width: 92, minHeight: 52, flexShrink: 0 }} />;
                     const canPlace = !!selectedPid;
-                    const canScan = !selectedPid;
+                    const canScan = !selectedPid && !isTopRow; // top row: only placeable, not scan-initiate
                     return (
                       <div key={si}
-                        onClick={() => { if (canPlace) onPlace(shelf.id, ti, si); else if (canScan) onScanToPlace(shelf.id, ti, si); }}
+                        onClick={() => { if (canPlace) onPlace(shelf.id, ti, si); else if (!isTopRow && canScan) onScanToPlace(shelf.id, ti, si); }}
                         style={{
                           width: 92, minHeight: 52, borderRadius: 9, flexShrink: 0,
                           border: `1.5px dashed ${canPlace ? "#0ea5e9" : "#e0f2fe"}`,
                           background: canPlace ? "rgba(14,165,233,0.05)" : "#f8fafc",
                           display: "flex", alignItems: "center", justifyContent: "center",
-                          cursor: canPlace || canScan ? "pointer" : "default",
+                          cursor: canPlace ? "pointer" : "default",
                         }}>
                         {canPlace
                           ? <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#0ea5e9", opacity: 0.7 }} />
                           : <ScanLine size={14} style={{ color: "#cbd5e1" }} />}
                       </div>
                     );
-                  });
+                  };
+
+                  // Top row: empty slot above each filled column only (not above trailing empty)
+                  const topRow = slots.slice(0, colCount - 1).map((pid, si) =>
+                    pid ? renderSlot(null, si, true) : <div key={si} style={{ width: 92, minHeight: 52, flexShrink: 0 }} />
+                  );
+                  // Bottom row: all slots + trailing empty
+                  const bottomRow = slots.map((pid, si) => renderSlot(pid, si, false));
+
+                  return (
+                    <>
+                      <div style={{ display: "flex", flexWrap: "nowrap", gap: 4 }}>{topRow}</div>
+                      <div style={{ display: "flex", flexWrap: "nowrap", gap: 4 }}>{bottomRow}</div>
+                    </>
+                  );
                 })()}
               </div>
             </div>
