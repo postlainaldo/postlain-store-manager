@@ -177,7 +177,7 @@ function PalexyWidget() {
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div>
           <p style={{ fontSize: 8.5, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.2em" }}>
-            Traffic Khách — 7 Ngày Gần Đây
+            Traffic Khách — Hôm Qua
           </p>
           {avgVisits > 0 && (
             <p style={{ fontSize: 10, color: "var(--text-secondary)", marginTop: 3 }}>
@@ -205,7 +205,7 @@ function PalexyWidget() {
               const h = Math.max(4, Math.round((d.visits / maxV) * 54));
               const dow = new Date(d.date + "T12:00:00").getDay();
               const isWknd = dow === 0 || dow === 6;
-              const isToday = d.date === new Date().toISOString().slice(0, 10);
+              const isYesterday = d.date === daysBack(1);
               return (
                 <div key={d.date} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
                   <motion.div
@@ -215,15 +215,15 @@ function PalexyWidget() {
                     title={`${d.date}: ${fmt(d.visits)} khách`}
                     style={{
                       width: "100%", height: h, borderRadius: "4px 4px 2px 2px",
-                      background: isToday
+                      background: isYesterday
                         ? "linear-gradient(180deg, var(--gold) 0%, rgba(201,165,90,0.45) 100%)"
                         : isWknd
                           ? "linear-gradient(180deg, var(--blue) 0%, rgba(14,165,233,0.4) 100%)"
                           : "linear-gradient(180deg, #7c3aed 0%, rgba(124,58,237,0.35) 100%)",
-                      boxShadow: isToday ? "0 0 10px rgba(201,165,90,0.3)" : "none",
+                      boxShadow: isYesterday ? "0 0 10px rgba(201,165,90,0.3)" : "none",
                     }}
                   />
-                  <span style={{ fontSize: 8, color: isToday ? "var(--gold)" : "var(--text-muted)", fontWeight: isToday ? 700 : 400 }}>
+                  <span style={{ fontSize: 8, color: isYesterday ? "var(--gold)" : "var(--text-muted)", fontWeight: isYesterday ? 700 : 400 }}>
                     {DOW[dow]}
                   </span>
                 </div>

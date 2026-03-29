@@ -1395,10 +1395,8 @@ function ShelfView({ shelf, products, selectedPid, highlightPid, canEdit, onPlac
                     );
                   };
 
-                  // Top row: empty slot above each filled column only (not above trailing empty)
-                  const topRow = slots.slice(0, colCount - 1).map((pid, si) =>
-                    pid ? renderSlot(null, si, true) : <div key={si} style={{ width: 92, minHeight: 52, flexShrink: 0 }} />
-                  );
+                  // Top row: only 1 empty slot at the start (column 0)
+                  const topRow = [renderSlot(null, 0, true)];
                   // Bottom row: all slots + trailing empty
                   const bottomRow = slots.map((pid, si) => renderSlot(pid, si, false));
 

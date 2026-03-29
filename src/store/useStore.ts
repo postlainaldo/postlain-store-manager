@@ -705,7 +705,17 @@ export const useStore = create<StoreState>()(
         })),
     }),
     {
-      name: "postlain-store-v3",
+      name: "postlain-store-v4",
+      version: 4,
+      migrate: (persisted: unknown, fromVersion: number) => {
+        const s = persisted as Record<string, unknown>;
+        // v4: force correct store name/address for Đà Lạt store
+        if (fromVersion < 4) {
+          s.storeName = "POSTLAIN ALDO GO! ĐÀ LẠT";
+          s.storeAddress = "Trung Tâm GO! Đà Lạt, Đà Lạt, Lâm Đồng";
+        }
+        return s;
+      },
       partialize: (s) => ({
         // Never persist large server-side data — always reload from DB
         // storeSections, warehouseShelves, products are excluded intentionally
