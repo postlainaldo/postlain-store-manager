@@ -1396,8 +1396,7 @@ function ShelfView({ shelf, products, selectedPid, highlightPid, canEdit, onPlac
               </div>
             </div>
             );
-          });
-        })()}
+          })}
       </div>
     </div>
   );
