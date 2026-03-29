@@ -1352,14 +1352,7 @@ function ShelfView({ shelf, products, selectedPid, highlightPid, canEdit, onPlac
         <span style={{ fontSize: 9, color: "#64748b" }}>{filled}/{total}</span>
       </div>
       <div style={{ padding: "10px 12px", display: "flex", flexDirection: "column", gap: 8 }}>
-        {(() => {
-          // Only show tiers that have data OR the next empty tier after the last filled one
-          const lastFilledTier = shelf.tiers.reduce((last, t, i) => t.some(Boolean) ? i : last, -1);
-          return shelf.tiers.map((tier, ti) => {
-            const hasTierProd = tier.some(Boolean);
-            const isNextEmptyTier = ti === lastFilledTier + 1;
-            if (!hasTierProd && !isNextEmptyTier) return null;
-
+        {shelf.tiers.map((tier, ti) => {
             const tierFilled = tier.filter(Boolean).length;
             return (
             <div key={ti} style={{ display: "flex", alignItems: "flex-start", gap: 6 }}>
@@ -1369,11 +1362,9 @@ function ShelfView({ shelf, products, selectedPid, highlightPid, canEdit, onPlac
               </div>
               <div style={{ display: "flex", flexWrap: "nowrap", gap: 4, overflowX: "auto", paddingBottom: 2 }}>
                 {(() => {
-                  // Always show one empty slot beyond the last filled slot in this tier
-                  const extTier = [...tier, null];
-                  const lastFilled = tier.reduce((last, pid, i) => (pid ? i : last), -1);
-                  const showUpTo = lastFilled + 1;
-                  return extTier.slice(0, showUpTo + 1).map((pid, si) => {
+                  // Show all filled slots + 1 empty slot at end (same as Display tab)
+                  const slots: (string | null)[] = [...tier, null];
+                  return slots.map((pid, si) => {
                     const p = pid && typeof pid === "string" ? products.find(x => x.id === pid) ?? null : null;
                     const isHighlit = !!pid && pid === highlightPid;
                     if (p) return (

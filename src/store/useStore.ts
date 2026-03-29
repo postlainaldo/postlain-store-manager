@@ -636,7 +636,7 @@ export const useStore = create<StoreState>()(
           warehouseShelves: s.warehouseShelves.map((shelf) => {
             if (shelf.id !== shelfId) return shelf;
             const tiers = shelf.tiers.map((tier, ti) =>
-              ti === tierIndex ? Array(25).fill(null) : tier
+              ti === tierIndex ? [] : tier
             );
             return { ...shelf, tiers };
           }),
@@ -646,7 +646,7 @@ export const useStore = create<StoreState>()(
         set((s) => ({
           warehouseShelves: s.warehouseShelves.map((shelf) =>
             shelf.id === shelfId
-              ? { ...shelf, tiers: Array(4).fill(null).map(() => Array(25).fill(null)) }
+              ? { ...shelf, tiers: Array(4).fill(null).map(() => []) }
               : shelf
           ),
         })),
@@ -673,7 +673,7 @@ export const useStore = create<StoreState>()(
           name,
           shelfType,
           number: num,
-          tiers: Array(4).fill(null).map(() => Array(25).fill(null)),
+          tiers: Array(4).fill(null).map(() => []),
           notes: "",
         };
         set(st => ({ warehouseShelves: [...st.warehouseShelves, newShelf] }));
