@@ -280,7 +280,8 @@ function ListView() {
     const ids = Array.from(selected);
     setConfirmBulk(false); setSelected(new Set());
     useStore.getState().setProducts(useStore.getState().products.filter(p => !ids.includes(p.id)));
-    const res = await fetch("/api/products", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ids }) });
+    const uid = useStore.getState().currentUser?.id ?? "";
+    const res = await fetch("/api/products", { method: "DELETE", headers: { "Content-Type": "application/json", "x-user-id": uid }, body: JSON.stringify({ ids }) });
     if (!res.ok) await fetchProducts();
   };
 

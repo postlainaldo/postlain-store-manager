@@ -258,9 +258,10 @@ export const useStore = create<StoreState>()(
       },
 
       addProduct: async (product) => {
+        const uid = get().currentUser?.id ?? "";
         const res = await fetch("/api/products", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", "x-user-id": uid },
           body: JSON.stringify(product),
         });
         if (res.ok) {
@@ -270,9 +271,10 @@ export const useStore = create<StoreState>()(
       },
 
       updateProduct: async (product) => {
+        const uid = get().currentUser?.id ?? "";
         const res = await fetch("/api/products", {
           method: "PUT",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", "x-user-id": uid },
           body: JSON.stringify(product),
         });
         if (res.ok) {
@@ -284,9 +286,10 @@ export const useStore = create<StoreState>()(
       },
 
       deleteProduct: async (id) => {
+        const uid = get().currentUser?.id ?? "";
         const res = await fetch("/api/products", {
           method: "DELETE",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", "x-user-id": uid },
           body: JSON.stringify({ id }),
         });
         if (res.ok) {
@@ -326,9 +329,10 @@ export const useStore = create<StoreState>()(
           createdAt: now,
           updatedAt: now,
         }));
+        const uid = get().currentUser?.id ?? "";
         const res = await fetch("/api/products/bulk", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", "x-user-id": uid },
           body: JSON.stringify(newProducts),
         });
         if (res.ok) {

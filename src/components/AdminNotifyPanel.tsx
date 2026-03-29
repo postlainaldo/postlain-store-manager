@@ -29,7 +29,7 @@ export default function AdminNotifyPanel() {
     setSending(true);
     await fetch("/api/notifications", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "x-user-id": currentUser.id },
       body: JSON.stringify({ ...form, createdBy: currentUser.id }),
     });
     setForm({ title: "", body: "", type: "info", pinned: false });
@@ -40,12 +40,12 @@ export default function AdminNotifyPanel() {
   };
 
   const handleDelete = async (id: string) => {
-    await fetch("/api/notifications", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
+    await fetch("/api/notifications", { method: "DELETE", headers: { "Content-Type": "application/json", "x-user-id": currentUser?.id ?? "" }, body: JSON.stringify({ id }) });
     load();
   };
 
   const handlePin = async (id: string, pinned: number) => {
-    await fetch("/api/notifications", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, pinned: pinned === 0 ? 1 : 0 }) });
+    await fetch("/api/notifications", { method: "PATCH", headers: { "Content-Type": "application/json", "x-user-id": currentUser?.id ?? "" }, body: JSON.stringify({ id, pinned: pinned === 0 ? 1 : 0 }) });
     load();
   };
 

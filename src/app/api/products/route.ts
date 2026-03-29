@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { dbGetProducts, dbGetProductBySku, dbUpsertProduct, dbDeleteProduct, dbDeleteProducts } from "@/lib/dbAdapter";
+import { dbGetProducts, dbGetProductBySku, dbUpsertProduct, dbDeleteProduct, dbDeleteProducts, dbGetUserRole } from "@/lib/dbAdapter";
 import type { Product } from "@/types";
 
+// GET is public — needed for visual board, scan, etc.
 export async function GET(req: NextRequest) {
   const sku = req.nextUrl.searchParams.get("sku");
   if (sku) {
@@ -12,13 +13,25 @@ export async function GET(req: NextRequest) {
   return NextResponse.json(await dbGetProducts());
 }
 
+async function requireManagerOrAbove(req: NextRequest): Promise<{ error: NextResponse } | null> {
+  const userId = req.headers.get("x-user-id");
+  if (!userId) return { error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
+  const role = await dbGetUserRole(userId);
+  if (!role || !["admin", "manager"].includes(role)) return { error: NextResponse.json({ error: "Forbidden" }, { status: 403 }) };
+  return null;
+}
+
 export async function POST(req: NextRequest) {
+  const auth = await requireManagerOrAbove(req);
+  if (auth) return auth.error;
   const product: Product = await req.json();
   const saved = await dbUpsertProduct(product);
   return NextResponse.json(saved, { status: 201 });
 }
 
 export async function PUT(req: NextRequest) {
+  const auth = await requireManagerOrAbove(req);
+  if (auth) return auth.error;
   const updated: Product = await req.json();
   updated.updatedAt = new Date().toISOString();
   const result = await dbUpsertProduct(updated);
@@ -26,6 +39,8 @@ export async function PUT(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
+  const auth = await requireManagerOrAbove(req);
+  if (auth) return auth.error;
   const body = await req.json();
   if (Array.isArray(body.ids)) {
     await dbDeleteProducts(body.ids);

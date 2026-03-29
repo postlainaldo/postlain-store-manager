@@ -560,7 +560,8 @@ export default function ChatPage() {
     setInput(val);
     if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
     sendTyping();
-    typingTimerRef.current = setTimeout(() => setTypingUsers([]), 4000);
+    // SSE will push updated list; only clear own name locally if no update arrives
+    typingTimerRef.current = setTimeout(() => setTypingUsers(prev => prev.filter(n => n !== (currentUser?.name ?? ""))), 5000);
   };
 
   const handleSend = async () => {
@@ -758,7 +759,7 @@ export default function ChatPage() {
 
   const onlineMembers = members.filter(m => m.status === "online" || m.status === "busy");
   const isReadOnly = activeRoom?.type === "announce" && !isAdmin;
-  const msgMap = new Map(messages.map(m => [m.id, m]));
+  const msgMap = useMemo(() => new Map(messages.map(m => [m.id, m])), [messages]);
   const pinnedSet = new Set(messages.filter(m => m.pinnedAt).map(m => m.id));
 
   // Date-grouped messages with separators
