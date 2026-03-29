@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { ShoppingBag, TrendingUp, Receipt, RefreshCw, BarChart2, Users, ChevronDown, ChevronUp } from "lucide-react";
+import { ShoppingBag, TrendingUp, Receipt, RefreshCw, BarChart2, ChevronDown, ChevronUp } from "lucide-react";
 import Link from "next/link";
 
 type Summary = { totalRevenue: number; orderCount: number; avgOrderValue: number };
@@ -87,14 +87,7 @@ export default function SalesPage() {
             </p>
           </div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <Link href="/customers" style={{
-              display: "flex", alignItems: "center", gap: 6, padding: "7px 14px",
-              borderRadius: 8, background: "var(--bg-surface)",
-              border: "1px solid var(--border)",
-              color: "var(--text-secondary)", fontSize: 13, textDecoration: "none",
-            }}>
-              <Users size={14} /> Khách hàng
-            </Link>
+
             <button onClick={syncPos} disabled={syncing} style={{
               display: "flex", alignItems: "center", gap: 6, padding: "7px 14px",
               borderRadius: 8, background: "rgba(201,165,90,0.08)",

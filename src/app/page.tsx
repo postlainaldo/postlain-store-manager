@@ -6,7 +6,7 @@ import { useStore } from "@/store/useStore";
 import {
   DollarSign, Eye, Package, Layers,
   ArrowRight, RefreshCw,
-  TrendingUp, Users, Activity,
+  TrendingUp, Activity,
 } from "lucide-react";
 import AdminNotifyPanel from "@/components/AdminNotifyPanel";
 import Link from "next/link";
@@ -463,7 +463,6 @@ export default function OverviewPage() {
                 {[
                   { href: "/report", label: "Báo Cáo Hôm Nay", icon: TrendingUp, color: "#C9A55A" },
                   { href: "/inventory", label: "Kho Hàng", icon: Package, color: "#7c3aed" },
-                  { href: "/customers", label: "Khách Hàng", icon: Users, color: "#16a34a" },
                 ].map(item => (
                   <Link key={item.href} href={item.href} style={{ textDecoration: "none" }}>
                     <motion.div whileHover={{ x: 3 }} style={{
