@@ -1076,15 +1076,13 @@ export default function ProfilePage() {
       fetch("/api/activity").then(r => r.json()),
     ]);
     setProfile(p);
-    setTeam(Array.isArray(t) ? t : []);
     setActivity(Array.isArray(a) ? a : []);
     const savedStatus = (p.status ?? "working") as Status;
     setForm({ name: p.name ?? "", fullName: p.fullName ?? "", bio: p.bio ?? "", phone: p.phone ?? "", status: savedStatus });
 
-    // Compute schedule-based shift status for today
+    // Compute schedule-based shift status for ALL members today
     try {
       const now = new Date();
-      // Browser already runs in local (VN) time — use local date and time directly
       const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
       const nowMins = now.getHours() * 60 + now.getMinutes();
 
@@ -1092,45 +1090,48 @@ export default function ProfilePage() {
       const slots: Array<{ id: string; startTime: string; endTime: string }> = Array.isArray(shiftData?.slots) ? shiftData.slots : [];
       const registrations: Array<{ slotId: string; userId: string; status: string }> = Array.isArray(shiftData?.registrations) ? shiftData.registrations : [];
 
-      // Find slots where current user has approved or pending registration (pending = registered but not yet reviewed)
-      const myApprovedSlotIds = new Set(
-        registrations.filter(r => r.userId === currentUser.id && (r.status === "approved" || r.status === "pending")).map(r => r.slotId)
-      );
+      const toMins = (t: string) => { const [h, m] = t.split(":").map(Number); return h * 60 + (m || 0); };
 
-      // Check if current VN time is inside any of those slots
-      const toMins = (t: string) => {
-        const [h, m] = t.split(":").map(Number);
-        return h * 60 + (m || 0);
+      // Compute shift status for any userId
+      const computeShiftStatus = (uid: string): "working" | "off_shift" | "day_off" => {
+        const mySlotIds = new Set(
+          registrations.filter(r => r.userId === uid && (r.status === "approved" || r.status === "pending")).map(r => r.slotId)
+        );
+        if (mySlotIds.size === 0) return "day_off";
+        const inShift = slots.some(slot => {
+          if (!mySlotIds.has(slot.id)) return false;
+          const start = toMins(slot.startTime);
+          const end   = toMins(slot.endTime);
+          return end > start ? (nowMins >= start && nowMins < end) : (nowMins >= start || nowMins < end);
+        });
+        return inShift ? "working" : "off_shift";
       };
-      const foundWorking = slots.some(slot => {
-        if (!myApprovedSlotIds.has(slot.id)) return false;
-        const start = toMins(slot.startTime);
-        const end   = toMins(slot.endTime);
-        if (end > start) {
-          // Normal shift: e.g. 08:00–17:00
-          return nowMins >= start && nowMins < end;
-        } else {
-          // Overnight shift: e.g. 22:00–06:00
-          return nowMins >= start || nowMins < end;
-        }
+
+      // Override team members' status from schedule (preserve leave statuses)
+      const teamData: TeamMember[] = (Array.isArray(t) ? t : []).map((m: TeamMember) => {
+        const isLeave = STATUS_CFG[m.status]?.group === "leave";
+        if (isLeave) return m;
+        return { ...m, status: computeShiftStatus(m.id) };
       });
+      setTeam(teamData);
 
-      // No slots assigned today → day_off (nghỉ tuần); has slots but not in window → off_shift
-      const hasShiftToday = myApprovedSlotIds.size > 0;
-      const autoShiftStatus: "working" | "off_shift" | "day_off" = foundWorking ? "working" : hasShiftToday ? "off_shift" : "day_off";
+      // Current user shift status
+      const myShiftStatus = computeShiftStatus(currentUser.id);
+      setScheduleStatus(myShiftStatus === "day_off" ? "off_shift" : myShiftStatus);
 
-      setScheduleStatus(autoShiftStatus === "day_off" ? "off_shift" : autoShiftStatus);
-      // Auto-update shift status (but not if user is on leave)
+      // Auto-update current user's status in DB
       const isLeave = STATUS_CFG[savedStatus]?.group === "leave";
       if (!isLeave) {
-        const autoStatus: Status = autoShiftStatus;
+        const autoStatus: Status = myShiftStatus;
         if (autoStatus !== savedStatus) {
           setForm(f => ({ ...f, status: autoStatus }));
           await fetch("/api/profile", { method: "PUT", headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ id: currentUser.id, name: p.name ?? "", fullName: p.fullName ?? "", bio: p.bio ?? "", phone: p.phone ?? "", status: autoStatus, avatar: p.avatar }) });
         }
       }
-    } catch { /* ignore schedule fetch errors */ }
+    } catch {
+      setTeam(Array.isArray(t) ? t : []);
+    }
 
     // Fetch personal sales stats from pos_orders salesperson field
     try {
@@ -1323,63 +1324,15 @@ export default function ProfilePage() {
 
               {/* Actions */}
               <div style={{ display: "flex", gap: 8, paddingTop: 52, paddingBottom: 4 }}>
-                <div style={{ position: "relative" }}>
-                  {/* Shift status: auto-computed (read-only badge); leave: manual dropdown */}
-                  {scfg.group === "shift" ? (
-                    <div style={{ display: "flex", alignItems: "center", gap: 5, padding: "7px 12px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--bg-base)" }}>
-                      <div style={{ position: "relative", width: 8, height: 8 }}>
-                        <div style={{ width: 8, height: 8, borderRadius: "50%", background: scfg.color }} />
-                        {form.status === "working" && (
-                          <motion.div animate={{ scale: [1, 2], opacity: [0.5, 0] }} transition={{ duration: 1.5, repeat: Infinity }}
-                            style={{ position: "absolute", inset: 0, borderRadius: "50%", background: scfg.color }} />
-                        )}
-                      </div>
-                      <span style={{ fontSize: 9, color: "var(--text-muted)", fontWeight: 600 }}>{scfg.label}</span>
-                      <motion.button
-                        whileHover={{ background: "rgba(14,165,233,0.08)" }} whileTap={{ scale: 0.97 }}
-                        onClick={() => setStatusOpen(v => !v)}
-                        title="Khai báo phép"
-                        style={{ marginLeft: 2, width: 18, height: 18, borderRadius: 5, border: "1px solid var(--border)", background: "transparent", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
-                        <ChevronDown size={9} style={{ color: "var(--text-muted)", transform: statusOpen ? "rotate(180deg)" : "none", transition: "transform 0.2s" }} />
-                      </motion.button>
-                    </div>
-                  ) : (
-                    <motion.button
-                      whileHover={{ background: "var(--bg-base)" }} whileTap={{ scale: 0.97 }}
-                      onClick={() => setStatusOpen(v => !v)}
-                      style={{ display: "flex", alignItems: "center", gap: 5, padding: "7px 12px", borderRadius: 10, border: `1px solid ${scfg.color}40`, background: `${scfg.color}08`, cursor: "pointer", fontFamily: "inherit" }}>
-                      <Circle size={8} style={{ color: scfg.color, fill: scfg.color }} />
-                      <span style={{ fontSize: 9, color: scfg.color, fontWeight: 600 }}>{scfg.label}</span>
-                      <ChevronDown size={9} style={{ color: scfg.color, transform: statusOpen ? "rotate(180deg)" : "none", transition: "transform 0.2s" }} />
-                    </motion.button>
-                  )}
-                  <AnimatePresence>
-                    {statusOpen && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -4, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -4, scale: 0.97 }}
-                        style={{ position: "absolute", right: 0, top: "calc(100% + 4px)", background: "#fff", border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden", zIndex: 50, minWidth: 200, boxShadow: "0 8px 32px rgba(0,0,0,0.12)" }}>
-                        <div style={{ padding: "8px 14px 4px", fontSize: 8.5, fontWeight: 700, color: "var(--text-muted)", letterSpacing: "0.09em", textTransform: "uppercase" }}>KHAI BÁO NGHỈ PHÉP</div>
-                        {/* Reset to auto shift status */}
-                        {scfg.group === "leave" && (
-                          <motion.button whileHover={{ background: "var(--bg-base)" }}
-                            onClick={() => { const s: Status = scheduleStatus ?? "off_shift"; handleStatusChange(s); }}
-                            style={{ width: "100%", padding: "7px 14px", display: "flex", alignItems: "center", gap: 8, background: "transparent", border: "none", cursor: "pointer", fontFamily: "inherit", textAlign: "left", borderTop: "1px solid var(--border)" }}>
-                            <Circle size={8} style={{ color: scheduleStatus === "working" ? "#10b981" : "#64748b", fill: scheduleStatus === "working" ? "#10b981" : "#64748b" }} />
-                            <span style={{ fontSize: 11, color: "var(--text-primary)", flex: 1 }}>Hủy phép — về lịch ca</span>
-                          </motion.button>
-                        )}
-                        <div style={{ borderTop: "1px solid var(--border)", marginTop: 2 }} />
-                        {Object.entries(STATUS_CFG).filter(([, cfg]) => cfg.group === "leave").map(([key, cfg]) => (
-                          <motion.button key={key} whileHover={{ background: "var(--bg-base)" }} onClick={() => handleStatusChange(key)}
-                            style={{ width: "100%", padding: "7px 14px", display: "flex", alignItems: "center", gap: 8, background: form.status === key ? "var(--bg-base)" : "transparent", border: "none", cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
-                            <Circle size={8} style={{ color: cfg.color, fill: cfg.color }} />
-                            <span style={{ fontSize: 11, color: "var(--text-primary)", flex: 1 }}>{cfg.label}</span>
-                            {form.status === key && <Check size={9} style={{ color: "#0ea5e9" }} />}
-                          </motion.button>
-                        ))}
-                      </motion.div>
+                <div style={{ display: "flex", alignItems: "center", gap: 5, padding: "7px 12px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--bg-base)" }}>
+                  <div style={{ position: "relative", width: 8, height: 8 }}>
+                    <div style={{ width: 8, height: 8, borderRadius: "50%", background: scfg.color }} />
+                    {form.status === "working" && (
+                      <motion.div animate={{ scale: [1, 2], opacity: [0.5, 0] }} transition={{ duration: 1.5, repeat: Infinity }}
+                        style={{ position: "absolute", inset: 0, borderRadius: "50%", background: scfg.color }} />
                     )}
-                  </AnimatePresence>
+                  </div>
+                  <span style={{ fontSize: 9, color: scfg.color, fontWeight: 600 }}>{scfg.label}</span>
                 </div>
                 <motion.button
                   whileHover={{ background: "rgba(220,38,38,0.08)" }} whileTap={{ scale: 0.96 }}
