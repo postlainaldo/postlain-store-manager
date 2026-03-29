@@ -46,8 +46,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           flexShrink: 0,
           display: "flex", alignItems: "center", gap: 8,
           padding: "6px 12px",
-          background: "#fff",
-          borderBottom: "1px solid #e0f2fe",
+          background: "#080e1a",
+          borderBottom: "1px solid rgba(201,165,90,0.18)",
+          boxShadow: "0 1px 0 rgba(201,165,90,0.10), 0 2px 12px rgba(8,14,26,0.4)",
           minHeight: 46,
         }}>
           <div style={{ flex: 1, minWidth: 0 }}>

@@ -35,15 +35,8 @@ export default function TopNav() {
 
   return (
     <header
-      className="hidden md:flex flex-shrink-0 items-center gap-0"
-      style={{
-        height: 52,
-        background: "#ffffff",
-        borderBottom: "1px solid #bae6fd",
-        padding: "0 20px",
-        boxShadow: "0 1px 4px rgba(12,26,46,0.06)",
-        zIndex: 40,
-      }}
+      className="topnav hidden md:flex flex-shrink-0 items-center gap-0"
+      style={{ height: 52, padding: "0 20px", zIndex: 40 }}
     >
       {/* ── Logo ─────────────────────────────────────────── */}
       <Link
@@ -52,15 +45,16 @@ export default function TopNav() {
       >
         <div style={{
           width: 30, height: 30, borderRadius: 8,
-          border: "1.5px solid #C9A55A",
+          border: "1.5px solid rgba(201,165,90,0.55)",
           background: "linear-gradient(135deg, #0c1a2e 0%, #1e3a5f 100%)",
           display: "flex", alignItems: "center", justifyContent: "center",
+          boxShadow: "0 0 12px rgba(201,165,90,0.18)",
         }}>
           <span style={{ fontSize: 12, fontWeight: 800, color: "#C9A55A", letterSpacing: "0.06em" }}>P</span>
         </div>
         <div style={{ lineHeight: 1 }}>
           <p style={{ fontSize: 9.5, fontWeight: 800, color: "#C9A55A", letterSpacing: "0.48em" }}>POSTLAIN</p>
-          <p style={{ fontSize: 7, color: "#94a3b8", letterSpacing: "0.2em", marginTop: 3 }}>
+          <p style={{ fontSize: 7, color: "rgba(255,255,255,0.35)", letterSpacing: "0.2em", marginTop: 3 }}>
             {storeSubtitle || "QUẢN LÝ CỬA HÀNG"}
           </p>
         </div>
@@ -72,23 +66,15 @@ export default function TopNav() {
           const active = isActive(item.href, item.exact);
           const Icon = item.icon;
           return (
-            <Link key={item.id} href={item.href} style={{ textDecoration: "none" }}>
-              <div style={{
-                display: "flex", alignItems: "center", gap: 6,
-                padding: "5px 12px", borderRadius: 8,
-                background: active ? "rgba(14,165,233,0.08)" : "transparent",
-                border: `1px solid ${active ? "rgba(14,165,233,0.2)" : "transparent"}`,
-                cursor: "pointer", transition: "all 0.12s",
-              }}>
-                <Icon size={13} strokeWidth={active ? 2 : 1.5} style={{ color: active ? "#0ea5e9" : "#64748b" }} />
-                <span style={{
-                  fontSize: 9, fontWeight: active ? 700 : 500,
-                  color: active ? "#0ea5e9" : "#64748b",
-                  letterSpacing: "0.1em",
-                }}>
-                  {item.label.toUpperCase()}
-                </span>
-              </div>
+            <Link
+              key={item.id}
+              href={item.href}
+              className={`topnav-link${active ? " active" : ""}`}
+            >
+              <Icon size={13} strokeWidth={active ? 2 : 1.5} className="topnav-icon" />
+              <span className="topnav-label">
+                {item.label.toUpperCase()}
+              </span>
             </Link>
           );
         })}
@@ -106,17 +92,27 @@ export default function TopNav() {
               <div style={{
                 display: "flex", alignItems: "center", gap: 7,
                 padding: "4px 10px 4px 6px", borderRadius: 20,
-                background: "rgba(14,165,233,0.06)",
-                border: "1px solid rgba(14,165,233,0.2)",
-                cursor: "pointer", transition: "all 0.12s",
-              }}>
+                background: "rgba(201,165,90,0.08)",
+                border: "1px solid rgba(201,165,90,0.22)",
+                cursor: "pointer",
+                transition: "background 0.18s, box-shadow 0.18s",
+              }}
+              onMouseEnter={e => {
+                (e.currentTarget as HTMLDivElement).style.background = "rgba(201,165,90,0.14)";
+                (e.currentTarget as HTMLDivElement).style.boxShadow = "0 0 14px rgba(201,165,90,0.18)";
+              }}
+              onMouseLeave={e => {
+                (e.currentTarget as HTMLDivElement).style.background = "rgba(201,165,90,0.08)";
+                (e.currentTarget as HTMLDivElement).style.boxShadow = "none";
+              }}
+              >
                 {/* Avatar */}
                 <div style={{ position: "relative", flexShrink: 0 }}>
                   <div style={{
                     width: 24, height: 24, borderRadius: "50%",
-                    background: "linear-gradient(135deg, #0c1a2e, #1e3a5f)",
+                    background: "linear-gradient(135deg, #1e3a5f, #0c2a4a)",
                     display: "flex", alignItems: "center", justifyContent: "center",
-                    border: "1.5px solid #bae6fd",
+                    border: "1.5px solid rgba(201,165,90,0.4)",
                   }}>
                     <span style={{ fontSize: 9, fontWeight: 700, color: "#C9A55A" }}>
                       {currentUser.name.slice(0, 1).toUpperCase()}
@@ -126,12 +122,12 @@ export default function TopNav() {
                   <div style={{
                     position: "absolute", bottom: -1, right: -1,
                     width: 7, height: 7, borderRadius: "50%",
-                    background: "#10b981", border: "1.5px solid #fff",
+                    background: "#10b981", border: "1.5px solid #080e1a",
                   }} />
                 </div>
                 <div style={{ lineHeight: 1 }}>
-                  <p style={{ fontSize: 10, fontWeight: 600, color: "#0c1a2e" }}>{currentUser.name}</p>
-                  <p style={{ fontSize: 7.5, color: "#94a3b8", marginTop: 1.5, letterSpacing: "0.08em" }}>
+                  <p style={{ fontSize: 10, fontWeight: 600, color: "rgba(255,255,255,0.88)" }}>{currentUser.name}</p>
+                  <p style={{ fontSize: 7.5, color: "rgba(201,165,90,0.7)", marginTop: 1.5, letterSpacing: "0.08em" }}>
                     {currentUser.role === "admin" ? "ADMIN" : currentUser.role === "manager" ? "QUẢN LÝ" : "NHÂN VIÊN"}
                   </p>
                 </div>
@@ -144,9 +140,19 @@ export default function TopNav() {
               title="Đăng xuất"
               style={{
                 width: 30, height: 30, borderRadius: 8,
-                border: "1px solid #fee2e2", background: "#fff5f5",
+                border: "1px solid rgba(239,68,68,0.25)",
+                background: "rgba(239,68,68,0.08)",
                 display: "flex", alignItems: "center", justifyContent: "center",
                 cursor: "pointer",
+                transition: "background 0.15s, border-color 0.15s",
+              }}
+              onMouseEnter={e => {
+                (e.currentTarget as HTMLButtonElement).style.background = "rgba(239,68,68,0.16)";
+                (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(239,68,68,0.45)";
+              }}
+              onMouseLeave={e => {
+                (e.currentTarget as HTMLButtonElement).style.background = "rgba(239,68,68,0.08)";
+                (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(239,68,68,0.25)";
               }}
             >
               <LogOut size={12} style={{ color: "#ef4444" }} />
@@ -156,7 +162,10 @@ export default function TopNav() {
           <Link href="/login" style={{ textDecoration: "none" }}>
             <div style={{
               display: "flex", alignItems: "center", gap: 6,
-              padding: "6px 14px", borderRadius: 8, background: "#0ea5e9", cursor: "pointer",
+              padding: "6px 14px", borderRadius: 8,
+              background: "linear-gradient(135deg, #0ea5e9, #0284c7)",
+              cursor: "pointer",
+              boxShadow: "0 2px 12px rgba(14,165,233,0.3)",
             }}>
               <LogIn size={11} style={{ color: "#fff" }} />
               <span style={{ fontSize: 9, fontWeight: 700, color: "#fff", letterSpacing: "0.12em" }}>ĐĂNG NHẬP</span>

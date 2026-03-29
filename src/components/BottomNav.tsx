@@ -28,20 +28,17 @@ export default function BottomNav() {
 
   return (
     <nav
+      className="bottomnav md:hidden"
       style={{
         position: "fixed",
         bottom: 0, left: 0, right: 0,
         zIndex: 50,
-        background: "#ffffff",
-        borderTop: "1px solid #bae6fd",
         display: "flex",
         alignItems: "stretch",
         height: `calc(56px + env(safe-area-inset-bottom, 0px))`,
         paddingBottom: "env(safe-area-inset-bottom, 0px)",
-        boxShadow: "0 -2px 16px rgba(12,26,46,0.07)",
         overflowX: "auto",
       }}
-      className="md:hidden"
     >
       {NAV_ITEMS.map(item => {
         const active = isActive(item.href, item.exact);
@@ -52,35 +49,26 @@ export default function BottomNav() {
           <Link
             key={item.id}
             href={item.href}
-            style={{
-              flex: 1, textDecoration: "none",
-              display: "flex", flexDirection: "column",
-              alignItems: "center", justifyContent: "center",
-              gap: 3, position: "relative",
-              minWidth: 44, // prevent squishing below readable size
-              padding: "0 2px",
-            }}
+            className={`bottomnav-item${active ? " active" : ""}`}
           >
-            {/* Active top indicator */}
-            {active && (
-              <span style={{
-                position: "absolute", top: 0, left: "50%", transform: "translateX(-50%)",
-                width: 24, height: 2, borderRadius: "0 0 3px 3px",
-                background: "linear-gradient(90deg, #0ea5e9, #38bdf8)",
-              }} />
-            )}
+            {/* Active top indicator dot */}
+            <span className="bottomnav-dot" />
 
             {/* Icon */}
             {isProfile && currentUser ? (
-              <div style={{
-                width: 20, height: 20, borderRadius: "50%",
-                background: active
-                  ? "linear-gradient(135deg, #0ea5e9, #0284c7)"
-                  : "linear-gradient(135deg, #0c1a2e, #1e3a5f)",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                border: `1.5px solid ${active ? "#0ea5e9" : "#bae6fd"}`,
-                flexShrink: 0,
-              }}>
+              <div
+                className="bottomnav-icon"
+                style={{
+                  width: 20, height: 20, borderRadius: "50%",
+                  background: active
+                    ? "linear-gradient(135deg, #C9A55A, #A07830)"
+                    : "linear-gradient(135deg, #1e3a5f, #0c2a4a)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  border: `1.5px solid ${active ? "rgba(201,165,90,0.6)" : "rgba(255,255,255,0.12)"}`,
+                  flexShrink: 0,
+                  boxShadow: active ? "0 0 10px rgba(201,165,90,0.3)" : "none",
+                }}
+              >
                 <span style={{ fontSize: 8, fontWeight: 700, color: active ? "#fff" : "#C9A55A" }}>
                   {currentUser.name.slice(0, 1).toUpperCase()}
                 </span>
@@ -89,23 +77,16 @@ export default function BottomNav() {
               <Icon
                 size={18}
                 strokeWidth={active ? 2 : 1.5}
-                style={{ color: active ? "#0ea5e9" : "#94a3b8", flexShrink: 0 }}
+                className="bottomnav-icon"
+                style={{
+                  color: active ? "#C9A55A" : "rgba(255,255,255,0.32)",
+                  flexShrink: 0,
+                  filter: active ? "drop-shadow(0 0 4px rgba(201,165,90,0.4))" : "none",
+                }}
               />
             )}
 
-            <span style={{
-              fontSize: 8,
-              fontWeight: active ? 700 : 500,
-              letterSpacing: "0.02em",
-              color: active ? "#0ea5e9" : "#94a3b8",
-              whiteSpace: "nowrap",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              maxWidth: "100%",
-              textAlign: "center",
-            }}>
-              {item.label}
-            </span>
+            <span className="bottomnav-label">{item.label}</span>
           </Link>
         );
       })}
