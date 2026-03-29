@@ -1093,6 +1093,7 @@ export default function ProfilePage() {
       const registrations: Array<{ slotId: string; userId: string; status: string }> = Array.isArray(shiftData?.registrations) ? shiftData.registrations : [];
 
       // Find slots where current user has approved registration
+      console.log("[shift-debug] currentUser.id:", currentUser.id, "registrations:", registrations);
       const myApprovedSlotIds = new Set(
         registrations.filter(r => r.userId === currentUser.id && r.status === "approved").map(r => r.slotId)
       );
@@ -1115,11 +1116,15 @@ export default function ProfilePage() {
         }
       });
 
-      setScheduleStatus(foundWorking ? "working" : "off_shift");
+      // No slots assigned today → day_off (nghỉ tuần); has slots but not in window → off_shift
+      const hasShiftToday = myApprovedSlotIds.size > 0;
+      const autoShiftStatus: "working" | "off_shift" | "day_off" = foundWorking ? "working" : hasShiftToday ? "off_shift" : "day_off";
+
+      setScheduleStatus(autoShiftStatus === "day_off" ? "off_shift" : autoShiftStatus);
       // Auto-update shift status (but not if user is on leave)
       const isLeave = STATUS_CFG[savedStatus]?.group === "leave";
       if (!isLeave) {
-        const autoStatus: Status = foundWorking ? "working" : "off_shift";
+        const autoStatus: Status = autoShiftStatus;
         if (autoStatus !== savedStatus) {
           setForm(f => ({ ...f, status: autoStatus }));
           await fetch("/api/profile", { method: "PUT", headers: { "Content-Type": "application/json" },
