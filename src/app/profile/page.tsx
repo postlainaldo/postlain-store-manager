@@ -1154,6 +1154,35 @@ export default function ProfilePage() {
 
   useEffect(() => { load(); }, [currentUser]);
 
+  // Re-check shift status every 60 seconds (shift boundaries can change while page is open)
+  useEffect(() => {
+    if (!currentUser) return;
+    const refreshShift = async () => {
+      try {
+        const now = new Date();
+        const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+        const nowMins = now.getHours() * 60 + now.getMinutes();
+        const shiftData = await fetch(`/api/shifts?dateFrom=${today}&dateTo=${today}`).then(r => r.json()).catch(() => ({}));
+        const slots: Array<{ id: string; startTime: string; endTime: string }> = Array.isArray(shiftData?.slots) ? shiftData.slots : [];
+        const registrations: Array<{ slotId: string; userId: string; status: string }> = Array.isArray(shiftData?.registrations) ? shiftData.registrations : [];
+        const toMins = (t: string) => { const [h, m] = t.split(":").map(Number); return h * 60 + (m || 0); };
+        const mySlotIds = new Set(
+          registrations.filter(r => r.userId === currentUser.id && (r.status === "approved" || r.status === "pending")).map(r => r.slotId)
+        );
+        if (mySlotIds.size === 0) { setScheduleStatus("off_shift"); return; }
+        const inShift = slots.some(slot => {
+          if (!mySlotIds.has(slot.id)) return false;
+          const start = toMins(slot.startTime);
+          const end = toMins(slot.endTime);
+          return end > start ? (nowMins >= start && nowMins < end) : (nowMins >= start || nowMins < end);
+        });
+        setScheduleStatus(inShift ? "working" : "off_shift");
+      } catch { /* ignore */ }
+    };
+    const interval = setInterval(refreshShift, 60000);
+    return () => clearInterval(interval);
+  }, [currentUser?.id]);
+
   useEffect(() => {
     setLbLoading(true);
     fetch(`/api/odoo/advisor-sales?month=${lbMonth}`)
