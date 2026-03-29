@@ -4,7 +4,7 @@ import {
   dbCreateRoom, dbDeleteRoom, dbSoftDeleteMessage,
   dbGetMessageSender, dbUpdateReactions, dbGetUserRole,
   dbPinMessage, dbGetPinnedMessages, dbSearchMessages,
-  dbClearRoomMessages,
+  dbClearRoomMessages, dbRevokeMessage, dbMarkRead, dbGetReadReceipts,
 } from "@/lib/dbAdapter";
 
 // GET /api/chat?rooms=1             — list rooms with last message + count
@@ -28,6 +28,11 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(msgs);
   }
 
+  if (searchParams.get("receipts")) {
+    const receipts = await dbGetReadReceipts(roomId);
+    return NextResponse.json(receipts);
+  }
+
   const search = searchParams.get("search");
   if (search?.trim()) {
     const msgs = await dbSearchMessages(roomId, search.trim());
@@ -43,6 +48,14 @@ export async function GET(req: NextRequest) {
 // POST /api/chat/typing — broadcast typing indicator (handled inline below via ?typing=1)
 export async function POST(req: NextRequest) {
   const { searchParams } = req.nextUrl;
+
+  // ── Mark room as read ────────────────────────────────────────────────────────
+  if (searchParams.get("markRead")) {
+    const { roomId, userId } = await req.json();
+    if (!roomId || !userId) return NextResponse.json({ ok: false });
+    await dbMarkRead(roomId, userId);
+    return NextResponse.json({ ok: true });
+  }
 
   // ── Typing indicator ────────────────────────────────────────────────────────
   if (searchParams.get("typing")) {
@@ -143,6 +156,18 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
     await dbPinMessage(msgId, userId, pin === true);
+    return NextResponse.json({ ok: true });
+  }
+
+  // ── Revoke message (show "thu hồi" text, keep visible, own messages only within 15 min) ──
+  if (action === "revoke") {
+    const msg = await dbGetMessageSender(msgId);
+    if (!msg) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    const role = await dbGetUserRole(userId);
+    const isAdmin = role === "admin" || role === "manager";
+    if (msg.userId !== userId && !isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    const { found } = await dbRevokeMessage(msgId, new Date().toISOString());
+    if (!found) return NextResponse.json({ error: "Not found" }, { status: 404 });
     return NextResponse.json({ ok: true });
   }
 

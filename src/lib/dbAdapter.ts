@@ -60,6 +60,7 @@ export type DBMessage = {
   reactions?: string | null;
   pinnedAt?: string | null;
   pinnedBy?: string | null;
+  revokedAt?: string | null;
 };
 
 export type DBRoom = {
@@ -180,12 +181,21 @@ export async function ensureSupabaseSchema() {
       "replyToId" TEXT,
       reactions   TEXT DEFAULT '{}',
       "pinnedAt"  TEXT,
-      "pinnedBy"  TEXT
+      "pinnedBy"  TEXT,
+      "revokedAt" TEXT
     );
     CREATE INDEX IF NOT EXISTS idx_chat_msg_room ON chat_messages("roomId", "createdAt" DESC);
     ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS "editedAt" TEXT;
     ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS "pinnedAt" TEXT;
     ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS "pinnedBy" TEXT;
+    ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS "revokedAt" TEXT;
+
+    CREATE TABLE IF NOT EXISTS chat_read_receipts (
+      "roomId"     TEXT NOT NULL,
+      "userId"     TEXT NOT NULL,
+      "lastReadAt" TEXT NOT NULL,
+      PRIMARY KEY ("roomId", "userId")
+    );
 
     CREATE TABLE IF NOT EXISTS notifications (
       id          TEXT PRIMARY KEY,
@@ -866,6 +876,43 @@ export async function dbSearchMessages(roomId: string, query: string): Promise<D
   return getDb().prepare(
     "SELECT * FROM chat_messages WHERE roomId=? AND deletedAt IS NULL AND content LIKE ? ORDER BY createdAt ASC LIMIT 50"
   ).all(roomId, q) as DBMessage[];
+}
+
+export async function dbRevokeMessage(msgId: string, revokedAt: string): Promise<{ found: boolean }> {
+  if (IS_SUPABASE) {
+    const { data: msg } = await getSupabase().from("chat_messages").select("userId").eq("id", msgId).single();
+    if (!msg) return { found: false };
+    await getSupabase().from("chat_messages")
+      .update({ content: "[Tin nhắn đã được thu hồi]", revokedAt, mediaUrl: null })
+      .eq("id", msgId);
+    return { found: true };
+  }
+  const msg = getDb().prepare("SELECT userId FROM chat_messages WHERE id=?").get(msgId) as { userId: string } | undefined;
+  if (!msg) return { found: false };
+  getDb().prepare("UPDATE chat_messages SET content=?, revokedAt=?, mediaUrl=NULL WHERE id=?")
+    .run("[Tin nhắn đã được thu hồi]", revokedAt, msgId);
+  return { found: true };
+}
+
+export async function dbMarkRead(roomId: string, userId: string): Promise<void> {
+  const now = new Date().toISOString();
+  if (IS_SUPABASE) {
+    await getSupabase().from("chat_read_receipts").upsert({ roomId, userId, lastReadAt: now }, { onConflict: "roomId,userId" });
+    return;
+  }
+  getDb().prepare(
+    "INSERT INTO chat_read_receipts (roomId, userId, lastReadAt) VALUES (?,?,?) ON CONFLICT(roomId, userId) DO UPDATE SET lastReadAt=excluded.lastReadAt"
+  ).run(roomId, userId, now);
+}
+
+export async function dbGetReadReceipts(roomId: string): Promise<{ userId: string; lastReadAt: string }[]> {
+  if (IS_SUPABASE) {
+    const { data } = await getSupabase().from("chat_read_receipts").select("userId, lastReadAt").eq("roomId", roomId);
+    return (data ?? []) as { userId: string; lastReadAt: string }[];
+  }
+  return getDb().prepare(
+    "SELECT userId, lastReadAt FROM chat_read_receipts WHERE roomId=?"
+  ).all(roomId) as { userId: string; lastReadAt: string }[];
 }
 
 // ─── Notifications ────────────────────────────────────────────────────────────

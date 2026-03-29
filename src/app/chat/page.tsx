@@ -10,6 +10,7 @@ import {
   Smile, ChevronLeft, Paperclip,
   File as FileIcon, Download, Reply, Pencil, Info,
   Pin, Search, Image as ImageIcon, Users, MessageCircle,
+  RotateCcw, Eye, ZoomIn,
 } from "lucide-react";
 import { useStore } from "@/store/useStore";
 
@@ -32,11 +33,14 @@ type Message = {
   reactions?: string | null;
   pinnedAt?: string | null;
   pinnedBy?: string | null;
+  revokedAt?: string | null;
 };
+type ReadReceipt = { userId: string; lastReadAt: string };
 type Member = {
   id: string; name: string; avatar: string | null;
   status: string; role: string;
 };
+type ChatToast = { id: string; roomName: string; msgPreview: string };
 
 const ROLE_CFG: Record<string, { color: string; icon: typeof User }> = {
   admin:   { color: "#C9A55A", icon: Crown },
@@ -121,16 +125,59 @@ const iconBtn: React.CSSProperties = {
   justifyContent: "center", cursor: "pointer",
 };
 
+// ─── Image Lightbox ───────────────────────────────────────────────────────────
+
+function ImageLightbox({ src, onClose }: { src: string; onClose: () => void }) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: "fixed", inset: 0, zIndex: 1000, background: "rgba(0,0,0,0.85)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        backdropFilter: "blur(4px)",
+      }}
+    >
+      <div onClick={e => e.stopPropagation()} style={{ position: "relative", maxWidth: "90vw", maxHeight: "90vh" }}>
+        <img src={src} alt="" style={{ maxWidth: "90vw", maxHeight: "90vh", objectFit: "contain", borderRadius: 12, boxShadow: "0 8px 48px rgba(0,0,0,0.6)", display: "block" }} />
+        <button onClick={onClose} style={{ position: "absolute", top: -14, right: -14, width: 32, height: 32, borderRadius: "50%", background: "#fff", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 2px 8px rgba(0,0,0,0.3)" }}>
+          <X size={16} style={{ color: "#0c1a2e" }} />
+        </button>
+        <a href={src} download target="_blank" rel="noreferrer"
+          onClick={e => e.stopPropagation()}
+          style={{ position: "absolute", bottom: -14, right: -14, width: 32, height: 32, borderRadius: "50%", background: "#6366f1", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 2px 8px rgba(99,102,241,0.4)", textDecoration: "none" }}>
+          <Download size={14} style={{ color: "#fff" }} />
+        </a>
+      </div>
+    </div>
+  );
+}
+
 // ─── Media Bubble ─────────────────────────────────────────────────────────────
 
-function MediaContent({ msg, isMe }: { msg: Message; isMe: boolean }) {
+function MediaContent({ msg, isMe, onOpenLightbox }: { msg: Message; isMe: boolean; onOpenLightbox?: (url: string) => void }) {
   if (!msg.mediaUrl) return null;
   if (msg.mediaType === "image") {
     return (
-      <div style={{ marginTop: msg.content ? 6 : 0 }}>
+      <div style={{ marginTop: msg.content ? 6 : 0, position: "relative", display: "inline-block" }}>
         <img src={msg.mediaUrl} alt="media"
-          style={{ maxWidth: "100%", maxHeight: 240, borderRadius: 10, display: "block", border: "1px solid #e0e7ff" }}
+          onClick={() => onOpenLightbox?.(msg.mediaUrl!)}
+          style={{ maxWidth: "100%", maxHeight: 240, borderRadius: 10, display: "block", border: "1px solid #e0e7ff", cursor: "zoom-in" }}
         />
+        <div onClick={() => onOpenLightbox?.(msg.mediaUrl!)}
+          style={{ position: "absolute", inset: 0, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0)", transition: "background 0.15s", cursor: "zoom-in" }}
+          onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.background = "rgba(0,0,0,0.18)"; }}
+          onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.background = "rgba(0,0,0,0)"; }}
+        >
+          <ZoomIn size={20} style={{ color: "#fff", opacity: 0, transition: "opacity 0.15s" }}
+            onMouseEnter={e => { (e.currentTarget as SVGSVGElement).style.opacity = "1"; }}
+            onMouseLeave={e => { (e.currentTarget as SVGSVGElement).style.opacity = "0"; }}
+          />
+        </div>
       </div>
     );
   }
@@ -157,23 +204,28 @@ function MediaContent({ msg, isMe }: { msg: Message; isMe: boolean }) {
 
 // ─── Discord-style Message Row ────────────────────────────────────────────────
 
-function MsgBubble({ msg, isMe, showHeader, members, onDelete, onReply, onReact, onEdit, onPin, canDelete, replyTo, searchQuery, isPinned }: {
+function MsgBubble({ msg, isMe, showHeader, members, onDelete, onRevoke, onReply, onReact, onEdit, onPin, canDelete, replyTo, searchQuery, isPinned, onOpenLightbox, readBy }: {
   msg: Message; isMe: boolean; showHeader: boolean;
   members: Member[]; canDelete: boolean; isPinned?: boolean;
   replyTo?: Message | null; roomColor?: string | null; searchQuery?: string;
   isAdmin?: boolean;
+  readBy?: Member[];
   onDelete: (id: string) => void;
+  onRevoke: (msg: Message) => void;
   onReply: (msg: Message) => void;
   onReact: (msgId: string, emoji: string) => void;
   onEdit: (msg: Message) => void;
   onPin: (msg: Message) => void;
+  onOpenLightbox: (url: string) => void;
 }) {
   const [hover, setHover] = useState(false);
   const [showReact, setShowReact] = useState(false);
+  const [hoveredReaction, setHoveredReaction] = useState<string | null>(null);
   const member = members.find(m => m.id === msg.userId);
   const rcfg = ROLE_CFG[member?.role ?? "staff"] ?? ROLE_CFG.staff;
   const RIcon = rcfg.icon;
   const isDeleted = !!msg.deletedAt;
+  const isRevoked = !!msg.revokedAt;
 
   let reactions: Record<string, string[]> = {};
   try { if (msg.reactions) reactions = JSON.parse(msg.reactions); } catch { /* */ }
@@ -229,34 +281,70 @@ function MsgBubble({ msg, isMe, showHeader, members, onDelete, onReply, onReact,
         {msg.content && (
           <p style={{
             fontSize: 13, lineHeight: 1.5, wordBreak: "break-word",
-            color: isDeleted ? "#94a3b8" : "#1e293b",
-            fontStyle: isDeleted ? "italic" : "normal",
+            color: (isDeleted || isRevoked) ? "#94a3b8" : "#1e293b",
+            fontStyle: (isDeleted || isRevoked) ? "italic" : "normal",
           }}>
-            {searchQuery ? highlightText(msg.content, searchQuery) : msg.content}
+            {isRevoked
+              ? <><RotateCcw size={10} style={{ color: "#94a3b8", marginRight: 4, verticalAlign: "middle", display: "inline" }} />{msg.content}</>
+              : searchQuery ? highlightText(msg.content, searchQuery) : msg.content
+            }
           </p>
         )}
 
-        {/* Media */}
-        <MediaContent msg={msg} isMe={false} />
+        {/* Media (hidden if revoked) */}
+        {!isRevoked && <MediaContent msg={msg} isMe={isMe} onOpenLightbox={onOpenLightbox} />}
 
         {/* Reactions */}
-        {hasReactions && (
+        {hasReactions && !isRevoked && (
           <div style={{ display: "flex", flexWrap: "wrap", gap: 3, marginTop: 4 }}>
-            {Object.entries(reactions).map(([emoji, users]) =>
-              users.length > 0 && (
-                <button key={emoji} onClick={() => onReact(msg.id, emoji)}
-                  style={{ display: "flex", alignItems: "center", gap: 3, background: "#f0f4ff", border: "1px solid #e0e7ff", borderRadius: 12, padding: "2px 7px", cursor: "pointer", fontSize: 12, lineHeight: 1.4 }}>
-                  {emoji} <span style={{ fontSize: 9.5, color: "#64748b" }}>{users.length}</span>
-                </button>
+            {Object.entries(reactions).map(([emoji, userIds]) =>
+              userIds.length > 0 && (
+                <div key={emoji} style={{ position: "relative", display: "inline-block" }}>
+                  <button onClick={() => onReact(msg.id, emoji)}
+                    onMouseEnter={() => setHoveredReaction(emoji)}
+                    onMouseLeave={() => setHoveredReaction(null)}
+                    style={{ display: "flex", alignItems: "center", gap: 3, background: "#f0f4ff", border: "1px solid #e0e7ff", borderRadius: 12, padding: "2px 7px", cursor: "pointer", fontSize: 12, lineHeight: 1.4 }}>
+                    {emoji} <span style={{ fontSize: 9.5, color: "#64748b" }}>{userIds.length}</span>
+                  </button>
+                  {hoveredReaction === emoji && (
+                    <div style={{
+                      position: "absolute", bottom: "calc(100% + 4px)", left: 0,
+                      background: "#0c1a2e", color: "#fff", borderRadius: 8, padding: "5px 8px",
+                      fontSize: 9.5, whiteSpace: "nowrap", zIndex: 20,
+                      boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
+                      pointerEvents: "none",
+                    }}>
+                      {userIds.map(uid => members.find(m => m.id === uid)?.name ?? uid).join(", ")}
+                    </div>
+                  )}
+                </div>
               )
             )}
+          </div>
+        )}
+
+        {/* Read receipts (show who has seen this message — only show on last message) */}
+        {readBy && readBy.length > 0 && (
+          <div style={{ display: "flex", alignItems: "center", gap: 2, marginTop: 3 }}>
+            <Eye size={8} style={{ color: "#10b981" }} />
+            <div style={{ display: "flex", gap: 1 }}>
+              {readBy.slice(0, 5).map(m => (
+                <div key={m.id} title={m.name} style={{ width: 12, height: 12, borderRadius: "50%", background: "linear-gradient(135deg,#10b981,#34d399)", border: "1px solid #fff", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+                  {m.avatar
+                    ? <img src={m.avatar} alt={m.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    : <span style={{ fontSize: 6, color: "#fff", fontWeight: 700 }}>{m.name[0]}</span>
+                  }
+                </div>
+              ))}
+              {readBy.length > 5 && <span style={{ fontSize: 8, color: "#94a3b8" }}>+{readBy.length - 5}</span>}
+            </div>
           </div>
         )}
       </div>
 
       {/* Floating action toolbar (Discord hover bar) */}
       <AnimatePresence>
-        {hover && !isDeleted && (
+        {hover && !isDeleted && !isRevoked && (
           <motion.div
             initial={{ opacity: 0, scale: 0.9, y: -2 }} animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9 }} transition={{ duration: 0.08 }}
@@ -302,6 +390,15 @@ function MsgBubble({ msg, isMe, showHeader, members, onDelete, onReply, onReact,
             </button>
             {canDelete && (
               <>
+                {isMe && (
+                  <button onClick={() => { onRevoke(msg); setHover(false); }} title="Thu hồi tin nhắn"
+                    style={{ ...iconBtn, width: 26, height: 26 }}
+                    onMouseEnter={el => (el.currentTarget.style.background = "#fff7ed")}
+                    onMouseLeave={el => (el.currentTarget.style.background = "#f8f9ff")}
+                  >
+                    <RotateCcw size={12} style={{ color: "#f59e0b" }} />
+                  </button>
+                )}
                 <button onClick={() => { onEdit(msg); setHover(false); }} title="Chỉnh sửa" style={{ ...iconBtn, width: 26, height: 26 }}>
                   <Pencil size={12} style={{ color: "#64748b" }} />
                 </button>
@@ -403,6 +500,15 @@ export default function ChatPage() {
   const [roomSettingsIcon, setRoomSettingsIcon] = useState("");
   const [roomSettingsColor, setRoomSettingsColor] = useState("");
 
+  // Image lightbox
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
+
+  // Read receipts
+  const [readReceipts, setReadReceipts] = useState<ReadReceipt[]>([]);
+
+  // Toast notifications
+  const [toasts, setToasts] = useState<ChatToast[]>([]);
+
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -449,13 +555,24 @@ export default function ChatPage() {
     }).catch(() => {});
   }, []);
 
-  // Load pinned messages when room changes
+  // Load pinned + read receipts when room changes; mark as read
   useEffect(() => {
     if (!activeRoom) return;
     fetch(`/api/chat?roomId=${activeRoom.id}&pinned=1`)
       .then(r => r.json())
       .then(d => { if (Array.isArray(d)) setPinnedMessages(d); })
       .catch(() => {});
+    fetch(`/api/chat?roomId=${activeRoom.id}&receipts=1`)
+      .then(r => r.json())
+      .then(d => { if (Array.isArray(d)) setReadReceipts(d); })
+      .catch(() => {});
+    if (currentUser) {
+      fetch(`/api/chat?markRead=1`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ roomId: activeRoom.id, userId: currentUser.id }),
+      }).catch(() => {});
+    }
   }, [activeRoom?.id]);
 
   // SSE per active room
@@ -492,11 +609,44 @@ export default function ChatPage() {
             const fresh = newMsgs.filter(m => !ids.has(m.id));
             if (fresh.length > 0) {
               setInfoPanelMedia(im => [...im, ...fresh.filter(m => m.mediaType === "image" && !m.deletedAt)]);
+              // Mark room as read for new messages in active room
+              const roomId = activeRoomRef.current?.id;
+              const uid = currentUser?.id;
+              if (roomId && uid) {
+                fetch(`/api/chat?markRead=1`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ roomId, userId: uid }),
+                }).then(() =>
+                  fetch(`/api/chat?roomId=${roomId}&receipts=1`).then(r => r.json()).then(d => {
+                    if (Array.isArray(d)) setReadReceipts(d);
+                  })
+                ).catch(() => {});
+              }
             }
             return fresh.length > 0 ? [...prev, ...fresh] : prev;
           });
         }
-        if (payload.type === "rooms") setRooms(payload.data as Room[]);
+        if (payload.type === "rooms") {
+          const incoming = payload.data as Room[];
+          setRooms(prev => {
+            // Check for new messages in non-active rooms → toast
+            incoming.forEach(r => {
+              if (r.id === activeRoomRef.current?.id) return;
+              const old = prev.find(p => p.id === r.id);
+              if (!old) return;
+              if ((r.messageCount ?? 0) > (old.messageCount ?? 0) && r.lastMessage) {
+                const preview = r.lastMessage.mediaType === "image" ? "📷 Ảnh"
+                  : r.lastMessage.mediaType === "file" ? "📎 File"
+                  : (r.lastMessage.content ?? "").slice(0, 50);
+                const toast: ChatToast = { id: `${r.id}_${Date.now()}`, roomName: r.name, msgPreview: `${r.lastMessage.userName}: ${preview}` };
+                setToasts(t => [...t.slice(-2), toast]);
+                setTimeout(() => setToasts(t => t.filter(x => x.id !== toast.id)), 4000);
+              }
+            });
+            return incoming;
+          });
+        }
         if (payload.type === "typing") {
           const names = payload.data as string[];
           const myName = currentUser?.name ?? "";
@@ -517,6 +667,21 @@ export default function ChatPage() {
   }, [activeRoom?.id]);
 
   useEffect(() => () => { esRef.current?.close(); }, []);
+
+  // Periodic refresh to pick up revoked/edited messages from other users
+  useEffect(() => {
+    if (!activeRoom) return;
+    const timer = setInterval(() => {
+      fetch(`/api/chat?roomId=${activeRoom.id}`)
+        .then(r => r.json())
+        .then(msgs => {
+          if (Array.isArray(msgs)) {
+            setMessages(msgs);
+          }
+        }).catch(() => {});
+    }, 15000);
+    return () => clearInterval(timer);
+  }, [activeRoom?.id]);
 
   useEffect(() => {
     if (searchResults === null) {
@@ -616,6 +781,19 @@ export default function ChatPage() {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ msgId, userId: currentUser.id }),
+    }).catch(() => {});
+  };
+
+  const handleRevokeMsg = async (msg: Message) => {
+    if (!currentUser) return;
+    const now = new Date().toISOString();
+    setMessages(prev => prev.map(m =>
+      m.id === msg.id ? { ...m, content: "[Tin nhắn đã được thu hồi]", revokedAt: now, mediaUrl: null } : m
+    ));
+    await fetch("/api/chat", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ msgId: msg.id, userId: currentUser.id, action: "revoke" }),
     }).catch(() => {});
   };
 
@@ -761,6 +939,28 @@ export default function ChatPage() {
   const isReadOnly = activeRoom?.type === "announce" && !isAdmin;
   const msgMap = useMemo(() => new Map(messages.map(m => [m.id, m])), [messages]);
   const pinnedSet = new Set(messages.filter(m => m.pinnedAt).map(m => m.id));
+
+  // Compute which members have read up to which message (for read receipt display)
+  // For each member, find the last message they've seen (createdAt <= lastReadAt)
+  const readReceiptsByMsg = useMemo(() => {
+    const map = new Map<string, Member[]>();
+    if (!messages.length || !readReceipts.length) return map;
+    readReceipts.forEach(rr => {
+      if (rr.userId === currentUser?.id) return; // don't show self
+      const m = members.find(mb => mb.id === rr.userId);
+      if (!m) return;
+      // Find last message this user has read
+      let lastIdx = -1;
+      for (let i = messages.length - 1; i >= 0; i--) {
+        if (messages[i].createdAt <= rr.lastReadAt) { lastIdx = i; break; }
+      }
+      if (lastIdx === -1) return;
+      const msgId = messages[lastIdx].id;
+      const existing = map.get(msgId) ?? [];
+      map.set(msgId, [...existing, m]);
+    });
+    return map;
+  }, [messages, readReceipts, members, currentUser?.id]);
 
   // Date-grouped messages with separators
   const displayMessages = useMemo(() => {
@@ -1074,6 +1274,7 @@ export default function ChatPage() {
                 showHeader={showHeader}
                 members={members}
                 onDelete={handleDeleteMsg}
+                onRevoke={handleRevokeMsg}
                 onReply={setReplyTo}
                 onReact={handleReact}
                 onEdit={handleEditMsg}
@@ -1083,6 +1284,8 @@ export default function ChatPage() {
                 roomColor={activeRoom?.color}
                 searchQuery={searchResults !== null ? searchQuery : undefined}
                 isPinned={pinnedSet.has(msg.id)}
+                onOpenLightbox={url => setLightboxSrc(url)}
+                readBy={readReceiptsByMsg.get(msg.id)}
               />
             </motion.div>
           );
@@ -1329,7 +1532,33 @@ export default function ChatPage() {
           30% { transform: translateY(-4px); }
         }
         @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes toastIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes toastOut { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(-8px); } }
       `}</style>
+
+      {/* Image Lightbox */}
+      {lightboxSrc && <ImageLightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />}
+
+      {/* Toast notifications */}
+      <div style={{ position: "fixed", bottom: 80, right: 16, zIndex: 500, display: "flex", flexDirection: "column", gap: 8, alignItems: "flex-end", pointerEvents: "none" }}>
+        <AnimatePresence>
+          {toasts.map(t => (
+            <motion.div key={t.id}
+              initial={{ opacity: 0, y: 12, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -8, scale: 0.95 }}
+              transition={{ duration: 0.22 }}
+              style={{
+                background: "#fff", border: "1px solid #e0e7ff", borderRadius: 12,
+                padding: "10px 14px", maxWidth: 260,
+                boxShadow: "0 4px 20px rgba(99,102,241,0.15)",
+                pointerEvents: "auto",
+              }}
+            >
+              <p style={{ fontSize: 10, fontWeight: 700, color: "#6366f1", marginBottom: 2 }}>#{t.roomName}</p>
+              <p style={{ fontSize: 11, color: "#0c1a2e", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.msgPreview}</p>
+            </motion.div>
+          ))}
+        </AnimatePresence>
+      </div>
 
       <input ref={fileInputRef} type="file" style={{ display: "none" }}
         accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.zip"
