@@ -5,7 +5,8 @@
       "WebSearch",
       "WebFetch(domain:github.com)",
       "WebFetch(domain:www.odoo.com)",
-      "WebFetch(domain:ica.palexy.com)"
+      "WebFetch(domain:ica.palexy.com)",
+      "Read(//tmp/**)"
     ]
   }
 }
