@@ -45,16 +45,16 @@ export default function TopNav() {
       >
         <div style={{
           width: 30, height: 30, borderRadius: 8,
-          border: "1.5px solid rgba(201,165,90,0.55)",
-          background: "linear-gradient(135deg, #0c1a2e 0%, #1e3a5f 100%)",
+          border: "1.5px solid rgba(14,165,233,0.35)",
+          background: "linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%)",
           display: "flex", alignItems: "center", justifyContent: "center",
-          boxShadow: "0 0 12px rgba(201,165,90,0.18)",
+          boxShadow: "0 2px 10px rgba(14,165,233,0.18)",
         }}>
-          <span style={{ fontSize: 12, fontWeight: 800, color: "#C9A55A", letterSpacing: "0.06em" }}>P</span>
+          <span style={{ fontSize: 12, fontWeight: 800, color: "#0284c7", letterSpacing: "0.06em" }}>P</span>
         </div>
         <div style={{ lineHeight: 1 }}>
-          <p style={{ fontSize: 9.5, fontWeight: 800, color: "#C9A55A", letterSpacing: "0.48em" }}>POSTLAIN</p>
-          <p style={{ fontSize: 7, color: "rgba(255,255,255,0.35)", letterSpacing: "0.2em", marginTop: 3 }}>
+          <p style={{ fontSize: 9.5, fontWeight: 800, color: "#0284c7", letterSpacing: "0.48em" }}>POSTLAIN</p>
+          <p style={{ fontSize: 7, color: "rgba(12,26,46,0.38)", letterSpacing: "0.2em", marginTop: 3 }}>
             {storeSubtitle || "QUẢN LÝ CỬA HÀNG"}
           </p>
         </div>
@@ -92,17 +92,17 @@ export default function TopNav() {
               <div style={{
                 display: "flex", alignItems: "center", gap: 7,
                 padding: "4px 10px 4px 6px", borderRadius: 20,
-                background: "rgba(201,165,90,0.08)",
-                border: "1px solid rgba(201,165,90,0.22)",
+                background: "rgba(14,165,233,0.07)",
+                border: "1px solid rgba(14,165,233,0.20)",
                 cursor: "pointer",
                 transition: "background 0.18s, box-shadow 0.18s",
               }}
               onMouseEnter={e => {
-                (e.currentTarget as HTMLDivElement).style.background = "rgba(201,165,90,0.14)";
-                (e.currentTarget as HTMLDivElement).style.boxShadow = "0 0 14px rgba(201,165,90,0.18)";
+                (e.currentTarget as HTMLDivElement).style.background = "rgba(14,165,233,0.12)";
+                (e.currentTarget as HTMLDivElement).style.boxShadow = "0 0 14px rgba(14,165,233,0.14)";
               }}
               onMouseLeave={e => {
-                (e.currentTarget as HTMLDivElement).style.background = "rgba(201,165,90,0.08)";
+                (e.currentTarget as HTMLDivElement).style.background = "rgba(14,165,233,0.07)";
                 (e.currentTarget as HTMLDivElement).style.boxShadow = "none";
               }}
               >
@@ -110,11 +110,11 @@ export default function TopNav() {
                 <div style={{ position: "relative", flexShrink: 0 }}>
                   <div style={{
                     width: 24, height: 24, borderRadius: "50%",
-                    background: "linear-gradient(135deg, #1e3a5f, #0c2a4a)",
+                    background: "linear-gradient(135deg, #e0f2fe, #bae6fd)",
                     display: "flex", alignItems: "center", justifyContent: "center",
-                    border: "1.5px solid rgba(201,165,90,0.4)",
+                    border: "1.5px solid rgba(14,165,233,0.35)",
                   }}>
-                    <span style={{ fontSize: 9, fontWeight: 700, color: "#C9A55A" }}>
+                    <span style={{ fontSize: 9, fontWeight: 700, color: "#0284c7" }}>
                       {currentUser.name.slice(0, 1).toUpperCase()}
                     </span>
                   </div>
@@ -122,12 +122,12 @@ export default function TopNav() {
                   <div style={{
                     position: "absolute", bottom: -1, right: -1,
                     width: 7, height: 7, borderRadius: "50%",
-                    background: "#10b981", border: "1.5px solid #080e1a",
+                    background: "#10b981", border: "1.5px solid rgba(255,255,255,0.9)",
                   }} />
                 </div>
                 <div style={{ lineHeight: 1 }}>
-                  <p style={{ fontSize: 10, fontWeight: 600, color: "rgba(255,255,255,0.88)" }}>{currentUser.name}</p>
-                  <p style={{ fontSize: 7.5, color: "rgba(201,165,90,0.7)", marginTop: 1.5, letterSpacing: "0.08em" }}>
+                  <p style={{ fontSize: 10, fontWeight: 600, color: "rgba(12,26,46,0.85)" }}>{currentUser.name}</p>
+                  <p style={{ fontSize: 7.5, color: "rgba(2,132,199,0.75)", marginTop: 1.5, letterSpacing: "0.08em" }}>
                     {currentUser.role === "admin" ? "ADMIN" : currentUser.role === "manager" ? "QUẢN LÝ" : "NHÂN VIÊN"}
                   </p>
                 </div>
@@ -140,22 +140,22 @@ export default function TopNav() {
               title="Đăng xuất"
               style={{
                 width: 30, height: 30, borderRadius: 8,
-                border: "1px solid rgba(239,68,68,0.25)",
-                background: "rgba(239,68,68,0.08)",
+                border: "1px solid rgba(239,68,68,0.20)",
+                background: "rgba(239,68,68,0.06)",
                 display: "flex", alignItems: "center", justifyContent: "center",
                 cursor: "pointer",
                 transition: "background 0.15s, border-color 0.15s",
               }}
               onMouseEnter={e => {
-                (e.currentTarget as HTMLButtonElement).style.background = "rgba(239,68,68,0.16)";
-                (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(239,68,68,0.45)";
+                (e.currentTarget as HTMLButtonElement).style.background = "rgba(239,68,68,0.12)";
+                (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(239,68,68,0.38)";
               }}
               onMouseLeave={e => {
-                (e.currentTarget as HTMLButtonElement).style.background = "rgba(239,68,68,0.08)";
-                (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(239,68,68,0.25)";
+                (e.currentTarget as HTMLButtonElement).style.background = "rgba(239,68,68,0.06)";
+                (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(239,68,68,0.20)";
               }}
             >
-              <LogOut size={12} style={{ color: "#ef4444" }} />
+              <LogOut size={12} style={{ color: "#dc2626" }} />
             </button>
           </>
         ) : (

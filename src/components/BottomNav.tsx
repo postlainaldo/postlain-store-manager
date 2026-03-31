@@ -61,15 +61,15 @@ export default function BottomNav() {
                 style={{
                   width: 20, height: 20, borderRadius: "50%",
                   background: active
-                    ? "linear-gradient(135deg, #C9A55A, #A07830)"
-                    : "linear-gradient(135deg, #1e3a5f, #0c2a4a)",
+                    ? "linear-gradient(135deg, #0ea5e9, #0284c7)"
+                    : "linear-gradient(135deg, #e0f2fe, #bae6fd)",
                   display: "flex", alignItems: "center", justifyContent: "center",
-                  border: `1.5px solid ${active ? "rgba(201,165,90,0.6)" : "rgba(255,255,255,0.12)"}`,
+                  border: `1.5px solid ${active ? "rgba(14,165,233,0.5)" : "rgba(14,165,233,0.22)"}`,
                   flexShrink: 0,
-                  boxShadow: active ? "0 0 10px rgba(201,165,90,0.3)" : "none",
+                  boxShadow: active ? "0 0 10px rgba(14,165,233,0.30)" : "none",
                 }}
               >
-                <span style={{ fontSize: 8, fontWeight: 700, color: active ? "#fff" : "#C9A55A" }}>
+                <span style={{ fontSize: 8, fontWeight: 700, color: active ? "#fff" : "#0284c7" }}>
                   {currentUser.name.slice(0, 1).toUpperCase()}
                 </span>
               </div>
@@ -79,9 +79,9 @@ export default function BottomNav() {
                 strokeWidth={active ? 2 : 1.5}
                 className="bottomnav-icon"
                 style={{
-                  color: active ? "#C9A55A" : "rgba(255,255,255,0.32)",
+                  color: active ? "#0284c7" : "rgba(12,26,46,0.32)",
                   flexShrink: 0,
-                  filter: active ? "drop-shadow(0 0 4px rgba(201,165,90,0.4))" : "none",
+                  filter: active ? "drop-shadow(0 0 4px rgba(14,165,233,0.35))" : "none",
                 }}
               />
             )}

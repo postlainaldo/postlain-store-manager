@@ -26,17 +26,22 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       {/* ── Desktop: TopNav + scrollable content ──────────────────── */}
       <div className="hidden md:flex flex-col bg-bg-base transition-colors duration-500" style={{ height: "100dvh", overflow: "hidden" }}>
         <TopNav />
-        <main className="flex-1 overflow-y-auto overflow-x-hidden page-bg-aurora transition-colors duration-500">
-          {isFullHeight ? (
-            <div style={{ height: "calc(100vh - 52px)", padding: "12px 24px", display: "flex", flexDirection: "column" }}>
+        {isFullHeight ? (
+          /* Full-height pages (chat, visual-board): flex fill, no scroll on main */
+          <div className="flex-1 page-bg-aurora" style={{ minHeight: 0, overflow: "hidden", display: "flex", flexDirection: "column", padding: "12px 24px", position: "relative" }}>
+            <div className="page-bg-aurora-mid" />
+            <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", position: "relative", zIndex: 1 }}>
               {children}
             </div>
-          ) : (
-            <div className="max-w-[1440px] mx-auto px-6 py-6">
+          </div>
+        ) : (
+          <main className="flex-1 overflow-y-auto overflow-x-hidden page-bg-aurora transition-colors duration-500">
+            <div className="page-bg-aurora-mid" />
+            <div className="max-w-[1440px] mx-auto px-6 py-6" style={{ position: "relative", zIndex: 1 }}>
               {children}
             </div>
-          )}
-        </main>
+          </main>
+        )}
       </div>
 
       {/* ── Mobile: top bar + scrollable content + bottom nav ─────── */}
@@ -46,10 +51,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           flexShrink: 0,
           display: "flex", alignItems: "center", gap: 8,
           padding: "6px 12px",
-          background: "#080e1a",
-          borderBottom: "1px solid rgba(201,165,90,0.18)",
-          boxShadow: "0 1px 0 rgba(201,165,90,0.10), 0 2px 12px rgba(8,14,26,0.4)",
+          background: "rgba(255,255,255,0.72)",
+          backdropFilter: "blur(24px) saturate(1.8)",
+          WebkitBackdropFilter: "blur(24px) saturate(1.8)",
+          borderBottom: "1px solid rgba(186,230,253,0.65)",
+          boxShadow: "0 1px 0 rgba(186,230,253,0.9), 0 2px 12px rgba(12,26,46,0.05), inset 0 1px 0 rgba(255,255,255,0.95)",
           minHeight: 46,
+          zIndex: 10,
         }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <GlobalSearch />
@@ -79,7 +87,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             className="flex-1 overflow-y-auto overflow-x-hidden page-bg-aurora transition-colors duration-500"
             style={{ paddingBottom: "calc(60px + env(safe-area-inset-bottom, 0px))" }}
           >
-            <div style={{ padding: "12px 14px 8px" }}>
+            <div className="page-bg-aurora-mid" />
+            <div style={{ padding: "12px 14px 8px", position: "relative", zIndex: 1 }}>
               {children}
             </div>
           </main>
