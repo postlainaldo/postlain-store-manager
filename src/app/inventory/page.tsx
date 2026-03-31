@@ -10,6 +10,7 @@ import {
   Search, Plus, Package, Pencil, Trash2,
   MapPin, X, Warehouse, Eye, CheckSquare, Square, ScanLine,
   RefreshCw, Filter, BarChart2, TrendingDown, Camera,
+  ArrowUpDown, ArrowUp, ArrowDown, ChevronDown,
 } from "lucide-react";
 import QRScannerModal from "@/components/QRScannerModal";
 import { parseMCFromNotes, colorCodeToHex } from "@/lib/categoryMapping";
@@ -165,6 +166,18 @@ function QtyPill({ qty }: { qty: number }) {
   );
 }
 
+// ─── Sort indicator ──────────────────────────────────────────────────────────
+
+type SortKey = "mc" | "name" | "price" | "qty" | "size" | "color";
+type SortDir = "asc" | "desc";
+
+function SortIcon({ col, sortKey, sortDir }: { col: SortKey; sortKey: SortKey; sortDir: SortDir }) {
+  if (col !== sortKey) return <ArrowUpDown size={9} style={{ color: "var(--border)", marginLeft: 3, flexShrink: 0 }} />;
+  return sortDir === "asc"
+    ? <ArrowUp size={9} style={{ color: "var(--blue)", marginLeft: 3, flexShrink: 0 }} />
+    : <ArrowDown size={9} style={{ color: "var(--blue)", marginLeft: 3, flexShrink: 0 }} />;
+}
+
 // ─── Main list view ──────────────────────────────────────────────────────────
 
 function ListView() {
@@ -177,10 +190,15 @@ function ListView() {
   const [search,        setSearch]      = useState("");
   const [filterCat,     setFilterCat]   = useState("");
   const [filterStock,   setFilterStock] = useState<"all"|"low"|"out">("all");
+  const [filterColor,   setFilterColor] = useState("");
+  const [filterSize,    setFilterSize]  = useState("");
+  const [filterLoc,     setFilterLoc]   = useState<"all"|"display"|"warehouse"|"unplaced">("all");
+  const [sortKey,       setSortKey]     = useState<SortKey>("mc");
+  const [sortDir,       setSortDir]     = useState<SortDir>("asc");
   const [editProduct,   setEditProduct] = useState<Product | null>(null);
   const [showAdd,       setShowAdd]     = useState(false);
   const [deleteId,      setDeleteId]    = useState<string | null>(null);
-  const [hoveredId,     setHoveredId]   = useState<string | null>(null); // desktop only
+  const [hoveredId,     setHoveredId]   = useState<string | null>(null);
   const [selected,      setSelected]    = useState<Set<string>>(new Set());
   const [confirmBulk,   setConfirmBulk] = useState(false);
   const [showScanner,       setShowScanner]       = useState(false);
@@ -188,7 +206,6 @@ function ListView() {
   const [odooSyncing,   setOdooSyncing] = useState(false);
   const [odooMsg,       setOdooMsg]     = useState<string | null>(null);
   const [showFilters,   setShowFilters] = useState(false);
-  // Detect viewport to avoid rendering both desktop table AND mobile cards simultaneously
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 767px)");
@@ -201,22 +218,8 @@ function ListView() {
   useEffect(() => { fetchProducts(); }, []);
 
   const categories = useMemo(() => Array.from(new Set(products.map(p => p.category))).sort(), [products]);
-
-  const filtered = useMemo(() => products.filter(p => {
-    if (filterCat && p.category !== filterCat) return false;
-    if (filterStock === "out" && p.quantity !== 0) return false;
-    if (filterStock === "low" && !(p.quantity > 0 && p.quantity <= 5)) return false;
-    if (!search) return true;
-    const q = search.toLowerCase();
-    return (
-      p.name.toLowerCase().includes(q)
-      || (p.sku ?? "").toLowerCase().includes(q)
-      || p.category.toLowerCase().includes(q)
-      || (p.color ?? "").includes(q)
-      || (p.size ?? "").toLowerCase().includes(q)
-      || (p.notes ?? "").toLowerCase().includes(q)
-    );
-  }), [products, search, filterCat, filterStock]);
+  const colors     = useMemo(() => Array.from(new Set(products.map(p => p.color).filter(Boolean))).sort() as string[], [products]);
+  const sizes      = useMemo(() => Array.from(new Set(products.map(p => p.size).filter(Boolean))).sort() as string[], [products]);
 
   const locationMap = useMemo(() => {
     const m = new Map<string, string>();
@@ -255,12 +258,59 @@ function ListView() {
     return s;
   }, [warehouseShelves]);
 
-  const allSelected = filtered.length > 0 && filtered.every(p => selected.has(p.id));
+  const filtered = useMemo(() => products.filter(p => {
+    if (filterCat   && p.category !== filterCat)   return false;
+    if (filterColor && (p.color ?? "") !== filterColor) return false;
+    if (filterSize  && (p.size  ?? "") !== filterSize)  return false;
+    if (filterStock === "out" && p.quantity !== 0) return false;
+    if (filterStock === "low" && !(p.quantity > 0 && p.quantity <= 5)) return false;
+    if (filterLoc === "display"   && !displaySet.has(p.id))   return false;
+    if (filterLoc === "warehouse" && !warehouseSet.has(p.id)) return false;
+    if (filterLoc === "unplaced"  && (displaySet.has(p.id) || warehouseSet.has(p.id))) return false;
+    if (!search) return true;
+    const q = search.toLowerCase();
+    return (
+      p.name.toLowerCase().includes(q)
+      || (p.sku ?? "").toLowerCase().includes(q)
+      || p.category.toLowerCase().includes(q)
+      || (p.color ?? "").toLowerCase().includes(q)
+      || (p.size ?? "").toLowerCase().includes(q)
+      || (p.notes ?? "").toLowerCase().includes(q)
+    );
+  }), [products, search, filterCat, filterColor, filterSize, filterStock, filterLoc, displaySet, warehouseSet]);
+
+  const sorted = useMemo(() => {
+    const dir = sortDir === "asc" ? 1 : -1;
+    return [...filtered].sort((a, b) => {
+      switch (sortKey) {
+        case "mc": {
+          const ma = parseMCFromNotes(a.notes) ?? "";
+          const mb = parseMCFromNotes(b.notes) ?? "";
+          const na = parseInt(ma.replace(/\D/g, "") || "999999", 10);
+          const nb = parseInt(mb.replace(/\D/g, "") || "999999", 10);
+          return na !== nb ? (na - nb) * dir : a.name.localeCompare(b.name);
+        }
+        case "name":  return a.name.localeCompare(b.name) * dir;
+        case "price": return ((a.price ?? 0) - (b.price ?? 0)) * dir;
+        case "qty":   return (a.quantity - b.quantity) * dir;
+        case "size":  return (a.size ?? "").localeCompare(b.size ?? "") * dir;
+        case "color": return (a.color ?? "").localeCompare(b.color ?? "") * dir;
+        default:      return 0;
+      }
+    });
+  }, [filtered, sortKey, sortDir]);
+
+  function toggleSort(key: SortKey) {
+    if (sortKey === key) setSortDir(d => d === "asc" ? "desc" : "asc");
+    else { setSortKey(key); setSortDir("asc"); }
+  }
+
+  const allSelected = sorted.length > 0 && sorted.every(p => selected.has(p.id));
 
   const toggleSelect = (id: string) => setSelected(prev => {
     const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n;
   });
-  const toggleAll = () => allSelected ? setSelected(new Set()) : setSelected(new Set(filtered.map(p => p.id)));
+  const toggleAll = () => allSelected ? setSelected(new Set()) : setSelected(new Set(sorted.map(p => p.id)));
 
   const handleOdooSync = async () => {
     setOdooSyncing(true); setOdooMsg(null);
@@ -288,7 +338,7 @@ function ListView() {
     if (!res.ok) await fetchProducts();
   };
 
-  const hasActiveFilter = filterCat || filterStock !== "all";
+  const hasActiveFilter = !!(filterCat || filterColor || filterSize || filterStock !== "all" || filterLoc !== "all");
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -408,58 +458,129 @@ function ListView() {
             exit={{ opacity: 0, height: 0 }} style={{ overflow: "hidden" }}
           >
             <div style={{
-              display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center",
-              padding: "12px 16px", borderRadius: 12,
-              background: "rgba(14,165,233,0.04)", border: "1px solid var(--border-subtle)",
+              display: "flex", flexDirection: "column", gap: 10,
+              padding: "14px 16px", borderRadius: 14,
+              background: "rgba(255,255,255,0.88)", border: "1px solid rgba(186,230,253,0.55)",
+              backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)",
+              boxShadow: "0 2px 12px rgba(12,26,46,0.05)",
             }}>
-              <span style={{ fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.15em" }}>
-                Lọc:
-              </span>
-              {/* Stock filter pills */}
-              {(["all","low","out"] as const).map(v => (
-                <button key={v} onClick={() => setFilterStock(v)} style={{
-                  padding: "4px 12px", borderRadius: 20, fontSize: 11, cursor: "pointer",
-                  fontFamily: "inherit", fontWeight: filterStock === v ? 700 : 400,
-                  background: filterStock === v
-                    ? v === "out" ? "rgba(220,38,38,0.1)" : v === "low" ? "rgba(201,165,90,0.1)" : "rgba(14,165,233,0.1)"
-                    : "var(--bg-surface)",
-                  border: `1px solid ${filterStock === v
-                    ? v === "out" ? "rgba(220,38,38,0.35)" : v === "low" ? "rgba(201,165,90,0.35)" : "rgba(14,165,233,0.35)"
-                    : "var(--border)"}`,
-                  color: filterStock === v
-                    ? v === "out" ? "#dc2626" : v === "low" ? "#C9A55A" : "var(--blue)"
-                    : "var(--text-secondary)",
+              {/* Row 1: Tồn kho + Vị trí */}
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+                <span style={{ fontSize: 9, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.15em", minWidth: 44 }}>Tồn:</span>
+                {(["all","low","out"] as const).map(v => (
+                  <button key={v} onClick={() => setFilterStock(v)} style={{
+                    padding: "4px 12px", borderRadius: 20, fontSize: 11, cursor: "pointer",
+                    fontFamily: "inherit", fontWeight: filterStock === v ? 700 : 500,
+                    background: filterStock === v
+                      ? v === "out" ? "rgba(220,38,38,0.10)" : v === "low" ? "rgba(201,165,90,0.10)" : "rgba(14,165,233,0.10)"
+                      : "rgba(255,255,255,0.6)",
+                    border: `1px solid ${filterStock === v
+                      ? v === "out" ? "rgba(220,38,38,0.35)" : v === "low" ? "rgba(201,165,90,0.35)" : "rgba(14,165,233,0.35)"
+                      : "var(--border)"}`,
+                    color: filterStock === v
+                      ? v === "out" ? "#dc2626" : v === "low" ? "#b45309" : "var(--blue)"
+                      : "var(--text-secondary)",
+                  }}>
+                    {v === "all" ? "Tất cả" : v === "low" ? "Sắp hết ≤5" : "Hết hàng"}
+                  </button>
+                ))}
+                <div style={{ width: 1, height: 18, background: "var(--border)", flexShrink: 0 }} />
+                <span style={{ fontSize: 9, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.15em", minWidth: 32 }}>Vị trí:</span>
+                {(["all","display","warehouse","unplaced"] as const).map(v => (
+                  <button key={v} onClick={() => setFilterLoc(v)} style={{
+                    padding: "4px 12px", borderRadius: 20, fontSize: 11, cursor: "pointer",
+                    fontFamily: "inherit", fontWeight: filterLoc === v ? 700 : 500,
+                    background: filterLoc === v ? "rgba(124,58,237,0.10)" : "rgba(255,255,255,0.6)",
+                    border: `1px solid ${filterLoc === v ? "rgba(124,58,237,0.35)" : "var(--border)"}`,
+                    color: filterLoc === v ? "#7c3aed" : "var(--text-secondary)",
+                  }}>
+                    {v === "all" ? "Tất cả" : v === "display" ? "Trưng bày" : v === "warehouse" ? "Kho" : "Chưa xếp"}
+                  </button>
+                ))}
+              </div>
+
+              {/* Row 2: Danh mục + Màu + Size */}
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+                <span style={{ fontSize: 9, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.15em", minWidth: 44 }}>Danh mục:</span>
+                <select value={filterCat} onChange={e => setFilterCat(e.target.value)} style={{
+                  height: 30, borderRadius: 20, border: "1px solid var(--border)",
+                  padding: "0 28px 0 12px", fontSize: 11,
+                  color: filterCat ? "var(--blue)" : "var(--text-secondary)",
+                  background: filterCat ? "rgba(14,165,233,0.06)" : "rgba(255,255,255,0.7)",
+                  fontFamily: "inherit", cursor: "pointer", outline: "none", appearance: "none",
                 }}>
-                  {v === "all" ? "Tất cả" : v === "low" ? "Sắp hết (≤5)" : "Hết hàng"}
-                </button>
-              ))}
+                  <option value="">Tất cả</option>
+                  {categories.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
 
-              <div style={{ width: 1, height: 20, background: "var(--border)" }} />
-
-              {/* Category filter */}
-              <select value={filterCat} onChange={e => setFilterCat(e.target.value)} style={{
-                height: 30, borderRadius: 20, border: "1px solid var(--border)",
-                padding: "0 12px", fontSize: 11, color: filterCat ? "var(--blue)" : "var(--text-secondary)",
-                background: filterCat ? "rgba(14,165,233,0.06)" : "var(--bg-surface)",
-                fontFamily: "inherit", cursor: "pointer", outline: "none",
-              }}>
-                <option value="">Tất cả danh mục</option>
-                {categories.map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
-
-              {hasActiveFilter && (
-                <button onClick={() => { setFilterCat(""); setFilterStock("all"); }} style={{
-                  padding: "4px 10px", borderRadius: 20, fontSize: 10, cursor: "pointer",
-                  background: "none", border: "1px solid var(--border)", color: "var(--text-muted)",
-                  fontFamily: "inherit",
+                <div style={{ width: 1, height: 18, background: "var(--border)", flexShrink: 0 }} />
+                <span style={{ fontSize: 9, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.15em" }}>Màu:</span>
+                <select value={filterColor} onChange={e => setFilterColor(e.target.value)} style={{
+                  height: 30, borderRadius: 20, border: "1px solid var(--border)",
+                  padding: "0 12px", fontSize: 11,
+                  color: filterColor ? "var(--blue)" : "var(--text-secondary)",
+                  background: filterColor ? "rgba(14,165,233,0.06)" : "rgba(255,255,255,0.7)",
+                  fontFamily: "inherit", cursor: "pointer", outline: "none", minWidth: 80,
                 }}>
-                  ✕ Xoá bộ lọc
-                </button>
-              )}
+                  <option value="">Tất cả</option>
+                  {colors.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
 
-              <span style={{ marginLeft: "auto", fontSize: 10, color: "var(--text-muted)" }}>
-                {filtered.length} / {products.length} sản phẩm
-              </span>
+                <div style={{ width: 1, height: 18, background: "var(--border)", flexShrink: 0 }} />
+                <span style={{ fontSize: 9, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.15em" }}>Size:</span>
+                <select value={filterSize} onChange={e => setFilterSize(e.target.value)} style={{
+                  height: 30, borderRadius: 20, border: "1px solid var(--border)",
+                  padding: "0 12px", fontSize: 11,
+                  color: filterSize ? "var(--blue)" : "var(--text-secondary)",
+                  background: filterSize ? "rgba(14,165,233,0.06)" : "rgba(255,255,255,0.7)",
+                  fontFamily: "inherit", cursor: "pointer", outline: "none", minWidth: 70,
+                }}>
+                  <option value="">Tất cả</option>
+                  {sizes.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+
+                {hasActiveFilter && (
+                  <button onClick={() => { setFilterCat(""); setFilterColor(""); setFilterSize(""); setFilterStock("all"); setFilterLoc("all"); }} style={{
+                    padding: "4px 12px", borderRadius: 20, fontSize: 10, cursor: "pointer",
+                    background: "rgba(220,38,38,0.06)", border: "1px solid rgba(220,38,38,0.2)",
+                    color: "#dc2626", fontFamily: "inherit", fontWeight: 600,
+                  }}>
+                    ✕ Xoá bộ lọc
+                  </button>
+                )}
+
+                <span style={{ marginLeft: "auto", fontSize: 10, color: "var(--text-muted)", whiteSpace: "nowrap" }}>
+                  <b style={{ color: "var(--text-secondary)" }}>{sorted.length}</b> / {products.length} sản phẩm
+                </span>
+              </div>
+
+              {/* Row 3: Sort */}
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", paddingTop: 2, borderTop: "1px solid var(--border-subtle)" }}>
+                <span style={{ fontSize: 9, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.15em", minWidth: 44 }}>Sắp xếp:</span>
+                {([
+                  { key: "mc"    as SortKey, label: "Mã MC" },
+                  { key: "name"  as SortKey, label: "Tên" },
+                  { key: "price" as SortKey, label: "Giá" },
+                  { key: "qty"   as SortKey, label: "Số lượng" },
+                  { key: "color" as SortKey, label: "Màu" },
+                  { key: "size"  as SortKey, label: "Size" },
+                ]).map(({ key, label }) => (
+                  <button key={key} onClick={() => toggleSort(key)} style={{
+                    display: "flex", alignItems: "center", gap: 4,
+                    padding: "4px 12px", borderRadius: 20, fontSize: 11, cursor: "pointer",
+                    fontFamily: "inherit", fontWeight: sortKey === key ? 700 : 500,
+                    background: sortKey === key ? "rgba(14,165,233,0.10)" : "rgba(255,255,255,0.6)",
+                    border: `1px solid ${sortKey === key ? "rgba(14,165,233,0.35)" : "var(--border)"}`,
+                    color: sortKey === key ? "var(--blue)" : "var(--text-secondary)",
+                  }}>
+                    {label}
+                    {sortKey === key
+                      ? sortDir === "asc" ? <ArrowUp size={9} /> : <ArrowDown size={9} />
+                      : <ArrowUpDown size={9} style={{ opacity: 0.4 }} />
+                    }
+                  </button>
+                ))}
+              </div>
             </div>
           </motion.div>
         )}
@@ -504,7 +625,8 @@ function ListView() {
         borderRadius: 16,
         background: cardBg,
         backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)",
-        border: `1px solid ${cardBorder}`, overflowX: "auto",
+        border: `1px solid ${cardBorder}`,
+        overflow: "auto",
         boxShadow: "0 2px 16px rgba(12,26,46,0.07), inset 0 1px 0 rgba(255,255,255,0.7)",
       }}>
         <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "auto" }}>
@@ -521,7 +643,7 @@ function ListView() {
             <col style={{ width: 52 }} />   {/* SL */}
             <col style={{ width: 88 }} />   {/* Actions */}
           </colgroup>
-          <thead>
+          <thead style={{ position: "sticky", top: 0, zIndex: 2 }}>
             <tr style={{
               background: tableHeaderBg,
               borderBottom: "1px solid rgba(186,230,253,0.5)",
@@ -533,22 +655,40 @@ function ListView() {
                     : <Square size={13} style={{ color: "var(--border)" }} />}
                 </button>
               </th>
-              {["Tên SP", "Màu", "Barcode", "MC", "Full Price", "Giá Sale", "Size", "SL", ""].map((h, i) => (
+              {([
+                { label: "Tên SP",     key: "name"  as SortKey | null },
+                { label: "Màu",        key: "color" as SortKey | null },
+                { label: "Barcode",    key: null },
+                { label: "MC",         key: "mc"    as SortKey | null },
+                { label: "Full Price", key: "price" as SortKey | null },
+                { label: "Giá Sale",   key: null },
+                { label: "Size",       key: "size"  as SortKey | null },
+                { label: "SL",         key: "qty"   as SortKey | null },
+                { label: "",           key: null },
+              ]).map((h, i) => (
                 <th key={i} style={{
                   padding: "0 8px", height: 34, textAlign: "left",
-                  fontSize: 8, fontWeight: 700, color: "var(--text-muted)",
+                  fontSize: 8, fontWeight: 700, color: h.key === sortKey ? "var(--blue)" : "var(--text-muted)",
                   textTransform: "uppercase", letterSpacing: "0.18em",
-                  whiteSpace: "nowrap",
-                }}>{h}</th>
+                  whiteSpace: "nowrap", cursor: h.key ? "pointer" : "default",
+                  userSelect: "none",
+                }}
+                onClick={() => h.key && toggleSort(h.key)}
+                >
+                  <span style={{ display: "inline-flex", alignItems: "center" }}>
+                    {h.label}
+                    {h.key && <SortIcon col={h.key} sortKey={sortKey} sortDir={sortDir} />}
+                  </span>
+                </th>
               ))}
             </tr>
           </thead>
           <tbody>
-          {filtered.length === 0 ? (
+          {sorted.length === 0 ? (
             <tr><td colSpan={10} style={{ padding: "56px 0", textAlign: "center", color: "var(--text-muted)", fontSize: 12 }}>
               Không tìm thấy sản phẩm nào
             </td></tr>
-          ) : filtered.map((p, rowIndex) => {
+          ) : sorted.map((p) => {
             const loc      = locationMap.get(p.id) ?? null;
             const isHov    = hoveredId === p.id;
             const isSel    = selected.has(p.id);
@@ -723,7 +863,7 @@ function ListView() {
 
       {/* ── Mobile cards ──────────────────────────────────────────── */}
       {isMobile && <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-        {filtered.map(p => {
+        {sorted.map(p => {
           const loc      = locationMap.get(p.id) ?? null;
           const mc       = parseMCFromNotes(p.notes);
           const colorHex = colorCodeToHex(p.color);
