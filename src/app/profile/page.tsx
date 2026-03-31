@@ -158,13 +158,15 @@ function PremiumCard({
 }) {
   return (
     <div style={{
-      borderRadius: 16, border: "1px solid var(--border)",
-      background: "#fff", overflow: "hidden",
-      boxShadow: "0 2px 16px rgba(14,165,233,0.06)",
+      borderRadius: 16, border: "1px solid rgba(186,230,253,0.55)",
+      background: "rgba(255,255,255,0.88)",
+      backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)",
+      overflow: "hidden",
+      boxShadow: "0 2px 16px rgba(12,26,46,0.06), inset 0 1px 0 rgba(255,255,255,0.7)",
     }}>
       <div style={{
-        padding: "11px 20px", borderBottom: "1px solid var(--border-subtle)",
-        background: `linear-gradient(90deg, ${accentColor}06, #fff)`,
+        padding: "11px 20px", borderBottom: "1px solid rgba(186,230,253,0.4)",
+        background: `linear-gradient(90deg, ${accentColor}08, rgba(255,255,255,0.5))`,
         display: "flex", alignItems: "center", gap: 10,
       }}>
         <div style={{
@@ -1401,7 +1403,13 @@ export default function ProfilePage() {
         </motion.div>
 
         {/* ── Tabs ────────────────────────────────────────────────────────── */}
-        <div style={{ display: "flex", gap: 3, background: "#fff", borderRadius: 16, border: "1px solid var(--border)", padding: 5, marginBottom: 16, boxShadow: "0 2px 12px rgba(14,165,233,0.06)" }}>
+        <div style={{
+          display: "flex", gap: 3,
+          background: "rgba(255,255,255,0.82)",
+          backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)",
+          borderRadius: 16, border: "1px solid rgba(186,230,253,0.5)", padding: 5, marginBottom: 16,
+          boxShadow: "0 2px 14px rgba(12,26,46,0.07), inset 0 1px 0 rgba(255,255,255,0.7)",
+        }}>
           {TABS.map(t => {
             const TIcon = t.icon;
             const active = tab === t.id;
@@ -1440,7 +1448,7 @@ export default function ProfilePage() {
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
 
                 {/* Info card */}
-                <div style={{ borderRadius: 16, border: "1px solid var(--border)", background: "rgba(255,255,255,0.9)", overflow: "hidden", boxShadow: "0 2px 16px rgba(14,165,233,0.06)", backdropFilter: "blur(8px)" }}>
+                <div style={{ borderRadius: 16, border: "1px solid rgba(186,230,253,0.55)", background: "rgba(255,255,255,0.88)", overflow: "hidden", boxShadow: "0 2px 16px rgba(12,26,46,0.06), inset 0 1px 0 rgba(255,255,255,0.7)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)" }}>
                   <div style={{ padding: "13px 20px", borderBottom: "1px solid var(--border-subtle)", background: "linear-gradient(90deg, rgba(14,165,233,0.05), #fff)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                       <div style={{ width: 3, height: 14, borderRadius: 2, background: "#0ea5e9", boxShadow: "0 0 6px rgba(14,165,233,0.5)" }} />
@@ -1485,9 +1493,8 @@ export default function ProfilePage() {
                           {editing
                             ? <input value={form[f.key]} onChange={e => setForm(v => ({ ...v, [f.key]: e.target.value }))}
                                 placeholder={f.placeholder}
-                                style={{ flex: 1, background: "var(--bg-base)", border: "1px solid var(--border)", borderRadius: 8, padding: "7px 11px", fontSize: 11, color: "var(--text-primary)", outline: "none", fontFamily: "inherit", transition: "border-color 0.15s, box-shadow 0.15s" }}
-                                onFocus={e => { e.target.style.borderColor = "#0ea5e9"; e.target.style.boxShadow = "0 0 0 3px rgba(14,165,233,0.1)"; }}
-                                onBlur={e => { e.target.style.borderColor = "var(--border)"; e.target.style.boxShadow = "none"; }} />
+                                className="input-glow"
+                                style={{ flex: 1, padding: "7px 11px", fontSize: 11 }} />
                             : <span style={{ fontSize: 11, color: form[f.key] ? "var(--text-primary)" : "var(--border-strong)", fontStyle: form[f.key] ? "normal" : "italic", fontWeight: form[f.key] ? 500 : 400 }}>
                                 {form[f.key] || f.placeholder}
                               </span>
@@ -1507,7 +1514,7 @@ export default function ProfilePage() {
                 </div>
 
                 {/* Password change */}
-                <div style={{ borderRadius: 16, border: "1px solid var(--border)", background: "rgba(255,255,255,0.9)", overflow: "hidden", boxShadow: "0 2px 12px rgba(14,165,233,0.05)" }}>
+                <div style={{ borderRadius: 16, border: "1px solid rgba(186,230,253,0.55)", background: "rgba(255,255,255,0.88)", overflow: "hidden", boxShadow: "0 2px 12px rgba(12,26,46,0.06), inset 0 1px 0 rgba(255,255,255,0.7)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)" }}>
                   <motion.button whileHover={{ background: "var(--bg-base)" }} onClick={() => setPwOpen(v => !v)}
                     style={{ width: "100%", padding: "14px 20px", display: "flex", alignItems: "center", gap: 10, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", textAlign: "left", transition: "background 0.15s" }}>
                     <div style={{ width: 28, height: 28, borderRadius: 8, background: "rgba(220,38,38,0.08)", border: "1px solid rgba(220,38,38,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -1534,7 +1541,7 @@ export default function ProfilePage() {
                           ].map((f, i) => (
                             <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, marginTop: i === 0 ? 12 : 0 }}>
                               <span style={{ fontSize: 10, color: "var(--text-muted)", width: 140, flexShrink: 0 }}>{f.label}</span>
-                              <div style={{ flex: 1, display: "flex", alignItems: "center", background: "var(--bg-base)", border: "1px solid var(--border)", borderRadius: 8, padding: "0 10px", height: 36 }}>
+                              <div className="input-glow" style={{ flex: 1, display: "flex", alignItems: "center", padding: "0 10px", height: 36 }}>
                                 <input type={showPw ? "text" : "password"} value={f.val} onChange={e => f.set(e.target.value)}
                                   style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: 11, fontFamily: "inherit", color: "var(--text-primary)" }} />
                                 {i === 0 && <button onClick={() => setShowPw(v => !v)} style={{ background: "none", border: "none", cursor: "pointer", display: "flex" }}>

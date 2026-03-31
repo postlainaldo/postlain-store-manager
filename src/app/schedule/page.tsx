@@ -93,18 +93,18 @@ function TemplateForm({ initial, onSave, onClose }: {
       <div style={{ display:"flex", flexDirection:"column", gap:4 }}>
         <label style={{ fontSize:9, fontWeight:700, color:"#64748b", letterSpacing:"0.1em" }}>TÊN CA</label>
         <input value={name} onChange={e=>setName(e.target.value)} placeholder="Ca Sáng"
-          style={{ height:36, borderRadius:8, border:"1px solid #e2e8f0", padding:"0 10px", fontSize:12, fontFamily:"inherit", outline:"none", color:"#0c1a2e" }} />
+          className="input-glow" style={{ height:36, padding:"0 10px", fontSize:12, width:"100%" }} />
       </div>
       <div style={{ display:"flex", gap:8 }}>
         <div style={{ flex:1, display:"flex", flexDirection:"column", gap:4 }}>
           <label style={{ fontSize:9, fontWeight:700, color:"#64748b", letterSpacing:"0.1em" }}>BẮT ĐẦU</label>
           <input type="time" value={start} onChange={e=>setStart(e.target.value)}
-            style={{ height:36, borderRadius:8, border:"1px solid #e2e8f0", padding:"0 10px", fontSize:12, fontFamily:"inherit", outline:"none", color:"#0c1a2e" }} />
+            className="input-glow" style={{ height:36, padding:"0 10px", fontSize:12, width:"100%" }} />
         </div>
         <div style={{ flex:1, display:"flex", flexDirection:"column", gap:4 }}>
           <label style={{ fontSize:9, fontWeight:700, color:"#64748b", letterSpacing:"0.1em" }}>KẾT THÚC</label>
           <input type="time" value={end} onChange={e=>setEnd(e.target.value)}
-            style={{ height:36, borderRadius:8, border:"1px solid #e2e8f0", padding:"0 10px", fontSize:12, fontFamily:"inherit", outline:"none", color:"#0c1a2e" }} />
+            className="input-glow" style={{ height:36, padding:"0 10px", fontSize:12, width:"100%" }} />
         </div>
       </div>
       <div style={{ display:"flex", gap:8, alignItems:"flex-end" }}>
@@ -130,13 +130,13 @@ function TemplateForm({ initial, onSave, onClose }: {
       </div>
       <div style={{ display:"flex", gap:8, marginTop:4 }}>
         <button onClick={onClose}
-          style={{ flex:1, height:36, borderRadius:9, border:"1px solid #e2e8f0", background:"#fff", cursor:"pointer", fontSize:11, fontWeight:600, color:"#64748b", fontFamily:"inherit" }}>
+          className="btn-ghost" style={{ flex:1, height:36, fontFamily:"inherit", fontSize:11 }}>
           Huỷ
         </button>
         <button
           onClick={()=>{ if(name.trim()) onSave({name:name.trim(),startTime:start,endTime:end,color,maxStaff:max}); }}
           disabled={!name.trim()}
-          style={{ flex:2, height:36, borderRadius:9, border:"none", background:name.trim()?"#0ea5e9":"#e2e8f0", cursor:name.trim()?"pointer":"default", fontSize:11, fontWeight:700, color:"#fff", fontFamily:"inherit" }}>
+          className="btn-primary" style={{ flex:2, height:36, fontFamily:"inherit", fontSize:11, opacity:name.trim()?1:0.5 }}>
           Lưu ca
         </button>
       </div>
@@ -167,7 +167,23 @@ function SlotCard({ slot, regs, isAdmin, currentUserId, allStaff, onRegister, on
   const unassigned = allStaff.filter(u => !regs.find(r => r.userId === u.id));
 
   return (
-    <div style={{ borderRadius:10, border:`1.5px solid ${slot.color}30`, background:"#fff", overflow:"hidden", marginBottom:0 }}>
+    <div style={{
+      borderRadius:12, border:`1.5px solid ${slot.color}28`,
+      background:"rgba(255,255,255,0.88)",
+      backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)",
+      boxShadow:`0 2px 12px rgba(12,26,46,0.06), 0 1px 3px rgba(12,26,46,0.04)`,
+      overflow:"hidden", marginBottom:0,
+      transition:"transform 0.22s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.22s ease",
+    }}
+    onMouseEnter={e=>{
+      (e.currentTarget as HTMLElement).style.transform="translateY(-2px)";
+      (e.currentTarget as HTMLElement).style.boxShadow=`0 8px 24px rgba(12,26,46,0.10), 0 2px 6px rgba(12,26,46,0.06)`;
+    }}
+    onMouseLeave={e=>{
+      (e.currentTarget as HTMLElement).style.transform="translateY(0)";
+      (e.currentTarget as HTMLElement).style.boxShadow=`0 2px 12px rgba(12,26,46,0.06), 0 1px 3px rgba(12,26,46,0.04)`;
+    }}
+    >
       {/* Color top bar */}
       <div style={{ height:3, background:slot.color }} />
 
@@ -327,7 +343,13 @@ function AddSlotModal({ templates, date, onSave, onClose }: {
     <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.4)", zIndex:200, display:"flex", alignItems:"center", justifyContent:"center", padding:16 }}
       onClick={e=>{ if(e.target===e.currentTarget) onClose(); }}>
       <motion.div initial={{ opacity:0, scale:0.95, y:10 }} animate={{ opacity:1, scale:1, y:0 }}
-        style={{ background:"#fff", borderRadius:16, padding:20, width:"100%", maxWidth:360, boxShadow:"0 20px 60px rgba(0,0,0,0.15)" }}>
+        style={{
+          background:"rgba(255,255,255,0.96)",
+          backdropFilter:"blur(20px)", WebkitBackdropFilter:"blur(20px)",
+          borderRadius:20, padding:20, width:"100%", maxWidth:360,
+          boxShadow:"0 24px 80px rgba(12,26,46,0.18), 0 4px 16px rgba(12,26,46,0.08)",
+          border:"1px solid rgba(186,230,253,0.5)",
+        }}>
         <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:14 }}>
           <div>
             <p style={{ fontSize:13, fontWeight:700, color:"#0c1a2e" }}>Thêm ca làm</p>
@@ -339,10 +361,10 @@ function AddSlotModal({ templates, date, onSave, onClose }: {
         </div>
 
         {templates.length > 0 && (
-          <div style={{ display:"flex", gap:6, marginBottom:14 }}>
+          <div className="tab-nav" style={{ marginBottom:14 }}>
             {(["template","custom"] as const).map(m => (
               <button key={m} onClick={()=>setMode(m)}
-                style={{ flex:1, height:30, borderRadius:8, border:`1px solid ${mode===m?"#0ea5e9":"#e2e8f0"}`, background:mode===m?"#f0f9ff":"#fff", cursor:"pointer", fontSize:10, fontWeight:700, color:mode===m?"#0ea5e9":"#64748b", fontFamily:"inherit" }}>
+                className={`tab-nav-item${mode===m?" active":""}`}>
                 {m==="template" ? "Từ mẫu" : "Tuỳ chỉnh"}
               </button>
             ))}
@@ -366,7 +388,7 @@ function AddSlotModal({ templates, date, onSave, onClose }: {
         ) : (
           <div style={{ display:"flex", flexDirection:"column", gap:10, marginBottom:12 }}>
             <input value={name} onChange={e=>setName(e.target.value)} placeholder="Tên ca..."
-              style={{ height:36, borderRadius:8, border:"1px solid #e2e8f0", padding:"0 10px", fontSize:12, fontFamily:"inherit", outline:"none", color:"#0c1a2e" }} />
+              className="input-glow" style={{ height:36, padding:"0 10px", fontSize:12, width:"100%" }} />
             <div style={{ display:"flex", gap:8 }}>
               <input type="time" value={start} onChange={e=>setStart(e.target.value)}
                 style={{ flex:1, height:36, borderRadius:8, border:"1px solid #e2e8f0", padding:"0 8px", fontSize:12, fontFamily:"inherit", outline:"none" }} />

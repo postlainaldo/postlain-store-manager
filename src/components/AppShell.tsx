@@ -26,7 +26,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       {/* ── Desktop: TopNav + scrollable content ──────────────────── */}
       <div className="hidden md:flex flex-col bg-bg-base" style={{ height: "100dvh", overflow: "hidden" }}>
         <TopNav />
-        <main className="flex-1 overflow-y-auto overflow-x-hidden bg-bg-base">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden" style={{ background: "linear-gradient(160deg, #eef6fd 0%, #f0effe 55%, #eef6fd 100%)" }}>
           {isFullHeight ? (
             <div style={{ height: "calc(100vh - 52px)", padding: "12px 24px", display: "flex", flexDirection: "column" }}>
               {children}
@@ -76,8 +76,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         ) : (
           /* Normal pages: scrollable with padding so content clears bottom nav */
           <main
-            className="flex-1 overflow-y-auto overflow-x-hidden bg-bg-base"
-            style={{ paddingBottom: "calc(60px + env(safe-area-inset-bottom, 0px))" }}
+            className="flex-1 overflow-y-auto overflow-x-hidden"
+            style={{ paddingBottom: "calc(60px + env(safe-area-inset-bottom, 0px))", background: "linear-gradient(160deg, #eef6fd 0%, #f0effe 55%, #eef6fd 100%)" }}
           >
             <div style={{ padding: "12px 14px 8px" }}>
               {children}

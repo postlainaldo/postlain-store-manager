@@ -391,8 +391,15 @@ export default function OverviewPage() {
               <motion.div
                 key={stat.id} custom={i} initial="hidden" animate="visible" variants={fadeUp}
                 whileHover={{ y: -3, transition: { type: "spring", stiffness: 400, damping: 20 } }}
-                className="relative overflow-hidden rounded-xl border border-border bg-bg-card"
-                style={{ padding: "16px", cursor: "default" }}
+                className="relative overflow-hidden rounded-xl"
+                style={{
+                  padding: "16px", cursor: "default",
+                  background: "rgba(255,255,255,0.88)",
+                  backdropFilter: "blur(12px)",
+                  WebkitBackdropFilter: "blur(12px)",
+                  border: "1px solid rgba(186,230,253,0.55)",
+                  boxShadow: "0 2px 12px rgba(12,26,46,0.06), 0 1px 3px rgba(12,26,46,0.04), inset 0 1px 0 rgba(255,255,255,0.7)",
+                }}
               >
                 {/* Top shimmer accent */}
                 <div className="absolute top-0 left-0 right-0 h-[2px]"
@@ -441,8 +448,15 @@ export default function OverviewPage() {
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 md:gap-6">
           <motion.div
             initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.26 }}
-            className="lg:col-span-3 rounded-xl border border-border bg-bg-card overflow-hidden"
-            style={{ padding: "18px 20px" }}
+            className="lg:col-span-3 rounded-xl overflow-hidden"
+            style={{
+              padding: "18px 20px",
+              background: "rgba(255,255,255,0.88)",
+              backdropFilter: "blur(12px)",
+              WebkitBackdropFilter: "blur(12px)",
+              border: "1px solid rgba(186,230,253,0.55)",
+              boxShadow: "0 2px 12px rgba(12,26,46,0.06), inset 0 1px 0 rgba(255,255,255,0.7)",
+            }}
           >
             <PalexyWidget />
           </motion.div>
@@ -454,8 +468,15 @@ export default function OverviewPage() {
             </motion.div>
           ) : (
             <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
-              className="lg:col-span-2 rounded-xl border border-border bg-bg-card"
-              style={{ padding: "18px 20px" }}>
+              className="lg:col-span-2 rounded-xl"
+              style={{
+                padding: "18px 20px",
+                background: "rgba(255,255,255,0.88)",
+                backdropFilter: "blur(12px)",
+                WebkitBackdropFilter: "blur(12px)",
+                border: "1px solid rgba(186,230,253,0.55)",
+                boxShadow: "0 2px 12px rgba(12,26,46,0.06), inset 0 1px 0 rgba(255,255,255,0.7)",
+              }}>
               <p className="text-text-muted font-semibold uppercase tracking-[0.2em]" style={{ fontSize: 8.5, marginBottom: 14 }}>
                 Liên Kết Nhanh
               </p>
@@ -491,7 +512,14 @@ export default function OverviewPage() {
         {/* ── Recent movements ───────────────────────────────────── */}
         <motion.div
           initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.34 }}
-          className="rounded-xl border border-border bg-bg-card overflow-hidden"
+          className="rounded-xl overflow-hidden"
+          style={{
+            background: "rgba(255,255,255,0.88)",
+            backdropFilter: "blur(12px)",
+            WebkitBackdropFilter: "blur(12px)",
+            border: "1px solid rgba(186,230,253,0.55)",
+            boxShadow: "0 2px 12px rgba(12,26,46,0.06), inset 0 1px 0 rgba(255,255,255,0.7)",
+          }}
         >
           <div className="flex items-center justify-between px-5 py-3 border-b border-border">
             <p className="text-text-muted font-semibold uppercase tracking-[0.2em]" style={{ fontSize: 8.5 }}>
@@ -516,7 +544,7 @@ export default function OverviewPage() {
             <>
               <div className="hidden md:block">
                 <div className="grid px-5 items-center gap-3 border-b border-border"
-                  style={{ gridTemplateColumns: "2fr 1fr 1fr 1fr 0.5fr 0.9fr", height: 30, background: "#f8faff" }}>
+                  style={{ gridTemplateColumns: "2fr 1fr 1fr 1fr 0.5fr 0.9fr", height: 30, background: "rgba(240,248,255,0.7)" }}>
                   {["Sản Phẩm", "Loại", "Từ", "Đến", "SL", "Thời Gian"].map(h => (
                     <span key={h} className="text-text-muted font-semibold uppercase tracking-[0.15em]" style={{ fontSize: 7.5 }}>{h}</span>
                   ))}

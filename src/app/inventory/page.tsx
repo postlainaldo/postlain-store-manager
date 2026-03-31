@@ -295,9 +295,11 @@ function ListView() {
         {/* Search */}
         <div style={{
           display: "flex", alignItems: "center", gap: 8, flex: "1 1 200px",
-          background: "#fff", border: "1px solid var(--border)", borderRadius: 12,
+          background: "rgba(255,255,255,0.88)", backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)",
+          border: "1px solid rgba(186,230,253,0.55)", borderRadius: 12,
           padding: "0 12px", height: 38,
-          boxShadow: "0 1px 4px rgba(14,165,233,0.05)",
+          boxShadow: "0 2px 8px rgba(12,26,46,0.05)",
+          transition: "box-shadow 0.18s, border-color 0.18s",
         }}>
           <Search size={13} style={{ color: "var(--text-muted)", flexShrink: 0 }} strokeWidth={1.5} />
           <input
@@ -496,9 +498,11 @@ function ListView() {
 
       {/* ── Desktop table ─────────────────────────────────────────── */}
       {!isMobile && <div style={{
-        borderRadius: 16, border: "1px solid var(--border)",
-        background: "#fff", overflowX: "auto",
-        boxShadow: "0 2px 16px rgba(14,165,233,0.06)",
+        borderRadius: 16,
+        background: "rgba(255,255,255,0.88)",
+        backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)",
+        border: "1px solid rgba(186,230,253,0.55)", overflowX: "auto",
+        boxShadow: "0 2px 16px rgba(12,26,46,0.07), inset 0 1px 0 rgba(255,255,255,0.7)",
       }}>
         <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "auto" }}>
           <colgroup>
@@ -516,8 +520,8 @@ function ListView() {
           </colgroup>
           <thead>
             <tr style={{
-              background: "linear-gradient(to bottom, #f8fbff, #f0f9ff)",
-              borderBottom: "1px solid var(--border)",
+              background: "linear-gradient(to bottom, rgba(240,248,255,0.85), rgba(224,242,254,0.6))",
+              borderBottom: "1px solid rgba(186,230,253,0.5)",
             }}>
               <th style={{ padding: "0 0 0 16px", height: 34, textAlign: "left" }}>
                 <button onClick={toggleAll} style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center" }}>
@@ -724,11 +728,17 @@ function ListView() {
           const inWh     = warehouseSet.has(p.id);
           return (
             <div key={p.id} style={{
-              borderRadius: 12, border: "1px solid var(--border)",
-              background: "#fff", padding: "12px 14px",
+              borderRadius: 12,
+              background: "rgba(255,255,255,0.88)",
+              backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)",
+              border: "1px solid rgba(186,230,253,0.55)", padding: "12px 14px",
               display: "flex", alignItems: "flex-start", gap: 12,
-              boxShadow: "0 1px 6px rgba(14,165,233,0.04)",
-            }}>
+              boxShadow: "0 2px 10px rgba(12,26,46,0.06), inset 0 1px 0 rgba(255,255,255,0.7)",
+              transition: "transform 0.2s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.2s ease",
+            }}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = "translateY(-1px)"; (e.currentTarget as HTMLElement).style.boxShadow = "0 6px 20px rgba(12,26,46,0.10)"; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = "translateY(0)"; (e.currentTarget as HTMLElement).style.boxShadow = "0 2px 10px rgba(12,26,46,0.06)"; }}
+            >
               {/* Color dot */}
               {colorHex && (
                 <div style={{

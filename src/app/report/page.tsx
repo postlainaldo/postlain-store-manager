@@ -71,22 +71,24 @@ function daysBack(n: number): string {
 
 function Card({ children, gold }: { children: React.ReactNode; gold?: boolean }) {
   return (
-    <div style={{
+    <div className="card-float" style={{
       background: gold
-        ? "linear-gradient(135deg, rgba(201,165,90,0.08) 0%, rgba(201,165,90,0.03) 100%)"
-        : "var(--bg-card)",
-      border: `1px solid ${gold ? "rgba(201,165,90,0.3)" : "var(--border)"}`,
-      borderRadius: 12, padding: "14px 16px",
-      boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+        ? "linear-gradient(135deg, rgba(201,165,90,0.10) 0%, rgba(255,255,255,0.88) 100%)"
+        : "rgba(255,255,255,0.88)",
+      border: `1px solid ${gold ? "rgba(201,165,90,0.32)" : "rgba(186,230,253,0.55)"}`,
+      padding: "14px 16px",
     }}>{children}</div>
   );
 }
 
 function SectionHeader({ title, sub }: { title: string; sub?: string }) {
   return (
-    <div style={{ fontSize: 10, fontWeight: 700, color: "var(--text-muted)",
-      textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 8 }}>
-      {title}{sub && <span style={{ fontWeight: 400, marginLeft: 6, color: "var(--text-muted)", opacity: 0.6 }}>{sub}</span>}
+    <div className="section-accent" style={{ marginBottom: 10 }}>
+      <span style={{ fontSize: 10, fontWeight: 700, color: "var(--text-muted)",
+        textTransform: "uppercase", letterSpacing: "0.12em" }}>
+        {title}
+        {sub && <span style={{ fontWeight: 400, marginLeft: 6, opacity: 0.6 }}>{sub}</span>}
+      </span>
     </div>
   );
 }
@@ -112,11 +114,11 @@ function KpiGrid({ items }: { items: { label: string; value: string; color?: str
   return (
     <div style={{ display: "grid", gridTemplateColumns: `repeat(${items.length},1fr)`, gap: 6 }}>
       {items.map(i => (
-        <div key={i.label} style={{
-          background: "var(--bg-surface)", border: "1px solid var(--border-subtle)",
-          borderRadius: 8, padding: "8px 10px", textAlign: "center",
-        }}>
-          <div style={{ fontSize: 9, color: "var(--text-muted)", marginBottom: 3 }}>{i.label}</div>
+        <div key={i.label} className="card-kpi" style={{
+          padding: "9px 10px", textAlign: "center",
+          "--kpi-accent": i.color ?? "var(--blue)",
+        } as React.CSSProperties}>
+          <div style={{ fontSize: 8.5, color: "var(--text-muted)", marginBottom: 4, letterSpacing: "0.06em" }}>{i.label}</div>
           <div style={{ fontSize: 13, fontWeight: 700, color: i.color ?? "var(--text-primary)" }}>{i.value}</div>
         </div>
       ))}
@@ -143,10 +145,10 @@ function LoadState({ loading, error }: { loading: boolean; error: string }) {
 function DatePicker({ value, onChange }: { value: string; onChange: (d: string) => void }) {
   return (
     <input type="date" value={value} onChange={e => onChange(e.target.value)}
+      className="input-glow"
       style={{
-        flex: 1, background: "var(--bg-surface)", border: "1px solid var(--border)",
-        borderRadius: 10, padding: "10px 12px", fontSize: 14, fontWeight: 600,
-        color: "var(--text-primary)", outline: "none", colorScheme: "light",
+        flex: 1, padding: "10px 12px", fontSize: 13, fontWeight: 600,
+        color: "var(--text-primary)", colorScheme: "light",
       }} />
   );
 }
@@ -415,13 +417,8 @@ function OverviewTab() {
           return (
             <button key={o.label}
               onClick={() => { setFrom(o.from); setTo(o.to); load(o.from, o.to); }}
-              style={{
-                padding: "6px 12px", borderRadius: 20, fontSize: 12, cursor: "pointer",
-                background: active ? "rgba(201,165,90,0.12)" : "var(--bg-surface)",
-                border: active ? "1px solid rgba(201,165,90,0.4)" : "1px solid var(--border)",
-                color: active ? "var(--gold)" : "var(--text-secondary)",
-                fontWeight: active ? 600 : 400,
-              }}>
+              className={`badge ${active ? "badge-gold" : "badge-muted"}`}
+              style={{ padding: "5px 13px", fontSize: 10, cursor: "pointer", border: "none", fontFamily: "inherit" }}>
               {o.label}
             </button>
           );
@@ -538,19 +535,22 @@ export default function ReportPage() {
   ];
 
   return (
-    <div style={{
-      minHeight: "100vh",
-      background: "var(--bg-base)",
-      padding: "16px 16px 90px",
-    }}>
+    <div style={{ minHeight: "100vh", padding: "16px 16px 90px" }}>
       <div style={{ maxWidth: 720, margin: "0 auto" }}>
 
         {/* Header */}
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-          <ClipboardList size={18} color="var(--gold)" />
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
+          <div style={{
+            width: 36, height: 36, borderRadius: 10,
+            background: "linear-gradient(135deg, rgba(201,165,90,0.15), rgba(201,165,90,0.06))",
+            border: "1px solid rgba(201,165,90,0.28)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+          }}>
+            <ClipboardList size={17} color="var(--gold)" />
+          </div>
           <div>
-            <h1 style={{ fontSize: 18, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>Báo Cáo</h1>
-            <p style={{ fontSize: 11, color: "var(--text-muted)", margin: 0 }}>
+            <h1 style={{ fontSize: 18, fontWeight: 700, color: "var(--text-primary)", margin: 0, letterSpacing: "-0.01em" }}>Báo Cáo</h1>
+            <p style={{ fontSize: 11, color: "var(--text-muted)", margin: 0, marginTop: 1 }}>
               Dữ liệu live từ Odoo POS + Palexy
             </p>
           </div>
@@ -559,18 +559,22 @@ export default function ReportPage() {
         {/* Tab bar */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6, marginBottom: 16 }}>
           {tabs.map(t => (
-            <button key={t.key} onClick={() => setTab(t.key)} style={{
-              display: "flex", flexDirection: "column", alignItems: "center", gap: 2,
-              padding: "10px 8px", borderRadius: 12, cursor: "pointer",
-              background: tab === t.key ? "rgba(201,165,90,0.1)" : "var(--bg-surface)",
-              border: tab === t.key ? "1px solid rgba(201,165,90,0.4)" : "1px solid var(--border)",
-              color: tab === t.key ? "var(--gold)" : "var(--text-secondary)",
-              boxShadow: tab === t.key ? "0 2px 8px rgba(201,165,90,0.1)" : "none",
-            }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 4, fontWeight: 700, fontSize: 13 }}>
+            <button key={t.key} onClick={() => setTab(t.key)}
+              className="card-float"
+              style={{
+                display: "flex", flexDirection: "column", alignItems: "center", gap: 3,
+                padding: "10px 8px", cursor: "pointer",
+                background: tab === t.key
+                  ? "linear-gradient(135deg, rgba(201,165,90,0.14), rgba(201,165,90,0.06))"
+                  : "rgba(255,255,255,0.75)",
+                border: tab === t.key ? "1px solid rgba(201,165,90,0.38)" : "1px solid rgba(186,230,253,0.5)",
+                color: tab === t.key ? "var(--gold)" : "var(--text-secondary)",
+                boxShadow: tab === t.key ? "0 2px 12px rgba(201,165,90,0.12)" : undefined,
+              }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 5, fontWeight: 700, fontSize: 12 }}>
                 {t.icon} {t.label}
               </div>
-              <div style={{ fontSize: 9, opacity: 0.7, textAlign: "center" }}>{t.sub}</div>
+              <div style={{ fontSize: 8.5, opacity: 0.65, textAlign: "center", letterSpacing: "0.02em" }}>{t.sub}</div>
             </button>
           ))}
         </div>

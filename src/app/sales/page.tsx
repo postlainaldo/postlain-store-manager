@@ -68,11 +68,7 @@ export default function SalesPage() {
   const cur = summary?.[period];
 
   return (
-    <div style={{
-      minHeight: "100vh",
-      background: "var(--bg-base)",
-      padding: "24px 16px 80px",
-    }}>
+    <div style={{ minHeight: "100vh", padding: "24px 16px 80px" }}>
       <div style={{ maxWidth: 860, margin: "0 auto" }}>
 
         {/* Header */}
@@ -111,15 +107,10 @@ export default function SalesPage() {
         )}
 
         {/* Period tabs */}
-        <div style={{ display: "flex", gap: 4, marginBottom: 20 }}>
+        <div className="tab-nav" style={{ marginBottom: 20, maxWidth: 320 }}>
           {(["today", "week", "month"] as const).map(p => (
-            <button key={p} onClick={() => setPeriod(p)} style={{
-              padding: "6px 16px", borderRadius: 8, fontSize: 12, cursor: "pointer",
-              background: period === p ? "rgba(201,165,90,0.1)" : "var(--bg-surface)",
-              border: period === p ? "1px solid rgba(201,165,90,0.4)" : "1px solid var(--border)",
-              color: period === p ? "var(--gold)" : "var(--text-secondary)",
-              fontWeight: period === p ? 600 : 400,
-            }}>
+            <button key={p} onClick={() => setPeriod(p)}
+              className={`tab-nav-item${period === p ? " active-gold" : ""}`}>
               {p === "today" ? "Hôm nay" : p === "week" ? "7 ngày" : "Tháng này"}
             </button>
           ))}
@@ -128,20 +119,18 @@ export default function SalesPage() {
         {/* Stats row */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, marginBottom: 28 }}>
           {[
-            { label: "Doanh thu", value: cur ? `${fmt(cur.totalRevenue)} ₫` : "—", icon: TrendingUp, color: "var(--gold)" },
-            { label: "Số đơn", value: cur ? String(cur.orderCount) : "—", icon: Receipt, color: "var(--blue)" },
-            { label: "Trung bình", value: cur ? `${fmt(cur.avgOrderValue)} ₫` : "—", icon: BarChart2, color: "#7c3aed" },
-          ].map(({ label, value, icon: Icon, color }) => (
-            <div key={label} style={{
-              background: "var(--bg-card)", border: "1px solid var(--border)",
-              borderRadius: 12, padding: "12px 10px",
-              boxShadow: "0 1px 4px rgba(0,0,0,0.05)", minWidth: 0,
-            }}>
+            { label: "Doanh thu", value: cur ? `${fmt(cur.totalRevenue)} ₫` : "—", icon: TrendingUp, color: "#C9A55A", accent: "linear-gradient(90deg,#C9A55A,#E2C07A)" },
+            { label: "Số đơn", value: cur ? String(cur.orderCount) : "—", icon: Receipt, color: "#0ea5e9", accent: "linear-gradient(90deg,#0ea5e9,#38bdf8)" },
+            { label: "Trung bình", value: cur ? `${fmt(cur.avgOrderValue)} ₫` : "—", icon: BarChart2, color: "#7c3aed", accent: "linear-gradient(90deg,#7c3aed,#a78bfa)" },
+          ].map(({ label, value, icon: Icon, color, accent }) => (
+            <div key={label} className="card-kpi" style={{ padding: "12px 10px", minWidth: 0, "--kpi-accent": accent } as React.CSSProperties}>
               <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 6 }}>
-                <Icon size={12} color={color} style={{ flexShrink: 0 }} />
-                <span style={{ fontSize: 9, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.04em", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{label}</span>
+                <div style={{ width:20, height:20, borderRadius:6, background:`${color}14`, border:`1px solid ${color}28`, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+                  <Icon size={10} color={color} />
+                </div>
+                <span style={{ fontSize: 9, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{label}</span>
               </div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{value}</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{value}</div>
             </div>
           ))}
         </div>
@@ -153,9 +142,11 @@ export default function SalesPage() {
 
             {/* Recent orders */}
             <div>
-              <h2 style={{ fontSize: 13, fontWeight: 600, color: "var(--text-muted)", marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.08em" }}>
-                Đơn hàng gần đây
-              </h2>
+              <div className="section-accent" style={{ marginBottom: 10 }}>
+                <h2 style={{ fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.12em", margin: 0 }}>
+                  Đơn hàng gần đây
+                </h2>
+              </div>
               {orders.length === 0 ? (
                 <div style={{ textAlign: "center", color: "var(--text-muted)", padding: 40, background: "var(--bg-surface)", borderRadius: 10, border: "1px solid var(--border)" }}>
                   Chưa có dữ liệu — bấm Sync POS
@@ -164,8 +155,12 @@ export default function SalesPage() {
                 <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                   {orders.map(o => (
                     <div key={o.id} style={{
-                      background: "var(--bg-card)", border: "1px solid var(--border)",
-                      borderRadius: 10, overflow: "hidden",
+                      background: "rgba(255,255,255,0.88)",
+                      backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)",
+                      border: "1px solid rgba(186,230,253,0.55)",
+                      borderRadius: 12, overflow: "hidden",
+                      boxShadow: "0 1px 6px rgba(12,26,46,0.05)",
+                      transition: "box-shadow 0.18s",
                     }}>
                       <div onClick={() => toggleOrder(o.id)} style={{
                         display: "flex", alignItems: "center", justifyContent: "space-between",
@@ -210,9 +205,11 @@ export default function SalesPage() {
 
             {/* Top products */}
             <div>
-              <h2 style={{ fontSize: 13, fontWeight: 600, color: "var(--text-muted)", marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.08em" }}>
-                Sản phẩm bán chạy
-              </h2>
+              <div className="section-accent" style={{ marginBottom: 10 }}>
+                <h2 style={{ fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.12em", margin: 0 }}>
+                  Sản phẩm bán chạy
+                </h2>
+              </div>
               {topProducts.length === 0 ? (
                 <div style={{ textAlign: "center", color: "var(--text-muted)", padding: 30, background: "var(--bg-surface)", borderRadius: 10, border: "1px solid var(--border)" }}>
                   Chưa có dữ liệu

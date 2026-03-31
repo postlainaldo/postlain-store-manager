@@ -1011,10 +1011,18 @@ export default function ChatPage() {
   const roomListEl = (
     <div style={{
       display: "flex", flexDirection: "column", height: "100%",
-      ...(isMobile ? { flex: 1, background: "#f0f4ff" } : { width: 232, flexShrink: 0, borderRight: "1px solid #e0e7ff", background: "#f0f4ff" }),
+      ...(isMobile
+        ? { flex: 1, background: "rgba(240,244,255,0.92)" }
+        : { width: 232, flexShrink: 0, borderRight: "1px solid rgba(186,230,253,0.5)", background: "rgba(240,244,255,0.85)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)" }),
     }}>
       {/* Server header */}
-      <div style={{ padding: "0 12px", height: 48, borderBottom: "1px solid #e0e7ff", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0, background: "#fff", boxShadow: "0 1px 0 rgba(99,102,241,0.06)" }}>
+      <div style={{
+        padding: "0 12px", height: 48, borderBottom: "1px solid rgba(186,230,253,0.45)",
+        display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0,
+        background: "rgba(255,255,255,0.88)",
+        backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)",
+        boxShadow: "0 1px 0 rgba(99,102,241,0.06)",
+      }}>
         <p style={{ fontSize: 14, fontWeight: 700, color: "#0c1a2e", letterSpacing: "-0.01em", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>POSTLAIN</p>
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           <div style={{ width: 8, height: 8, borderRadius: "50%", background: connected ? "#23a55a" : "#f0b232", boxShadow: connected ? "0 0 6px #23a55a" : "none" }} />
@@ -1122,7 +1130,12 @@ export default function ChatPage() {
 
       {/* Self user bar */}
       {!isMobile && currentUser && (
-        <div style={{ height: 52, background: "#fff", borderTop: "1px solid #e0e7ff", display: "flex", alignItems: "center", padding: "0 8px", gap: 8, flexShrink: 0 }}>
+        <div style={{
+          height: 52, borderTop: "1px solid rgba(186,230,253,0.45)",
+          display: "flex", alignItems: "center", padding: "0 8px", gap: 8, flexShrink: 0,
+          background: "rgba(240,244,255,0.85)",
+          backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)",
+        }}>
           <Avatar src={null} name={currentUser.name} size={32} status="online" />
           <div style={{ flex: 1, minWidth: 0 }}>
             <p style={{ fontSize: 12, fontWeight: 600, color: "#0c1a2e", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{currentUser.name}</p>
@@ -1138,9 +1151,15 @@ export default function ChatPage() {
   );
 
   const chatMainEl = (
-    <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, position: "relative", background: "#fafbff" }}>
+    <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, position: "relative", background: "rgba(250,251,255,0.92)" }}>
       {/* Header */}
-      <div style={{ height: 48, padding: "0 16px 0 12px", borderBottom: "1px solid #e0e7ff", display: "flex", alignItems: "center", gap: 10, flexShrink: 0, background: "#fff", boxShadow: "0 1px 0 rgba(99,102,241,0.06)" }}>
+      <div style={{
+        height: 48, padding: "0 16px 0 12px", borderBottom: "1px solid rgba(186,230,253,0.5)",
+        display: "flex", alignItems: "center", gap: 10, flexShrink: 0,
+        background: "rgba(255,255,255,0.92)",
+        backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)",
+        boxShadow: "0 1px 0 rgba(99,102,241,0.06)",
+      }}>
         {isMobile ? (
           <button onClick={() => setMobileView("rooms")} style={{ ...iconBtn, background: "transparent", border: "none", flexShrink: 0 }}>
             <ChevronLeft size={16} style={{ color: "#64748b" }} />
@@ -1333,7 +1352,13 @@ export default function ChatPage() {
             <span style={{ fontSize: 12, color: "#92400e" }}>Kênh thông báo — chỉ Admin/Quản Lý có thể đăng tin</span>
           </div>
         ) : (
-          <div style={{ background: "#f1f3f9", borderRadius: 10, overflow: "hidden", border: "1px solid #e0e7ff" }}>
+          <div style={{
+            background: "rgba(255,255,255,0.9)",
+            backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)",
+            borderRadius: 12, overflow: "hidden",
+            border: "1px solid rgba(186,230,253,0.55)",
+            boxShadow: "0 2px 12px rgba(12,26,46,0.06), inset 0 1px 0 rgba(255,255,255,0.6)",
+          }}>
             {replyTo && (
               <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: "#f0f4ff", borderBottom: "1px solid #e0e7ff" }}>
                 <Reply size={11} style={{ color: "#6366f1", flexShrink: 0 }} />
@@ -1547,9 +1572,11 @@ export default function ChatPage() {
               initial={{ opacity: 0, y: 12, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -8, scale: 0.95 }}
               transition={{ duration: 0.22 }}
               style={{
-                background: "#fff", border: "1px solid #e0e7ff", borderRadius: 12,
+                background: "rgba(255,255,255,0.94)",
+                backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)",
+                border: "1px solid rgba(186,230,253,0.55)", borderRadius: 14,
                 padding: "10px 14px", maxWidth: 260,
-                boxShadow: "0 4px 20px rgba(99,102,241,0.15)",
+                boxShadow: "0 8px 32px rgba(12,26,46,0.14), inset 0 1px 0 rgba(255,255,255,0.8)",
                 pointerEvents: "auto",
               }}
             >
@@ -1567,9 +1594,10 @@ export default function ChatPage() {
 
       <div style={{
         display: "flex", flex: 1, minHeight: 0, height: "100%",
-        borderRadius: 12, overflow: "hidden",
-        border: "1px solid #e0e7ff",
-        boxShadow: "0 4px 24px rgba(99,102,241,0.08)",
+        borderRadius: 14, overflow: "hidden",
+        border: "1px solid rgba(186,230,253,0.55)",
+        boxShadow: "0 4px 28px rgba(12,26,46,0.10), 0 1px 6px rgba(12,26,46,0.05), inset 0 1px 0 rgba(255,255,255,0.6)",
+        backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)",
       }}>
         {isMobile ? (
           // Mobile: full-screen toggle between rooms and chat
