@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { useStore, AppUser } from "@/store/useStore";
 import { motion, AnimatePresence } from "framer-motion";
+import { useTheme } from "@/components/ThemeProvider";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type ShiftTemplate = {
@@ -160,6 +161,8 @@ function SlotCard({ slot, regs, isAdmin, currentUserId, allStaff, onRegister, on
   onDelete: (slotId: string) => void;
 }) {
   const [showAdd, setShowAdd] = useState(false);
+  const { theme } = useTheme();
+  const dk = theme === "dark";
   const myReg = regs.find(r => r.userId === currentUserId);
   const approved = regs.filter(r => r.status === "approved");
   const pending = regs.filter(r => r.status === "pending");
@@ -168,20 +171,20 @@ function SlotCard({ slot, regs, isAdmin, currentUserId, allStaff, onRegister, on
 
   return (
     <div style={{
-      borderRadius:12, border:`1.5px solid ${slot.color}28`,
-      background:"rgba(255,255,255,0.88)",
+      borderRadius:12, border:`1.5px solid ${slot.color}${dk ? "40" : "28"}`,
+      background: dk ? "rgba(15,23,42,0.92)" : "rgba(255,255,255,0.88)",
       backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)",
-      boxShadow:`0 2px 12px rgba(12,26,46,0.06), 0 1px 3px rgba(12,26,46,0.04)`,
+      boxShadow: dk ? "0 2px 12px rgba(0,0,0,0.40)" : "0 2px 12px rgba(12,26,46,0.06), 0 1px 3px rgba(12,26,46,0.04)",
       overflow:"hidden", marginBottom:0,
-      transition:"transform 0.22s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.22s ease",
+      transition:"transform 0.22s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.22s ease, background 0.5s",
     }}
     onMouseEnter={e=>{
       (e.currentTarget as HTMLElement).style.transform="translateY(-2px)";
-      (e.currentTarget as HTMLElement).style.boxShadow=`0 8px 24px rgba(12,26,46,0.10), 0 2px 6px rgba(12,26,46,0.06)`;
+      (e.currentTarget as HTMLElement).style.boxShadow= dk ? "0 8px 24px rgba(0,0,0,0.55)" : "0 8px 24px rgba(12,26,46,0.10), 0 2px 6px rgba(12,26,46,0.06)";
     }}
     onMouseLeave={e=>{
       (e.currentTarget as HTMLElement).style.transform="translateY(0)";
-      (e.currentTarget as HTMLElement).style.boxShadow=`0 2px 12px rgba(12,26,46,0.06), 0 1px 3px rgba(12,26,46,0.04)`;
+      (e.currentTarget as HTMLElement).style.boxShadow= dk ? "0 2px 12px rgba(0,0,0,0.40)" : "0 2px 12px rgba(12,26,46,0.06), 0 1px 3px rgba(12,26,46,0.04)";
     }}
     >
       {/* Color top bar */}
@@ -316,6 +319,8 @@ function AddSlotModal({ templates, date, onSave, onClose }: {
   onSave: (slot: Omit<ShiftSlot,"id"|"createdAt"|"updatedAt">) => void;
   onClose: () => void;
 }) {
+  const { theme } = useTheme();
+  const dk = theme === "dark";
   const [mode, setMode] = useState<"template"|"custom">(templates.length ? "template" : "custom");
   const [selectedTmpl, setSelectedTmpl] = useState<ShiftTemplate | null>(templates[0] ?? null);
   const [name, setName]   = useState("");
@@ -344,11 +349,11 @@ function AddSlotModal({ templates, date, onSave, onClose }: {
       onClick={e=>{ if(e.target===e.currentTarget) onClose(); }}>
       <motion.div initial={{ opacity:0, scale:0.95, y:10 }} animate={{ opacity:1, scale:1, y:0 }}
         style={{
-          background:"rgba(255,255,255,0.96)",
+          background: dk ? "rgba(15,23,42,0.97)" : "rgba(255,255,255,0.96)",
           backdropFilter:"blur(20px)", WebkitBackdropFilter:"blur(20px)",
           borderRadius:20, padding:20, width:"100%", maxWidth:360,
-          boxShadow:"0 24px 80px rgba(12,26,46,0.18), 0 4px 16px rgba(12,26,46,0.08)",
-          border:"1px solid rgba(186,230,253,0.5)",
+          boxShadow: dk ? "0 24px 80px rgba(0,0,0,0.60)" : "0 24px 80px rgba(12,26,46,0.18), 0 4px 16px rgba(12,26,46,0.08)",
+          border: dk ? "1px solid rgba(255,255,255,0.08)" : "1px solid rgba(186,230,253,0.5)",
         }}>
         <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:14 }}>
           <div>

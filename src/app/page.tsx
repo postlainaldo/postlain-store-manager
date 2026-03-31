@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import { useStore } from "@/store/useStore";
+import { useTheme } from "@/components/ThemeProvider";
 import {
   DollarSign, Eye, Package, Layers,
   ArrowRight, RefreshCw,
@@ -272,6 +273,14 @@ function PalexyWidget() {
 export default function OverviewPage() {
   const { products, warehouseShelves, storeSections, fetchProducts, currentUser, storeName } = useStore();
   const isAdmin = currentUser?.role === "admin" || currentUser?.role === "manager";
+  const { theme } = useTheme();
+  const dk = theme === "dark";
+  const cardBg = dk ? "rgba(15,23,42,0.90)" : "rgba(255,255,255,0.88)";
+  const cardBorder = dk ? "rgba(255,255,255,0.07)" : "rgba(186,230,253,0.55)";
+  const cardShadow = dk
+    ? "0 2px 12px rgba(0,0,0,0.40), 0 1px 3px rgba(0,0,0,0.30), inset 0 1px 0 rgba(255,255,255,0.04)"
+    : "0 2px 12px rgba(12,26,46,0.06), 0 1px 3px rgba(12,26,46,0.04), inset 0 1px 0 rgba(255,255,255,0.7)";
+  const tableHeaderBg = dk ? "rgba(15,23,42,0.80)" : "rgba(240,248,255,0.7)";
 
   const [movements, setMovements] = useState<Movement[]>([]);
   const [movLoading, setMovLoading] = useState(true);
@@ -394,11 +403,12 @@ export default function OverviewPage() {
                 className="relative overflow-hidden rounded-xl"
                 style={{
                   padding: "16px", cursor: "default",
-                  background: "rgba(255,255,255,0.88)",
+                  background: cardBg,
                   backdropFilter: "blur(12px)",
                   WebkitBackdropFilter: "blur(12px)",
-                  border: "1px solid rgba(186,230,253,0.55)",
-                  boxShadow: "0 2px 12px rgba(12,26,46,0.06), 0 1px 3px rgba(12,26,46,0.04), inset 0 1px 0 rgba(255,255,255,0.7)",
+                  border: `1px solid ${cardBorder}`,
+                  boxShadow: cardShadow,
+                  transition: "background 0.5s, border-color 0.5s, box-shadow 0.5s",
                 }}
               >
                 {/* Top shimmer accent */}
@@ -431,7 +441,7 @@ export default function OverviewPage() {
                         <motion.span className="font-light"
                           initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: 0.15 + i * 0.05 }}
-                          style={{ fontSize: 28, color: "#0c1a2e", letterSpacing: "0.01em", lineHeight: 1 }}>
+                          style={{ fontSize: 28, color: "var(--text-primary)", letterSpacing: "0.01em", lineHeight: 1 }}>
                           {stat.value}
                         </motion.span>
                         <span className="font-medium tracking-widest" style={{ fontSize: 7.5, color: stat.color }}>{stat.unit}</span>
@@ -451,11 +461,12 @@ export default function OverviewPage() {
             className="lg:col-span-3 rounded-xl overflow-hidden"
             style={{
               padding: "18px 20px",
-              background: "rgba(255,255,255,0.88)",
+              background: cardBg,
               backdropFilter: "blur(12px)",
               WebkitBackdropFilter: "blur(12px)",
-              border: "1px solid rgba(186,230,253,0.55)",
-              boxShadow: "0 2px 12px rgba(12,26,46,0.06), inset 0 1px 0 rgba(255,255,255,0.7)",
+              border: `1px solid ${cardBorder}`,
+              boxShadow: cardShadow,
+              transition: "background 0.5s, border-color 0.5s",
             }}
           >
             <PalexyWidget />
@@ -471,11 +482,12 @@ export default function OverviewPage() {
               className="lg:col-span-2 rounded-xl"
               style={{
                 padding: "18px 20px",
-                background: "rgba(255,255,255,0.88)",
+                background: cardBg,
                 backdropFilter: "blur(12px)",
                 WebkitBackdropFilter: "blur(12px)",
-                border: "1px solid rgba(186,230,253,0.55)",
-                boxShadow: "0 2px 12px rgba(12,26,46,0.06), inset 0 1px 0 rgba(255,255,255,0.7)",
+                border: `1px solid ${cardBorder}`,
+                boxShadow: cardShadow,
+                transition: "background 0.5s, border-color 0.5s",
               }}>
               <p className="text-text-muted font-semibold uppercase tracking-[0.2em]" style={{ fontSize: 8.5, marginBottom: 14 }}>
                 Liên Kết Nhanh
@@ -514,11 +526,12 @@ export default function OverviewPage() {
           initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.34 }}
           className="rounded-xl overflow-hidden"
           style={{
-            background: "rgba(255,255,255,0.88)",
+            background: cardBg,
             backdropFilter: "blur(12px)",
             WebkitBackdropFilter: "blur(12px)",
-            border: "1px solid rgba(186,230,253,0.55)",
-            boxShadow: "0 2px 12px rgba(12,26,46,0.06), inset 0 1px 0 rgba(255,255,255,0.7)",
+            border: `1px solid ${cardBorder}`,
+            boxShadow: cardShadow,
+            transition: "background 0.5s, border-color 0.5s",
           }}
         >
           <div className="flex items-center justify-between px-5 py-3 border-b border-border">
@@ -544,7 +557,7 @@ export default function OverviewPage() {
             <>
               <div className="hidden md:block">
                 <div className="grid px-5 items-center gap-3 border-b border-border"
-                  style={{ gridTemplateColumns: "2fr 1fr 1fr 1fr 0.5fr 0.9fr", height: 30, background: "rgba(240,248,255,0.7)" }}>
+                  style={{ gridTemplateColumns: "2fr 1fr 1fr 1fr 0.5fr 0.9fr", height: 30, background: tableHeaderBg, transition: "background 0.5s" }}>
                   {["Sản Phẩm", "Loại", "Từ", "Đến", "SL", "Thời Gian"].map(h => (
                     <span key={h} className="text-text-muted font-semibold uppercase tracking-[0.15em]" style={{ fontSize: 7.5 }}>{h}</span>
                   ))}

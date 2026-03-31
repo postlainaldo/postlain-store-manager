@@ -6,6 +6,7 @@ import BottomNav from "@/components/BottomNav";
 import AuthGuard from "@/components/AuthGuard";
 import GlobalSearch from "@/components/GlobalSearch";
 import NotificationBanner from "@/components/NotificationBanner";
+import ThemeToggle from "@/components/ThemeToggle";
 
 const NO_SHELL_PATHS = ["/login", "/setup", "/install"];
 
@@ -24,9 +25,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <AuthGuard>
       {/* ── Desktop: TopNav + scrollable content ──────────────────── */}
-      <div className="hidden md:flex flex-col bg-bg-base" style={{ height: "100dvh", overflow: "hidden" }}>
+      <div className="hidden md:flex flex-col bg-bg-base transition-colors duration-500" style={{ height: "100dvh", overflow: "hidden" }}>
         <TopNav />
-        <main className="flex-1 overflow-y-auto overflow-x-hidden" style={{ background: "linear-gradient(160deg, #eef6fd 0%, #f0effe 55%, #eef6fd 100%)" }}>
+        <main className="flex-1 overflow-y-auto overflow-x-hidden page-bg-aurora transition-colors duration-500">
           {isFullHeight ? (
             <div style={{ height: "calc(100vh - 52px)", padding: "12px 24px", display: "flex", flexDirection: "column" }}>
               {children}
@@ -40,7 +41,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       </div>
 
       {/* ── Mobile: top bar + scrollable content + bottom nav ─────── */}
-      <div className="md:hidden flex flex-col bg-bg-base" style={{ height: "100dvh", overflow: "hidden" }}>
+      <div className="md:hidden flex flex-col bg-bg-base transition-colors duration-500" style={{ height: "100dvh", overflow: "hidden" }}>
         {/* Mobile top bar */}
         <div style={{
           flexShrink: 0,
@@ -55,6 +56,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             <GlobalSearch />
           </div>
           <NotificationBanner />
+          <ThemeToggle />
         </div>
 
         {/* Content */}
@@ -76,8 +78,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         ) : (
           /* Normal pages: scrollable with padding so content clears bottom nav */
           <main
-            className="flex-1 overflow-y-auto overflow-x-hidden"
-            style={{ paddingBottom: "calc(60px + env(safe-area-inset-bottom, 0px))", background: "linear-gradient(160deg, #eef6fd 0%, #f0effe 55%, #eef6fd 100%)" }}
+            className="flex-1 overflow-y-auto overflow-x-hidden page-bg-aurora transition-colors duration-500"
+            style={{ paddingBottom: "calc(60px + env(safe-area-inset-bottom, 0px))" }}
           >
             <div style={{ padding: "12px 14px 8px" }}>
               {children}

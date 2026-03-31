@@ -15,6 +15,7 @@ import { useStore } from "@/store/useStore";
 import { useRouter } from "next/navigation";
 import type { UserRole, AppUser } from "@/store/useStore";
 import { useUpdateContext } from "@/components/Providers";
+import { useTheme } from "@/components/ThemeProvider";
 
 const APP_VERSION = process.env.NEXT_PUBLIC_APP_VERSION ?? "2.1.0";
 const BUILD_DATE = process.env.NEXT_PUBLIC_BUILD_DATE
@@ -156,17 +157,20 @@ function PremiumCard({
 }: {
   title: string; icon: typeof User; iconColor?: string; accentColor?: string; children: React.ReactNode;
 }) {
+  const { theme } = useTheme();
+  const dk = theme === "dark";
   return (
     <div style={{
-      borderRadius: 16, border: "1px solid rgba(186,230,253,0.55)",
-      background: "rgba(255,255,255,0.88)",
+      borderRadius: 16, border: dk ? "1px solid rgba(255,255,255,0.07)" : "1px solid rgba(186,230,253,0.55)",
+      background: dk ? "rgba(15,23,42,0.92)" : "rgba(255,255,255,0.88)",
       backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)",
       overflow: "hidden",
-      boxShadow: "0 2px 16px rgba(12,26,46,0.06), inset 0 1px 0 rgba(255,255,255,0.7)",
+      boxShadow: dk ? "0 2px 16px rgba(0,0,0,0.40)" : "0 2px 16px rgba(12,26,46,0.06), inset 0 1px 0 rgba(255,255,255,0.7)",
+      transition: "background 0.5s, border-color 0.5s",
     }}>
       <div style={{
-        padding: "11px 20px", borderBottom: "1px solid rgba(186,230,253,0.4)",
-        background: `linear-gradient(90deg, ${accentColor}08, rgba(255,255,255,0.5))`,
+        padding: "11px 20px", borderBottom: dk ? "1px solid rgba(255,255,255,0.07)" : "1px solid rgba(186,230,253,0.4)",
+        background: dk ? `linear-gradient(90deg, ${accentColor}12, rgba(15,23,42,0.5))` : `linear-gradient(90deg, ${accentColor}08, rgba(255,255,255,0.5))`,
         display: "flex", alignItems: "center", gap: 10,
       }}>
         <div style={{
@@ -1047,6 +1051,11 @@ export default function ProfilePage() {
   const { currentUser, logout } = useStore();
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
+  const { theme } = useTheme();
+  const dk = theme === "dark";
+  const cardBg = dk ? "rgba(15,23,42,0.92)" : "rgba(255,255,255,0.88)";
+  const cardBorder = dk ? "rgba(255,255,255,0.07)" : "rgba(186,230,253,0.55)";
+  const cardShadow = dk ? "0 2px 14px rgba(0,0,0,0.40)" : "0 2px 14px rgba(12,26,46,0.07), inset 0 1px 0 rgba(255,255,255,0.7)";
 
   const [profile, setProfile] = useState<TeamMember | null>(null);
   const [team, setTeam] = useState<TeamMember[]>([]);
@@ -1405,10 +1414,11 @@ export default function ProfilePage() {
         {/* ── Tabs ────────────────────────────────────────────────────────── */}
         <div style={{
           display: "flex", gap: 3,
-          background: "rgba(255,255,255,0.82)",
+          background: cardBg,
           backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)",
-          borderRadius: 16, border: "1px solid rgba(186,230,253,0.5)", padding: 5, marginBottom: 16,
-          boxShadow: "0 2px 14px rgba(12,26,46,0.07), inset 0 1px 0 rgba(255,255,255,0.7)",
+          borderRadius: 16, border: `1px solid ${cardBorder}`, padding: 5, marginBottom: 16,
+          boxShadow: cardShadow,
+          transition: "background 0.5s, border-color 0.5s",
         }}>
           {TABS.map(t => {
             const TIcon = t.icon;
@@ -1448,8 +1458,8 @@ export default function ProfilePage() {
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
 
                 {/* Info card */}
-                <div style={{ borderRadius: 16, border: "1px solid rgba(186,230,253,0.55)", background: "rgba(255,255,255,0.88)", overflow: "hidden", boxShadow: "0 2px 16px rgba(12,26,46,0.06), inset 0 1px 0 rgba(255,255,255,0.7)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)" }}>
-                  <div style={{ padding: "13px 20px", borderBottom: "1px solid var(--border-subtle)", background: "linear-gradient(90deg, rgba(14,165,233,0.05), #fff)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <div style={{ borderRadius: 16, border: `1px solid ${cardBorder}`, background: cardBg, overflow: "hidden", boxShadow: cardShadow, backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", transition: "background 0.5s, border-color 0.5s" }}>
+                  <div style={{ padding: "13px 20px", borderBottom: "1px solid var(--border-subtle)", background: dk ? "linear-gradient(90deg, rgba(14,165,233,0.07), rgba(15,23,42,0.5))" : "linear-gradient(90deg, rgba(14,165,233,0.05), #fff)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                       <div style={{ width: 3, height: 14, borderRadius: 2, background: "#0ea5e9", boxShadow: "0 0 6px rgba(14,165,233,0.5)" }} />
                       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -1514,7 +1524,7 @@ export default function ProfilePage() {
                 </div>
 
                 {/* Password change */}
-                <div style={{ borderRadius: 16, border: "1px solid rgba(186,230,253,0.55)", background: "rgba(255,255,255,0.88)", overflow: "hidden", boxShadow: "0 2px 12px rgba(12,26,46,0.06), inset 0 1px 0 rgba(255,255,255,0.7)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)" }}>
+                <div style={{ borderRadius: 16, border: `1px solid ${cardBorder}`, background: cardBg, overflow: "hidden", boxShadow: cardShadow, backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", transition: "background 0.5s, border-color 0.5s" }}>
                   <motion.button whileHover={{ background: "var(--bg-base)" }} onClick={() => setPwOpen(v => !v)}
                     style={{ width: "100%", padding: "14px 20px", display: "flex", alignItems: "center", gap: 10, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", textAlign: "left", transition: "background 0.15s" }}>
                     <div style={{ width: 28, height: 28, borderRadius: 8, background: "rgba(220,38,38,0.08)", border: "1px solid rgba(220,38,38,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>

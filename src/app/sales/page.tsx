@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { ShoppingBag, TrendingUp, Receipt, RefreshCw, BarChart2, ChevronDown, ChevronUp } from "lucide-react";
 import Link from "next/link";
+import { useTheme } from "@/components/ThemeProvider";
 
 type Summary = { totalRevenue: number; orderCount: number; avgOrderValue: number };
 type PeriodSummary = { today: Summary; week: Summary; month: Summary };
@@ -18,6 +19,10 @@ function fmtDate(iso: string) {
 }
 
 export default function SalesPage() {
+  const { theme } = useTheme();
+  const dk = theme === "dark";
+  const cardBg = dk ? "rgba(15,23,42,0.90)" : "rgba(255,255,255,0.88)";
+  const cardBorder = dk ? "rgba(255,255,255,0.07)" : "rgba(186,230,253,0.55)";
   const [summary, setSummary] = useState<PeriodSummary | null>(null);
   const [orders, setOrders] = useState<PosOrder[]>([]);
   const [topProducts, setTopProducts] = useState<TopProduct[]>([]);
@@ -155,12 +160,12 @@ export default function SalesPage() {
                 <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                   {orders.map(o => (
                     <div key={o.id} style={{
-                      background: "rgba(255,255,255,0.88)",
+                      background: cardBg,
                       backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)",
-                      border: "1px solid rgba(186,230,253,0.55)",
+                      border: `1px solid ${cardBorder}`,
                       borderRadius: 12, overflow: "hidden",
-                      boxShadow: "0 1px 6px rgba(12,26,46,0.05)",
-                      transition: "box-shadow 0.18s",
+                      boxShadow: dk ? "0 1px 6px rgba(0,0,0,0.35)" : "0 1px 6px rgba(12,26,46,0.05)",
+                      transition: "box-shadow 0.18s, background 0.5s, border-color 0.5s",
                     }}>
                       <div onClick={() => toggleOrder(o.id)} style={{
                         display: "flex", alignItems: "center", justifyContent: "space-between",
