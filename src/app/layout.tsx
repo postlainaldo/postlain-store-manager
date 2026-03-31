@@ -55,6 +55,22 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="apple-touch-icon" sizes="152x152" href="/icon-152x152.png" />
         <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
         <link rel="manifest" href="/manifest.json" />
+        {/* Blocking theme script — runs before first paint to prevent flash.
+            Migrates old "dark" default to "light" on first load after update. */}
+        <script dangerouslySetInnerHTML={{ __html: `
+          (function(){
+            try {
+              var v = localStorage.getItem('postlain-theme');
+              // Migration: clear old auto-set dark mode on first post-update load
+              if (!localStorage.getItem('postlain-theme-v2')) {
+                localStorage.removeItem('postlain-theme');
+                localStorage.setItem('postlain-theme-v2', '1');
+                v = 'light';
+              }
+              if (v === 'dark') { document.documentElement.classList.add('dark'); }
+            } catch(e) {}
+          })();
+        ` }} />
 
         {/* iOS PWA meta — required for "Add to Home Screen" */}
         <meta name="mobile-web-app-capable" content="yes" />

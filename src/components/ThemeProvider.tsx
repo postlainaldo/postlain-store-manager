@@ -11,7 +11,7 @@ interface ThemeContextValue {
 }
 
 const ThemeContext = createContext<ThemeContextValue>({
-  theme:    "dark",
+  theme:    "light",
   toggle:   () => {},
   setTheme: () => {},
 });
@@ -21,9 +21,9 @@ export function useTheme() {
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  // Initialise from what the blocking script already set on <html>
+  // Initialise from DOM class — blocking script already applied correct theme
   const [theme, setThemeState] = useState<Theme>(() => {
-    if (typeof window === "undefined") return "dark";
+    if (typeof window === "undefined") return "light";
     return document.documentElement.classList.contains("dark") ? "dark" : "light";
   });
 
@@ -38,17 +38,10 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     setThemeState(t);
   }, []);
 
-  // Sync on mount (in case SSR mismatch)
+  // Apply on mount — ensures DOM class and localStorage are in sync with initial state
   useEffect(() => {
-    const saved = (() => {
-      try { return localStorage.getItem("postlain-theme") as Theme | null; } catch { return null; }
-    })();
-    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-    const resolved: Theme = saved === "light" || saved === "dark"
-      ? saved
-      : prefersDark ? "dark" : "light";
-    applyTheme(resolved);
-  }, [applyTheme]);
+    applyTheme(theme);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const toggle = useCallback(() => {
     applyTheme(theme === "dark" ? "light" : "dark");
