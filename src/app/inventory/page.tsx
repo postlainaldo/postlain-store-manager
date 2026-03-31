@@ -13,7 +13,6 @@ import {
 } from "lucide-react";
 import QRScannerModal from "@/components/QRScannerModal";
 import { parseMCFromNotes, colorCodeToHex } from "@/lib/categoryMapping";
-import { useTheme } from "@/components/ThemeProvider";
 import "barcode-detector/polyfill";
 
 // ─── Inline search scanner (mobile) ──────────────────────────────────────────
@@ -171,13 +170,9 @@ function QtyPill({ qty }: { qty: number }) {
 function ListView() {
   const { products, storeSections, warehouseShelves, fetchProducts, fetchDbState, deleteProduct } = useStore();
   const router = useRouter();
-  const { theme } = useTheme();
-  const dk = theme === "dark";
-  const cardBg = dk ? "rgba(15,23,42,0.92)" : "rgba(255,255,255,0.88)";
-  const cardBorder = dk ? "rgba(255,255,255,0.07)" : "rgba(186,230,253,0.55)";
-  const tableHeaderBg = dk
-    ? "linear-gradient(to bottom, rgba(15,23,42,0.90), rgba(30,41,59,0.70))"
-    : "linear-gradient(to bottom, rgba(240,248,255,0.85), rgba(224,242,254,0.6))";
+  const cardBg = "rgba(255,255,255,0.88)";
+  const cardBorder = "rgba(186,230,253,0.55)";
+  const tableHeaderBg = "linear-gradient(to bottom, rgba(240,248,255,0.85), rgba(224,242,254,0.6))";
 
   const [search,        setSearch]      = useState("");
   const [filterCat,     setFilterCat]   = useState("");
@@ -306,7 +301,7 @@ function ListView() {
           background: cardBg, backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)",
           border: `1px solid ${cardBorder}`, borderRadius: 12,
           padding: "0 12px", height: 38,
-          boxShadow: dk ? "0 2px 8px rgba(0,0,0,0.30)" : "0 2px 8px rgba(12,26,46,0.05)",
+          boxShadow: "0 2px 8px rgba(12,26,46,0.05)",
           transition: "box-shadow 0.18s, border-color 0.18s",
         }}>
           <Search size={13} style={{ color: "var(--text-muted)", flexShrink: 0 }} strokeWidth={1.5} />
@@ -510,10 +505,7 @@ function ListView() {
         background: cardBg,
         backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)",
         border: `1px solid ${cardBorder}`, overflowX: "auto",
-        boxShadow: dk
-          ? "0 2px 16px rgba(0,0,0,0.40), inset 0 1px 0 rgba(255,255,255,0.04)"
-          : "0 2px 16px rgba(12,26,46,0.07), inset 0 1px 0 rgba(255,255,255,0.7)",
-        transition: "background 0.5s, border-color 0.5s",
+        boxShadow: "0 2px 16px rgba(12,26,46,0.07), inset 0 1px 0 rgba(255,255,255,0.7)",
       }}>
         <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "auto" }}>
           <colgroup>
@@ -532,7 +524,7 @@ function ListView() {
           <thead>
             <tr style={{
               background: tableHeaderBg,
-              borderBottom: `1px solid ${cardBorder}`,
+              borderBottom: "1px solid rgba(186,230,253,0.5)",
             }}>
               <th style={{ padding: "0 0 0 16px", height: 34, textAlign: "left" }}>
                 <button onClick={toggleAll} style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center" }}>
@@ -744,11 +736,11 @@ function ListView() {
               backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)",
               border: `1px solid ${cardBorder}`, padding: "12px 14px",
               display: "flex", alignItems: "flex-start", gap: 12,
-              boxShadow: dk ? "0 2px 10px rgba(0,0,0,0.35)" : "0 2px 10px rgba(12,26,46,0.06), inset 0 1px 0 rgba(255,255,255,0.7)",
-              transition: "transform 0.2s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.2s ease, background 0.5s, border-color 0.5s",
+              boxShadow: "0 2px 10px rgba(12,26,46,0.06), inset 0 1px 0 rgba(255,255,255,0.7)",
+              transition: "transform 0.2s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.2s ease",
             }}
-            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = "translateY(-1px)"; (e.currentTarget as HTMLElement).style.boxShadow = dk ? "0 6px 20px rgba(0,0,0,0.50)" : "0 6px 20px rgba(12,26,46,0.10)"; }}
-            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = "translateY(0)"; (e.currentTarget as HTMLElement).style.boxShadow = dk ? "0 2px 10px rgba(0,0,0,0.35)" : "0 2px 10px rgba(12,26,46,0.06)"; }}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = "translateY(-1px)"; (e.currentTarget as HTMLElement).style.boxShadow = "0 6px 20px rgba(12,26,46,0.10)"; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = "translateY(0)"; (e.currentTarget as HTMLElement).style.boxShadow = "0 2px 10px rgba(12,26,46,0.06)"; }}
             >
               {/* Color dot */}
               {colorHex && (

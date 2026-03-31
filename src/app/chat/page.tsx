@@ -13,7 +13,7 @@ import {
   RotateCcw, Eye, ZoomIn,
 } from "lucide-react";
 import { useStore } from "@/store/useStore";
-import { useTheme } from "@/components/ThemeProvider";
+
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -467,10 +467,8 @@ function UploadPreview({ file, onCancel }: { file: File; onCancel: () => void })
 export default function ChatPage() {
   const { currentUser } = useStore();
   const isAdmin = currentUser?.role === "admin" || currentUser?.role === "manager";
-  const { theme } = useTheme();
-  const dk = theme === "dark";
-  const cardBg = dk ? "rgba(15,23,42,0.92)" : "rgba(255,255,255,0.88)";
-  const cardBorder = dk ? "rgba(255,255,255,0.07)" : "rgba(186,230,253,0.55)";
+  const cardBg = "rgba(255,255,255,0.88)";
+  const cardBorder = "rgba(186,230,253,0.55)";
 
   const [rooms, setRooms] = useState<Room[]>([]);
   const [activeRoom, setActiveRoom] = useState<Room | null>(null);
@@ -1017,8 +1015,8 @@ export default function ChatPage() {
     <div style={{
       display: "flex", flexDirection: "column", height: "100%",
       ...(isMobile
-        ? { flex: 1, background: dk ? "rgba(15,23,42,0.95)" : "rgba(240,244,255,0.92)" }
-        : { width: 232, flexShrink: 0, borderRight: `1px solid ${cardBorder}`, background: dk ? "rgba(15,23,42,0.95)" : "rgba(240,244,255,0.85)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)" }),
+        ? { flex: 1, background: "rgba(240,244,255,0.92)" }
+        : { width: 232, flexShrink: 0, borderRight: `1px solid ${cardBorder}`, background: "rgba(240,244,255,0.85)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)" }),
     }}>
       {/* Server header */}
       <div style={{
@@ -1156,7 +1154,7 @@ export default function ChatPage() {
   );
 
   const chatMainEl = (
-    <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, position: "relative", background: dk ? "#020617" : "rgba(250,251,255,0.92)" }}>
+    <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, position: "relative", background: "rgba(250,251,255,0.92)" }}>
       {/* Header */}
       <div style={{
         height: 48, padding: "0 16px 0 12px", borderBottom: `1px solid ${cardBorder}`,
@@ -1362,8 +1360,7 @@ export default function ChatPage() {
             backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)",
             borderRadius: 12, overflow: "hidden",
             border: `1px solid ${cardBorder}`,
-            boxShadow: dk ? "0 2px 12px rgba(0,0,0,0.40)" : "0 2px 12px rgba(12,26,46,0.06), inset 0 1px 0 rgba(255,255,255,0.6)",
-            transition: "background 0.5s, border-color 0.5s",
+            boxShadow: "0 2px 12px rgba(12,26,46,0.06), inset 0 1px 0 rgba(255,255,255,0.6)",
           }}>
             {replyTo && (
               <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: "#f0f4ff", borderBottom: "1px solid #e0e7ff" }}>
@@ -1578,11 +1575,11 @@ export default function ChatPage() {
               initial={{ opacity: 0, y: 12, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -8, scale: 0.95 }}
               transition={{ duration: 0.22 }}
               style={{
-                background: dk ? "rgba(30,41,59,0.95)" : "rgba(255,255,255,0.94)",
+                background: "rgba(255,255,255,0.94)",
                 backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)",
                 border: `1px solid ${cardBorder}`, borderRadius: 14,
                 padding: "10px 14px", maxWidth: 260,
-                boxShadow: dk ? "0 8px 32px rgba(0,0,0,0.50)" : "0 8px 32px rgba(12,26,46,0.14), inset 0 1px 0 rgba(255,255,255,0.8)",
+                boxShadow: "0 8px 32px rgba(12,26,46,0.14), inset 0 1px 0 rgba(255,255,255,0.8)",
                 pointerEvents: "auto",
               }}
             >
@@ -1602,11 +1599,8 @@ export default function ChatPage() {
         display: "flex", flex: 1, minHeight: 0, height: "100%",
         borderRadius: 14, overflow: "hidden",
         border: `1px solid ${cardBorder}`,
-        boxShadow: dk
-          ? "0 4px 28px rgba(0,0,0,0.55), 0 1px 6px rgba(0,0,0,0.35)"
-          : "0 4px 28px rgba(12,26,46,0.10), 0 1px 6px rgba(12,26,46,0.05), inset 0 1px 0 rgba(255,255,255,0.6)",
+        boxShadow: "0 4px 28px rgba(12,26,46,0.10), 0 1px 6px rgba(12,26,46,0.05), inset 0 1px 0 rgba(255,255,255,0.6)",
         backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)",
-        transition: "border-color 0.5s, box-shadow 0.5s",
       }}>
         {isMobile ? (
           // Mobile: full-screen toggle between rooms and chat

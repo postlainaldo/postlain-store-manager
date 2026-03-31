@@ -1,13 +1,13 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from "react";
+import { createContext, useContext, useEffect, type ReactNode } from "react";
 
-type Theme = "light" | "dark";
-
+// Theme is locked to light — dark mode removed.
+// Context kept so existing imports don't break.
 interface ThemeContextValue {
-  theme:  Theme;
-  toggle: () => void;
-  setTheme: (t: Theme) => void;
+  theme:    "light";
+  toggle:   () => void;
+  setTheme: (t: "light") => void;
 }
 
 const ThemeContext = createContext<ThemeContextValue>({
@@ -21,38 +21,14 @@ export function useTheme() {
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  // Initialise from DOM class — blocking script already applied correct theme
-  const [theme, setThemeState] = useState<Theme>(() => {
-    if (typeof window === "undefined") return "light";
-    return document.documentElement.classList.contains("dark") ? "dark" : "light";
-  });
-
-  const applyTheme = useCallback((t: Theme) => {
-    const root = document.documentElement;
-    if (t === "dark") {
-      root.classList.add("dark");
-    } else {
-      root.classList.remove("dark");
-    }
-    try { localStorage.setItem("postlain-theme", t); } catch {}
-    setThemeState(t);
+  // Ensure dark class is never present
+  useEffect(() => {
+    document.documentElement.classList.remove("dark");
+    try { localStorage.removeItem("postlain-theme"); } catch {}
   }, []);
 
-  // Apply on mount — ensures DOM class and localStorage are in sync with initial state
-  useEffect(() => {
-    applyTheme(theme);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const toggle = useCallback(() => {
-    applyTheme(theme === "dark" ? "light" : "dark");
-  }, [theme, applyTheme]);
-
-  const setTheme = useCallback((t: Theme) => {
-    applyTheme(t);
-  }, [applyTheme]);
-
   return (
-    <ThemeContext.Provider value={{ theme, toggle, setTheme }}>
+    <ThemeContext.Provider value={{ theme: "light", toggle: () => {}, setTheme: () => {} }}>
       {children}
     </ThemeContext.Provider>
   );

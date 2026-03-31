@@ -6,7 +6,6 @@ import BottomNav from "@/components/BottomNav";
 import AuthGuard from "@/components/AuthGuard";
 import GlobalSearch from "@/components/GlobalSearch";
 import NotificationBanner from "@/components/NotificationBanner";
-import ThemeToggle from "@/components/ThemeToggle";
 
 const NO_SHELL_PATHS = ["/login", "/setup", "/install"];
 
@@ -41,7 +40,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       </div>
 
       {/* ── Mobile: top bar + scrollable content + bottom nav ─────── */}
-      <div className="md:hidden flex flex-col bg-bg-base transition-colors duration-500" style={{ height: "100dvh", overflow: "hidden" }}>
+      <div className="md:hidden flex flex-col bg-bg-base transition-colors duration-500" style={{ height: "100dvh" }}>
         {/* Mobile top bar */}
         <div style={{
           flexShrink: 0,
@@ -56,7 +55,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             <GlobalSearch />
           </div>
           <NotificationBanner />
-          <ThemeToggle />
         </div>
 
         {/* Content */}

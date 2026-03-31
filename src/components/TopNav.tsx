@@ -9,7 +9,6 @@ import {
 import { useStore } from "@/store/useStore";
 import NotificationBanner from "@/components/NotificationBanner";
 import GlobalSearch from "@/components/GlobalSearch";
-import ThemeToggle from "@/components/ThemeToggle";
 
 const NAV_ITEMS = [
   { id: "overview",     label: "Tổng Quan",  href: "/",             icon: LayoutDashboard, exact: true  },
@@ -85,7 +84,6 @@ export default function TopNav() {
       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
         <GlobalSearch />
         <NotificationBanner />
-        <ThemeToggle />
 
         {currentUser ? (
           <>
