@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Eye, EyeOff, Lock, User, AlertCircle, Check, ArrowRight } from "lucide-react";
 import { useStore } from "@/store/useStore";
-import { useSFX } from "@/hooks/useSFX";
+import { useSFX, unlockAudio } from "@/hooks/useSFX";
 
 // ─── Animated orb background ──────────────────────────────────────────────────
 
@@ -119,6 +119,9 @@ export default function LoginPage() {
   const [focusUser, setFocusUser] = useState(false);
   const [focusPw,   setFocusPw]   = useState(false);
 
+  // Unlock AudioContext on first interaction on the login page
+  const handleFirstInteraction = () => unlockAudio();
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (loading || success) return;
@@ -140,7 +143,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div style={{ minHeight: "100dvh", display: "flex", alignItems: "center", justifyContent: "center", padding: 24, position: "relative" }}>
+    <div onClick={handleFirstInteraction} style={{ minHeight: "100dvh", display: "flex", alignItems: "center", justifyContent: "center", padding: 24, position: "relative" }}>
       <AuroraBackground />
 
       <motion.div

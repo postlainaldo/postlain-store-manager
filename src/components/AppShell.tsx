@@ -6,6 +6,7 @@ import BottomNav from "@/components/BottomNav";
 import AuthGuard from "@/components/AuthGuard";
 import GlobalSearch from "@/components/GlobalSearch";
 import NotificationBanner from "@/components/NotificationBanner";
+import AudioUnlocker from "@/components/AudioUnlocker";
 
 const NO_SHELL_PATHS = ["/login", "/setup", "/install"];
 
@@ -23,6 +24,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthGuard>
+      <AudioUnlocker />
       {/* ── Desktop: TopNav + scrollable content ──────────────────── */}
       <div className="hidden md:flex flex-col bg-bg-base transition-colors duration-500" style={{ height: "100dvh", overflow: "hidden" }}>
         <TopNav />
