@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Search, Package, Users, Bell, X, Hash, ArrowRight } from "lucide-react";
 import { useStore } from "@/store/useStore";
 import { useRouter } from "next/navigation";
+import { playSound } from "@/hooks/useSFX";
 
 type Result = {
   id: string;
@@ -128,6 +129,7 @@ export default function GlobalSearch() {
   }, [query, buildResults]);
 
   const navigate = (r: Result) => {
+    playSound("navigate");
     router.push(r.href);
     setOpen(false);
   };
@@ -150,7 +152,7 @@ export default function GlobalSearch() {
     <>
       {/* Trigger button — shown in TopNav */}
       <button
-        onClick={() => setOpen(true)}
+        onClick={() => { playSound("modalOpen"); setOpen(true); }}
         style={{
           display: "flex", alignItems: "center", gap: 6,
           padding: "5px 12px", borderRadius: 9,

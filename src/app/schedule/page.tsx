@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { useStore, AppUser } from "@/store/useStore";
 import { motion, AnimatePresence } from "framer-motion";
+import { playSound } from "@/hooks/useSFX";
 
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -135,7 +136,7 @@ function TemplateForm({ initial, onSave, onClose }: {
           Huỷ
         </button>
         <button
-          onClick={()=>{ if(name.trim()) onSave({name:name.trim(),startTime:start,endTime:end,color,maxStaff:max}); }}
+          onClick={()=>{ if(name.trim()) { playSound("save"); onSave({name:name.trim(),startTime:start,endTime:end,color,maxStaff:max}); } }}
           disabled={!name.trim()}
           className="btn-primary" style={{ flex:2, height:36, fontFamily:"inherit", fontSize:11, opacity:name.trim()?1:0.5 }}>
           Lưu ca
@@ -285,7 +286,7 @@ function SlotCard({ slot, regs, isAdmin, currentUserId, allStaff, onRegister, on
 
           {/* My status */}
           {!myReg ? (
-            <button onClick={() => !full && onRegister(slot.id)} disabled={full}
+            <button onClick={() => { if (!full) { playSound("save"); onRegister(slot.id); } }} disabled={full}
               style={{ width:"100%", height:30, borderRadius:8, border:"none", background:full?"#f1f5f9":`linear-gradient(135deg,${slot.color},${slot.color}cc)`, cursor:full?"default":"pointer", fontSize:10, fontWeight:700, color:full?"#94a3b8":"#fff", fontFamily:"inherit" }}>
               {full ? "Đầy ca" : "Đăng ký ca này"}
             </button>

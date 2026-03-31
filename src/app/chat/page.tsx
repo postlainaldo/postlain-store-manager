@@ -13,6 +13,7 @@ import {
   RotateCcw, Eye, ZoomIn,
 } from "lucide-react";
 import { useStore } from "@/store/useStore";
+import { playSound } from "@/hooks/useSFX";
 
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -735,6 +736,7 @@ export default function ChatPage() {
   const handleSend = async () => {
     if ((!input.trim() && !pendingFile) || !activeRoom || !currentUser || sending) return;
     if (activeRoom.type === "announce" && !isAdmin) return;
+    playSound("tap");
     setSending(true);
 
     let mediaUrl: string | null = null;
@@ -777,6 +779,7 @@ export default function ChatPage() {
 
   const handleDeleteMsg = async (msgId: string) => {
     if (!currentUser) return;
+    playSound("destroy");
     setMessages(prev => prev.map(m =>
       m.id === msgId ? { ...m, content: "[Tin nhắn đã bị xóa]", deletedAt: new Date().toISOString() } : m
     ));
@@ -829,6 +832,7 @@ export default function ChatPage() {
 
   const handleCreateRoom = async () => {
     if (!newRoomName.trim() || !currentUser) return;
+    playSound("save");
     const res = await fetch("/api/chat", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },

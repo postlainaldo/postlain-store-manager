@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Bell, X, Pin, Megaphone, Info, AlertTriangle, CheckCircle } from "lucide-react";
 import { useStore } from "@/store/useStore";
+import { playSound } from "@/hooks/useSFX";
 
 type Notif = { id: string; title: string; body: string; type: string; createdBy: string; createdAt: string; pinned: number };
 
@@ -58,7 +59,7 @@ export default function NotificationBanner() {
       {/* Bell button */}
       <div style={{ position: "relative" }}>
         <button
-          onClick={() => { setOpen(v => !v); setBanner(null); }}
+          onClick={() => { const next = !open; setOpen(next); setBanner(null); playSound(next ? "modalOpen" : "modalClose"); }}
           style={{
             width: 32, height: 32, borderRadius: 8, border: "1px solid #bae6fd",
             background: open ? "rgba(14,165,233,0.08)" : "#f0f9ff",

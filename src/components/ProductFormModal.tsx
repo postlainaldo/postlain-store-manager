@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useStore } from "@/store/useStore";
 import { Product } from "@/types";
 import { PRODUCT_TYPES, PRODUCT_GROUPS, PRODUCT_COLORS } from "@/lib/productTypes";
+import { playSound } from "@/hooks/useSFX";
 
 interface Props {
   product?: Product | null;
@@ -62,7 +63,7 @@ export default function ProductFormModal({ product, onClose }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const handleKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    const handleKey = (e: KeyboardEvent) => { if (e.key === "Escape") { playSound("modalClose"); onClose(); } };
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
   }, [onClose]);
@@ -83,6 +84,7 @@ export default function ProductFormModal({ product, onClose }: Props) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
+    playSound("tap");
     const now = new Date().toISOString();
     const productData = {
       ...form,
@@ -104,6 +106,7 @@ export default function ProductFormModal({ product, onClose }: Props) {
       });
     }
     setSaving(false);
+    playSound("save");
     onClose();
   };
 
@@ -114,7 +117,7 @@ export default function ProductFormModal({ product, onClose }: Props) {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
     >
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => { playSound("modalClose"); onClose(); }} />
 
       <motion.div
         className="relative z-10 w-full max-w-lg bg-bg-surface border border-border rounded-sm shadow-2xl"

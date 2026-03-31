@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { playSound } from "@/hooks/useSFX";
 
 const SPLASH_KEY = "postlain_splashed_v3";
 
@@ -56,11 +57,14 @@ export default function SplashScreen() {
     sessionStorage.setItem(SPLASH_KEY, "1");
     setVisible(true);
 
+    // Boot sound — fired after a tiny delay so AudioContext can resume on user gesture context
+    const tBoot = setTimeout(() => playSound("boot"), 100);
+
     // Phase timeline
     const t1 = setTimeout(() => setPhase("hold"), 800);
     const t2 = setTimeout(() => setPhase("out"), 2400);
     const t3 = setTimeout(() => setVisible(false), 2900);
-    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
+    return () => { clearTimeout(tBoot); clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
   }, []);
 
   const particles = [

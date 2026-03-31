@@ -15,6 +15,7 @@ import { useStore } from "@/store/useStore";
 import { useRouter } from "next/navigation";
 import type { UserRole, AppUser } from "@/store/useStore";
 import { useUpdateContext } from "@/components/Providers";
+import { playSound } from "@/hooks/useSFX";
 
 
 const APP_VERSION = process.env.NEXT_PUBLIC_APP_VERSION ?? "2.1.0";
@@ -476,6 +477,7 @@ function StorePanel() {
     setStoreSetting("storePhone", phone); setStoreSetting("storeEmail", email);
     fetch("/api/settings", { method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ storeName: name, storeAddress: addr, storePhone: phone, storeEmail: email }) }).catch(() => {});
+    playSound("save");
     setSaved(true); setTimeout(() => setSaved(false), 1400);
   };
   return (
@@ -575,6 +577,7 @@ function UsersPanel() {
     const res = await fetch("/api/auth", { method: "PUT", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name: newUser.name.trim(), username: newUser.username.trim(), password: newUser.password.trim(), role: newUser.role }) });
     if (!res.ok) { setAddMsg("Lỗi tạo tài khoản"); return; }
+    playSound("save");
     setAddMsg("Đã thêm người dùng");
     await fetchUsersFromDb();
     setTimeout(() => { setAddMsg(null); setShowAdd(false); setNewUser({ name: "", username: "", password: "", role: "staff" }); }, 1200);
@@ -592,6 +595,7 @@ function UsersPanel() {
     if (editForm.password.trim()) body.password = editForm.password.trim();
     const res = await fetch("/api/auth", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
     if (!res.ok) { setEditMsg("Lỗi cập nhật"); return; }
+    playSound("save");
     updateUser(u.id, { name: editForm.name.trim(), role: editForm.role });
     setEditMsg("Đã lưu");
     setTimeout(() => { setEditMsg(null); setEditingId(null); }, 1000);
@@ -600,6 +604,7 @@ function UsersPanel() {
   const handleDelete = async (u: AppUser) => {
     const res = await fetch("/api/auth", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: u.id }) });
     if (!res.ok) return;
+    playSound("destroy");
     removeUser(u.id);
     setConfirmDeleteId(null);
   };

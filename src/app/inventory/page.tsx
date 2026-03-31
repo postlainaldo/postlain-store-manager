@@ -13,6 +13,7 @@ import {
   ArrowUpDown, ArrowUp, ArrowDown, ChevronDown,
 } from "lucide-react";
 import QRScannerModal from "@/components/QRScannerModal";
+import { playSound } from "@/hooks/useSFX";
 import { parseMCFromNotes, colorCodeToHex } from "@/lib/categoryMapping";
 import "barcode-detector/polyfill";
 
@@ -438,7 +439,7 @@ function ListView() {
           </motion.span>
         )}
 
-        <button onClick={() => setShowAdd(true)} style={{
+        <button onClick={() => { playSound("modalOpen"); setShowAdd(true); }} style={{
           display: "flex", alignItems: "center", gap: 6,
           height: 38, padding: "0 16px", borderRadius: 12,
           background: "var(--blue)", border: "1px solid var(--blue-dark)",
@@ -833,7 +834,7 @@ function ListView() {
                     </button>
                   )}
                   <button
-                    onClick={() => setEditProduct(p)}
+                    onClick={() => { playSound("modalOpen"); setEditProduct(p); }}
                     style={{
                       width: 26, height: 26, borderRadius: 8,
                       display: "flex", alignItems: "center", justifyContent: "center",
@@ -843,7 +844,7 @@ function ListView() {
                     <Pencil size={10} style={{ color: isHov ? "var(--blue)" : "transparent" }} />
                   </button>
                   <button
-                    onClick={() => setDeleteId(p.id)}
+                    onClick={() => { playSound("tap"); setDeleteId(p.id); }}
                     style={{
                       width: 26, height: 26, borderRadius: 8,
                       display: "flex", alignItems: "center", justifyContent: "center",
@@ -932,13 +933,13 @@ function ListView() {
                       <Warehouse size={11} style={{ color: "var(--blue)" }} />
                     </button>
                   )}
-                  <button onClick={() => setEditProduct(p)} style={{
+                  <button onClick={() => { playSound("modalOpen"); setEditProduct(p); }} style={{
                     width: 30, height: 30, borderRadius: 8, border: "1px solid var(--border)",
                     background: "var(--bg-surface)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer",
                   }}>
                     <Pencil size={11} style={{ color: "var(--blue)" }} />
                   </button>
-                  <button onClick={() => setDeleteId(p.id)} style={{
+                  <button onClick={() => { playSound("tap"); setDeleteId(p.id); }} style={{
                     width: 30, height: 30, borderRadius: 8, border: "1px solid rgba(220,38,38,0.2)",
                     background: "rgba(220,38,38,0.05)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer",
                   }}>
@@ -975,8 +976,8 @@ function ListView() {
               <p style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)", marginBottom: 6 }}>Xác nhận xoá?</p>
               <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 24 }}>Thao tác này không thể hoàn tác.</p>
               <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-                <button onClick={() => setDeleteId(null)} style={{ padding: "8px 18px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--bg-surface)", fontSize: 12, color: "var(--text-secondary)", cursor: "pointer", fontFamily: "inherit" }}>Huỷ</button>
-                <button onClick={async () => { await deleteProduct(deleteId); setDeleteId(null); }} style={{ padding: "8px 18px", borderRadius: 10, border: "1px solid #b91c1c", background: "#dc2626", color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Xoá</button>
+                <button onClick={() => { playSound("softTap"); setDeleteId(null); }} style={{ padding: "8px 18px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--bg-surface)", fontSize: 12, color: "var(--text-secondary)", cursor: "pointer", fontFamily: "inherit" }}>Huỷ</button>
+                <button onClick={async () => { playSound("destroy"); await deleteProduct(deleteId); setDeleteId(null); }} style={{ padding: "8px 18px", borderRadius: 10, border: "1px solid #b91c1c", background: "#dc2626", color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Xoá</button>
               </div>
             </motion.div>
           </motion.div>

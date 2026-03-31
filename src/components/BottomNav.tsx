@@ -6,6 +6,7 @@ import {
   LayoutDashboard, Focus, Box, MessageSquare, UserCircle, ShoppingBag, ClipboardList, CalendarDays,
 } from "lucide-react";
 import { useStore } from "@/store/useStore";
+import { useSFX } from "@/hooks/useSFX";
 
 // Same order as TopNav — Profile appended for mobile
 const NAV_ITEMS = [
@@ -22,6 +23,7 @@ const NAV_ITEMS = [
 export default function BottomNav() {
   const pathname = usePathname();
   const currentUser = useStore(s => s.currentUser);
+  const sfx = useSFX();
 
   const isActive = (href: string, exact: boolean) =>
     exact ? pathname === href : pathname.startsWith(href);
@@ -50,6 +52,7 @@ export default function BottomNav() {
             key={item.id}
             href={item.href}
             className={`bottomnav-item${active ? " active" : ""}`}
+            onClick={() => sfx("navigate")}
           >
             {/* Active top indicator dot */}
             <span className="bottomnav-dot" />

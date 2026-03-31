@@ -9,6 +9,7 @@ import {
 import { useStore } from "@/store/useStore";
 import NotificationBanner from "@/components/NotificationBanner";
 import GlobalSearch from "@/components/GlobalSearch";
+import { useSFX } from "@/hooks/useSFX";
 
 const NAV_ITEMS = [
   { id: "overview",     label: "Tổng Quan",  href: "/",             icon: LayoutDashboard, exact: true  },
@@ -25,6 +26,7 @@ export default function TopNav() {
   const storeName = useStore(s => s.storeName);
   const currentUser = useStore(s => s.currentUser);
   const logout = useStore(s => s.logout);
+  const sfx = useSFX();
 
   const isActive = (href: string, exact: boolean) =>
     exact ? pathname === href : pathname.startsWith(href);
@@ -70,6 +72,7 @@ export default function TopNav() {
               key={item.id}
               href={item.href}
               className={`topnav-link${active ? " active" : ""}`}
+              onClick={() => sfx("navigate")}
             >
               <Icon size={13} strokeWidth={active ? 2 : 1.5} className="topnav-icon" />
               <span className="topnav-label">
@@ -136,7 +139,7 @@ export default function TopNav() {
 
             {/* Logout */}
             <button
-              onClick={logout}
+              onClick={() => { sfx("tap"); logout(); }}
               title="Đăng xuất"
               style={{
                 width: 30, height: 30, borderRadius: 8,
