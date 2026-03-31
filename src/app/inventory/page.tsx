@@ -626,7 +626,7 @@ function ListView() {
         background: cardBg,
         backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)",
         border: `1px solid ${cardBorder}`,
-        overflow: "auto",
+        overflowX: "auto",
         boxShadow: "0 2px 16px rgba(12,26,46,0.07), inset 0 1px 0 rgba(255,255,255,0.7)",
       }}>
         <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "auto" }}>

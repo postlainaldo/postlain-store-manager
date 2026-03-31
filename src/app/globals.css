@@ -606,7 +606,6 @@ button { font-family: inherit; -webkit-tap-highlight-color: transparent; }
   background: linear-gradient(160deg, #eef6fd 0%, #f0effe 55%, #eef6fd 100%);
   min-height: 100%;
   position: relative;
-  overflow: hidden;
 }
 
 /* ── Animated floating orbs (3D depth effect) ─── */
