@@ -8,15 +8,18 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: SSH & trigger redeploy
+      - name: SSH & trigger Coolify redeploy
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: 103.90.224.59
           username: root
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
-            curl -s -X POST http://localhost:3000/api/deploy \
+            TOKEN=$(curl -s -X POST http://localhost:3000/api/v1/login \
               -H "Content-Type: application/json" \
-              -d '{"applicationId":"cmng4ozwv000kpc9r09zlyv76"}' || \
-            docker restart $(docker ps -q --filter "label=coolify.applicationId=cmng4ozwv000kpc9r09zlyv76") 2>/dev/null || \
-            echo "Deploy triggered"
+              -d '{"email":"postlain.aldo@gmail.com","password":"${{ secrets.COOLIFY_PASSWORD }}","isLogin":true}' \
+              | grep -o '"token":"[^"]*"' | cut -d'"' -f4)
+            curl -s -X POST http://localhost:3000/api/v1/applications/cmng4ozwv000kpc9r09zlyv76/deploy \
+              -H "Authorization: Bearer $TOKEN" \
+              -H "Content-Type: application/json" \
+              -d '{"pullmergeRequestId":null}'
