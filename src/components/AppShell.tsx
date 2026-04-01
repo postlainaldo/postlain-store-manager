@@ -81,15 +81,15 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             paddingTop: 10,
             paddingLeft: 12,
             paddingRight: 12,
-            paddingBottom: "calc(68px + env(safe-area-inset-bottom, 0px))",
+            paddingBottom: "calc(88px + env(safe-area-inset-bottom, 0px))",
           }}>
             {children}
           </div>
         ) : (
-          /* Normal pages: scrollable with padding so content clears bottom nav */
+          /* Normal pages: scrollable — FAB floats over content, no reserved padding needed */
           <main
             className="flex-1 overflow-y-auto overflow-x-hidden page-bg-aurora transition-colors duration-500"
-            style={{ paddingBottom: "calc(60px + env(safe-area-inset-bottom, 0px))" }}
+            style={{ paddingBottom: "calc(90px + env(safe-area-inset-bottom, 0px))" }}
           >
             <div className="page-bg-aurora-mid" />
             <div style={{ padding: "12px 14px 8px", position: "relative", zIndex: 1 }}>
