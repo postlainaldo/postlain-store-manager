@@ -4,48 +4,87 @@ import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { playSound } from "@/hooks/useSFX";
 
-const SPLASH_KEY = "postlain_splashed_v3";
+const SPLASH_KEY = "postlain_splashed_v4";
 
-// Animated particle dot
-function Particle({ x, y, delay, size }: { x: string; y: string; delay: number; size: number }) {
-  return (
-    <motion.div
-      style={{
-        position: "absolute", left: x, top: y,
-        width: size, height: size, borderRadius: "50%",
-        background: "linear-gradient(135deg, #C9A55A, #0ea5e9)",
-      }}
-      initial={{ opacity: 0, scale: 0 }}
-      animate={{
-        opacity: [0, 0.8, 0.4, 0.7, 0],
-        scale:   [0, 1,   0.7, 1.1, 0],
-        y: [0, -20 - Math.random() * 30],
-      }}
-      transition={{ delay, duration: 2.2 + Math.random(), ease: "easeOut", repeat: Infinity, repeatDelay: 1 + Math.random() * 2 }}
-    />
-  );
-}
+// ─── Sub-components ──────────────────────────────────────────────────────────
 
-// Animated ring layer
-function Ring({ size, opacity, strokeWidth, delay, duration }: {
-  size: number; opacity: number; strokeWidth: number; delay: number; duration: number;
+function FloatOrb({ x, y, size, color, delay, blur }: {
+  x: string; y: string; size: number; color: string; delay: number; blur: number;
 }) {
   return (
     <motion.div
       style={{
-        position: "absolute",
-        width: size, height: size,
-        borderRadius: "50%",
-        border: `${strokeWidth}px solid rgba(201,165,90,${opacity})`,
-        top: "50%", left: "50%",
-        transform: "translate(-50%, -50%)",
+        position: "absolute", left: x, top: y, width: size, height: size,
+        borderRadius: "50%", pointerEvents: "none",
+        background: `radial-gradient(circle at 30% 30%, ${color}, transparent 70%)`,
+        filter: `blur(${blur}px)`,
       }}
-      initial={{ scale: 0.6, opacity: 0 }}
-      animate={{ scale: [0.6, 1.4, 1.6], opacity: [0, opacity, 0] }}
-      transition={{ delay, duration, repeat: Infinity, ease: "easeOut" }}
+      initial={{ opacity: 0, scale: 0.6 }}
+      animate={{
+        opacity: [0, 0.55, 0.30, 0.50, 0.20, 0.45, 0],
+        scale:   [0.6, 1.1, 0.9, 1.2, 0.95, 1.05, 0.7],
+        x: [0, 14, -8, 18, -5, 10, 0],
+        y: [0, -18, 10, -25, 8, -12, 0],
+      }}
+      transition={{ delay, duration: 6 + delay * 1.5, ease: "easeInOut", repeat: Infinity, repeatType: "mirror" }}
     />
   );
 }
+
+function ScanLine() {
+  return (
+    <motion.div
+      style={{
+        position: "absolute", left: 0, right: 0, height: 2,
+        background: "linear-gradient(90deg, transparent 0%, rgba(14,165,233,0.0) 10%, rgba(14,165,233,0.45) 50%, rgba(14,165,233,0.0) 90%, transparent 100%)",
+        boxShadow: "0 0 12px rgba(14,165,233,0.5)",
+        pointerEvents: "none",
+      }}
+      initial={{ top: "10%", opacity: 0 }}
+      animate={{ top: ["10%", "90%", "10%"], opacity: [0, 0.8, 0.8, 0] }}
+      transition={{ delay: 0.8, duration: 3.5, ease: "easeInOut", repeat: Infinity, repeatDelay: 2 }}
+    />
+  );
+}
+
+function DataStream({ x, delay }: { x: string; delay: number }) {
+  const chars = "01POSTLAIN■▲◆░▒▓";
+  const stream = Array.from({ length: 12 }, (_, i) => chars[Math.floor((i * 7 + delay * 3) % chars.length)]);
+  return (
+    <motion.div
+      style={{
+        position: "absolute", left: x, top: 0,
+        display: "flex", flexDirection: "column", gap: 2,
+        fontFamily: "monospace", fontSize: 8,
+        color: "rgba(14,165,233,0.18)",
+        letterSpacing: 0,
+        pointerEvents: "none",
+        userSelect: "none",
+      }}
+      initial={{ y: "-100%", opacity: 0 }}
+      animate={{ y: "110%", opacity: [0, 0.6, 0.6, 0] }}
+      transition={{ delay, duration: 3.5 + delay, repeat: Infinity, ease: "linear", repeatDelay: 1 }}
+    >
+      {stream.map((c, i) => <span key={i}>{c}</span>)}
+    </motion.div>
+  );
+}
+
+function HexGrid() {
+  return (
+    <div style={{
+      position: "absolute", inset: 0, pointerEvents: "none",
+      backgroundImage: `
+        linear-gradient(rgba(14,165,233,0.028) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(14,165,233,0.028) 1px, transparent 1px)
+      `,
+      backgroundSize: "36px 36px",
+      maskImage: "radial-gradient(ellipse 80% 80% at 50% 50%, black 40%, transparent 100%)",
+    }} />
+  );
+}
+
+// ─── Main ────────────────────────────────────────────────────────────────────
 
 export default function SplashScreen() {
   const [visible, setVisible] = useState(false);
@@ -57,27 +96,20 @@ export default function SplashScreen() {
     sessionStorage.setItem(SPLASH_KEY, "1");
     setVisible(true);
 
-    // Boot sound — fired after a tiny delay so AudioContext can resume on user gesture context
-    const tBoot = setTimeout(() => playSound("boot"), 100);
-
-    // Phase timeline
-    const t1 = setTimeout(() => setPhase("hold"), 800);
-    const t2 = setTimeout(() => setPhase("out"), 2400);
-    const t3 = setTimeout(() => setVisible(false), 2900);
+    const tBoot = setTimeout(() => playSound("boot"), 120);
+    const t1 = setTimeout(() => setPhase("hold"), 900);
+    const t2 = setTimeout(() => setPhase("out"), 3200);
+    const t3 = setTimeout(() => setVisible(false), 3800);
     return () => { clearTimeout(tBoot); clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
   }, []);
 
-  const particles = [
-    { x: "15%", y: "20%", delay: 0.8, size: 4 },
-    { x: "80%", y: "18%", delay: 1.1, size: 3 },
-    { x: "10%", y: "70%", delay: 0.5, size: 5 },
-    { x: "85%", y: "72%", delay: 1.4, size: 3 },
-    { x: "25%", y: "85%", delay: 0.9, size: 4 },
-    { x: "70%", y: "82%", delay: 0.6, size: 3 },
-    { x: "5%",  y: "45%", delay: 1.2, size: 2 },
-    { x: "92%", y: "42%", delay: 0.7, size: 2 },
-    { x: "45%", y: "8%",  delay: 1.0, size: 3 },
-    { x: "55%", y: "90%", delay: 1.3, size: 4 },
+  const orbs = [
+    { x: "8%",  y: "12%", size: 260, color: "#0ea5e9", delay: 0,   blur: 55 },
+    { x: "65%", y: "8%",  size: 200, color: "#C9A55A", delay: 0.4, blur: 50 },
+    { x: "72%", y: "60%", size: 280, color: "#6366f1", delay: 0.7, blur: 60 },
+    { x: "-5%", y: "55%", size: 220, color: "#0ea5e9", delay: 1.1, blur: 52 },
+    { x: "40%", y: "78%", size: 180, color: "#C9A55A", delay: 0.3, blur: 45 },
+    { x: "50%", y: "30%", size: 150, color: "#10b981", delay: 0.9, blur: 48 },
   ];
 
   return (
@@ -86,244 +118,307 @@ export default function SplashScreen() {
         <motion.div
           key="splash"
           initial={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.5, ease: "easeInOut" }}
+          exit={{ opacity: 0, scale: 0.96 }}
+          transition={{ duration: 0.55, ease: [0.4, 0, 0.2, 1] }}
           style={{
             position: "fixed", inset: 0, zIndex: 99999,
             display: "flex", flexDirection: "column",
             alignItems: "center", justifyContent: "center",
             overflow: "hidden", userSelect: "none",
-            background: "#060f1e",
+            background: "#03070f",
           }}
         >
-          {/* Deep gradient bg */}
+          {/* ── Deep space gradient base ── */}
           <div style={{
             position: "absolute", inset: 0,
-            background: "radial-gradient(ellipse at 30% 40%, rgba(14,165,233,0.12) 0%, transparent 55%), radial-gradient(ellipse at 75% 60%, rgba(201,165,90,0.1) 0%, transparent 50%)",
+            background: "radial-gradient(ellipse 120% 80% at 50% 50%, #070f24 0%, #03070f 65%)",
           }} />
 
-          {/* Animated noise texture */}
+          {/* ── Floating orbs ── */}
+          {orbs.map((o, i) => <FloatOrb key={i} {...o} />)}
+
+          {/* ── Grid overlay ── */}
+          <HexGrid />
+
+          {/* ── Scan line ── */}
+          <ScanLine />
+
+          {/* ── Data streams ── */}
+          <DataStream x="7%"  delay={0.5} />
+          <DataStream x="88%" delay={1.2} />
+          <DataStream x="22%" delay={2.0} />
+
+          {/* ── Corner brackets ── */}
+          {[
+            { style: { top: 24, left: 24,   borderTop: "2px solid rgba(201,165,90,0.55)", borderLeft:  "2px solid rgba(201,165,90,0.55)", borderRadius: "6px 0 0 0"   } },
+            { style: { top: 24, right: 24,  borderTop: "2px solid rgba(201,165,90,0.55)", borderRight: "2px solid rgba(201,165,90,0.55)", borderRadius: "0 6px 0 0"   } },
+            { style: { bottom: 24, left: 24,  borderBottom: "2px solid rgba(14,165,233,0.45)", borderLeft:  "2px solid rgba(14,165,233,0.45)", borderRadius: "0 0 0 6px"   } },
+            { style: { bottom: 24, right: 24, borderBottom: "2px solid rgba(14,165,233,0.45)", borderRight: "2px solid rgba(14,165,233,0.45)", borderRadius: "0 0 6px 0"   } },
+          ].map((c, i) => (
+            <motion.div key={i}
+              initial={{ opacity: 0, scale: 0.6 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.2 + i * 0.06, duration: 0.35 }}
+              style={{ position: "absolute", width: 28, height: 28, ...c.style }}
+            />
+          ))}
+
+          {/* ── Central logo assembly ── */}
           <motion.div
-            style={{
-              position: "absolute", inset: 0,
-              background: "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E\")",
-              opacity: 0.4,
-            }}
-          />
-
-          {/* Grid overlay */}
-          <div style={{
-            position: "absolute", inset: 0,
-            backgroundImage: "linear-gradient(rgba(14,165,233,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(14,165,233,0.04) 1px, transparent 1px)",
-            backgroundSize: "40px 40px",
-          }} />
-
-          {/* Floating particles */}
-          {particles.map((p, i) => <Particle key={i} {...p} />)}
-
-          {/* Pulse rings around logo */}
-          <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)" }}>
-            <Ring size={180} opacity={0.12} strokeWidth={1} delay={0.6} duration={2.5} />
-            <Ring size={240} opacity={0.08} strokeWidth={1} delay={1.0} duration={2.5} />
-            <Ring size={300} opacity={0.05} strokeWidth={1} delay={1.4} duration={2.5} />
-          </div>
-
-          {/* Main logo container */}
-          <motion.div
-            initial={{ scale: 0.3, opacity: 0 }}
-            animate={{ scale: 1,   opacity: 1 }}
-            transition={{ duration: 0.7, ease: [0.34, 1.4, 0.64, 1] }}
-            style={{ position: "relative", zIndex: 2, display: "flex", flexDirection: "column", alignItems: "center" }}
+            initial={{ scale: 0.25, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.75, ease: [0.34, 1.56, 0.64, 1] }}
+            style={{ position: "relative", zIndex: 3, display: "flex", flexDirection: "column", alignItems: "center" }}
           >
-            {/* Outer glow ring */}
+            {/* Three concentric rings */}
+            {[
+              { r: 160, opacity: 0.05, sw: 1, delay: 0.9, dur: 3.2 },
+              { r: 118, opacity: 0.10, sw: 1, delay: 0.6, dur: 2.8 },
+              { r: 82,  opacity: 0.18, sw: 1, delay: 0.3, dur: 2.5 },
+            ].map((ring, ri) => (
+              <motion.div key={ri}
+                style={{
+                  position: "absolute", top: "50%", left: "50%",
+                  width: ring.r, height: ring.r,
+                  borderRadius: "50%",
+                  border: `${ring.sw}px solid rgba(201,165,90,${ring.opacity})`,
+                  transform: "translate(-50%, -50%)",
+                }}
+                initial={{ scale: 0.5, opacity: 0 }}
+                animate={{ scale: [0.5, 1.5, 1.8], opacity: [0, ring.opacity * 1.4, 0] }}
+                transition={{ delay: ring.delay, duration: ring.dur, repeat: Infinity, ease: "easeOut" }}
+              />
+            ))}
+
+            {/* Spinning conic arc */}
             <motion.div
-              initial={{ rotate: 0 }}
               animate={{ rotate: 360 }}
-              transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+              transition={{ duration: 5, repeat: Infinity, ease: "linear" }}
               style={{
-                position: "absolute",
-                width: 130, height: 130,
+                position: "absolute", width: 152, height: 152,
                 borderRadius: "50%",
-                background: "conic-gradient(from 0deg, transparent 0%, #C9A55A 25%, transparent 50%, #0ea5e9 75%, transparent 100%)",
-                filter: "blur(2px)",
-                opacity: 0.5,
+                background: "conic-gradient(from 0deg, transparent 0%, rgba(201,165,90,0.55) 18%, transparent 35%, rgba(14,165,233,0.40) 65%, transparent 80%)",
+                filter: "blur(1.5px)",
+                top: "50%", left: "50%",
+                transform: "translate(-50%, -50%)",
               }}
             />
+
+            {/* Reverse spin arc */}
+            <motion.div
+              animate={{ rotate: -360 }}
+              transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+              style={{
+                position: "absolute", width: 136, height: 136,
+                borderRadius: "50%",
+                background: "conic-gradient(from 90deg, transparent 0%, rgba(99,102,241,0.30) 20%, transparent 40%)",
+                filter: "blur(1px)",
+                top: "50%", left: "50%",
+                transform: "translate(-50%, -50%)",
+              }}
+            />
+
             {/* Static ring */}
             <div style={{
-              position: "absolute",
-              width: 120, height: 120,
+              position: "absolute", width: 124, height: 124,
               borderRadius: "50%",
-              border: "1.5px solid rgba(201,165,90,0.3)",
-              boxShadow: "0 0 30px rgba(201,165,90,0.15), inset 0 0 30px rgba(14,165,233,0.08)",
+              border: "1px solid rgba(201,165,90,0.22)",
+              top: "50%", left: "50%",
+              transform: "translate(-50%, -50%)",
+              boxShadow: "0 0 30px rgba(201,165,90,0.12), inset 0 0 30px rgba(14,165,233,0.06)",
             }} />
 
             {/* Logo disc */}
             <div style={{
-              width: 110, height: 110,
+              width: 114, height: 114,
               borderRadius: "50%",
-              background: "linear-gradient(145deg, #0d1f38 0%, #0a1525 50%, #061020 100%)",
-              border: "2px solid rgba(201,165,90,0.4)",
+              background: "linear-gradient(145deg, #0d1f38 0%, #080f20 55%, #040a16 100%)",
+              border: "2px solid rgba(201,165,90,0.45)",
               display: "flex", alignItems: "center", justifyContent: "center",
-              boxShadow: "0 0 0 8px rgba(14,165,233,0.06), 0 20px 60px rgba(0,0,0,0.6), 0 0 40px rgba(201,165,90,0.18)",
+              boxShadow: "0 0 0 10px rgba(14,165,233,0.04), 0 24px 72px rgba(0,0,0,0.75), 0 0 50px rgba(201,165,90,0.14)",
               position: "relative", zIndex: 1,
+              overflow: "hidden",
             }}>
+              {/* Inner shimmer */}
               <motion.div
-                initial={{ opacity: 0, scale: 0.7 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.4, duration: 0.5, ease: [0.34, 1.2, 0.64, 1] }}
-                style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 0 }}
+                animate={{ x: ["-100%", "200%"] }}
+                transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut", repeatDelay: 2 }}
+                style={{
+                  position: "absolute", top: 0, bottom: 0, left: 0,
+                  width: "45%",
+                  background: "linear-gradient(90deg, transparent, rgba(201,165,90,0.15), transparent)",
+                  pointerEvents: "none",
+                }}
+              />
+
+              <motion.div
+                initial={{ opacity: 0, scale: 0.5, y: 8 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                transition={{ delay: 0.45, duration: 0.55, ease: [0.34, 1.3, 0.64, 1] }}
+                style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 0, position: "relative", zIndex: 1 }}
               >
-                {/* Gold bar above */}
                 <motion.div
-                  initial={{ scaleX: 0 }}
-                  animate={{ scaleX: 1 }}
-                  transition={{ delay: 0.5, duration: 0.3 }}
-                  style={{ width: 24, height: 1.5, background: "linear-gradient(90deg, transparent, #C9A55A, transparent)", marginBottom: 4 }}
+                  initial={{ scaleX: 0 }} animate={{ scaleX: 1 }}
+                  transition={{ delay: 0.55, duration: 0.35 }}
+                  style={{ width: 28, height: 1.5, background: "linear-gradient(90deg, transparent, #C9A55A, transparent)", marginBottom: 5 }}
                 />
                 <span style={{
-                  fontSize: 26, fontWeight: 800, color: "#C9A55A",
-                  letterSpacing: "0.1em",
+                  fontSize: 28, fontWeight: 900, color: "#C9A55A",
+                  letterSpacing: "0.12em",
                   fontFamily: "var(--font-montserrat), sans-serif",
-                  textShadow: "0 0 20px rgba(201,165,90,0.5)",
-                }}>
-                  ADL
-                </span>
+                  textShadow: "0 0 24px rgba(201,165,90,0.7), 0 0 8px rgba(201,165,90,0.4)",
+                  lineHeight: 1,
+                }}>ADL</span>
                 <motion.div
-                  initial={{ scaleX: 0 }}
-                  animate={{ scaleX: 1 }}
-                  transition={{ delay: 0.55, duration: 0.3 }}
-                  style={{ width: 24, height: 1.5, background: "linear-gradient(90deg, transparent, #0ea5e9, transparent)", marginTop: 4 }}
+                  initial={{ scaleX: 0 }} animate={{ scaleX: 1 }}
+                  transition={{ delay: 0.6, duration: 0.35 }}
+                  style={{ width: 28, height: 1.5, background: "linear-gradient(90deg, transparent, #0ea5e9, transparent)", marginTop: 5 }}
                 />
               </motion.div>
             </div>
           </motion.div>
 
-          {/* App name */}
+          {/* ── App name block ── */}
           <motion.div
-            initial={{ opacity: 0, y: 24 }}
+            initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.55, duration: 0.5, ease: "easeOut" }}
-            style={{ position: "relative", zIndex: 2, marginTop: 36, textAlign: "center" }}
+            transition={{ delay: 0.6, duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
+            style={{ position: "relative", zIndex: 3, marginTop: 40, textAlign: "center" }}
           >
-            <motion.p
-              style={{
-                fontSize: 26, fontWeight: 800, color: "#ffffff",
-                letterSpacing: "0.28em",
+            {/* POSTLAIN with letter-reveal */}
+            <div style={{ position: "relative", display: "inline-block" }}>
+              <motion.p style={{
+                fontSize: 32, fontWeight: 900, letterSpacing: "0.30em",
                 fontFamily: "var(--font-montserrat), sans-serif",
-                textShadow: "0 2px 20px rgba(255,255,255,0.12)",
+                lineHeight: 1,
+                background: "linear-gradient(135deg, #ffffff 0%, #e2e8f0 40%, #C9A55A 70%, #ffffff 100%)",
+                backgroundSize: "200% 100%",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
               }}
-            >
-              POSTLAIN
-            </motion.p>
+                animate={{ backgroundPosition: ["0% center", "200% center", "0% center"] }}
+                transition={{ delay: 1.2, duration: 3, ease: "linear", repeat: Infinity }}
+              >
+                POSTLAIN
+              </motion.p>
 
-            {/* Animated underline */}
-            <motion.div
-              initial={{ scaleX: 0 }}
-              animate={{ scaleX: 1 }}
-              transition={{ delay: 0.75, duration: 0.5, ease: "easeOut" }}
-              style={{
-                height: 1, marginTop: 6,
-                background: "linear-gradient(90deg, transparent 0%, #C9A55A 30%, #0ea5e9 70%, transparent 100%)",
-                borderRadius: 2,
-              }}
-            />
+              {/* Shimmer underline */}
+              <motion.div
+                initial={{ scaleX: 0, originX: 0 }}
+                animate={{ scaleX: 1 }}
+                transition={{ delay: 0.85, duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
+                style={{
+                  height: 1.5, marginTop: 7,
+                  background: "linear-gradient(90deg, transparent 0%, #C9A55A 30%, #0ea5e9 60%, #6366f1 80%, transparent 100%)",
+                  borderRadius: 2,
+                  boxShadow: "0 0 8px rgba(14,165,233,0.4)",
+                }}
+              />
+            </div>
 
             <motion.p
-              initial={{ opacity: 0, y: 6 }}
+              initial={{ opacity: 0, y: 5 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.8, duration: 0.4 }}
+              transition={{ delay: 0.95, duration: 0.4 }}
               style={{
-                marginTop: 8, fontSize: 10, color: "rgba(201,165,90,0.65)",
-                letterSpacing: "0.35em",
+                marginTop: 10, fontSize: 11, letterSpacing: "0.42em",
                 fontFamily: "var(--font-montserrat), sans-serif",
+                color: "rgba(148,163,184,0.75)",
+                textTransform: "uppercase",
               }}
             >
               STORE MANAGER
             </motion.p>
           </motion.div>
 
-          {/* Bottom section: location + progress */}
+          {/* ── Version / system tag ── */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 1.0 }}
+            transition={{ delay: 1.1 }}
+            style={{ position: "relative", zIndex: 3, marginTop: 16, display: "flex", alignItems: "center", gap: 10 }}
+          >
+            <div style={{ width: 18, height: 1, background: "rgba(201,165,90,0.30)" }} />
+            <span style={{ fontSize: 8, color: "rgba(201,165,90,0.50)", letterSpacing: "0.22em", fontFamily: "monospace" }}>
+              SYSTEM READY
+            </span>
+            <div style={{ width: 18, height: 1, background: "rgba(201,165,90,0.30)" }} />
+          </motion.div>
+
+          {/* ── Bottom: location + loading bar ── */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 1.15 }}
             style={{
-              position: "absolute", bottom: "9%",
-              display: "flex", flexDirection: "column", alignItems: "center", gap: 10,
-              width: "100%", zIndex: 2,
+              position: "absolute", bottom: "8%",
+              display: "flex", flexDirection: "column", alignItems: "center", gap: 12,
+              width: "100%", zIndex: 3,
             }}
           >
-            {/* Location tag */}
+            {/* Location badge */}
             <motion.div
-              initial={{ opacity: 0, scale: 0.85 }}
+              initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 1.0, duration: 0.35 }}
+              transition={{ delay: 1.15, duration: 0.35 }}
               style={{
-                display: "inline-flex", alignItems: "center", gap: 6,
-                padding: "4px 12px", borderRadius: 20,
-                border: "1px solid rgba(14,165,233,0.25)",
-                background: "rgba(14,165,233,0.06)",
+                display: "inline-flex", alignItems: "center", gap: 7,
+                padding: "5px 14px", borderRadius: 20,
+                border: "1px solid rgba(14,165,233,0.28)",
+                background: "rgba(14,165,233,0.07)",
+                backdropFilter: "blur(8px)",
               }}
             >
-              <div style={{ width: 5, height: 5, borderRadius: "50%", background: "#0ea5e9",
-                boxShadow: "0 0 6px rgba(14,165,233,0.8)", animation: "pulse-dot 1.5s ease-in-out infinite" }} />
-              <span style={{ fontSize: 9, color: "rgba(14,165,233,0.8)", letterSpacing: "0.18em", fontWeight: 600 }}>
-                ĐÀ LẠT
+              <motion.div
+                animate={{ opacity: [1, 0.3, 1], scale: [1, 1.3, 1] }}
+                transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
+                style={{ width: 5, height: 5, borderRadius: "50%", background: "#0ea5e9", boxShadow: "0 0 7px rgba(14,165,233,0.9)" }}
+              />
+              <span style={{ fontSize: 9, color: "rgba(14,165,233,0.85)", letterSpacing: "0.20em", fontWeight: 700, fontFamily: "var(--font-montserrat), sans-serif" }}>
+                ĐÀ LẠT • ALDO GO!
               </span>
             </motion.div>
 
-            {/* Progress bar */}
-            <div style={{
-              width: 160, height: 2, borderRadius: 2,
-              background: "rgba(255,255,255,0.07)", overflow: "hidden",
-            }}>
+            {/* Multi-segment loading bar */}
+            <div style={{ position: "relative", width: 200, height: 3 }}>
+              <div style={{
+                position: "absolute", inset: 0, borderRadius: 3,
+                background: "rgba(255,255,255,0.05)",
+              }} />
               <motion.div
                 initial={{ width: "0%" }}
                 animate={{ width: "100%" }}
-                transition={{ delay: 1.05, duration: 1.2, ease: [0.4, 0, 0.2, 1] }}
+                transition={{ delay: 1.2, duration: 1.8, ease: [0.4, 0, 0.2, 1] }}
                 style={{
-                  height: "100%",
-                  background: "linear-gradient(90deg, #0ea5e9 0%, #C9A55A 100%)",
-                  borderRadius: 2,
-                  boxShadow: "0 0 8px rgba(14,165,233,0.6)",
+                  height: "100%", borderRadius: 3,
+                  background: "linear-gradient(90deg, #6366f1 0%, #0ea5e9 35%, #10b981 65%, #C9A55A 100%)",
+                  boxShadow: "0 0 10px rgba(14,165,233,0.7)",
+                  position: "relative",
                 }}
-              />
+              >
+                {/* Glow dot at tip */}
+                <motion.div
+                  style={{
+                    position: "absolute", right: -1, top: "50%",
+                    transform: "translateY(-50%)",
+                    width: 7, height: 7, borderRadius: "50%",
+                    background: "#C9A55A",
+                    boxShadow: "0 0 8px rgba(201,165,90,0.9)",
+                  }}
+                />
+              </motion.div>
             </div>
+
+            {/* Loading label */}
+            <motion.span
+              initial={{ opacity: 0 }}
+              animate={{ opacity: [0, 0.6, 0.4, 0.6] }}
+              transition={{ delay: 1.3, duration: 1.5, repeat: Infinity }}
+              style={{ fontSize: 7.5, color: "rgba(148,163,184,0.45)", letterSpacing: "0.18em", fontFamily: "monospace" }}
+            >
+              INITIALIZING...
+            </motion.span>
           </motion.div>
-
-          {/* Corner decorations */}
-          {[
-            { top: "6%",  left: "6%",  rx: "0 0 8px 0",   borderRight: "1px solid rgba(201,165,90,0.3)", borderBottom: "1px solid rgba(201,165,90,0.3)" },
-            { top: "6%",  right: "6%", rx: "0 0 0 8px",   borderLeft:  "1px solid rgba(201,165,90,0.3)", borderBottom: "1px solid rgba(201,165,90,0.3)" },
-            { bottom: "6%", left: "6%",  rx: "0 8px 0 0",  borderRight: "1px solid rgba(14,165,233,0.25)", borderTop: "1px solid rgba(14,165,233,0.25)" },
-            { bottom: "6%", right: "6%", rx: "8px 0 0 0",  borderLeft:  "1px solid rgba(14,165,233,0.25)", borderTop: "1px solid rgba(14,165,233,0.25)" },
-          ].map((s, i) => (
-            <motion.div key={i}
-              initial={{ opacity: 0, scale: 0.5 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.3 + i * 0.07, duration: 0.3 }}
-              style={{
-                position: "absolute",
-                width: 20, height: 20,
-                borderRadius: s.rx,
-                ...s,
-                top: s.top, bottom: s.bottom,
-                left: s.left, right: s.right,
-                borderRight: s.borderRight,
-                borderBottom: s.borderBottom,
-                borderLeft: s.borderLeft,
-                borderTop: s.borderTop,
-              }}
-            />
-          ))}
-
-          <style>{`
-            @keyframes pulse-dot {
-              0%, 100% { opacity: 1; }
-              50% { opacity: 0.4; }
-            }
-          `}</style>
         </motion.div>
       )}
     </AnimatePresence>

@@ -10,17 +10,29 @@ import { useSFX, type SFXName } from "@/hooks/useSFX";
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
-// Per-nav-item sound assignments
+// Per-nav-item distinct sound assignments
 const NAV_SOUNDS: Record<string, SFXName> = {
   "overview":     "navigate",
   "visual-board": "scan",
   "inventory":    "softTap",
-  "sales":        "tap",
+  "sales":        "loginSuccess",
   "report":       "loginSubmit",
   "chat":         "notify",
   "schedule":     "modalOpen",
   "profile":      "save",
 };
+
+// Pre-navigate flash variants (random per item for variety)
+const FLASH_VARIANTS = [
+  { scale: [1, 1.35, 0.9], brightness: [1, 2.5, 1] },
+  { scale: [1, 1.28, 1.1], brightness: [1, 2.0, 1] },
+  { scale: [1, 1.40, 0.85], brightness: [1, 3.0, 1] },
+  { scale: [1, 1.22, 1.15], brightness: [1, 1.8, 1] },
+  { scale: [1, 1.32, 0.95], brightness: [1, 2.2, 1] },
+  { scale: [1, 1.38, 0.88], brightness: [1, 2.8, 1] },
+  { scale: [1, 1.25, 1.12], brightness: [1, 2.1, 1] },
+  { scale: [1, 1.30, 0.92], brightness: [1, 2.4, 1] },
+];
 
 const NAV_ITEMS = [
   { id: "overview",     label: "Tổng Quan", href: "/",             icon: LayoutDashboard, exact: true  },
@@ -28,35 +40,31 @@ const NAV_ITEMS = [
   { id: "inventory",    label: "Dữ Liệu",   href: "/inventory",    icon: Box,             exact: false },
   { id: "sales",        label: "Bán Hàng",  href: "/sales",        icon: ShoppingBag,     exact: false },
   { id: "report",       label: "Báo Cáo",   href: "/report",       icon: ClipboardList,   exact: false },
-  { id: "chat",         label: "Chat",       href: "/chat",         icon: MessageSquare,   exact: false },
+  { id: "chat",         label: "Chat",      href: "/chat",         icon: MessageSquare,   exact: false },
   { id: "schedule",     label: "Lịch Làm",  href: "/schedule",     icon: CalendarDays,    exact: false },
   { id: "profile",      label: "Hồ Sơ",     href: "/profile",      icon: UserCircle,      exact: false },
 ] as const;
 
-// Arc geometry: spread items in a semi-circle above the orb
-// Center of orb is the origin; items fan out upward
+// Arc geometry — wider radius so labels clear each other
 function arcPosition(i: number, total: number): { x: number; y: number } {
-  // Fan from -150° to -30° (straight up = -90°), symmetric arc above orb
-  const startDeg = -150;
-  const endDeg   = -30;
+  const startDeg = -155;
+  const endDeg   = -25;
   const span     = endDeg - startDeg;
   const step     = total <= 1 ? 0 : span / (total - 1);
   const deg      = startDeg + step * i;
   const rad      = (deg * Math.PI) / 180;
-  const r        = 132; // radius in px — wider spread so labels don't overlap
-  return {
-    x: Math.cos(rad) * r,
-    y: Math.sin(rad) * r,
-  };
+  const r        = 155; // px — generous radius keeps labels apart
+  return { x: Math.cos(rad) * r, y: Math.sin(rad) * r };
 }
 
 export default function BottomNav() {
-  const pathname  = usePathname();
-  const router    = useRouter();
+  const pathname    = usePathname();
+  const router      = useRouter();
   const currentUser = useStore(s => s.currentUser);
-  const sfx       = useSFX();
-  const [open, setOpen] = useState(false);
-  const orbRef    = useRef<HTMLButtonElement>(null);
+  const sfx         = useSFX();
+  const [open, setOpen]           = useState(false);
+  const [flashId, setFlashId]     = useState<string | null>(null);
+  const orbRef = useRef<HTMLButtonElement>(null);
 
   const isActive = (href: string, exact: boolean) =>
     exact ? pathname === href : pathname.startsWith(href);
@@ -82,13 +90,17 @@ export default function BottomNav() {
     };
   }, [open]);
 
-  // Items to show in arc: all except active
   const arcItems = NAV_ITEMS.filter(it => it.id !== activeItem.id);
 
   function handleNavigate(itemId: string, href: string) {
     sfx(NAV_SOUNDS[itemId] ?? "navigate");
-    setOpen(false);
-    router.push(href);
+    setFlashId(itemId);
+    // Short flash then navigate
+    setTimeout(() => {
+      setOpen(false);
+      setFlashId(null);
+      router.push(href);
+    }, 260);
   }
 
   const ActiveIcon = activeItem.icon;
@@ -108,9 +120,9 @@ export default function BottomNav() {
             onClick={() => setOpen(false)}
             style={{
               position: "fixed", inset: 0,
-              background: "rgba(2,6,23,0.55)",
-              backdropFilter: "blur(6px)",
-              WebkitBackdropFilter: "blur(6px)",
+              background: "rgba(2,6,23,0.60)",
+              backdropFilter: "blur(8px)",
+              WebkitBackdropFilter: "blur(8px)",
               zIndex: 49,
             }}
           />
@@ -133,96 +145,140 @@ export default function BottomNav() {
         <AnimatePresence>
           {open && arcItems.map((item, i) => {
             const { x, y } = arcPosition(i, arcItems.length);
-            const Icon = item.icon;
-            const active = isActive(item.href, item.exact);
-            const isProf = item.id === "profile";
+            const Icon     = item.icon;
+            const active   = isActive(item.href, item.exact);
+            const isProf   = item.id === "profile";
+            const isFlash  = flashId === item.id;
+            const flashV   = FLASH_VARIANTS[i % FLASH_VARIANTS.length];
 
             return (
               <motion.div
                 key={item.id}
-                initial={{ x: 0, y: 0, scale: 0.3, opacity: 0 }}
-                animate={{ x, y, scale: 1, opacity: 1 }}
-                exit={{ x: 0, y: 0, scale: 0.3, opacity: 0 }}
+                initial={{ x: 0, y: 0, scale: 0.25, opacity: 0 }}
+                animate={{
+                  x, y, scale: isFlash ? flashV.scale : 1, opacity: 1,
+                }}
+                exit={{ x: 0, y: 0, scale: 0.25, opacity: 0 }}
                 transition={{
                   type: "spring",
                   damping: 22,
                   stiffness: 340,
-                  delay: open ? i * 0.045 : (arcItems.length - 1 - i) * 0.025,
+                  delay: open ? i * 0.04 : (arcItems.length - 1 - i) * 0.02,
+                  scale: isFlash ? { duration: 0.25, ease: "easeOut", times: [0, 0.5, 1] } : undefined,
                 }}
                 style={{
                   position: "absolute",
-                  bottom: 0,
-                  left: "50%",
-                  marginLeft: -27, // half of 54px
+                  bottom: 0, left: "50%",
+                  marginLeft: -27,
                   marginBottom: -27,
-                  width: 54, height: 54,
                   display: "flex",
                   flexDirection: "column",
                   alignItems: "center",
-                  gap: 5,
+                  gap: 6,
+                  width: 54,
                 }}
               >
+                {/* Glass pill background — continuous shimmer sweep */}
+                <motion.div
+                  animate={{
+                    backgroundPosition: ["200% center", "-200% center"],
+                  }}
+                  transition={{ duration: 2.8, repeat: Infinity, ease: "linear" }}
+                  style={{
+                    position: "absolute",
+                    top: -4, left: "50%", transform: "translateX(-50%)",
+                    width: 62, height: 62,
+                    borderRadius: "50%",
+                    background: "linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(201,165,90,0.08) 40%, rgba(14,165,233,0.06) 60%, rgba(255,255,255,0.03) 100%)",
+                    backgroundSize: "300% 100%",
+                    border: `1px solid ${active ? "rgba(201,165,90,0.22)" : "rgba(255,255,255,0.06)"}`,
+                    backdropFilter: "blur(12px)",
+                    WebkitBackdropFilter: "blur(12px)",
+                    pointerEvents: "none",
+                    zIndex: 0,
+                    boxShadow: isFlash
+                      ? `0 0 0 8px rgba(201,165,90,0.25), 0 0 24px rgba(201,165,90,0.40)`
+                      : "none",
+                  }}
+                />
+
                 <motion.button
                   onClick={() => handleNavigate(item.id, item.href)}
-                  whileTap={{ scale: 0.82 }}
-                  transition={{ type: "spring", damping: 16, stiffness: 400 }}
+                  whileTap={{ scale: 0.80 }}
+                  transition={{ type: "spring", damping: 14, stiffness: 420 }}
                   style={{
+                    position: "relative", zIndex: 1,
                     width: 54, height: 54,
                     borderRadius: "50%",
-                    border: `1.5px solid ${active ? "rgba(201,165,90,0.70)" : "rgba(255,255,255,0.14)"}`,
+                    border: `1.5px solid ${active ? "rgba(201,165,90,0.70)" : isFlash ? "rgba(201,165,90,0.70)" : "rgba(255,255,255,0.16)"}`,
                     background: active
                       ? "linear-gradient(135deg, #132238 0%, #1e3a5f 100%)"
-                      : "rgba(12,18,36,0.92)",
+                      : isFlash
+                        ? "linear-gradient(135deg, #1e3a5f 0%, #0c1a2e 100%)"
+                        : "rgba(10,15,30,0.88)",
                     backdropFilter: "blur(20px)",
                     WebkitBackdropFilter: "blur(20px)",
                     boxShadow: active
                       ? "0 0 0 3px rgba(201,165,90,0.22), 0 8px 24px rgba(0,0,0,0.50)"
-                      : "0 4px 18px rgba(0,0,0,0.40), inset 0 1px 0 rgba(255,255,255,0.07)",
+                      : isFlash
+                        ? "0 0 0 4px rgba(201,165,90,0.30), 0 0 20px rgba(201,165,90,0.50)"
+                        : "0 4px 18px rgba(0,0,0,0.40), inset 0 1px 0 rgba(255,255,255,0.08)",
                     cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    padding: 0,
-                    flexShrink: 0,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    padding: 0, flexShrink: 0,
+                    transition: "border-color 0.15s, box-shadow 0.15s, background 0.15s",
                   }}
                 >
                   {isProf && currentUser ? (
                     <div style={{
                       width: 26, height: 26, borderRadius: "50%",
-                      background: active
+                      background: active || isFlash
                         ? "linear-gradient(135deg, #C9A55A, #E2C07A)"
                         : "linear-gradient(135deg, #1e3a5f, #2d4a7a)",
                       display: "flex", alignItems: "center", justifyContent: "center",
-                      border: `1.5px solid ${active ? "rgba(201,165,90,0.65)" : "rgba(255,255,255,0.18)"}`,
+                      border: `1.5px solid ${active || isFlash ? "rgba(201,165,90,0.65)" : "rgba(255,255,255,0.18)"}`,
                     }}>
-                      <span style={{ fontSize: 11, fontWeight: 800, color: active ? "#0c1a2e" : "#C9A55A" }}>
+                      <span style={{ fontSize: 11, fontWeight: 800, color: active || isFlash ? "#0c1a2e" : "#C9A55A" }}>
                         {currentUser.name.slice(0, 1).toUpperCase()}
                       </span>
                     </div>
                   ) : (
                     <Icon
                       size={20}
-                      strokeWidth={active ? 2.2 : 1.6}
+                      strokeWidth={active || isFlash ? 2.2 : 1.6}
                       style={{
-                        color: active ? "#C9A55A" : "rgba(255,255,255,0.72)",
-                        filter: active ? "drop-shadow(0 0 6px rgba(201,165,90,0.55))" : "none",
+                        color: active || isFlash ? "#C9A55A" : "rgba(255,255,255,0.75)",
+                        filter: active || isFlash ? "drop-shadow(0 0 8px rgba(201,165,90,0.75))" : "none",
+                        transition: "color 0.15s, filter 0.15s",
                       }}
                     />
                   )}
                 </motion.button>
-                {/* Label below button — no overlap since it's outside the circle */}
-                <span style={{
-                  fontSize: 9,
-                  fontWeight: 700,
-                  color: active ? "#C9A55A" : "rgba(255,255,255,0.75)",
-                  whiteSpace: "nowrap",
-                  letterSpacing: "0.03em",
-                  textShadow: "0 1px 4px rgba(0,0,0,0.90)",
-                  pointerEvents: "none",
-                  lineHeight: 1,
+
+                {/* Label pill — sits below button, clears the circle */}
+                <div style={{
+                  position: "relative", zIndex: 1,
+                  padding: "2px 7px",
+                  borderRadius: 10,
+                  background: "rgba(5,10,22,0.75)",
+                  border: `1px solid ${active ? "rgba(201,165,90,0.30)" : "rgba(255,255,255,0.08)"}`,
+                  backdropFilter: "blur(8px)",
+                  WebkitBackdropFilter: "blur(8px)",
                 }}>
-                  {item.label}
-                </span>
+                  <span style={{
+                    fontSize: 8.5,
+                    fontWeight: 700,
+                    color: active ? "#C9A55A" : "rgba(255,255,255,0.80)",
+                    whiteSpace: "nowrap",
+                    letterSpacing: "0.04em",
+                    textShadow: "0 1px 3px rgba(0,0,0,0.95)",
+                    pointerEvents: "none",
+                    lineHeight: 1,
+                    display: "block",
+                  }}>
+                    {item.label}
+                  </span>
+                </div>
               </motion.div>
             );
           })}
@@ -246,12 +302,26 @@ export default function BottomNav() {
             WebkitTapHighlightColor: "transparent",
           }}
         >
-          {/* Outer glow ring */}
+          {/* Continuous shimmer ring on orb */}
           <motion.div
-            animate={{ scale: open ? [1, 1.18, 1] : 1, opacity: open ? [0.6, 0, 0.6] : 0.5 }}
-            transition={{ duration: 1.8, repeat: open ? Infinity : 0, ease: "easeInOut" }}
+            animate={{ rotate: 360 }}
+            transition={{ duration: 6, repeat: Infinity, ease: "linear" }}
             style={{
-              position: "absolute", inset: -6,
+              position: "absolute", inset: -3,
+              borderRadius: "50%",
+              background: "conic-gradient(from 0deg, transparent 0%, rgba(201,165,90,0.35) 25%, transparent 50%, rgba(14,165,233,0.25) 75%, transparent 100%)",
+              filter: "blur(1px)",
+              opacity: open ? 0.9 : 0.55,
+              transition: "opacity 0.3s",
+              pointerEvents: "none",
+            }}
+          />
+          {/* Pulse ring */}
+          <motion.div
+            animate={{ scale: open ? [1, 1.22, 1] : 1, opacity: open ? [0.5, 0, 0.5] : 0.4 }}
+            transition={{ duration: 1.6, repeat: open ? Infinity : 0, ease: "easeInOut" }}
+            style={{
+              position: "absolute", inset: -7,
               borderRadius: "50%",
               border: "1.5px solid rgba(201,165,90,0.35)",
               pointerEvents: "none",
@@ -265,10 +335,10 @@ export default function BottomNav() {
             background: open
               ? "linear-gradient(135deg, #1a2e4a 0%, #0c1a2e 100%)"
               : "linear-gradient(135deg, #0c1a2e 0%, #152540 50%, #0c1a2e 100%)",
-            border: "1.5px solid rgba(201,165,90,0.50)",
+            border: "1.5px solid rgba(201,165,90,0.55)",
             boxShadow: open
-              ? "0 0 0 3px rgba(201,165,90,0.18), 0 8px 32px rgba(0,0,0,0.55), inset 0 1px 0 rgba(201,165,90,0.20)"
-              : "0 0 0 2px rgba(201,165,90,0.12), 0 6px 24px rgba(0,0,0,0.45), inset 0 1px 0 rgba(201,165,90,0.15)",
+              ? "0 0 0 3px rgba(201,165,90,0.18), 0 8px 32px rgba(0,0,0,0.55), inset 0 1px 0 rgba(201,165,90,0.22)"
+              : "0 0 0 2px rgba(201,165,90,0.12), 0 6px 24px rgba(0,0,0,0.45), inset 0 1px 0 rgba(201,165,90,0.18)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -276,13 +346,19 @@ export default function BottomNav() {
             overflow: "hidden",
             position: "relative",
           }}>
-            {/* Gold shimmer sweep */}
-            <div style={{
-              position: "absolute", inset: 0,
-              background: "linear-gradient(130deg, transparent 30%, rgba(201,165,90,0.12) 50%, transparent 70%)",
-              borderRadius: "50%",
-              pointerEvents: "none",
-            }} />
+            {/* Shimmer sweep on orb body */}
+            <motion.div
+              animate={{ x: ["-100%", "200%"] }}
+              transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut", repeatDelay: 1.5 }}
+              style={{
+                position: "absolute",
+                top: 0, bottom: 0, left: 0,
+                width: "40%",
+                background: "linear-gradient(90deg, transparent, rgba(201,165,90,0.18), transparent)",
+                pointerEvents: "none",
+                borderRadius: "50%",
+              }}
+            />
 
             {/* Active page icon or close X */}
             <AnimatePresence mode="wait">
@@ -295,7 +371,6 @@ export default function BottomNav() {
                   transition={{ duration: 0.15 }}
                   style={{ display: "flex", alignItems: "center", justifyContent: "center" }}
                 >
-                  {/* X mark from two lines */}
                   <div style={{ position: "relative", width: 16, height: 16 }}>
                     <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
                       <div style={{ width: 16, height: 1.5, background: "rgba(201,165,90,0.9)", borderRadius: 2, transform: "rotate(45deg)", position: "absolute" }} />
@@ -334,7 +409,7 @@ export default function BottomNav() {
             </AnimatePresence>
           </div>
 
-          {/* Active indicator dot — bottom of orb */}
+          {/* Active indicator dot */}
           {!open && (
             <div style={{
               position: "absolute", bottom: -1, left: "50%", transform: "translateX(-50%)",

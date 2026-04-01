@@ -6,10 +6,16 @@
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
-  "background_color": "#0c1a2e",
-  "theme_color": "#0c1a2e",
+  "background_color": "#c7d2fe",
+  "theme_color": "#a5b4fc",
   "lang": "vi",
   "icons": [
+    {
+      "src": "/icon-512x512.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
     {
       "src": "/icon-192x192.png",
       "sizes": "192x192",

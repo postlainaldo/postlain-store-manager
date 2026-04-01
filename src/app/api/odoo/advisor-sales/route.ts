@@ -17,10 +17,15 @@ export async function GET(req: NextRequest) {
   const month = searchParams.get("month") ?? new Date().toISOString().slice(0, 7); // "2026-03"
 
   const [y, m] = month.split("-").map(Number);
-  // Odoo stores date_order in UTC — use first/last day of month
-  const dateFrom = `${month}-01 00:00:00`;
+  // Odoo stores date_order in UTC. VN is UTC+7, so to query a Vietnamese calendar
+  // month we subtract 7 hours: VN 00:00 = UTC prev-day 17:00.
+  const VN_OFFSET_MS = 7 * 60 * 60 * 1000;
+  const vnStart = new Date(Date.UTC(y, m - 1, 1, 0, 0, 0)); // 1st of month, midnight VN
   const lastDay = new Date(y, m, 0).getDate();
-  const dateTo   = `${month}-${String(lastDay).padStart(2, "0")} 23:59:59`;
+  const vnEnd   = new Date(Date.UTC(y, m - 1, lastDay, 23, 59, 59)); // last day 23:59:59 VN
+  const toOdoo  = (d: Date) => new Date(d.getTime() - VN_OFFSET_MS).toISOString().slice(0, 19).replace("T", " ");
+  const dateFrom = toOdoo(vnStart);
+  const dateTo   = toOdoo(vnEnd);
 
   try {
     const rows = await fetchAdvisorSales(dateFrom, dateTo);

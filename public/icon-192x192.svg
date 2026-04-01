@@ -1,21 +1,33 @@
 <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192' width='192' height='192'>
   <defs>
     <linearGradient id='bg' x1='0' y1='0' x2='1' y2='1'>
-      <stop offset='0%' stop-color='#0c1a2e'/>
-      <stop offset='100%' stop-color='#1e3a5f'/>
+      <stop offset='0%'   stop-color='#c7d2fe'/>
+      <stop offset='38%'  stop-color='#a5b4fc'/>
+      <stop offset='72%'  stop-color='#f0abfc'/>
+      <stop offset='100%' stop-color='#fda4af'/>
     </linearGradient>
-    <linearGradient id='gold' x1='0' y1='0' x2='0' y2='1'>
-      <stop offset='0%' stop-color='#F0D080'/>
-      <stop offset='35%' stop-color='#C9A55A'/>
-      <stop offset='65%' stop-color='#C9A55A'/>
-      <stop offset='100%' stop-color='#8B6520'/>
-    </linearGradient>
-    <filter id='s3d' x='-5%' y='-5%' width='120%' height='130%'>
-      <feDropShadow dx='1.92' dy='3.84' stdDeviation='2.88' flood-color='#000' flood-opacity='0.6'/>
+    <radialGradient id='shine' cx='35%' cy='30%' r='55%'>
+      <stop offset='0%'   stop-color='rgba(255,255,255,0.38)'/>
+      <stop offset='100%' stop-color='rgba(255,255,255,0)'/>
+    </radialGradient>
+    <filter id='pshadow' x='-12%' y='-12%' width='130%' height='140%'>
+      <feDropShadow dx='2.5' dy='4' stdDeviation='5' flood-color='#6d28d9' flood-opacity='0.28'/>
     </filter>
   </defs>
-  <rect width='192' height='192' rx='34.56' fill='url(#bg)'/>
-  <rect x='3.84' y='3.84' width='184.32' height='184.32' rx='30.72' fill='none' stroke='#C9A55A' stroke-width='4.800000000000001' opacity='0.5'/>
-  <text x='96' y='130.56' text-anchor='middle' font-family='Georgia,serif' font-weight='700' font-size='90' fill='url(#gold)' filter='url(#s3d)' letter-spacing='4'>ADL</text>
-  <text x='95.03999999999999' y='127.68' text-anchor='middle' font-family='Georgia,serif' font-weight='700' font-size='90' fill='#fff' opacity='0.12' letter-spacing='4'>ADL</text>
+  <rect width='192' height='192' rx='40' fill='url(#bg)'/>
+  <rect width='192' height='192' rx='40' fill='url(#shine)'/>
+  <rect x='3' y='3' width='186' height='186' rx='36' fill='none'
+        stroke='rgba(255,255,255,0.45)' stroke-width='2.5'/>
+  <circle cx='143' cy='34' r='7'  fill='rgba(255,255,255,0.22)'/>
+  <circle cx='154' cy='27' r='4'  fill='rgba(255,255,255,0.16)'/>
+  <circle cx='41'  cy='161' r='8'  fill='rgba(255,255,255,0.18)'/>
+  <g transform='rotate(-8, 79, 101)' filter='url(#pshadow)'>
+    <rect x='53' y='48' width='25' height='115' rx='12.5' fill='white'/>
+    <path d='M78 48 Q135 48 135 82 Q135 115 78 115 L78 90 Q110 90 110 82 Q110 73 78 73 Z' fill='white'/>
+  </g>
+  <text x='96' y='184' text-anchor='middle'
+        font-family='Georgia, serif' font-weight='700' font-size='8'
+        fill='rgba(255,255,255,0.60)' letter-spacing='2'>
+    POSTLAIN
+  </text>
 </svg>
