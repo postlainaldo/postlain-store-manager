@@ -78,6 +78,10 @@ export default function BottomNav() {
   const [flashId, setFlashId]     = useState<string | null>(null);
   const orbRef = useRef<HTMLButtonElement>(null);
 
+  // Disable looping animations on Android (GPU performance)
+  const isAndroid = typeof navigator !== "undefined" && /android/i.test(navigator.userAgent);
+  const infiniteRepeat = isAndroid ? 0 : Infinity;
+
   const isActive = (href: string, exact: boolean) =>
     exact ? pathname === href : pathname.startsWith(href);
 
@@ -202,9 +206,9 @@ export default function BottomNav() {
                     rotate: float.rotate,
                   }}
                   transition={isFlash ? { duration: 0.1 } : {
-                    x: { duration: float.dur, repeat: Infinity, ease: "easeInOut", repeatType: "loop" },
-                    y: { duration: float.dur, repeat: Infinity, ease: "easeInOut", repeatType: "loop" },
-                    rotate: { duration: float.dur * 1.15, repeat: Infinity, ease: "easeInOut", repeatType: "loop" },
+                    x: { duration: float.dur, repeat: infiniteRepeat, ease: "easeInOut", repeatType: "loop" },
+                    y: { duration: float.dur, repeat: infiniteRepeat, ease: "easeInOut", repeatType: "loop" },
+                    rotate: { duration: float.dur * 1.15, repeat: infiniteRepeat, ease: "easeInOut", repeatType: "loop" },
                   }}
                   style={{
                     display: "flex",
@@ -219,7 +223,7 @@ export default function BottomNav() {
                   animate={{
                     backgroundPosition: ["200% center", "-200% center"],
                   }}
-                  transition={{ duration: 2.8, repeat: Infinity, ease: "linear" }}
+                  transition={{ duration: 2.8, repeat: infiniteRepeat, ease: "linear" }}
                   style={{
                     position: "absolute",
                     top: -4, left: "50%", transform: "translateX(-50%)",
@@ -332,8 +336,8 @@ export default function BottomNav() {
           }}
           transition={{
             rotate: { type: "spring", damping: 18, stiffness: 280 },
-            y: open ? { duration: 0.2 } : { duration: 4.0, repeat: Infinity, ease: "easeInOut" },
-            scale: open ? { duration: 0.2 } : { duration: 4.0, repeat: Infinity, ease: "easeInOut" },
+            y: open ? { duration: 0.2 } : { duration: 4.0, repeat: infiniteRepeat, ease: "easeInOut" },
+            scale: open ? { duration: 0.2 } : { duration: 4.0, repeat: infiniteRepeat, ease: "easeInOut" },
           }}
           style={{
             position: "relative",
@@ -350,7 +354,7 @@ export default function BottomNav() {
           {/* Continuous shimmer ring on orb */}
           <motion.div
             animate={{ rotate: 360 }}
-            transition={{ duration: 6, repeat: Infinity, ease: "linear" }}
+            transition={{ duration: 6, repeat: infiniteRepeat, ease: "linear" }}
             style={{
               position: "absolute", inset: -3,
               borderRadius: "50%",
@@ -394,7 +398,7 @@ export default function BottomNav() {
             {/* Shimmer sweep on orb body */}
             <motion.div
               animate={{ x: ["-100%", "200%"] }}
-              transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut", repeatDelay: 1.5 }}
+              transition={{ duration: 2.2, repeat: infiniteRepeat, ease: "easeInOut", repeatDelay: 1.5 }}
               style={{
                 position: "absolute",
                 top: 0, bottom: 0, left: 0,
