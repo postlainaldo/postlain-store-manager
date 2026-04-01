@@ -1569,7 +1569,7 @@ function useRealtimeSync(onRefresh: () => void) {
       };
     }
     connect();
-    const poll = setInterval(() => refreshRef.current(), 15_000);
+    const poll = setInterval(() => refreshRef.current(), 60_000);
     return () => {
       esRef.current?.close();
       clearTimeout(retryTimer);

@@ -22,7 +22,12 @@ export async function GET(req: NextRequest) {
   if (date) {
     try {
       const traffic = await getPalexyTraffic(date);
-      return NextResponse.json({ ok: true, date, traffic });
+      // Cache past dates for 6h, today for 30min (data won't change retroactively)
+      const today = new Date().toISOString().slice(0, 10);
+      const maxAge = date < today ? 21600 : 1800;
+      return NextResponse.json({ ok: true, date, traffic }, {
+        headers: { "Cache-Control": `s-maxage=${maxAge}, stale-while-revalidate=3600` },
+      });
     } catch (err) {
       return NextResponse.json({ ok: false, error: String(err) }, { status: 500 });
     }

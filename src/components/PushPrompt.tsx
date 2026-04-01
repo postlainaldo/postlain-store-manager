@@ -16,36 +16,33 @@ export default function PushPrompt() {
   const [done, setDone] = useState(false);
 
   useEffect(() => {
-    // Only show if:
-    // 1. User is logged in
-    // 2. Current date is before deadline
-    // 3. Not already prompted/dismissed
-    // 4. Browser supports notifications
-    // 5. Permission not yet granted
     if (!currentUser) return;
     if (new Date() > PROMPT_DEADLINE) return;
-    if (localStorage.getItem(STORAGE_KEY)) return;
-    if (!("Notification" in window)) return;
-    if (Notification.permission === "granted") {
+
+    const stored = localStorage.getItem(STORAGE_KEY);
+    // "granted" or "denied" or "dismissed" → don't show again
+    if (stored === "granted" || stored === "denied" || stored === "dismissed") return;
+
+    // If browser already granted, silently record and skip prompt
+    if ("Notification" in window && Notification.permission === "granted") {
       localStorage.setItem(STORAGE_KEY, "granted");
       return;
     }
-    if (Notification.permission === "denied") {
-      localStorage.setItem(STORAGE_KEY, "denied");
-      return;
-    }
 
-    // Delay slightly so it doesn't appear instantly on load
     const t = setTimeout(() => setShow(true), 2200);
     return () => clearTimeout(t);
-  }, [currentUser]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser?.id]);
 
   async function handleEnable() {
     setSubscribing(true);
     playSound("tap");
     try {
-      const permission = await Notification.requestPermission();
-      if (permission === "granted") {
+      let permission: NotificationPermission = "default";
+      if ("Notification" in window) {
+        permission = await Notification.requestPermission();
+      }
+      if (permission === "granted" || !("Notification" in window)) {
         playSound("loginSuccess");
         // Try to subscribe to push if VAPID key available
         const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;

@@ -683,7 +683,7 @@ export default function ChatPage() {
             setMessages(msgs);
           }
         }).catch(() => {});
-    }, 15000);
+    }, 60000);
     return () => clearInterval(timer);
   }, [activeRoom?.id]);
 

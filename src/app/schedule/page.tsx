@@ -66,6 +66,15 @@ function getWeekDates(weekOffset: number): Date[] {
 
 function fmt(t: string) { return t.slice(0, 5); }
 
+/** Infer FT/PT from slot name prefix [FULL]/[PT] if staffType not explicitly set */
+function inferStaffType(slot: { staffType?: StaffType; name: string }): StaffType {
+  if (slot.staffType && slot.staffType !== "ALL") return slot.staffType;
+  const n = slot.name.toUpperCase();
+  if (n.startsWith("[FULL]") || n.startsWith("FULL ")) return "FT";
+  if (n.startsWith("[PT]") || n.startsWith("PT ")) return "PT";
+  return slot.staffType ?? "ALL";
+}
+
 /**
  * Registration window rule:
  *   Thu–Sun  (dow 4,5,6,0) → staff can register for NEXT week's shifts
@@ -287,7 +296,7 @@ function SlotCard({ slot, regs, isAdmin, currentUserId, allStaff, canRegister, o
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display:"flex", alignItems:"center", gap:5, flexWrap:"wrap" }}>
             <p style={{ fontSize:12, fontWeight:700, color:"#0c1a2e" }}>{slot.name}</p>
-            <StaffTypeBadge type={slot.staffType} size="xs" />
+            <StaffTypeBadge type={inferStaffType(slot)} size="xs" />
           </div>
           <p style={{ fontSize:10, color:"#64748b", marginTop:1 }}>
             {fmt(slot.startTime)}–{fmt(slot.endTime)} · {approved.length}/{slot.maxStaff}
@@ -675,7 +684,7 @@ export default function SchedulePage() {
   const filteredSlots = useMemo(() =>
     filterType === "ALL"
       ? slots
-      : slots.filter(s => (s.staffType ?? "ALL") === filterType || (s.staffType ?? "ALL") === "ALL"),
+      : slots.filter(s => inferStaffType(s) === filterType),
     [slots, filterType]
   );
 
@@ -920,7 +929,7 @@ export default function SchedulePage() {
                     {hasSlots && (
                       <div style={{ padding:"0 16px 12px", display:"flex", flexDirection:"column", gap:8 }}>
                         {(["FT","PT","ALL"] as StaffType[]).map(group => {
-                          const groupSlots = daySlots.filter(s => (s.staffType ?? "ALL") === group);
+                          const groupSlots = daySlots.filter(s => inferStaffType(s) === group);
                           if (groupSlots.length === 0) return null;
                           const cfg = STAFF_TYPE_CFG[group];
                           return (
@@ -969,7 +978,7 @@ export default function SchedulePage() {
                       </div>
                     </div>
                     {(["FT","PT","ALL"] as StaffType[]).map(group => {
-                      const groupSlots = daySlots.filter(s => (s.staffType ?? "ALL") === group);
+                      const groupSlots = daySlots.filter(s => inferStaffType(s) === group);
                       if (groupSlots.length === 0) return null;
                       const cfg = STAFF_TYPE_CFG[group];
                       return (

@@ -24,11 +24,19 @@ export async function GET(req: NextRequest) {
       if (type === "morning") {
         const traffic = await getPalexyTraffic(date).catch(() => null);
         const report = await buildMorningReport(date, traffic);
-        return NextResponse.json({ ok: true, report });
+        const today = new Date().toISOString().slice(0, 10);
+        const maxAge = date < today ? 3600 : 300;
+        return NextResponse.json({ ok: true, report }, {
+          headers: { "Cache-Control": `s-maxage=${maxAge}, stale-while-revalidate=600` },
+        });
       }
 
       const report = await buildEveningReport(date);
-      return NextResponse.json({ ok: true, report });
+      const today = new Date().toISOString().slice(0, 10);
+      const maxAge = date < today ? 3600 : 300;
+      return NextResponse.json({ ok: true, report }, {
+        headers: { "Cache-Control": `s-maxage=${maxAge}, stale-while-revalidate=600` },
+      });
     }
 
     if (type === "overview") {
@@ -53,7 +61,15 @@ export async function GET(req: NextRequest) {
       const trafficMap = new Map<string, number | null>(trafficEntries);
 
       const result = await buildOverviewReport(dates, trafficMap);
-      return NextResponse.json({ ok: true, ...result });
+      const todayStr = new Date().toISOString().slice(0, 10);
+      const rangeIsPast = toDate < todayStr;
+      return NextResponse.json({ ok: true, ...result }, {
+        headers: {
+          "Cache-Control": rangeIsPast
+            ? "s-maxage=7200, stale-while-revalidate=3600"   // past range: cache 2h
+            : "s-maxage=300, stale-while-revalidate=600",     // includes today: 5min
+        },
+      });
     }
 
     return NextResponse.json({ ok: false, error: "type must be morning, evening, or overview" }, { status: 400 });

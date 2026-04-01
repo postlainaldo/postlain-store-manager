@@ -5,7 +5,9 @@ import { dbGetMovements, dbInsertMovement } from "@/lib/dbAdapter";
 export async function GET(req: NextRequest) {
   const limit = Math.min(Number(req.nextUrl.searchParams.get("limit") ?? "20"), 100);
   const rows = await dbGetMovements(limit);
-  return NextResponse.json(rows);
+  return NextResponse.json(rows, {
+    headers: { "Cache-Control": "s-maxage=60, stale-while-revalidate=120" },
+  });
 }
 
 // POST /api/movements — log a movement

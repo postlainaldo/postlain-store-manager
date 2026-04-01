@@ -46,7 +46,7 @@ export default function NotificationBanner() {
 
   useEffect(() => {
     load();
-    const t = setInterval(load, 30000); // poll every 30s
+    const t = setInterval(load, 300000); // poll every 5 min
     return () => clearInterval(t);
   }, [dismissed]);
 
