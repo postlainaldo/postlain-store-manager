@@ -156,14 +156,25 @@ export default function GlobalSearch() {
         style={{
           display: "flex", alignItems: "center", gap: 6,
           padding: "5px 12px", borderRadius: 9,
-          background: "#f0f9ff", border: "1px solid #bae6fd",
+          background: "rgba(14,165,233,0.06)",
+          border: "1px solid rgba(14,165,233,0.18)",
           cursor: "pointer", fontSize: 10, color: "#64748b",
-          fontFamily: "inherit", minWidth: 180,
+          fontFamily: "inherit", minWidth: 160,
+          backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)",
+          transition: "background 0.15s, border-color 0.15s",
+        }}
+        onMouseEnter={e => {
+          (e.currentTarget as HTMLButtonElement).style.background = "rgba(14,165,233,0.10)";
+          (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(14,165,233,0.30)";
+        }}
+        onMouseLeave={e => {
+          (e.currentTarget as HTMLButtonElement).style.background = "rgba(14,165,233,0.06)";
+          (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(14,165,233,0.18)";
         }}
       >
         <Search size={11} style={{ color: "#94a3b8" }} strokeWidth={1.5} />
         <span style={{ flex: 1, textAlign: "left" }}>Tìm kiếm...</span>
-        <span style={{ fontSize: 8.5, background: "#e0f2fe", borderRadius: 4, padding: "1px 5px", color: "#0ea5e9", fontWeight: 600 }}>
+        <span style={{ fontSize: 8.5, background: "rgba(14,165,233,0.12)", borderRadius: 4, padding: "1px 5px", color: "#0ea5e9", fontWeight: 600 }}>
           Ctrl K
         </span>
       </button>

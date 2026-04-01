@@ -370,17 +370,20 @@ export async function fetchAdvisorSales(dateFrom: string, dateTo: string): Promi
   for (const line of all) {
     if (!Array.isArray(line.x_advisor)) continue;
     if (line.is_program_reward) continue;
-    if ((line.price_subtotal_incl ?? 0) <= 0) continue;
+    const qty = line.qty ?? 0;
+    if (qty <= 0) continue; // skip returns and zero-qty lines
+    // Compute revenue as price_unit * qty * (1 - discount/100)
+    // This avoids issues where price_subtotal_incl may include loyalty adjustments
+    // or where negative reward lines slip through.
+    const discount = line.discount ?? 0;
+    const computedRev = (line.price_unit ?? 0) * qty * (1 - discount / 100);
+    if (computedRev <= 0) continue;
     const [aid, aname] = line.x_advisor as [number, string];
     if (POS_MACHINE_PATTERN.test(aname)) continue;
     const orderId = Array.isArray(line.order_id) ? (line.order_id as [number, string])[0] : 0;
     const productId = Array.isArray(line.product_id) ? (line.product_id as [number, string])[0] : 0;
     const group = productGroupMap.get(productId) ?? "Undefined";
-    // price_subtotal_incl is qty*price_unit*(1-discount/100)*tax_factor in Odoo POS.
-    // For VN stores with 0% VAT on retail, this equals the discounted price directly.
-    // We use it as-is since it already incorporates discount.
-    const rev = line.price_subtotal_incl ?? 0;
-    const qty = line.qty ?? 0;
+    const rev = computedRev;
 
     const cur = map.get(aid) ?? { name: aname, revenue: 0, qty: 0, lines: 0, orders: new Set<number>(), groups: new Map() };
     cur.revenue += rev;

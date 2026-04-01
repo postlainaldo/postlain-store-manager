@@ -21,6 +21,7 @@ import { playSound } from "@/hooks/useSFX";
 type Room = {
   id: string; name: string; type: string;
   icon?: string | null; color?: string | null;
+  memberIds?: string | null;
   lastMessage: { content: string; userName: string; createdAt: string; mediaType?: string } | null;
   messageCount: number;
 };
@@ -283,6 +284,7 @@ function MsgBubble({ msg, isMe, showHeader, members, onDelete, onRevoke, onReply
         {msg.content && (
           <p style={{
             fontSize: 13, lineHeight: 1.5, wordBreak: "break-word",
+            whiteSpace: "pre-wrap",
             color: (isDeleted || isRevoked) ? "#94a3b8" : "#1e293b",
             fontStyle: (isDeleted || isRevoked) ? "italic" : "normal",
           }}>
@@ -506,6 +508,9 @@ export default function ChatPage() {
 
   // Image lightbox
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
+
+  // Member management (admin only)
+  const [showMemberMgmt, setShowMemberMgmt] = useState(false);
 
   // Read receipts
   const [readReceipts, setReadReceipts] = useState<ReadReceipt[]>([]);
@@ -928,11 +933,24 @@ export default function ChatPage() {
     setRooms(prev => prev.map(r => r.id === activeRoom.id ? { ...r, ...updated } : r));
   };
 
+  const handleUpdateRoomMembers = async (memberIds: string[] | null) => {
+    if (!activeRoom || !currentUser) return;
+    await fetch("/api/chat", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ roomId: activeRoom.id, userId: currentUser.id, action: "updateRoomMembers", memberIds }),
+    }).catch(() => {});
+    const newVal = memberIds === null ? null : JSON.stringify(memberIds);
+    setActiveRoom(prev => prev ? { ...prev, memberIds: newVal } : null);
+    setRooms(prev => prev.map(r => r.id === activeRoom.id ? { ...r, memberIds: newVal } : r));
+  };
+
   const openInfoPanel = () => {
     if (!activeRoom) return;
     setRoomSettingsName(activeRoom.name);
     setRoomSettingsIcon(activeRoom.icon ?? "");
     setRoomSettingsColor(activeRoom.color ?? "");
+    setShowMemberMgmt(false);
     setShowInfoPanel(true);
   };
 
@@ -1039,7 +1057,16 @@ export default function ChatPage() {
       {/* Channel / DM list */}
       <div style={{ flex: 1, overflowY: "auto", padding: "8px 0" }}>
         {(() => {
-          const channelRooms = rooms.filter(r => r.type !== "direct");
+          const channelRooms = rooms.filter(r => {
+            if (r.type === "direct") return false;
+            if (isAdmin) return true;
+            // Non-admin: hide rooms that have a restricted memberIds list that doesn't include me
+            if (!r.memberIds) return true;
+            try {
+              const ids = JSON.parse(r.memberIds) as string[];
+              return ids.includes(currentUser?.id ?? "");
+            } catch { return true; }
+          });
           const dmRooms = isAdmin ? rooms.filter(r => r.type === "direct") : [];
           const sections: Array<{ label: string; items: Room[]; canAdd?: boolean }> = [
             { label: "KÊNH CHAT", items: channelRooms, canAdd: isAdmin },
@@ -1491,29 +1518,89 @@ export default function ChatPage() {
               )}
 
               {/* Members */}
-              <div style={{ padding: "14px 16px", borderBottom: "1px solid #e0e7ff" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
-                  <Users size={12} style={{ color: "#94a3b8" }} />
-                  <p style={{ fontSize: 8.5, fontWeight: 700, color: "#6366f1", letterSpacing: "0.12em" }}>THÀNH VIÊN · {members.length}</p>
-                </div>
-                {members.map(m => {
-                  const rcfg = ROLE_CFG[m.role] ?? ROLE_CFG.staff;
-                  const RoleIcon = rcfg.icon;
-                  return (
-                    <div key={m.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 0" }}>
-                      <Avatar src={m.avatar} name={m.name} size={28} status={m.status} />
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ fontSize: 11, color: "#0c1a2e", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.name}</p>
-                        <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
-                          <RoleIcon size={8} style={{ color: rcfg.color }} />
-                          <span style={{ fontSize: 8.5, color: "#94a3b8" }}>{m.role}</span>
-                        </div>
-                      </div>
-                      <div style={{ width: 8, height: 8, borderRadius: "50%", background: STATUS_COLOR[m.status] ?? "#cbd5e1", flexShrink: 0 }} />
+              {(() => {
+                // Parse current room's allowed memberIds
+                let allowedIds: string[] | null = null;
+                try { if (activeRoom.memberIds) allowedIds = JSON.parse(activeRoom.memberIds) as string[]; } catch {/**/}
+                const visibleMembers = allowedIds ? members.filter(m => allowedIds!.includes(m.id)) : members;
+
+                return (
+                  <div style={{ padding: "14px 16px", borderBottom: "1px solid #e0e7ff" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
+                      <Users size={12} style={{ color: "#94a3b8" }} />
+                      <p style={{ fontSize: 8.5, fontWeight: 700, color: "#6366f1", letterSpacing: "0.12em", flex: 1 }}>THÀNH VIÊN · {visibleMembers.length}</p>
+                      {isAdmin && activeRoom.type !== "direct" && (
+                        <button
+                          onClick={() => setShowMemberMgmt(v => !v)}
+                          title="Quản lý thành viên"
+                          style={{ fontSize: 9, color: showMemberMgmt ? "#6366f1" : "#94a3b8", background: showMemberMgmt ? "#eef0fd" : "none", border: showMemberMgmt ? "1px solid #c7d2fe" : "1px solid transparent", borderRadius: 6, padding: "2px 7px", cursor: "pointer", fontWeight: 600, fontFamily: "inherit" }}>
+                          {showMemberMgmt ? "Xong" : "Quản lý"}
+                        </button>
+                      )}
                     </div>
-                  );
-                })}
-              </div>
+
+                    {/* Admin member management: checkboxes */}
+                    {isAdmin && showMemberMgmt && activeRoom.type !== "direct" && (
+                      <div style={{ marginBottom: 10, padding: "8px 10px", background: "#f0f4ff", borderRadius: 8, border: "1px solid #e0e7ff" }}>
+                        <p style={{ fontSize: 9, color: "#64748b", marginBottom: 8 }}>Bỏ chọn để hạn chế truy cập. Để trống = mọi người đều thấy kênh này.</p>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 4, maxHeight: 180, overflowY: "auto" }}>
+                          {members.map(m => {
+                            const checked = allowedIds === null || allowedIds.includes(m.id);
+                            return (
+                              <label key={m.id} style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", padding: "3px 0" }}>
+                                <input type="checkbox" checked={checked}
+                                  onChange={e => {
+                                    let next: string[] | null;
+                                    if (allowedIds === null) {
+                                      // First restriction: start from all member IDs minus unchecked
+                                      next = members.map(x => x.id).filter(id => id !== m.id);
+                                    } else if (e.target.checked) {
+                                      next = [...allowedIds, m.id];
+                                    } else {
+                                      next = allowedIds.filter(id => id !== m.id);
+                                    }
+                                    // If all members checked → null (open to all)
+                                    if (next && next.length >= members.length) next = null;
+                                    handleUpdateRoomMembers(next);
+                                  }}
+                                  style={{ width: 13, height: 13, cursor: "pointer", accentColor: "#6366f1" }}
+                                />
+                                <Avatar src={m.avatar} name={m.name} size={20} />
+                                <span style={{ fontSize: 11, color: "#0c1a2e", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.name}</span>
+                                <span style={{ fontSize: 8.5, color: "#94a3b8" }}>{m.role}</span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                        {allowedIds !== null && (
+                          <button onClick={() => handleUpdateRoomMembers(null)}
+                            style={{ marginTop: 8, fontSize: 9, color: "#64748b", background: "none", border: "1px solid #e0e7ff", borderRadius: 5, padding: "3px 8px", cursor: "pointer", fontFamily: "inherit" }}>
+                            Mở cho tất cả
+                          </button>
+                        )}
+                      </div>
+                    )}
+
+                    {visibleMembers.map(m => {
+                      const rcfg = ROLE_CFG[m.role] ?? ROLE_CFG.staff;
+                      const RoleIcon = rcfg.icon;
+                      return (
+                        <div key={m.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 0" }}>
+                          <Avatar src={m.avatar} name={m.name} size={28} status={m.status} />
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <p style={{ fontSize: 11, color: "#0c1a2e", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.name}</p>
+                            <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
+                              <RoleIcon size={8} style={{ color: rcfg.color }} />
+                              <span style={{ fontSize: 8.5, color: "#94a3b8" }}>{m.role}</span>
+                            </div>
+                          </div>
+                          <div style={{ width: 8, height: 8, borderRadius: "50%", background: STATUS_COLOR[m.status] ?? "#cbd5e1", flexShrink: 0 }} />
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
 
               {/* Shared images */}
               {infoPanelMedia.length > 0 && (

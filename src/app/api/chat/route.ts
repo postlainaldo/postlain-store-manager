@@ -5,6 +5,7 @@ import {
   dbGetMessageSender, dbUpdateReactions, dbGetUserRole,
   dbPinMessage, dbGetPinnedMessages, dbSearchMessages,
   dbClearRoomMessages, dbRevokeMessage, dbMarkRead, dbGetReadReceipts,
+  dbUpdateRoomMembers,
 } from "@/lib/dbAdapter";
 
 // GET /api/chat?rooms=1             — list rooms with last message + count
@@ -107,7 +108,7 @@ export async function PUT(req: NextRequest) {
 
 // PATCH /api/chat — soft delete / edit message / update reactions / update room / pin
 export async function PATCH(req: NextRequest) {
-  const { msgId, roomId, userId, action, reactions, content, icon, color, name, pin } = await req.json();
+  const { msgId, roomId, userId, action, reactions, content, icon, color, name, pin, memberIds } = await req.json();
 
   // ── Clear all messages in room (admin only) ──────────────────────────────
   if (roomId && action === "clearRoom") {
@@ -139,6 +140,17 @@ export async function PATCH(req: NextRequest) {
       if (icon !== undefined) db.prepare("UPDATE chat_rooms SET icon=? WHERE id=?").run(icon, roomId);
       if (color !== undefined) db.prepare("UPDATE chat_rooms SET color=? WHERE id=?").run(color, roomId);
     }
+    return NextResponse.json({ ok: true });
+  }
+
+  // ── Update room members (admin only) ─────────────────────────────────────
+  if (roomId && action === "updateRoomMembers") {
+    const role = await dbGetUserRole(userId);
+    if (role !== "admin" && role !== "manager") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+    // memberIds: string[] | null — null means open to all
+    await dbUpdateRoomMembers(roomId, Array.isArray(memberIds) ? memberIds : null);
     return NextResponse.json({ ok: true });
   }
 

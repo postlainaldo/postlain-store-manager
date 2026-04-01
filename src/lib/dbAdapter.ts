@@ -69,6 +69,7 @@ export type DBRoom = {
   type: string;
   createdBy: string;
   createdAt: string;
+  memberIds?: string | null; // JSON array of user IDs; null = open to all
 };
 
 export type DBNotification = {
@@ -189,6 +190,7 @@ export async function ensureSupabaseSchema() {
     ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS "pinnedAt" TEXT;
     ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS "pinnedBy" TEXT;
     ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS "revokedAt" TEXT;
+    ALTER TABLE chat_rooms ADD COLUMN IF NOT EXISTS "memberIds" TEXT;
 
     CREATE TABLE IF NOT EXISTS chat_read_receipts (
       "roomId"     TEXT NOT NULL,
@@ -691,6 +693,15 @@ export async function dbDeleteAllOdooProducts(): Promise<number> {
 }
 
 // ─── Chat Rooms ───────────────────────────────────────────────────────────────
+
+export async function dbUpdateRoomMembers(roomId: string, memberIds: string[] | null): Promise<void> {
+  const val = memberIds === null ? null : JSON.stringify(memberIds);
+  if (IS_SUPABASE) {
+    await getSupabase().from("chat_rooms").update({ memberIds: val }).eq("id", roomId);
+    return;
+  }
+  getDb().prepare('UPDATE chat_rooms SET "memberIds"=? WHERE id=?').run(val, roomId);
+}
 
 export async function dbGetRooms(): Promise<(DBRoom & { lastMessage: unknown; messageCount: number })[]> {
   if (IS_SUPABASE) {

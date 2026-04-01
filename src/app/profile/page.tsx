@@ -384,10 +384,15 @@ function StaffProfileModal({ member, onClose }: { member: TeamMember; onClose: (
 
 // ─── TeamCard ──────────────────────────────────────────────────────────────────
 
-function TeamCard({ member, isMe, onView, canView }: { member: TeamMember; isMe: boolean; onView?: () => void; canView?: boolean }) {
+function TeamCard({ member, isMe, onView, canView, kpiTarget, revenue }: {
+  member: TeamMember; isMe: boolean; onView?: () => void; canView?: boolean;
+  kpiTarget?: number; revenue?: number;
+}) {
   const rcfg = ROLE_CFG[member.role] ?? ROLE_CFG.staff;
   const scfg = STATUS_CFG[member.status] ?? STATUS_CFG.off_shift;
   const RIcon = rcfg.icon;
+  const pct = (kpiTarget && kpiTarget > 0 && revenue != null) ? Math.min(Math.round(revenue / kpiTarget * 100), 999) : null;
+  const pctColor = pct == null ? "#94a3b8" : pct >= 100 ? "#C9A55A" : pct >= 80 ? "#10b981" : pct >= 60 ? "#0ea5e9" : pct >= 40 ? "#f59e0b" : "#ef4444";
   return (
     <motion.div
       initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
@@ -448,6 +453,23 @@ function TeamCard({ member, isMe, onView, canView }: { member: TeamMember; isMe:
           <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 4 }}>
             <Phone size={9} style={{ color: "var(--text-muted)" }} />
             <span style={{ fontSize: 9, color: "var(--text-muted)" }}>{member.phone}</span>
+          </div>
+        )}
+        {/* KPI target mini progress */}
+        {pct !== null && (
+          <div style={{ marginTop: 8 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 3 }}>
+              <span style={{ fontSize: 8, color: "var(--text-muted)", letterSpacing: "0.06em" }}>TARGET</span>
+              <span style={{ fontSize: 8.5, fontWeight: 700, color: pctColor }}>{pct}%</span>
+            </div>
+            <div style={{ height: 3, borderRadius: 3, background: "rgba(12,26,46,0.07)", overflow: "hidden" }}>
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: `${Math.min(pct, 100)}%` }}
+                transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+                style={{ height: "100%", borderRadius: 3, background: pctColor, boxShadow: `0 0 6px ${pctColor}80` }}
+              />
+            </div>
           </div>
         )}
       </div>
@@ -1342,6 +1364,11 @@ export default function ProfilePage() {
     reader.readAsDataURL(file);
   };
 
+  const handleRemoveAvatar = async () => {
+    await fetch("/api/profile", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: currentUser.id, ...form, avatar: null }) });
+    load();
+  };
+
   const handleSave = async () => {
     await fetch("/api/profile", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: currentUser.id, ...form, avatar: profile?.avatar }) });
     setSaved(true);
@@ -1463,12 +1490,24 @@ export default function ProfilePage() {
             <div style={{ display: "flex", alignItems: "flex-end", gap: 16, marginTop: -52 }}>
               <div style={{ position: "relative" }}>
                 <Avatar src={profile?.avatar} name={currentUser.name} size={96} status={form.status} ring />
+                {/* Change avatar button */}
                 <motion.button
                   whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.94 }}
                   onClick={() => fileRef.current?.click()}
+                  title="Đổi ảnh đại diện"
                   style={{ position: "absolute", bottom: 4, right: 4, width: 28, height: 28, borderRadius: "50%", background: "linear-gradient(135deg, #C9A55A, #d4a84b)", border: "3px solid #fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", zIndex: 3, boxShadow: "0 2px 8px rgba(201,165,90,0.4)" }}>
                   <Camera size={12} style={{ color: "#fff" }} />
                 </motion.button>
+                {/* Remove avatar button — only when avatar exists */}
+                {profile?.avatar && (
+                  <motion.button
+                    whileHover={{ scale: 1.1, background: "rgba(220,38,38,0.88)" }} whileTap={{ scale: 0.90 }}
+                    onClick={handleRemoveAvatar}
+                    title="Xóa ảnh đại diện"
+                    style={{ position: "absolute", bottom: 4, left: 4, width: 22, height: 22, borderRadius: "50%", background: "rgba(220,38,38,0.75)", border: "2px solid #fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", zIndex: 3, boxShadow: "0 2px 6px rgba(220,38,38,0.35)" }}>
+                    <X size={9} style={{ color: "#fff" }} />
+                  </motion.button>
+                )}
                 <input ref={fileRef} type="file" accept="image/*" onChange={handleAvatarChange} style={{ display: "none" }} />
               </div>
 
@@ -1735,7 +1774,22 @@ export default function ProfilePage() {
             )}
 
             {/* ── Team tab ── */}
-            {tab === "team" && (
+            {tab === "team" && (() => {
+              // Build KPI lookup: match TeamMember to store user by name, get target + sales
+              const getSalesForMember = (m: TeamMember) => {
+                const mNameL = m.name.toLowerCase();
+                const storeUser = users.find(u => {
+                  const uNameL = u.name.toLowerCase();
+                  return uNameL === mNameL || uNameL.includes(mNameL) || mNameL.includes(uNameL);
+                });
+                const target = storeUser ? (kpiIndividualTargets[storeUser.id] ?? 0) : 0;
+                const salesRow = staffSales.find(s => {
+                  const sNameL = s.advisorName.toLowerCase();
+                  return sNameL === mNameL || sNameL.includes(mNameL) || mNameL.includes(sNameL);
+                });
+                return { target, revenue: salesRow?.revenue ?? 0 };
+              };
+              return (
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 {/* Section label */}
                 <div style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "4px 12px", borderRadius: 20, border: "1px solid rgba(14,165,233,0.25)", background: "rgba(14,165,233,0.06)", width: "fit-content" }}>
@@ -1751,11 +1805,15 @@ export default function ProfilePage() {
                     Nhấn vào thẻ nhân viên để xem hồ sơ chi tiết
                   </div>
                 )}
-                {team.filter(m => m.active).map((m, i) => (
-                  <motion.div key={m.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
-                    <TeamCard member={m} isMe={m.id === currentUser.id} canView={canViewProfiles} onView={() => setViewingMember(m)} />
-                  </motion.div>
-                ))}
+                {team.filter(m => m.active).map((m, i) => {
+                  const { target, revenue } = getSalesForMember(m);
+                  return (
+                    <motion.div key={m.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
+                      <TeamCard member={m} isMe={m.id === currentUser.id} canView={canViewProfiles} onView={() => setViewingMember(m)}
+                        kpiTarget={target} revenue={revenue} />
+                    </motion.div>
+                  );
+                })}
                 {team.filter(m => !m.active).length > 0 && (
                   <>
                     <div style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "4px 12px", borderRadius: 20, border: "1px solid rgba(148,163,184,0.25)", background: "rgba(148,163,184,0.06)", width: "fit-content", marginTop: 8 }}>
@@ -1768,7 +1826,8 @@ export default function ProfilePage() {
                   </>
                 )}
               </div>
-            )}
+              );
+            })()}
 
             {/* ── Leaderboard tab ── */}
             {tab === "leaderboard" && (() => {

@@ -303,7 +303,29 @@ export function playSplashMusic(): () => void {
   const _ac = getCtx();
   if (!_ac) return () => {};
   const ac: AudioContext = _ac;
-  const t = ac.currentTime;
+
+  // Mutable stop reference so the returned closure can cancel even before async starts
+  let masterNode: GainNode | null = null;
+  let stopped = false;
+
+  const stopFn = () => {
+    stopped = true;
+    if (!masterNode) return;
+    try {
+      const now = ac.currentTime;
+      masterNode.gain.cancelScheduledValues(now);
+      masterNode.gain.setValueAtTime(masterNode.gain.value, now);
+      masterNode.gain.linearRampToValueAtTime(0, now + 0.45);
+    } catch {/* ignore */}
+  };
+
+  // Resume AudioContext (may be suspended on first load) then schedule music
+  const startMusic = async () => {
+    if (ac.state === "suspended") {
+      try { await ac.resume(); } catch {/* ignore */}
+    }
+    if (stopped) return;
+    const t = ac.currentTime;
 
   // Master bus with envelope for fade-in / fade-out
   const master = ac.createGain();
@@ -425,13 +447,9 @@ export function playSplashMusic(): () => void {
     allNodes.push(g, o);
   });
 
-  // Returns a fade-out stop function
-  return function stopSplashMusic() {
-    try {
-      const now = ac.currentTime;
-      master.gain.cancelScheduledValues(now);
-      master.gain.setValueAtTime(master.gain.value, now);
-      master.gain.linearRampToValueAtTime(0, now + 0.45);
-    } catch {/* ignore */}
-  };
+    masterNode = master;
+  }; // end startMusic
+
+  startMusic();
+  return stopFn;
 }
