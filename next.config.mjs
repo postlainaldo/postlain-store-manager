@@ -20,10 +20,13 @@ const withPWA = withPWAInit({
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  output: "standalone",
   env: {
     NEXT_PUBLIC_APP_VERSION: version,
     NEXT_PUBLIC_BUILD_DATE: new Date().toISOString(),
   },
+  // Prevent better-sqlite3 from being bundled by webpack (it's a native module)
+  serverExternalPackages: ["better-sqlite3"],
 };
 
 export default withPWA(nextConfig);

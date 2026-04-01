@@ -13,19 +13,20 @@ import fs from "fs";
 
 // ─── Singleton ────────────────────────────────────────────────────────────────
 
-// Always use the persistent data directory next to the project root.
-// On Vercel the working directory is /var/task (read-only) but /tmp is
-// writable — we prefer /tmp over losing all data silently. However the
-// real fix is to mount a persistent volume or use a cloud DB. For now we
-// keep a consistent path so data survives hot-reloads and local restarts.
+// DB path priority:
+//  1. DATA_DIR env var  — set this in Coolify to a mounted volume path (e.g. /data)
+//  2. Vercel            — /tmp (ephemeral, but writable; use Supabase for persistence)
+//  3. Everything else   — ./data/postlain.db next to project root
 const isVercel = process.env.VERCEL === "1";
-const DB_PATH = isVercel
-  ? "/tmp/postlain.db"
-  : path.join(process.cwd(), "data", "postlain.db");
+const dataDir = process.env.DATA_DIR
+  ? process.env.DATA_DIR
+  : isVercel
+    ? "/tmp"
+    : path.join(process.cwd(), "data");
+const DB_PATH = path.join(dataDir, "postlain.db");
 
-// Ensure data directory exists
-if (!isVercel) {
-  const dataDir = path.dirname(DB_PATH);
+// Ensure data directory exists (skip for Vercel /tmp which always exists)
+if (!isVercel || process.env.DATA_DIR) {
   if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
 }
 
