@@ -1,15 +1,26 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard, Focus, Box, MessageSquare, UserCircle,
   ShoppingBag, ClipboardList, CalendarDays,
 } from "lucide-react";
 import { useStore } from "@/store/useStore";
-import { useSFX } from "@/hooks/useSFX";
+import { useSFX, type SFXName } from "@/hooks/useSFX";
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+
+// Per-nav-item sound assignments
+const NAV_SOUNDS: Record<string, SFXName> = {
+  "overview":     "navigate",
+  "visual-board": "scan",
+  "inventory":    "softTap",
+  "sales":        "tap",
+  "report":       "loginSubmit",
+  "chat":         "notify",
+  "schedule":     "modalOpen",
+  "profile":      "save",
+};
 
 const NAV_ITEMS = [
   { id: "overview",     label: "Tổng Quan", href: "/",             icon: LayoutDashboard, exact: true  },
@@ -32,7 +43,7 @@ function arcPosition(i: number, total: number): { x: number; y: number } {
   const step     = total <= 1 ? 0 : span / (total - 1);
   const deg      = startDeg + step * i;
   const rad      = (deg * Math.PI) / 180;
-  const r        = 96; // radius in px — larger so labels don't overlap
+  const r        = 132; // radius in px — wider spread so labels don't overlap
   return {
     x: Math.cos(rad) * r,
     y: Math.sin(rad) * r,
@@ -74,8 +85,8 @@ export default function BottomNav() {
   // Items to show in arc: all except active
   const arcItems = NAV_ITEMS.filter(it => it.id !== activeItem.id);
 
-  function handleNavigate(href: string) {
-    sfx("navigate");
+  function handleNavigate(itemId: string, href: string) {
+    sfx(NAV_SOUNDS[itemId] ?? "navigate");
     setOpen(false);
     router.push(href);
   }
@@ -151,8 +162,10 @@ export default function BottomNav() {
                   gap: 5,
                 }}
               >
-                <button
-                  onClick={() => handleNavigate(item.href)}
+                <motion.button
+                  onClick={() => handleNavigate(item.id, item.href)}
+                  whileTap={{ scale: 0.82 }}
+                  transition={{ type: "spring", damping: 16, stiffness: 400 }}
                   style={{
                     width: 54, height: 54,
                     borderRadius: "50%",
@@ -196,7 +209,7 @@ export default function BottomNav() {
                       }}
                     />
                   )}
-                </button>
+                </motion.button>
                 {/* Label below button — no overlap since it's outside the circle */}
                 <span style={{
                   fontSize: 9,

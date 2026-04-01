@@ -1270,23 +1270,6 @@ export default function ProfilePage() {
       setTeam(Array.isArray(t) ? t : []);
     }
 
-    // Fetch personal sales stats from pos_orders salesperson field
-    try {
-      const curMonth = new Date().toISOString().slice(0, 7);
-      const salesRes = await fetch(`/api/odoo/advisor-sales?month=${curMonth}`).then(r => r.json()).catch(() => ({}));
-      const rows: StaffSalesRow[] = Array.isArray(salesRes?.rows) ? salesRes.rows : [];
-      setStaffSales(rows);
-      const myName = (p.name ?? currentUser.name).toLowerCase();
-      const myRow = rows.find(r => r.advisorName.toLowerCase().includes(myName) || myName.includes(r.advisorName.toLowerCase()));
-      if (myRow) {
-        const staffCount = rows.length || 1;
-        const pos = rows.findIndex(r => r.advisorId === myRow.advisorId) + 1;
-        const pct = pos / staffCount;
-        const rank = pct <= 0.2 ? "Xuất sắc" : pct <= 0.4 ? "Tốt" : pct <= 0.6 ? "Trung bình" : pct <= 0.8 ? "Yếu" : "Kém";
-        const ipt = myRow.orders > 0 ? myRow.qty / myRow.orders : 0;
-        setOdooStats({ sales: myRow.revenue, ipt, rank });
-      }
-    } catch { /* ignore */ }
   };
 
   useEffect(() => { load(); }, [currentUser]);
@@ -1320,14 +1303,31 @@ export default function ProfilePage() {
     return () => clearInterval(interval);
   }, [currentUser?.id]);
 
+  // Fetch leaderboard + personal stats whenever lbMonth changes
   useEffect(() => {
+    if (!currentUser) return;
     setLbLoading(true);
     fetch(`/api/odoo/advisor-sales?month=${lbMonth}`)
       .then(r => r.json())
-      .then(d => { if (Array.isArray(d?.rows)) setStaffSales(d.rows); })
+      .then(d => {
+        const rows: StaffSalesRow[] = Array.isArray(d?.rows) ? d.rows : [];
+        setStaffSales(rows);
+        const myName = currentUser.name.toLowerCase();
+        const myRow = rows.find(r => r.advisorName.toLowerCase().includes(myName) || myName.includes(r.advisorName.toLowerCase()));
+        if (myRow) {
+          const staffCount = rows.length || 1;
+          const pos = rows.findIndex(r => r.advisorId === myRow.advisorId) + 1;
+          const pct = pos / staffCount;
+          const rank = pct <= 0.2 ? "Xuất sắc" : pct <= 0.4 ? "Tốt" : pct <= 0.6 ? "Trung bình" : pct <= 0.8 ? "Yếu" : "Kém";
+          const ipt = myRow.orders > 0 ? myRow.qty / myRow.orders : 0;
+          setOdooStats({ sales: myRow.revenue, ipt, rank });
+        } else {
+          setOdooStats(null);
+        }
+      })
       .catch(() => {})
       .finally(() => setLbLoading(false));
-  }, [lbMonth]);
+  }, [lbMonth, currentUser?.id]);
 
   if (!currentUser) { router.replace("/login"); return null; }
 
@@ -1510,30 +1510,52 @@ export default function ProfilePage() {
             </div>
 
             {/* Stats row */}
-            <div style={{ display: "flex", gap: 8, marginTop: 18 }}>
-              {[
-                { label: "Thành viên", value: activeMembers, icon: Users,    color: "#10b981", fmt: (v: number | string) => String(v) },
+            {(() => {
+              const myIndivTarget = (() => {
+                const matched = users.find(u => {
+                  const uName = u.name.toLowerCase();
+                  const cName = currentUser.name.toLowerCase();
+                  return uName === cName || uName.includes(cName) || cName.includes(uName);
+                });
+                return matched ? (kpiIndividualTargets[matched.id] ?? 0) : 0;
+              })();
+              const myTargetPct = (myIndivTarget > 0 && odooStats?.sales != null)
+                ? Math.round(odooStats.sales / myIndivTarget * 100)
+                : null;
+              const targetColor = myTargetPct == null ? "#0ea5e9"
+                : myTargetPct >= 100 ? "#C9A55A"
+                : myTargetPct >= 80  ? "#10b981"
+                : myTargetPct >= 60  ? "#0ea5e9"
+                : myTargetPct >= 40  ? "#f59e0b"
+                : "#ef4444";
+              const stats = [
+                { label: "Thành viên", value: activeMembers as number | null, icon: Users,    color: "#10b981", fmt: (v: number | string) => String(v) },
                 { label: "Doanh số",   value: odooStats?.sales ?? null, icon: Zap,     color: "#C9A55A", fmt: (v: number | string) => typeof v === "number" ? (v >= 1e6 ? `${(v/1e6).toFixed(1)}M` : `${Math.round(v/1e3)}K`) : "—" },
-                { label: "IPT",        value: odooStats?.ipt ?? null,   icon: Activity, color: "#0ea5e9", fmt: (v: number | string) => typeof v === "number" ? (v >= 1000 ? `${(v/1000).toFixed(0)}K` : String(Math.round(v as number))) : "—" },
+                { label: "Target",     value: myTargetPct as number | null,   icon: TrendingUp, color: targetColor, fmt: (v: number | string) => `${v}%` },
                 { label: "Xếp hạng",  value: odooStats?.rank ?? null,  icon: Award,   color: "#7c3aed", fmt: (v: number | string) => v == null ? "—" : String(v) },
-              ].map((s, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.1 + i * 0.06, ease: [0.16, 1, 0.3, 1] }}
-                  whileHover={{ y: -2 }}
-                  style={{
-                    flex: 1, padding: "10px 6px", borderRadius: 12, textAlign: "center",
-                    background: `${s.color}07`, border: `1px solid ${s.color}20`,
-                    display: "flex", flexDirection: "column", alignItems: "center", gap: 3,
-                  }}
-                >
-                  <s.icon size={12} style={{ color: s.color }} />
-                  <span style={{ fontSize: s.value == null ? 10 : 14, fontWeight: 800, color: "var(--text-primary)", lineHeight: 1 }}>{s.value == null ? "—" : s.fmt(s.value)}</span>
-                  <span style={{ fontSize: 7.5, color: "var(--text-muted)", letterSpacing: "0.06em", textTransform: "uppercase" }}>{s.label}</span>
-                </motion.div>
-              ))}
-            </div>
+              ];
+              return (
+                <div style={{ display: "flex", gap: 8, marginTop: 18 }}>
+                  {stats.map((s, i) => (
+                    <motion.div
+                      key={i}
+                      initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.1 + i * 0.06, ease: [0.16, 1, 0.3, 1] }}
+                      whileHover={{ y: -2 }}
+                      style={{
+                        flex: 1, padding: "10px 6px", borderRadius: 12, textAlign: "center",
+                        background: `${s.color}07`, border: `1px solid ${s.color}20`,
+                        display: "flex", flexDirection: "column", alignItems: "center", gap: 3,
+                      }}
+                    >
+                      <s.icon size={12} style={{ color: s.color }} />
+                      <span style={{ fontSize: s.value == null ? 10 : 14, fontWeight: 800, color: "var(--text-primary)", lineHeight: 1 }}>{s.value == null ? "—" : s.fmt(s.value)}</span>
+                      <span style={{ fontSize: 7.5, color: "var(--text-muted)", letterSpacing: "0.06em", textTransform: "uppercase" }}>{s.label}</span>
+                    </motion.div>
+                  ))}
+                </div>
+              );
+            })()}
           </div>
         </motion.div>
 
