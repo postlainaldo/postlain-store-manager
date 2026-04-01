@@ -7,6 +7,7 @@ import AuthGuard from "@/components/AuthGuard";
 import GlobalSearch from "@/components/GlobalSearch";
 import NotificationBanner from "@/components/NotificationBanner";
 import AudioUnlocker from "@/components/AudioUnlocker";
+import PushPrompt from "@/components/PushPrompt";
 
 const NO_SHELL_PATHS = ["/login", "/setup", "/install"];
 
@@ -25,12 +26,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <AuthGuard>
       <AudioUnlocker />
+      <PushPrompt />
       {/* ── Desktop: TopNav + scrollable content ──────────────────── */}
       <div className="hidden md:flex flex-col bg-bg-base transition-colors duration-500" style={{ height: "100dvh", overflow: "hidden" }}>
         <TopNav />
         {isFullHeight ? (
-          /* Full-height pages (chat, visual-board): flex fill, no scroll on main */
-          <div className="flex-1 page-bg-aurora" style={{ minHeight: 0, overflow: "hidden", display: "flex", flexDirection: "column", padding: "12px 24px", position: "relative" }}>
+          /* Full-height pages (chat, visual-board): flex fill, scroll managed inside */
+          <div className="flex-1 page-bg-aurora" style={{ minHeight: 0, overflow: "hidden", display: "flex", flexDirection: "column", padding: "12px 24px 16px", position: "relative" }}>
             <div className="page-bg-aurora-mid" />
             <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", position: "relative", zIndex: 1 }}>
               {children}
@@ -69,7 +71,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
         {/* Content */}
         {isFullHeight ? (
-          /* Full-height pages (chat, visual-board): fill space between top bar and bottom nav */
+          /* Full-height pages (chat, visual-board): fill space, scroll managed inside each page */
           <div style={{
             flex: 1,
             minHeight: 0,

@@ -165,9 +165,13 @@ function MorningTab() {
   const load = useCallback(async (d: string) => {
     setLoading(true); setError(""); setData(null);
     try {
-      const r = await fetch(`/api/daily-report?type=morning&date=${d}`).then(x => x.json());
-      if (!r.ok) throw new Error(r.error);
-      setData(r.report);
+      const res = await fetch(`/api/daily-report?type=morning&date=${d}`);
+      const text = await res.text();
+      let r: Record<string, unknown>;
+      try { r = JSON.parse(text); }
+      catch { throw new Error(`Lỗi server (${res.status}): ${text.slice(0, 120)}`); }
+      if (!r.ok) throw new Error((r.error as string) ?? "Lỗi không xác định");
+      setData(r.report as MorningReport);
     } catch (e) { setError(String(e)); }
     finally { setLoading(false); }
   }, []);
@@ -295,9 +299,13 @@ function EveningTab() {
   const load = useCallback(async (d: string) => {
     setLoading(true); setError(""); setData(null);
     try {
-      const r = await fetch(`/api/daily-report?type=evening&date=${d}`).then(x => x.json());
-      if (!r.ok) throw new Error(r.error);
-      setData(r.report);
+      const res = await fetch(`/api/daily-report?type=evening&date=${d}`);
+      const text = await res.text();
+      let r: Record<string, unknown>;
+      try { r = JSON.parse(text); }
+      catch { throw new Error(`Lỗi server (${res.status}): ${text.slice(0, 120)}`); }
+      if (!r.ok) throw new Error((r.error as string) ?? "Lỗi không xác định");
+      setData(r.report as EveningReport);
     } catch (e) { setError(String(e)); }
     finally { setLoading(false); }
   }, []);
@@ -399,9 +407,13 @@ function OverviewTab() {
   const load = useCallback(async (f: string, t: string) => {
     setLoading(true); setError(""); setData(null);
     try {
-      const r = await fetch(`/api/daily-report?type=overview&from=${f}&to=${t}`).then(x => x.json());
-      if (!r.ok) throw new Error(r.error);
-      setData(r);
+      const res = await fetch(`/api/daily-report?type=overview&from=${f}&to=${t}`);
+      const text = await res.text();
+      let r: Record<string, unknown>;
+      try { r = JSON.parse(text); }
+      catch { throw new Error(`Lỗi server (${res.status}): ${text.slice(0, 120)}`); }
+      if (!r.ok) throw new Error((r.error as string) ?? "Lỗi không xác định");
+      setData(r as unknown as OverviewReport);
     } catch (e) { setError(String(e)); }
     finally { setLoading(false); }
   }, []);
