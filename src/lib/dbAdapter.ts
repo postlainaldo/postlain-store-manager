@@ -1801,12 +1801,14 @@ export async function dbUpsertDailyReport(r: DBDailyReport): Promise<void> {
 export type DBShiftTemplate = {
   id: string; name: string; startTime: string; endTime: string;
   color: string; maxStaff: number; createdAt: string;
+  staffType?: string | null;
 };
 
 export type DBShiftSlot = {
   id: string; templateId: string | null; date: string;
   name: string; startTime: string; endTime: string;
   color: string; maxStaff: number; note: string | null; createdAt: string; updatedAt: string;
+  staffType?: string | null;
 };
 
 export type DBShiftRegistration = {
@@ -1819,8 +1821,10 @@ async function ensureShiftTables() {
   const db = getDb();
   db.prepare(`CREATE TABLE IF NOT EXISTS shift_templates (id TEXT PRIMARY KEY, name TEXT NOT NULL, "startTime" TEXT NOT NULL, "endTime" TEXT NOT NULL, color TEXT NOT NULL DEFAULT '#0ea5e9', "maxStaff" INTEGER NOT NULL DEFAULT 3, "createdAt" TEXT NOT NULL)`).run();
   db.prepare(`CREATE TABLE IF NOT EXISTS shift_slots (id TEXT PRIMARY KEY, "templateId" TEXT, date TEXT NOT NULL, name TEXT NOT NULL, "startTime" TEXT NOT NULL, "endTime" TEXT NOT NULL, color TEXT NOT NULL DEFAULT '#0ea5e9', "maxStaff" INTEGER NOT NULL DEFAULT 3, note TEXT, "createdAt" TEXT NOT NULL, "updatedAt" TEXT NOT NULL DEFAULT '')`).run();
-  // Migration: add updatedAt if not exists (for existing DBs)
-  try { db.prepare(`ALTER TABLE shift_slots ADD COLUMN "updatedAt" TEXT NOT NULL DEFAULT ''`).run(); } catch { /* column already exists */ }
+  // Migrations: add columns if not exists (for existing DBs)
+  try { db.prepare(`ALTER TABLE shift_slots ADD COLUMN "updatedAt" TEXT NOT NULL DEFAULT ''`).run(); } catch { /* already exists */ }
+  try { db.prepare(`ALTER TABLE shift_slots ADD COLUMN "staffType" TEXT NOT NULL DEFAULT 'ALL'`).run(); } catch { /* already exists */ }
+  try { db.prepare(`ALTER TABLE shift_templates ADD COLUMN "staffType" TEXT NOT NULL DEFAULT 'ALL'`).run(); } catch { /* already exists */ }
   db.prepare(`CREATE INDEX IF NOT EXISTS idx_shift_slots_date ON shift_slots(date)`).run();
   db.prepare(`CREATE TABLE IF NOT EXISTS shift_registrations (id TEXT PRIMARY KEY, "slotId" TEXT NOT NULL REFERENCES shift_slots(id) ON DELETE CASCADE, "userId" TEXT NOT NULL, "userName" TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'pending', note TEXT, "createdAt" TEXT NOT NULL, "updatedAt" TEXT NOT NULL, UNIQUE("slotId","userId"))`).run();
 }
@@ -1834,7 +1838,7 @@ export async function dbGetShiftTemplates(): Promise<DBShiftTemplate[]> {
 export async function dbUpsertShiftTemplate(t: DBShiftTemplate): Promise<void> {
   if (IS_SUPABASE) { await getSupabase().from("shift_templates").upsert(t, { onConflict: "id" }); return; }
   await ensureShiftTables();
-  getDb().prepare(`INSERT INTO shift_templates(id,name,"startTime","endTime",color,"maxStaff","createdAt") VALUES(@id,@name,@startTime,@endTime,@color,@maxStaff,@createdAt) ON CONFLICT(id) DO UPDATE SET name=excluded.name,"startTime"=excluded."startTime","endTime"=excluded."endTime",color=excluded.color,"maxStaff"=excluded."maxStaff"`).run(t);
+  getDb().prepare(`INSERT INTO shift_templates(id,name,"startTime","endTime",color,"maxStaff","createdAt","staffType") VALUES(@id,@name,@startTime,@endTime,@color,@maxStaff,@createdAt,@staffType) ON CONFLICT(id) DO UPDATE SET name=excluded.name,"startTime"=excluded."startTime","endTime"=excluded."endTime",color=excluded.color,"maxStaff"=excluded."maxStaff","staffType"=excluded."staffType"`).run({ ...t, staffType: t.staffType ?? "ALL" });
 }
 
 export async function dbDeleteShiftTemplate(id: string): Promise<void> {
@@ -1852,7 +1856,7 @@ export async function dbGetShiftSlots(dateFrom: string, dateTo: string): Promise
 export async function dbUpsertShiftSlot(s: DBShiftSlot): Promise<void> {
   if (IS_SUPABASE) { await getSupabase().from("shift_slots").upsert(s, { onConflict: "id" }); return; }
   await ensureShiftTables();
-  getDb().prepare(`INSERT INTO shift_slots(id,"templateId",date,name,"startTime","endTime",color,"maxStaff",note,"createdAt","updatedAt") VALUES(@id,@templateId,@date,@name,@startTime,@endTime,@color,@maxStaff,@note,@createdAt,@updatedAt) ON CONFLICT(id) DO UPDATE SET "templateId"=excluded."templateId",date=excluded.date,name=excluded.name,"startTime"=excluded."startTime","endTime"=excluded."endTime",color=excluded.color,"maxStaff"=excluded."maxStaff",note=excluded.note,"updatedAt"=excluded."updatedAt"`).run(s);
+  getDb().prepare(`INSERT INTO shift_slots(id,"templateId",date,name,"startTime","endTime",color,"maxStaff",note,"createdAt","updatedAt","staffType") VALUES(@id,@templateId,@date,@name,@startTime,@endTime,@color,@maxStaff,@note,@createdAt,@updatedAt,@staffType) ON CONFLICT(id) DO UPDATE SET "templateId"=excluded."templateId",date=excluded.date,name=excluded.name,"startTime"=excluded."startTime","endTime"=excluded."endTime",color=excluded.color,"maxStaff"=excluded."maxStaff",note=excluded.note,"updatedAt"=excluded."updatedAt","staffType"=excluded."staffType"`).run({ ...s, staffType: s.staffType ?? "ALL" });
 }
 
 export async function dbDeleteShiftSlot(id: string): Promise<void> {
