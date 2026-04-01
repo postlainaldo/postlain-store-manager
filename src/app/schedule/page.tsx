@@ -12,15 +12,19 @@ import { playSound } from "@/hooks/useSFX";
 
 
 // ─── Types ────────────────────────────────────────────────────────────────────
+type StaffType = "FT" | "PT" | "ALL";
+
 type ShiftTemplate = {
   id: string; name: string; startTime: string; endTime: string;
   color: string; maxStaff: number; createdAt: string;
+  staffType?: StaffType;
 };
 type ShiftSlot = {
   id: string; templateId: string | null; date: string;
   name: string; startTime: string; endTime: string;
   color: string; maxStaff: number; note: string | null;
   createdAt: string; updatedAt: string;
+  staffType?: StaffType;
 };
 type ShiftRegistration = {
   id: string; slotId: string; userId: string; userName: string;
@@ -61,6 +65,36 @@ function getWeekDates(weekOffset: number): Date[] {
 }
 
 function fmt(t: string) { return t.slice(0, 5); }
+
+/**
+ * Registration window rule:
+ *   Thu–Sun  (dow 4,5,6,0) → staff can register for NEXT week's shifts
+ *   Mon–Wed  (dow 1,2,3)   → registration closed; view-only
+ *
+ * For admins this gate never applies (admin can always manage slots).
+ * `slotDate` is the date string of the shift slot being checked.
+ */
+function canStaffRegister(slotDate: string): boolean {
+  const today = new Date();
+  const todayDow = today.getDay(); // 0=Sun … 6=Sat
+  const openWindow = todayDow === 0 || todayDow >= 4; // Sun, Thu, Fri, Sat
+
+  if (!openWindow) return false; // Mon–Wed: lock
+
+  // Only allow registering for *next* week (Mon–Sun starting next Monday)
+  const todayStr = toDateStr(today);
+  const nextMonday = new Date(today);
+  const daysToNextMon = ((8 - todayDow) % 7) || 7;
+  nextMonday.setDate(today.getDate() + daysToNextMon);
+  nextMonday.setHours(0,0,0,0);
+  const nextSunday = new Date(nextMonday);
+  nextSunday.setDate(nextMonday.getDate() + 6);
+
+  const nms = toDateStr(nextMonday);
+  const nss = toDateStr(nextSunday);
+  return slotDate >= nms && slotDate <= nss;
+}
+
 function statusColor(s: string) {
   return s === "approved" ? "#10b981" : s === "rejected" ? "#ef4444" : "#f59e0b";
 }
@@ -78,17 +112,71 @@ function roleLabel(r: string) {
 
 const PRESET_COLORS = ["#0ea5e9","#10b981","#f59e0b","#8b5cf6","#ef4444","#ec4899","#06b6d4","#84cc16"];
 
+const STAFF_TYPE_CFG: Record<StaffType, { label: string; bg: string; color: string; border: string }> = {
+  FT:  { label: "FULL TIME", bg: "rgba(14,165,233,0.10)", color: "#0284c7", border: "rgba(14,165,233,0.30)" },
+  PT:  { label: "PART TIME", bg: "rgba(124,58,237,0.10)", color: "#7c3aed", border: "rgba(124,58,237,0.30)" },
+  ALL: { label: "TẤT CẢ",    bg: "rgba(16,185,129,0.08)", color: "#059669", border: "rgba(16,185,129,0.25)" },
+};
+
+function StaffTypeBadge({ type, size = "sm" }: { type?: StaffType; size?: "sm" | "xs" }) {
+  if (!type || type === "ALL") return null;
+  const cfg = STAFF_TYPE_CFG[type];
+  return (
+    <span style={{
+      display: "inline-flex", alignItems: "center",
+      padding: size === "xs" ? "1px 5px" : "2px 7px",
+      borderRadius: 20,
+      background: cfg.bg,
+      border: `1px solid ${cfg.border}`,
+      fontSize: size === "xs" ? 7 : 8,
+      fontWeight: 800,
+      color: cfg.color,
+      letterSpacing: "0.06em",
+      flexShrink: 0,
+    }}>
+      {type}
+    </span>
+  );
+}
+
+function StaffTypeSelect({ value, onChange }: { value: StaffType; onChange: (v: StaffType) => void }) {
+  return (
+    <div style={{ display: "flex", gap: 5 }}>
+      {(["ALL", "FT", "PT"] as StaffType[]).map(t => {
+        const cfg = STAFF_TYPE_CFG[t];
+        const active = value === t;
+        return (
+          <button key={t} onClick={() => onChange(t)}
+            style={{
+              flex: 1, height: 30, borderRadius: 8,
+              border: `1.5px solid ${active ? cfg.border : "#e2e8f0"}`,
+              background: active ? cfg.bg : "#fff",
+              cursor: "pointer", fontFamily: "inherit",
+              fontSize: 9, fontWeight: 800,
+              color: active ? cfg.color : "#94a3b8",
+              letterSpacing: "0.06em",
+              transition: "all 0.12s",
+            }}>
+            {t === "ALL" ? "Tất cả" : t}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 // ─── Template Form ────────────────────────────────────────────────────────────
 function TemplateForm({ initial, onSave, onClose }: {
   initial?: ShiftTemplate;
-  onSave: (t: Omit<ShiftTemplate, "id"|"createdAt">) => void;
+  onSave: (t: Omit<ShiftTemplate, "id"|"createdAt"> & { staffType: StaffType }) => void;
   onClose: () => void;
 }) {
-  const [name, setName]   = useState(initial?.name ?? "");
-  const [start, setStart] = useState(initial?.startTime ?? "08:00");
-  const [end, setEnd]     = useState(initial?.endTime ?? "14:00");
-  const [color, setColor] = useState(initial?.color ?? "#0ea5e9");
-  const [max, setMax]     = useState(initial?.maxStaff ?? 3);
+  const [name,      setName]      = useState(initial?.name ?? "");
+  const [start,     setStart]     = useState(initial?.startTime ?? "08:00");
+  const [end,       setEnd]       = useState(initial?.endTime ?? "14:00");
+  const [color,     setColor]     = useState(initial?.color ?? "#0ea5e9");
+  const [max,       setMax]       = useState(initial?.maxStaff ?? 3);
+  const [staffType, setStaffType] = useState<StaffType>(initial?.staffType ?? "ALL");
 
   return (
     <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
@@ -108,6 +196,10 @@ function TemplateForm({ initial, onSave, onClose }: {
           <input type="time" value={end} onChange={e=>setEnd(e.target.value)}
             className="input-glow" style={{ height:36, padding:"0 10px", fontSize:12, width:"100%" }} />
         </div>
+      </div>
+      <div style={{ display:"flex", flexDirection:"column", gap:4 }}>
+        <label style={{ fontSize:9, fontWeight:700, color:"#64748b", letterSpacing:"0.1em" }}>LOẠI NHÂN VIÊN</label>
+        <StaffTypeSelect value={staffType} onChange={setStaffType} />
       </div>
       <div style={{ display:"flex", gap:8, alignItems:"flex-end" }}>
         <div style={{ flex:1, display:"flex", flexDirection:"column", gap:4 }}>
@@ -136,7 +228,7 @@ function TemplateForm({ initial, onSave, onClose }: {
           Huỷ
         </button>
         <button
-          onClick={()=>{ if(name.trim()) { playSound("save"); onSave({name:name.trim(),startTime:start,endTime:end,color,maxStaff:max}); } }}
+          onClick={()=>{ if(name.trim()) { playSound("save"); onSave({name:name.trim(),startTime:start,endTime:end,color,maxStaff:max,staffType}); } }}
           disabled={!name.trim()}
           className="btn-primary" style={{ flex:2, height:36, fontFamily:"inherit", fontSize:11, opacity:name.trim()?1:0.5 }}>
           Lưu ca
@@ -147,12 +239,13 @@ function TemplateForm({ initial, onSave, onClose }: {
 }
 
 // ─── Slot Card ────────────────────────────────────────────────────────────────
-function SlotCard({ slot, regs, isAdmin, currentUserId, allStaff, onRegister, onCancel, onApprove, onReject, onAssign, onUnassign, onDelete }: {
+function SlotCard({ slot, regs, isAdmin, currentUserId, allStaff, canRegister, onRegister, onCancel, onApprove, onReject, onAssign, onUnassign, onDelete }: {
   slot: ShiftSlot;
   regs: ShiftRegistration[];
   isAdmin: boolean;
   currentUserId: string;
   allStaff: AppUser[];
+  canRegister: boolean;
   onRegister: (slotId: string) => void;
   onCancel: (regId: string) => void;
   onApprove: (reg: ShiftRegistration) => void;
@@ -191,8 +284,11 @@ function SlotCard({ slot, regs, isAdmin, currentUserId, allStaff, onRegister, on
 
       {/* Header */}
       <div style={{ padding:"8px 10px 6px", display:"flex", alignItems:"flex-start", justifyContent:"space-between", gap:4 }}>
-        <div>
-          <p style={{ fontSize:12, fontWeight:700, color:"#0c1a2e" }}>{slot.name}</p>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display:"flex", alignItems:"center", gap:5, flexWrap:"wrap" }}>
+            <p style={{ fontSize:12, fontWeight:700, color:"#0c1a2e" }}>{slot.name}</p>
+            <StaffTypeBadge type={slot.staffType} size="xs" />
+          </div>
           <p style={{ fontSize:10, color:"#64748b", marginTop:1 }}>
             {fmt(slot.startTime)}–{fmt(slot.endTime)} · {approved.length}/{slot.maxStaff}
           </p>
@@ -286,24 +382,32 @@ function SlotCard({ slot, regs, isAdmin, currentUserId, allStaff, onRegister, on
 
           {/* My status */}
           {!myReg ? (
-            <button onClick={() => { if (!full) { playSound("save"); onRegister(slot.id); } }} disabled={full}
-              style={{ width:"100%", height:30, borderRadius:8, border:"none", background:full?"#f1f5f9":`linear-gradient(135deg,${slot.color},${slot.color}cc)`, cursor:full?"default":"pointer", fontSize:10, fontWeight:700, color:full?"#94a3b8":"#fff", fontFamily:"inherit" }}>
-              {full ? "Đầy ca" : "Đăng ký ca này"}
-            </button>
+            canRegister ? (
+              <button onClick={() => { if (!full) { playSound("save"); onRegister(slot.id); } }} disabled={full}
+                style={{ width:"100%", height:30, borderRadius:8, border:"none", background:full?"#f1f5f9":`linear-gradient(135deg,${slot.color},${slot.color}cc)`, cursor:full?"default":"pointer", fontSize:10, fontWeight:700, color:full?"#94a3b8":"#fff", fontFamily:"inherit" }}>
+                {full ? "Đầy ca" : "Đăng ký ca này"}
+              </button>
+            ) : (
+              <div style={{ width:"100%", height:30, borderRadius:8, background:"#f8fafc", border:"1px solid #e2e8f0", display:"flex", alignItems:"center", justifyContent:"center", gap:5 }}>
+                <span style={{ fontSize:9, color:"#94a3b8", fontWeight:600 }}>
+                  {full ? "Đầy ca" : "Đăng ký mở T5–CN"}
+                </span>
+              </div>
+            )
           ) : myReg.status === "approved" ? (
             <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
               <span style={{ fontSize:10, color:"#10b981", fontWeight:700 }}>✓ Đã được xếp vào ca</span>
-              <button onClick={() => onCancel(myReg.id)} style={{ fontSize:9, color:"#94a3b8", background:"none", border:"none", cursor:"pointer" }}>Huỷ</button>
+              {canRegister && <button onClick={() => onCancel(myReg.id)} style={{ fontSize:9, color:"#94a3b8", background:"none", border:"none", cursor:"pointer" }}>Huỷ</button>}
             </div>
           ) : myReg.status === "pending" ? (
             <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
               <span style={{ fontSize:10, color:"#f59e0b", fontWeight:600 }}>⏳ Chờ xếp lịch</span>
-              <button onClick={() => onCancel(myReg.id)} style={{ fontSize:9, color:"#94a3b8", background:"none", border:"none", cursor:"pointer" }}>Huỷ</button>
+              {canRegister && <button onClick={() => onCancel(myReg.id)} style={{ fontSize:9, color:"#94a3b8", background:"none", border:"none", cursor:"pointer" }}>Huỷ</button>}
             </div>
           ) : (
             <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
               <span style={{ fontSize:10, color:"#ef4444", fontWeight:600 }}>✗ Không được xếp vào ca này</span>
-              <button onClick={() => onRegister(slot.id)} style={{ fontSize:9, color:"#0ea5e9", background:"none", border:"none", cursor:"pointer" }}>Đăng ký lại</button>
+              {canRegister && <button onClick={() => onRegister(slot.id)} style={{ fontSize:9, color:"#0ea5e9", background:"none", border:"none", cursor:"pointer" }}>Đăng ký lại</button>}
             </div>
           )}
         </div>
@@ -315,17 +419,18 @@ function SlotCard({ slot, regs, isAdmin, currentUserId, allStaff, onRegister, on
 // ─── Add Slot Modal ───────────────────────────────────────────────────────────
 function AddSlotModal({ templates, date, onSave, onClose }: {
   templates: ShiftTemplate[]; date: string;
-  onSave: (slot: Omit<ShiftSlot,"id"|"createdAt"|"updatedAt">) => void;
+  onSave: (slot: Omit<ShiftSlot,"id"|"createdAt"|"updatedAt"> & { staffType: StaffType }) => void;
   onClose: () => void;
 }) {
   const [mode, setMode] = useState<"template"|"custom">(templates.length ? "template" : "custom");
   const [selectedTmpl, setSelectedTmpl] = useState<ShiftTemplate | null>(templates[0] ?? null);
-  const [name, setName]   = useState("");
-  const [start, setStart] = useState("08:00");
-  const [end, setEnd]     = useState("14:00");
-  const [color, setColor] = useState("#0ea5e9");
-  const [max, setMax]     = useState(3);
-  const [note, setNote]   = useState("");
+  const [name,      setName]      = useState("");
+  const [start,     setStart]     = useState("08:00");
+  const [end,       setEnd]       = useState("14:00");
+  const [color,     setColor]     = useState("#0ea5e9");
+  const [max,       setMax]       = useState(3);
+  const [note,      setNote]      = useState("");
+  const [staffType, setStaffType] = useState<StaffType>("ALL");
 
   const dateObj = new Date(date + "T00:00:00");
   const dayLabel = `${DAYS_FULL[dateObj.getDay()]}, ${dateObj.getDate()} tháng ${dateObj.getMonth()+1}`;
@@ -334,10 +439,11 @@ function AddSlotModal({ templates, date, onSave, onClose }: {
     if (mode === "template" && selectedTmpl) {
       onSave({ templateId:selectedTmpl.id, date, name:selectedTmpl.name,
         startTime:selectedTmpl.startTime, endTime:selectedTmpl.endTime,
-        color:selectedTmpl.color, maxStaff:selectedTmpl.maxStaff, note:note||null });
+        color:selectedTmpl.color, maxStaff:selectedTmpl.maxStaff, note:note||null,
+        staffType: selectedTmpl.staffType ?? "ALL" });
     } else {
       if (!name.trim()) return;
-      onSave({ templateId:null, date, name:name.trim(), startTime:start, endTime:end, color, maxStaff:max, note:note||null });
+      onSave({ templateId:null, date, name:name.trim(), startTime:start, endTime:end, color, maxStaff:max, note:note||null, staffType });
     }
   }
 
@@ -380,7 +486,10 @@ function AddSlotModal({ templates, date, onSave, onClose }: {
                 style={{ display:"flex", alignItems:"center", gap:10, padding:"8px 12px", borderRadius:10, border:`1.5px solid ${selectedTmpl?.id===t.id?t.color:t.color+"30"}`, background:selectedTmpl?.id===t.id?`${t.color}10`:"#fff", cursor:"pointer", textAlign:"left" }}>
                 <div style={{ width:10, height:10, borderRadius:3, background:t.color, flexShrink:0 }} />
                 <div style={{ flex:1 }}>
-                  <p style={{ fontSize:11, fontWeight:700, color:"#0c1a2e" }}>{t.name}</p>
+                  <div style={{ display:"flex", alignItems:"center", gap:5 }}>
+                    <p style={{ fontSize:11, fontWeight:700, color:"#0c1a2e" }}>{t.name}</p>
+                    <StaffTypeBadge type={t.staffType} size="xs" />
+                  </div>
                   <p style={{ fontSize:9, color:"#64748b" }}>{fmt(t.startTime)} – {fmt(t.endTime)} · tối đa {t.maxStaff} người</p>
                 </div>
                 {selectedTmpl?.id===t.id && <Check size={12} style={{ color:t.color }} />}
@@ -408,6 +517,10 @@ function AddSlotModal({ templates, date, onSave, onClose }: {
               <button onClick={()=>setMax(m=>Math.max(1,m-1))} style={{ width:26,height:26,borderRadius:7,border:"1px solid #e2e8f0",background:"#fff",cursor:"pointer",fontSize:14 }}>−</button>
               <span style={{ minWidth:20,textAlign:"center",fontSize:13,fontWeight:700,color:"#0c1a2e" }}>{max}</span>
               <button onClick={()=>setMax(m=>Math.min(20,m+1))} style={{ width:26,height:26,borderRadius:7,border:"1px solid #e2e8f0",background:"#fff",cursor:"pointer",fontSize:14 }}>+</button>
+            </div>
+            <div style={{ display:"flex", flexDirection:"column", gap:4 }}>
+              <span style={{ fontSize:9, fontWeight:700, color:"#64748b", letterSpacing:"0.1em" }}>LOẠI NHÂN VIÊN</span>
+              <StaffTypeSelect value={staffType} onChange={setStaffType} />
             </div>
           </div>
         )}
@@ -444,6 +557,7 @@ export default function SchedulePage() {
   const [editTemplate, setEditTemplate]   = useState<ShiftTemplate | null>(null);
   const [addTemplate, setAddTemplate]     = useState(false);
   const [viewMode, setViewMode]           = useState<"week"|"staff">("week");
+  const [filterType, setFilterType]       = useState<"ALL"|"FT"|"PT">("ALL");
 
   // ── Responsive ─────────────────────────────────────────────────────────────
   const [isMobile, setIsMobile] = useState(false);
@@ -558,14 +672,21 @@ export default function SchedulePage() {
   }
 
   // ── Derived ────────────────────────────────────────────────────────────────
+  const filteredSlots = useMemo(() =>
+    filterType === "ALL"
+      ? slots
+      : slots.filter(s => (s.staffType ?? "ALL") === filterType || (s.staffType ?? "ALL") === "ALL"),
+    [slots, filterType]
+  );
+
   const slotsByDate = useMemo(() => {
     const m: Record<string, ShiftSlot[]> = {};
-    for (const s of slots) {
+    for (const s of filteredSlots) {
       if (!m[s.date]) m[s.date] = [];
       m[s.date].push(s);
     }
     return m;
-  }, [slots]);
+  }, [filteredSlots]);
 
   const regsBySlot = useMemo(() => {
     const m: Record<string, ShiftRegistration[]> = {};
@@ -662,7 +783,10 @@ export default function SchedulePage() {
                       <div key={t.id} style={{ display:"flex", alignItems:"center", gap:8, padding:"8px 12px", borderRadius:10, background:"#fff", border:`1.5px solid ${t.color}40`, minWidth:160 }}>
                         <div style={{ width:4, height:32, borderRadius:2, background:t.color, flexShrink:0 }} />
                         <div style={{ flex:1, minWidth:0 }}>
-                          <p style={{ fontSize:11, fontWeight:700, color:"#0c1a2e" }}>{t.name}</p>
+                          <div style={{ display:"flex", alignItems:"center", gap:5 }}>
+                            <p style={{ fontSize:11, fontWeight:700, color:"#0c1a2e" }}>{t.name}</p>
+                            <StaffTypeBadge type={t.staffType} size="xs" />
+                          </div>
                           <p style={{ fontSize:9, color:"#64748b" }}>{fmt(t.startTime)}–{fmt(t.endTime)} · {t.maxStaff} người</p>
                         </div>
                         <button onClick={()=>{ setEditTemplate(t); setAddTemplate(false); }}
@@ -709,6 +833,50 @@ export default function SchedulePage() {
             ))}
           </div>
         </div>
+
+        {/* Registration window banner (staff only) */}
+        {!isAdmin && (() => {
+          const dow = new Date().getDay();
+          const open = dow === 0 || dow >= 4;
+          return (
+            <div style={{
+              marginTop:8, padding:"5px 12px", borderRadius:20,
+              background: open ? "rgba(16,185,129,0.08)" : "rgba(148,163,184,0.08)",
+              border: `1px solid ${open ? "rgba(16,185,129,0.30)" : "rgba(148,163,184,0.25)"}`,
+              display:"inline-flex", alignItems:"center", gap:6,
+            }}>
+              <div style={{ width:6, height:6, borderRadius:"50%", background: open ? "#10b981" : "#94a3b8", flexShrink:0 }} />
+              <span style={{ fontSize:9, fontWeight:700, color: open ? "#059669" : "#94a3b8" }}>
+                {open ? "Đang mở đăng ký ca tuần sau (T5–CN)" : "Đăng ký đóng từ T2–T4, mở lại vào T5"}
+              </span>
+            </div>
+          );
+        })()}
+
+        {/* FT / PT filter pills */}
+        <div style={{ display:"flex", gap:5, marginTop:8 }}>
+          {(["ALL","FT","PT"] as const).map(t => {
+            const cfg = STAFF_TYPE_CFG[t];
+            const active = filterType === t;
+            return (
+              <button key={t} onClick={() => { playSound("tap"); setFilterType(t); }}
+                style={{
+                  height: 26, padding: "0 11px", borderRadius: 20,
+                  border: `1.5px solid ${active ? cfg.border : "rgba(186,230,253,0.60)"}`,
+                  background: active ? cfg.bg : "rgba(255,255,255,0.72)",
+                  cursor: "pointer", fontFamily: "inherit",
+                  fontSize: 9, fontWeight: 800,
+                  color: active ? cfg.color : "#94a3b8",
+                  letterSpacing: "0.07em",
+                  transition: "all 0.15s",
+                  backdropFilter: "blur(6px)",
+                  boxShadow: active ? `0 0 0 2px ${cfg.border}` : "none",
+                }}>
+                {t === "ALL" ? "Tất cả" : t === "FT" ? "Full Time" : "Part Time"}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* ── Body ── */}
@@ -751,13 +919,32 @@ export default function SchedulePage() {
                     {/* Slots */}
                     {hasSlots && (
                       <div style={{ padding:"0 16px 12px", display:"flex", flexDirection:"column", gap:8 }}>
-                        {daySlots.map(slot => (
-                          <SlotCard key={slot.id} slot={slot} regs={regsBySlot[slot.id] ?? []} isAdmin={isAdmin}
-                            currentUserId={currentUser?.id ?? ""} allStaff={activeStaff}
-                            onRegister={handleRegister} onCancel={handleCancel}
-                            onApprove={handleApprove} onReject={handleReject}
-                            onAssign={handleAssign} onUnassign={handleUnassign} onDelete={handleDeleteSlot} />
-                        ))}
+                        {(["FT","PT","ALL"] as StaffType[]).map(group => {
+                          const groupSlots = daySlots.filter(s => (s.staffType ?? "ALL") === group);
+                          if (groupSlots.length === 0) return null;
+                          const cfg = STAFF_TYPE_CFG[group];
+                          return (
+                            <div key={group}>
+                              {group !== "ALL" && (
+                                <div style={{ display:"flex", alignItems:"center", gap:5, marginBottom:5, marginTop:4 }}>
+                                  <div style={{ height:1, flex:1, background:cfg.border }} />
+                                  <span style={{ fontSize:8, fontWeight:800, color:cfg.color, letterSpacing:"0.1em", padding:"1px 7px", background:cfg.bg, borderRadius:20, border:`1px solid ${cfg.border}` }}>
+                                    {cfg.label}
+                                  </span>
+                                  <div style={{ height:1, flex:1, background:cfg.border }} />
+                                </div>
+                              )}
+                              {groupSlots.map(slot => (
+                                <SlotCard key={slot.id} slot={slot} regs={regsBySlot[slot.id] ?? []} isAdmin={isAdmin}
+                                  currentUserId={currentUser?.id ?? ""} allStaff={activeStaff}
+                                  canRegister={isAdmin || canStaffRegister(slot.date)}
+                                  onRegister={handleRegister} onCancel={handleCancel}
+                                  onApprove={handleApprove} onReject={handleReject}
+                                  onAssign={handleAssign} onUnassign={handleUnassign} onDelete={handleDeleteSlot} />
+                              ))}
+                            </div>
+                          );
+                        })}
                       </div>
                     )}
                   </div>
@@ -781,20 +968,38 @@ export default function SchedulePage() {
                         <span style={{ fontSize:13, fontWeight:800, color:isToday?"#fff":isPast?"#cbd5e1":"#0c1a2e" }}>{date.getDate()}</span>
                       </div>
                     </div>
-                    {daySlots.map(slot => (
-                      <SlotCard key={slot.id} slot={slot}
-                        regs={regsBySlot[slot.id] ?? []}
-                        isAdmin={isAdmin}
-                        currentUserId={currentUser?.id ?? ""}
-                        allStaff={activeStaff}
-                        onRegister={handleRegister}
-                        onCancel={handleCancel}
-                        onApprove={handleApprove}
-                        onReject={handleReject}
-                        onAssign={handleAssign}
-                        onUnassign={handleUnassign}
-                        onDelete={handleDeleteSlot} />
-                    ))}
+                    {(["FT","PT","ALL"] as StaffType[]).map(group => {
+                      const groupSlots = daySlots.filter(s => (s.staffType ?? "ALL") === group);
+                      if (groupSlots.length === 0) return null;
+                      const cfg = STAFF_TYPE_CFG[group];
+                      return (
+                        <div key={group} style={{ display:"flex", flexDirection:"column", gap:4 }}>
+                          {group !== "ALL" && (
+                            <div style={{ display:"flex", alignItems:"center", gap:4 }}>
+                              <span style={{ fontSize:7, fontWeight:800, color:cfg.color, letterSpacing:"0.08em", padding:"1px 6px", background:cfg.bg, borderRadius:20, border:`1px solid ${cfg.border}`, whiteSpace:"nowrap" }}>
+                                {group}
+                              </span>
+                              <div style={{ height:1, flex:1, background:cfg.border }} />
+                            </div>
+                          )}
+                          {groupSlots.map(slot => (
+                            <SlotCard key={slot.id} slot={slot}
+                              regs={regsBySlot[slot.id] ?? []}
+                              isAdmin={isAdmin}
+                              currentUserId={currentUser?.id ?? ""}
+                              allStaff={activeStaff}
+                              canRegister={isAdmin || canStaffRegister(slot.date)}
+                              onRegister={handleRegister}
+                              onCancel={handleCancel}
+                              onApprove={handleApprove}
+                              onReject={handleReject}
+                              onAssign={handleAssign}
+                              onUnassign={handleUnassign}
+                              onDelete={handleDeleteSlot} />
+                          ))}
+                        </div>
+                      );
+                    })}
                     {isAdmin && (
                       <button onClick={()=>setAddingSlot(ds)}
                         style={{ height:28, borderRadius:9, border:"1.5px dashed #bae6fd", background:"rgba(14,165,233,0.03)", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:4, color:"#94a3b8", fontSize:9, fontWeight:600, fontFamily:"inherit", transition:"all 0.12s" }}
