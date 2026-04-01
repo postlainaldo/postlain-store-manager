@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { buildMorningReport, buildEveningReport, buildOverviewReport } from "@/lib/odooReports";
-import { getPalexyTraffic } from "@/lib/palexy";
+import { getPalexyTraffic, getPalexyTrafficRange } from "@/lib/palexy";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60; // Vercel: allow up to 60s for Odoo calls
@@ -54,11 +54,8 @@ export async function GET(req: NextRequest) {
       }
       if (dates.length > 31) return NextResponse.json({ ok: false, error: "max 31 days" }, { status: 400 });
 
-      // Fetch traffic for all dates in parallel
-      const trafficEntries = await Promise.all(
-        dates.map(async d => [d, await getPalexyTraffic(d).catch(() => null)] as [string, number | null])
-      );
-      const trafficMap = new Map<string, number | null>(trafficEntries);
+      // Fetch traffic for the whole range in ONE API call instead of N parallel calls
+      const trafficMap = await getPalexyTrafficRange(fromDate, toDate).catch(() => new Map<string, number | null>());
 
       const result = await buildOverviewReport(dates, trafficMap);
       const todayStr = new Date().toISOString().slice(0, 10);

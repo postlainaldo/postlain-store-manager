@@ -231,7 +231,7 @@ export const useStore = create<StoreState>()(
       storeSections: INITIAL_STORE_SECTIONS,
       warehouseShelves: INITIAL_WAREHOUSE,
       storeLayout: INITIAL_LAYOUT,
-      storeName: "POSTLAIN ALDO GO! ĐÀ LẠT",
+      storeName: "ALDO GO! ĐÀ LẠT",
       storeAddress: "Trung Tâm GO! Đà Lạt, Đà Lạt, Lâm Đồng",
       storePhone: "+84 263 3822 000",
       storeEmail: "store.dalat@aldo.com",
@@ -709,14 +709,18 @@ export const useStore = create<StoreState>()(
         })),
     }),
     {
-      name: "postlain-store-v4",
-      version: 4,
+      name: "postlain-store-v5",
+      version: 5,
       migrate: (persisted: unknown, fromVersion: number) => {
         const s = persisted as Record<string, unknown>;
         // v4: force correct store name/address for Đà Lạt store
         if (fromVersion < 4) {
-          s.storeName = "POSTLAIN ALDO GO! ĐÀ LẠT";
+          s.storeName = "ALDO GO! ĐÀ LẠT";
           s.storeAddress = "Trung Tâm GO! Đà Lạt, Đà Lạt, Lâm Đồng";
+        }
+        // v5: remove "POSTLAIN" prefix from store name
+        if (fromVersion < 5 && typeof s.storeName === "string" && s.storeName.startsWith("POSTLAIN ")) {
+          s.storeName = s.storeName.replace("POSTLAIN ", "");
         }
         return s;
       },

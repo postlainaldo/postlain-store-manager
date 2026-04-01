@@ -296,44 +296,111 @@ export interface OverviewDay {
   byGroup: Record<string, number>;
 }
 
+/** Fetch all orders/lines for a date range in one batch (3 RPC calls instead of N×4). */
+async function fetchRange(fromDate: string, toDate: string) {
+  const from = new Date(fromDate + "T00:00:00+07:00").toISOString().replace("T", " ").slice(0, 19);
+  const to   = new Date(toDate   + "T23:59:59+07:00").toISOString().replace("T", " ").slice(0, 19);
+  const cookie = await getSession();
+
+  const orderFilter = [
+    ["config_id.name", "ilike", STORE_FILTER],
+    ["state", "in", ["paid", "done", "invoiced"]],
+    ["date_order", ">=", from],
+    ["date_order", "<=", to],
+  ];
+
+  const [orders, lines] = await Promise.all([
+    rpc<OdooOrder[]>(cookie, "pos.order", "search_read", [orderFilter], {
+      fields: ["id", "name", "amount_total", "date_order"],
+      limit: 5000, order: "date_order asc",
+    }),
+    rpc<OdooLine[]>(cookie, "pos.order.line", "search_read", [[
+      ["order_id.config_id.name", "ilike", STORE_FILTER],
+      ["order_id.date_order", ">=", from],
+      ["order_id.date_order", "<=", to],
+    ]], {
+      fields: ["order_id", "product_id", "qty", "price_unit", "price_subtotal_incl", "x_advisor"],
+      limit: 20000,
+    }),
+  ]);
+
+  const productIds = [...new Set(lines.map(l => l.product_id[0]))];
+  const products = productIds.length > 0
+    ? await rpc<OdooProd[]>(cookie, "product.product", "search_read",
+        [[["id", "in", productIds]]],
+        { fields: ["id", "x_productgroup"], limit: productIds.length + 10 }
+      )
+    : [];
+
+  const prodGroup = new Map(products.map(p => [p.id, p.x_productgroup || "Khác"]));
+  return { orders, lines, prodGroup };
+}
+
+/** Convert Odoo UTC datetime string to VN date string (YYYY-MM-DD) */
+function orderDateVN(dateOrder: string): string {
+  const utc = new Date(dateOrder.replace(" ", "T") + "Z");
+  const vn  = new Date(utc.getTime() + 7 * 60 * 60 * 1000);
+  return vn.toISOString().slice(0, 10);
+}
+
 export async function buildOverviewReport(dates: string[], trafficMap: Map<string, number | null>): Promise<{
   days: OverviewDay[];
   totals: { revTotal: number; bills: number; qtyTotal: number };
   insights: string[];
 }> {
-  // Fetch all dates sequentially to avoid hammering Odoo
-  const days: OverviewDay[] = [];
+  const fromDate = dates[0];
+  const toDate   = dates[dates.length - 1];
 
-  for (const date of dates) {
-    try {
-      const { orders, lines, prodGroup } = await fetchDay(date);
-      let revTotal = 0, qtyTotal = 0;
-      const byGroup: Record<string, number> = {};
+  const { orders, lines, prodGroup } = await fetchRange(fromDate, toDate);
 
-      for (const line of lines) {
-        if (line.qty < 0 && line.price_subtotal_incl < 0) continue;
-        revTotal += line.price_subtotal_incl;
-        if (line.price_unit > 0 && line.qty > 0) qtyTotal += line.qty;
-        if (line.price_subtotal_incl !== 0) {
-          const group = prodGroup.get(line.product_id[0]) ?? "Khác";
-          byGroup[group] = (byGroup[group] ?? 0) + line.price_subtotal_incl;
-        }
-      }
-
-      const bills = orders.filter(o => o.amount_total > 0).length;
-      const traffic = trafficMap.get(date) ?? null;
-      days.push({
-        date, revTotal, bills, qtyTotal,
-        aov: bills > 0 ? revTotal / bills : 0,
-        ipt: bills > 0 ? qtyTotal / bills : 0,
-        traffic,
-        conversion: traffic && bills > 0 ? bills / traffic * 100 : null,
-        byGroup,
-      });
-    } catch {
-      days.push({ date, revTotal: 0, bills: 0, qtyTotal: 0, aov: 0, ipt: 0, traffic: null, conversion: null, byGroup: {} });
-    }
+  // Group orders by VN date
+  const ordersByDate = new Map<string, OdooOrder[]>();
+  for (const o of orders) {
+    const d = orderDateVN(o.date_order);
+    if (!ordersByDate.has(d)) ordersByDate.set(d, []);
+    ordersByDate.get(d)!.push(o);
   }
+
+  // Map order id → VN date
+  const orderDateMap = new Map<number, string>();
+  for (const o of orders) orderDateMap.set(o.id, orderDateVN(o.date_order));
+
+  // Group lines by VN date
+  const linesByDate = new Map<string, OdooLine[]>();
+  for (const l of lines) {
+    const d = orderDateMap.get(l.order_id[0]);
+    if (!d) continue;
+    if (!linesByDate.has(d)) linesByDate.set(d, []);
+    linesByDate.get(d)!.push(l);
+  }
+
+  const days: OverviewDay[] = dates.map(date => {
+    const dayOrders = ordersByDate.get(date) ?? [];
+    const dayLines  = linesByDate.get(date) ?? [];
+    let revTotal = 0, qtyTotal = 0;
+    const byGroup: Record<string, number> = {};
+
+    for (const line of dayLines) {
+      if (line.qty < 0 && line.price_subtotal_incl < 0) continue;
+      revTotal += line.price_subtotal_incl;
+      if (line.price_unit > 0 && line.qty > 0) qtyTotal += line.qty;
+      if (line.price_subtotal_incl !== 0) {
+        const group = prodGroup.get(line.product_id[0]) ?? "Khác";
+        byGroup[group] = (byGroup[group] ?? 0) + line.price_subtotal_incl;
+      }
+    }
+
+    const bills = dayOrders.filter(o => o.amount_total > 0).length;
+    const traffic = trafficMap.get(date) ?? null;
+    return {
+      date, revTotal, bills, qtyTotal,
+      aov: bills > 0 ? revTotal / bills : 0,
+      ipt: bills > 0 ? qtyTotal / bills : 0,
+      traffic,
+      conversion: traffic && bills > 0 ? bills / traffic * 100 : null,
+      byGroup,
+    };
+  });
 
   const totals = days.reduce((acc, d) => ({
     revTotal: acc.revTotal + d.revTotal,

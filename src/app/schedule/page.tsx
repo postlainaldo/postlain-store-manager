@@ -5,6 +5,7 @@ import {
   ChevronLeft, ChevronRight, Plus, X, Check, Clock,
   Users, Trash2, Edit3, CalendarDays, Settings2,
   ChevronDown, AlertCircle, CheckCircle2, XCircle, UserPlus, UserMinus,
+  CheckSquare, Square,
 } from "lucide-react";
 import { useStore, AppUser } from "@/store/useStore";
 import { motion, AnimatePresence } from "framer-motion";
@@ -256,7 +257,7 @@ function TemplateForm({ initial, onSave, onClose }: {
 }
 
 // ─── Slot Card ────────────────────────────────────────────────────────────────
-function SlotCard({ slot, regs, isAdmin, currentUserId, allStaff, canRegister, onRegister, onCancel, onApprove, onReject, onAssign, onUnassign, onDelete }: {
+function SlotCard({ slot, regs, isAdmin, currentUserId, allStaff, canRegister, onRegister, onCancel, onApprove, onReject, onAssign, onUnassign, onDelete, bulkMode, isSelected, onToggleSelect }: {
   slot: ShiftSlot;
   regs: ShiftRegistration[];
   isAdmin: boolean;
@@ -270,6 +271,9 @@ function SlotCard({ slot, regs, isAdmin, currentUserId, allStaff, canRegister, o
   onAssign: (slotId: string, user: AppUser) => void;
   onUnassign: (slotId: string, userId: string) => void;
   onDelete: (slotId: string) => void;
+  bulkMode?: boolean;
+  isSelected?: boolean;
+  onToggleSelect?: (slotId: string) => void;
 }) {
   const [showAdd, setShowAdd] = useState(false);
   const myReg = regs.find(r => r.userId === currentUserId);
@@ -279,25 +283,41 @@ function SlotCard({ slot, regs, isAdmin, currentUserId, allStaff, canRegister, o
   const unassigned = allStaff.filter(u => !regs.find(r => r.userId === u.id));
 
   return (
-    <div style={{
-      borderRadius:12, border:`1.5px solid ${slot.color}28`,
-      background: "rgba(255,255,255,0.88)",
-      backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)",
-      boxShadow: "0 2px 12px rgba(12,26,46,0.06), 0 1px 3px rgba(12,26,46,0.04)",
-      overflow:"hidden", marginBottom:0,
-      transition:"transform 0.22s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.22s ease",
-    }}
-    onMouseEnter={e=>{
-      (e.currentTarget as HTMLElement).style.transform="translateY(-2px)";
-      (e.currentTarget as HTMLElement).style.boxShadow= "0 8px 24px rgba(12,26,46,0.10), 0 2px 6px rgba(12,26,46,0.06)";
-    }}
-    onMouseLeave={e=>{
-      (e.currentTarget as HTMLElement).style.transform="translateY(0)";
-      (e.currentTarget as HTMLElement).style.boxShadow= "0 2px 12px rgba(12,26,46,0.06), 0 1px 3px rgba(12,26,46,0.04)";
-    }}
+    <div
+      onClick={bulkMode ? () => { playSound("tap"); onToggleSelect?.(slot.id); } : undefined}
+      style={{
+        borderRadius:12,
+        border: bulkMode && isSelected ? `2px solid ${slot.color}` : `1.5px solid ${slot.color}28`,
+        background: bulkMode && isSelected ? `${slot.color}10` : "rgba(255,255,255,0.88)",
+        backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)",
+        boxShadow: "0 2px 12px rgba(12,26,46,0.06), 0 1px 3px rgba(12,26,46,0.04)",
+        overflow:"hidden", marginBottom:0,
+        cursor: bulkMode ? "pointer" : "default",
+        transition:"transform 0.22s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.22s ease",
+        position: "relative",
+      }}
+      onMouseEnter={e=>{
+        if (bulkMode) return;
+        (e.currentTarget as HTMLElement).style.transform="translateY(-2px)";
+        (e.currentTarget as HTMLElement).style.boxShadow= "0 8px 24px rgba(12,26,46,0.10), 0 2px 6px rgba(12,26,46,0.06)";
+      }}
+      onMouseLeave={e=>{
+        if (bulkMode) return;
+        (e.currentTarget as HTMLElement).style.transform="translateY(0)";
+        (e.currentTarget as HTMLElement).style.boxShadow= "0 2px 12px rgba(12,26,46,0.06), 0 1px 3px rgba(12,26,46,0.04)";
+      }}
     >
       {/* Color top bar */}
       <div style={{ height:3, background:slot.color }} />
+      {/* Bulk mode checkbox overlay */}
+      {bulkMode && (
+        <div style={{ position:"absolute", top:8, right:8, zIndex:10 }}>
+          {isSelected
+            ? <CheckSquare size={16} style={{ color: slot.color }} />
+            : <Square size={16} style={{ color: "#cbd5e1" }} />
+          }
+        </div>
+      )}
 
       {/* Header */}
       <div style={{ padding:"8px 10px 6px", display:"flex", alignItems:"flex-start", justifyContent:"space-between", gap:4 }}>
@@ -575,6 +595,8 @@ export default function SchedulePage() {
   const [addTemplate, setAddTemplate]     = useState(false);
   const [viewMode, setViewMode]           = useState<"week"|"staff">("week");
   const [filterType, setFilterType]       = useState<"ALL"|"FT"|"PT">("ALL");
+  const [bulkMode, setBulkMode]           = useState(false);
+  const [selectedSlotIds, setSelectedSlotIds] = useState<Set<string>>(new Set());
 
   // ── Responsive ─────────────────────────────────────────────────────────────
   const [isMobile, setIsMobile] = useState(false);
@@ -688,6 +710,26 @@ export default function SchedulePage() {
     load();
   }
 
+  function handleToggleSelect(slotId: string) {
+    setSelectedSlotIds(prev => {
+      const next = new Set(prev);
+      if (next.has(slotId)) next.delete(slotId);
+      else next.add(slotId);
+      return next;
+    });
+  }
+
+  async function handleBulkDelete() {
+    const ids = [...selectedSlotIds];
+    if (ids.length === 0) return;
+    if (!confirm(`Xoá ${ids.length} ca đã chọn?`)) return;
+    playSound("modalClose");
+    await Promise.all(ids.map(id => fetch(`/api/shifts?kind=slot&id=${id}`, { method:"DELETE" })));
+    setSelectedSlotIds(new Set());
+    setBulkMode(false);
+    load();
+  }
+
   // ── Derived ────────────────────────────────────────────────────────────────
   const filteredSlots = useMemo(() =>
     filterType === "ALL"
@@ -771,6 +813,16 @@ export default function SchedulePage() {
                 <span style={{ fontSize:10, fontWeight:600, color:"#0ea5e9" }}>{isMobile ? "Mẫu" : "Mẫu Ca"}</span>
                 {templates.length > 0 && (
                   <span style={{ fontSize:8, fontWeight:800, color:"#fff", background:"#0ea5e9", padding:"1px 5px", borderRadius:10 }}>{templates.length}</span>
+                )}
+              </button>
+            )}
+            {isAdmin && (
+              <button onClick={() => { setBulkMode(v => !v); setSelectedSlotIds(new Set()); playSound("tap"); }}
+                style={{ display:"flex", alignItems:"center", gap:5, padding:"7px 12px", borderRadius:10, border:`1px solid ${bulkMode?"#ef4444":"#fca5a5"}`, background:bulkMode?"#fff5f5":"#fff", cursor:"pointer", fontFamily:"inherit" }}>
+                <CheckSquare size={12} style={{ color: bulkMode ? "#ef4444" : "#f87171" }} />
+                <span style={{ fontSize:10, fontWeight:600, color: bulkMode ? "#ef4444" : "#f87171" }}>{bulkMode ? "Huỷ chọn" : "Chọn"}</span>
+                {bulkMode && selectedSlotIds.size > 0 && (
+                  <span style={{ fontSize:8, fontWeight:800, color:"#fff", background:"#ef4444", padding:"1px 5px", borderRadius:10 }}>{selectedSlotIds.size}</span>
                 )}
               </button>
             )}
@@ -968,7 +1020,8 @@ export default function SchedulePage() {
                                   canRegister={isAdmin || canStaffRegister(slot.date)}
                                   onRegister={handleRegister} onCancel={handleCancel}
                                   onApprove={handleApprove} onReject={handleReject}
-                                  onAssign={handleAssign} onUnassign={handleUnassign} onDelete={handleDeleteSlot} />
+                                  onAssign={handleAssign} onUnassign={handleUnassign} onDelete={handleDeleteSlot}
+                                  bulkMode={bulkMode} isSelected={selectedSlotIds.has(slot.id)} onToggleSelect={handleToggleSelect} />
                               ))}
                             </div>
                           );
@@ -1029,7 +1082,8 @@ export default function SchedulePage() {
                               onReject={handleReject}
                               onAssign={handleAssign}
                               onUnassign={handleUnassign}
-                              onDelete={handleDeleteSlot} />
+                              onDelete={handleDeleteSlot}
+                              bulkMode={bulkMode} isSelected={selectedSlotIds.has(slot.id)} onToggleSelect={handleToggleSelect} />
                           ))}
                         </div>
                       );
@@ -1175,6 +1229,65 @@ export default function SchedulePage() {
           ))}
         </div>
       </div>
+
+      {/* Bulk action bar */}
+      <AnimatePresence>
+        {bulkMode && (
+          <motion.div
+            initial={{ y: 80, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 80, opacity: 0 }}
+            transition={{ type: "spring", damping: 28, stiffness: 300 }}
+            style={{
+              position: "fixed",
+              bottom: isMobile ? "calc(64px + env(safe-area-inset-bottom, 0px))" : 16,
+              left: "50%",
+              transform: "translateX(-50%)",
+              width: "min(420px, calc(100vw - 32px))",
+              background: "rgba(15,23,42,0.96)",
+              backdropFilter: "blur(16px)",
+              WebkitBackdropFilter: "blur(16px)",
+              borderRadius: 16,
+              padding: "12px 16px",
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              boxShadow: "0 8px 32px rgba(0,0,0,0.40)",
+              border: "1px solid rgba(255,255,255,0.10)",
+              zIndex: 150,
+            }}>
+            <div style={{ flex: 1 }}>
+              <p style={{ fontSize: 12, fontWeight: 700, color: "#f1f5f9" }}>
+                {selectedSlotIds.size > 0 ? `Đã chọn ${selectedSlotIds.size} ca` : "Bấm vào ca để chọn"}
+              </p>
+              <p style={{ fontSize: 10, color: "#64748b" }}>
+                {selectedSlotIds.size > 0 ? "Chọn thêm hoặc thực hiện thao tác" : "Chọn nhiều ca cùng lúc"}
+              </p>
+            </div>
+            {selectedSlotIds.size > 0 && (
+              <button
+                onClick={() => setSelectedSlotIds(new Set())}
+                style={{ height: 34, padding: "0 12px", borderRadius: 9, border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.06)", cursor: "pointer", fontSize: 11, fontWeight: 600, color: "#94a3b8", fontFamily: "inherit" }}>
+                Bỏ chọn
+              </button>
+            )}
+            <button
+              onClick={handleBulkDelete}
+              disabled={selectedSlotIds.size === 0}
+              style={{
+                height: 34, padding: "0 16px", borderRadius: 9, border: "none",
+                background: selectedSlotIds.size > 0 ? "#ef4444" : "rgba(239,68,68,0.2)",
+                cursor: selectedSlotIds.size > 0 ? "pointer" : "default",
+                fontSize: 11, fontWeight: 700, color: "#fff", fontFamily: "inherit",
+                display: "flex", alignItems: "center", gap: 6,
+                opacity: selectedSlotIds.size > 0 ? 1 : 0.4,
+              }}>
+              <Trash2 size={12} />
+              Xoá {selectedSlotIds.size > 0 ? `(${selectedSlotIds.size})` : ""}
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Add Slot Modal */}
       <AnimatePresence>

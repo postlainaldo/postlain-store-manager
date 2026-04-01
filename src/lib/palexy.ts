@@ -71,7 +71,7 @@ export async function getPalexyTraffic(date: string): Promise<number | null> {
 
   const cookie = await getSessionCookie();
   const params = new URLSearchParams({
-    fromDate: date,  // API uses YYYY-MM-DD
+    fromDate: date,
     toDate: date,
     dimensions: "store_id,day",
     metrics: "visits",
@@ -87,7 +87,6 @@ export async function getPalexyTraffic(date: string): Promise<number | null> {
     throw new Error(`Palexy report failed (${res.status}): ${body.slice(0, 200)}`);
   }
 
-  // Response format: { rows: [{ store_id: "1207", visits: "123", day: "2026-03-25" }] }
   const data = await res.json() as {
     rows?: { store_id: string; visits: string | number | null; day: string }[];
   };
@@ -95,4 +94,46 @@ export async function getPalexyTraffic(date: string): Promise<number | null> {
   if (!data.rows?.length) return null;
   const visits = data.rows[0].visits;
   return visits != null ? Math.round(Number(visits)) : null;
+}
+
+/**
+ * Get daily traffic for a date range in a single API call.
+ * @param fromDate YYYY-MM-DD
+ * @param toDate   YYYY-MM-DD
+ * @returns Map of date string → visitor count (missing dates have null)
+ */
+export async function getPalexyTrafficRange(
+  fromDate: string,
+  toDate: string,
+): Promise<Map<string, number | null>> {
+  if (!PALEXY_EMAIL || !PALEXY_PASSWORD) return new Map();
+
+  const cookie = await getSessionCookie();
+  const params = new URLSearchParams({
+    fromDate,
+    toDate,
+    dimensions: "store_id,day",
+    metrics: "visits",
+    storeIds: PALEXY_STORE_ID,
+  });
+
+  const res = await fetch(`${PALEXY_URL}/api/v2/report/getStoreReport?${params}`, {
+    headers: { Cookie: cookie },
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`Palexy report failed (${res.status}): ${body.slice(0, 200)}`);
+  }
+
+  const data = await res.json() as {
+    rows?: { store_id: string; visits: string | number | null; day: string }[];
+  };
+
+  const result = new Map<string, number | null>();
+  for (const row of data.rows ?? []) {
+    const visits = row.visits != null ? Math.round(Number(row.visits)) : null;
+    result.set(row.day, visits);
+  }
+  return result;
 }
