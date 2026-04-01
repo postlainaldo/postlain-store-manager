@@ -37,29 +37,37 @@ const DAYS_FULL = ["Chủ Nhật","Thứ Hai","Thứ Ba","Thứ Tư","Thứ Năm
 const MONTHS_VI = ["Tháng 1","Tháng 2","Tháng 3","Tháng 4","Tháng 5","Tháng 6",
                    "Tháng 7","Tháng 8","Tháng 9","Tháng 10","Tháng 11","Tháng 12"];
 
-function toDateStr(d: Date) { return d.toISOString().slice(0, 10); }
+/** Date string in VN timezone (UTC+7) — prevents off-by-one at midnight */
+function toDateStr(d: Date) {
+  const vn = new Date(d.getTime() + 7 * 60 * 60 * 1000);
+  return vn.toISOString().slice(0, 10);
+}
+/** Today string in VN time */
+function todayVN() { return toDateStr(new Date()); }
 
 /** Business week counter from store epoch: W001 starts 2026-02-02 (Mon). Mar 23 = W008. */
 const WEEK_EPOCH = new Date("2026-02-02T00:00:00+07:00");
 function getISOWeek(d: Date): number {
+  // d is already a VN-adjusted UTC date from getWeekDates
+  const day = d.getUTCDay();
   const monday = new Date(d);
-  const day = monday.getDay();
-  monday.setDate(monday.getDate() - ((day + 6) % 7));
-  monday.setHours(0, 0, 0, 0);
+  monday.setUTCDate(d.getUTCDate() - ((day + 6) % 7));
+  monday.setUTCHours(0, 0, 0, 0);
   const diffMs = monday.getTime() - WEEK_EPOCH.getTime();
   const weekNum = Math.floor(diffMs / (7 * 24 * 60 * 60 * 1000)) + 1;
   return Math.max(1, weekNum);
 }
 
 function getWeekDates(weekOffset: number): Date[] {
-  const today = new Date();
-  const day = today.getDay();
-  const monday = new Date(today);
-  monday.setDate(today.getDate() - ((day + 6) % 7) + weekOffset * 7);
-  monday.setHours(0, 0, 0, 0);
+  // Use VN local date to avoid midnight timezone drift
+  const nowVN = new Date(Date.now() + 7 * 60 * 60 * 1000);
+  const day = nowVN.getUTCDay();
+  const monday = new Date(nowVN);
+  monday.setUTCDate(nowVN.getUTCDate() - ((day + 6) % 7) + weekOffset * 7);
+  monday.setUTCHours(0, 0, 0, 0);
   return Array.from({ length: 7 }, (_, i) => {
     const d = new Date(monday);
-    d.setDate(monday.getDate() + i);
+    d.setUTCDate(monday.getUTCDate() + i);
     return d;
   });
 }
@@ -84,23 +92,23 @@ function inferStaffType(slot: { staffType?: StaffType; name: string }): StaffTyp
  * `slotDate` is the date string of the shift slot being checked.
  */
 function canStaffRegister(slotDate: string): boolean {
-  const today = new Date();
-  const todayDow = today.getDay(); // 0=Sun … 6=Sat
-  const openWindow = todayDow === 0 || todayDow >= 4; // Sun, Thu, Fri, Sat
+  // Use VN time (UTC+7) for day-of-week check
+  const nowVN = new Date(Date.now() + 7 * 60 * 60 * 1000);
+  const todayDow = nowVN.getUTCDay(); // 0=Sun … 6=Sat
+  const openWindow = todayDow === 0 || todayDow >= 4; // Thu/Fri/Sat/Sun
 
-  if (!openWindow) return false; // Mon–Wed: lock
+  if (!openWindow) return false;
 
-  // Only allow registering for *next* week (Mon–Sun starting next Monday)
-  const todayStr = toDateStr(today);
-  const nextMonday = new Date(today);
+  // Next week Mon–Sun
   const daysToNextMon = ((8 - todayDow) % 7) || 7;
-  nextMonday.setDate(today.getDate() + daysToNextMon);
-  nextMonday.setHours(0,0,0,0);
+  const nextMonday = new Date(nowVN);
+  nextMonday.setUTCDate(nowVN.getUTCDate() + daysToNextMon);
+  nextMonday.setUTCHours(0,0,0,0);
   const nextSunday = new Date(nextMonday);
-  nextSunday.setDate(nextMonday.getDate() + 6);
+  nextSunday.setUTCDate(nextMonday.getUTCDate() + 6);
 
-  const nms = toDateStr(nextMonday);
-  const nss = toDateStr(nextSunday);
+  const nms = nextMonday.toISOString().slice(0, 10);
+  const nss = nextSunday.toISOString().slice(0, 10);
   return slotDate >= nms && slotDate <= nss;
 }
 
@@ -694,6 +702,16 @@ export default function SchedulePage() {
       if (!m[s.date]) m[s.date] = [];
       m[s.date].push(s);
     }
+    // Sort each day: FT first, PT second, unclassified last; then by startTime
+    const typeOrder: Record<StaffType, number> = { FT: 0, PT: 1, ALL: 2 };
+    for (const key of Object.keys(m)) {
+      m[key].sort((a, b) => {
+        const ta = typeOrder[inferStaffType(a)];
+        const tb = typeOrder[inferStaffType(b)];
+        if (ta !== tb) return ta - tb;
+        return a.startTime.localeCompare(b.startTime);
+      });
+    }
     return m;
   }, [filteredSlots]);
 
@@ -716,13 +734,13 @@ export default function SchedulePage() {
   }, [activeStaff, registrations, slots]);
 
   const pendingCount = registrations.filter(r => r.status === "pending").length;
-  const today = toDateStr(new Date());
+  const today = todayVN();
 
   const weekLabel = (() => {
     const m0 = weekDates[0]; const m6 = weekDates[6];
-    if (m0.getMonth() === m6.getMonth())
-      return `${m0.getDate()}–${m6.getDate()} ${MONTHS_VI[m0.getMonth()]} ${m0.getFullYear()}`;
-    return `${m0.getDate()} ${MONTHS_VI[m0.getMonth()]} – ${m6.getDate()} ${MONTHS_VI[m6.getMonth()]} ${m6.getFullYear()}`;
+    if (m0.getUTCMonth() === m6.getUTCMonth())
+      return `${m0.getUTCDate()}–${m6.getUTCDate()} ${MONTHS_VI[m0.getUTCMonth()]} ${m0.getUTCFullYear()}`;
+    return `${m0.getUTCDate()} ${MONTHS_VI[m0.getUTCMonth()]} – ${m6.getUTCDate()} ${MONTHS_VI[m6.getUTCMonth()]} ${m6.getUTCFullYear()}`;
   })();
 
   return (
@@ -845,7 +863,7 @@ export default function SchedulePage() {
 
         {/* Registration window banner (staff only) */}
         {!isAdmin && (() => {
-          const dow = new Date().getDay();
+          const dow = new Date(Date.now() + 7 * 60 * 60 * 1000).getUTCDay();
           const open = dow === 0 || dow >= 4;
           return (
             <div style={{
@@ -909,12 +927,12 @@ export default function SchedulePage() {
                     <div style={{ display:"flex", alignItems:"center", gap:10, padding:"10px 16px 8px", background:isToday?"#f0f9ff":"transparent" }}>
                       <div style={{ width:36, height:36, borderRadius:"50%", background:isToday?"#0ea5e9":"#f1f5f9", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
                         <div style={{ textAlign:"center" }}>
-                          <p style={{ fontSize:8, fontWeight:700, color:isToday?"#fff":"#94a3b8", lineHeight:1 }}>{DAYS_VI[date.getDay()]}</p>
-                          <p style={{ fontSize:13, fontWeight:800, color:isToday?"#fff":isPast?"#cbd5e1":"#0c1a2e", lineHeight:1.2 }}>{date.getDate()}</p>
+                          <p style={{ fontSize:8, fontWeight:700, color:isToday?"#fff":"#94a3b8", lineHeight:1 }}>{DAYS_VI[date.getUTCDay()]}</p>
+                          <p style={{ fontSize:13, fontWeight:800, color:isToday?"#fff":isPast?"#cbd5e1":"#0c1a2e", lineHeight:1.2 }}>{date.getUTCDate()}</p>
                         </div>
                       </div>
                       <div style={{ flex:1 }}>
-                        <p style={{ fontSize:11, fontWeight:600, color:isToday?"#0ea5e9":"#0c1a2e" }}>{DAYS_FULL[date.getDay()]}</p>
+                        <p style={{ fontSize:11, fontWeight:600, color:isToday?"#0ea5e9":"#0c1a2e" }}>{DAYS_FULL[date.getUTCDay()]}</p>
                         <p style={{ fontSize:9, color:"#94a3b8" }}>{hasSlots ? `${daySlots.length} ca` : "Không có ca"}</p>
                       </div>
                       {isAdmin && (
@@ -932,15 +950,16 @@ export default function SchedulePage() {
                           const groupSlots = daySlots.filter(s => inferStaffType(s) === group);
                           if (groupSlots.length === 0) return null;
                           const cfg = STAFF_TYPE_CFG[group];
+                          const groupLabel = group === "FT" ? "FULL TIME" : group === "PT" ? "PART TIME" : null;
                           return (
-                            <div key={group}>
-                              {group !== "ALL" && (
-                                <div style={{ display:"flex", alignItems:"center", gap:5, marginBottom:5, marginTop:4 }}>
-                                  <div style={{ height:1, flex:1, background:cfg.border }} />
-                                  <span style={{ fontSize:8, fontWeight:800, color:cfg.color, letterSpacing:"0.1em", padding:"1px 7px", background:cfg.bg, borderRadius:20, border:`1px solid ${cfg.border}` }}>
-                                    {cfg.label}
+                            <div key={group} style={{ display:"flex", flexDirection:"column", gap:6 }}>
+                              {groupLabel && (
+                                <div style={{ display:"flex", alignItems:"center", gap:5, marginTop:4 }}>
+                                  <div style={{ height:1.5, flex:1, background:cfg.border }} />
+                                  <span style={{ fontSize:9, fontWeight:800, color:cfg.color, letterSpacing:"0.08em", padding:"2px 10px", background:cfg.bg, borderRadius:20, border:`1px solid ${cfg.border}` }}>
+                                    {groupLabel}
                                   </span>
-                                  <div style={{ height:1, flex:1, background:cfg.border }} />
+                                  <div style={{ height:1.5, flex:1, background:cfg.border }} />
                                 </div>
                               )}
                               {groupSlots.map(slot => (
@@ -972,21 +991,27 @@ export default function SchedulePage() {
                   <div key={ds} style={{ display:"flex", flexDirection:"column", gap:6 }}>
                     {/* Day header */}
                     <div style={{ textAlign:"center" }}>
-                      <p style={{ fontSize:9, fontWeight:700, color:isToday?"#0ea5e9":"#94a3b8", letterSpacing:"0.1em" }}>{DAYS_VI[date.getDay()]}</p>
+                      <p style={{ fontSize:9, fontWeight:700, color:isToday?"#0ea5e9":"#94a3b8", letterSpacing:"0.1em" }}>{DAYS_VI[date.getUTCDay()]}</p>
                       <div style={{ width:28, height:28, borderRadius:"50%", background:isToday?"#0ea5e9":"transparent", display:"flex", alignItems:"center", justifyContent:"center", margin:"2px auto" }}>
-                        <span style={{ fontSize:13, fontWeight:800, color:isToday?"#fff":isPast?"#cbd5e1":"#0c1a2e" }}>{date.getDate()}</span>
+                        <span style={{ fontSize:13, fontWeight:800, color:isToday?"#fff":isPast?"#cbd5e1":"#0c1a2e" }}>{date.getUTCDate()}</span>
                       </div>
                     </div>
                     {(["FT","PT","ALL"] as StaffType[]).map(group => {
                       const groupSlots = daySlots.filter(s => inferStaffType(s) === group);
                       if (groupSlots.length === 0) return null;
                       const cfg = STAFF_TYPE_CFG[group];
+                      const groupLabel = group === "FT" ? "FULL TIME" : group === "PT" ? "PART TIME" : null;
                       return (
-                        <div key={group} style={{ display:"flex", flexDirection:"column", gap:4 }}>
-                          {group !== "ALL" && (
-                            <div style={{ display:"flex", alignItems:"center", gap:4 }}>
-                              <span style={{ fontSize:7, fontWeight:800, color:cfg.color, letterSpacing:"0.08em", padding:"1px 6px", background:cfg.bg, borderRadius:20, border:`1px solid ${cfg.border}`, whiteSpace:"nowrap" }}>
-                                {group}
+                        <div key={group} style={{ display:"flex", flexDirection:"column", gap:3 }}>
+                          {groupLabel && (
+                            <div style={{ display:"flex", alignItems:"center", gap:4, marginTop: 2 }}>
+                              <span style={{
+                                fontSize:7, fontWeight:800, color:cfg.color,
+                                letterSpacing:"0.06em", padding:"2px 7px",
+                                background:cfg.bg, borderRadius:20,
+                                border:`1px solid ${cfg.border}`, whiteSpace:"nowrap", flexShrink:0,
+                              }}>
+                                {groupLabel}
                               </span>
                               <div style={{ height:1, flex:1, background:cfg.border }} />
                             </div>
@@ -1045,7 +1070,7 @@ export default function SchedulePage() {
                     <div style={{ display:"flex", flexWrap:"wrap", gap:4 }}>
                       {mySlots.map(s => (
                         <div key={s.id} style={{ padding:"3px 8px", borderRadius:20, background:`${s.color}15`, border:`1px solid ${s.color}40` }}>
-                          <span style={{ fontSize:9, fontWeight:600, color:s.color }}>{DAYS_VI[new Date(s.date+"T00:00:00").getDay()]} {new Date(s.date+"T00:00:00").getDate()} · {s.name}</span>
+                          <span style={{ fontSize:9, fontWeight:600, color:s.color }}>{DAYS_VI[new Date(s.date+"T00:00:00+07:00").getDay()]} {new Date(s.date+"T00:00:00+07:00").getDate()} · {s.name}</span>
                         </div>
                       ))}
                     </div>
@@ -1065,7 +1090,7 @@ export default function SchedulePage() {
                 </div>
                 {weekDates.map(d => (
                   <div key={d.getTime()} style={{ textAlign:"center", color:toDateStr(d)===today?"#0ea5e9":"#94a3b8" }}>
-                    {DAYS_VI[d.getDay()]}<br/>{d.getDate()}
+                    {DAYS_VI[d.getUTCDay()]}<br/>{d.getUTCDate()}
                   </div>
                 ))}
               </div>
