@@ -8,14 +8,15 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: SSH & redeploy
+      - name: SSH & trigger redeploy
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: 103.90.224.59
           username: root
-          password: ${{ secrets.VPS_PASSWORD }}
+          key: ${{ secrets.VPS_SSH_KEY }}
           script: |
-            curl -s http://localhost:3000/api/v1/applications/cmng4ozwv000kpc9r09zlyv76/redeploy \
-              -X POST -H "Content-Type: application/json" || \
-            docker restart $(docker ps -q --filter "label=coolify.applicationId=cmng4ozwv000kpc9r09zlyv76") || \
-            echo "Trigger sent"
+            curl -s -X POST http://localhost:3000/api/deploy \
+              -H "Content-Type: application/json" \
+              -d '{"applicationId":"cmng4ozwv000kpc9r09zlyv76"}' || \
+            docker restart $(docker ps -q --filter "label=coolify.applicationId=cmng4ozwv000kpc9r09zlyv76") 2>/dev/null || \
+            echo "Deploy triggered"
