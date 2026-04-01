@@ -288,3 +288,150 @@ export function playSound(name: SFXName) {
 export function useSFX() {
   return playSound;
 }
+
+/**
+ * Plays a multi-layered cinematic ambient track during the splash screen.
+ * Returns a stop() function that fades out and disconnects all nodes.
+ *
+ * Layers:
+ *  1. Sub drone (C1 + C2) — slow beating LFO for depth
+ *  2. Pad swell — Cmaj9 chord arpeggiated slowly
+ *  3. High shimmer — bell overtone pings at random intervals
+ *  4. Rhythmic pulse — soft kick-like thud every ~0.9s
+ */
+export function playSplashMusic(): () => void {
+  const _ac = getCtx();
+  if (!_ac) return () => {};
+  const ac: AudioContext = _ac;
+  const t = ac.currentTime;
+
+  // Master bus with envelope for fade-in / fade-out
+  const master = ac.createGain();
+  master.gain.setValueAtTime(0, t);
+  master.gain.linearRampToValueAtTime(0.32, t + 0.6);
+  master.connect(ac.destination);
+
+  const rev = makeReverb(ac, 2.8, 2.5);
+  const revGain = ac.createGain();
+  revGain.gain.value = 0.55;
+  rev.connect(revGain);
+  revGain.connect(master);
+
+  const dry = ac.createGain();
+  dry.gain.value = 0.45;
+  dry.connect(master);
+
+  const allNodes: AudioNode[] = [master, revGain, dry];
+
+  function addOsc(freq: number, start: number, dur: number, vol: number, type: OscillatorType = "sine") {
+    const g = ac.createGain();
+    g.gain.setValueAtTime(0, start);
+    g.gain.linearRampToValueAtTime(vol, start + 0.25);
+    g.gain.setValueAtTime(vol, start + dur - 0.3);
+    g.gain.linearRampToValueAtTime(0, start + dur);
+    g.connect(dry);
+    g.connect(rev);
+    const o = ac.createOscillator();
+    o.type = type;
+    o.frequency.value = freq;
+    o.connect(g);
+    o.start(start);
+    o.stop(start + dur + 0.05);
+    allNodes.push(g, o);
+  }
+
+  // ── Layer 1: Sub drone — slowly pulsing C2 ────────────────────────────────
+  for (let i = 0; i < 5; i++) {
+    const st = t + i * 0.7;
+    addOsc(65.4,  st, 1.4, 0.28 + (i % 2) * 0.06); // C2
+    addOsc(130.8, st + 0.1, 1.2, 0.12);              // C3 overtone
+  }
+
+  // ── Layer 2: Pad chord swell — Cmaj9 ─────────────────────────────────────
+  // C3 E3 G3 B3 D4 — rich warm pad
+  const padFreqs = [130.8, 164.8, 196.0, 246.9, 293.7];
+  padFreqs.forEach((f, i) => {
+    addOsc(f, t + 0.15 + i * 0.12, 3.4, 0.18 - i * 0.018);
+    // Second wave slightly detuned for chorus effect
+    addOsc(f * 1.004, t + 0.18 + i * 0.12, 3.2, 0.10 - i * 0.01);
+  });
+
+  // ── Layer 3: High sparkle bells — delayed pings ────────────────────────────
+  const bellFreqs = [1046.5, 1318.5, 1568.0, 2093.0]; // C6 E6 G6 C7
+  bellFreqs.forEach((f, i) => {
+    const st = t + 0.6 + i * 0.18;
+    const g = ac.createGain();
+    g.gain.setValueAtTime(0, st);
+    g.gain.linearRampToValueAtTime(0.10 - i * 0.015, st + 0.005);
+    g.gain.exponentialRampToValueAtTime(0.0001, st + 1.2);
+    g.connect(rev);
+    const o = ac.createOscillator();
+    o.type = "sine";
+    o.frequency.value = f;
+    o.connect(g);
+    o.start(st);
+    o.stop(st + 1.3);
+    allNodes.push(g, o);
+  });
+
+  // Second bell cluster at 1.8s
+  [1318.5, 1568.0, 2093.0].forEach((f, i) => {
+    const st = t + 1.8 + i * 0.15;
+    const g = ac.createGain();
+    g.gain.setValueAtTime(0, st);
+    g.gain.linearRampToValueAtTime(0.08, st + 0.005);
+    g.gain.exponentialRampToValueAtTime(0.0001, st + 1.0);
+    g.connect(rev);
+    const o = ac.createOscillator();
+    o.type = "sine";
+    o.frequency.value = f;
+    o.connect(g);
+    o.start(st);
+    o.stop(st + 1.1);
+    allNodes.push(g, o);
+  });
+
+  // ── Layer 4: Soft kick pulse every ~0.88s ─────────────────────────────────
+  for (let i = 0; i < 4; i++) {
+    const st = t + 0.44 + i * 0.88;
+    const g = ac.createGain();
+    g.gain.setValueAtTime(0.22, st);
+    g.gain.exponentialRampToValueAtTime(0.0001, st + 0.28);
+    g.connect(dry);
+    const o = ac.createOscillator();
+    o.type = "sine";
+    o.frequency.setValueAtTime(120, st);
+    o.frequency.exponentialRampToValueAtTime(40, st + 0.18);
+    o.connect(g);
+    o.start(st);
+    o.stop(st + 0.3);
+    allNodes.push(g, o);
+  }
+
+  // ── Rising outro — ascending arpeggio at ~3s ──────────────────────────────
+  [261.6, 329.6, 392.0, 523.3, 659.3, 784.0, 1046.5].forEach((f, i) => {
+    const st = t + 3.0 + i * 0.09;
+    const g = ac.createGain();
+    g.gain.setValueAtTime(0, st);
+    g.gain.linearRampToValueAtTime(0.15 - i * 0.012, st + 0.008);
+    g.gain.exponentialRampToValueAtTime(0.0001, st + 0.5 + i * 0.05);
+    g.connect(rev);
+    const o = ac.createOscillator();
+    o.type = "sine";
+    o.frequency.value = f;
+    o.connect(g);
+    o.start(st);
+    o.stop(st + 0.7);
+    allNodes.push(g, o);
+  });
+
+  // Returns a fade-out stop function
+  return function stopSplashMusic() {
+    try {
+      const now = ac.currentTime;
+      master.gain.cancelScheduledValues(now);
+      master.gain.setValueAtTime(master.gain.value, now);
+      master.gain.linearRampToValueAtTime(0, now + 0.45);
+    } catch {/* ignore */}
+  };
+}

@@ -2,31 +2,43 @@
 
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { playSound } from "@/hooks/useSFX";
+import { playSound, playSplashMusic } from "@/hooks/useSFX";
 
 const SPLASH_KEY = "postlain_splashed_v4";
 
+// Detect mobile/low-power devices to reduce animation cost
+function isMobile() {
+  if (typeof window === "undefined") return false;
+  return window.innerWidth < 768 || /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+}
+
 // ─── Sub-components ──────────────────────────────────────────────────────────
 
-function FloatOrb({ x, y, size, color, delay, blur }: {
-  x: string; y: string; size: number; color: string; delay: number; blur: number;
+function FloatOrb({ x, y, size, color, delay, blur, mobile }: {
+  x: string; y: string; size: number; color: string; delay: number; blur: number; mobile: boolean;
 }) {
+  // On mobile: no filter blur (GPU killer), simpler opacity animation
   return (
     <motion.div
       style={{
-        position: "absolute", left: x, top: y, width: size, height: size,
+        position: "absolute", left: x, top: y,
+        width: mobile ? size * 0.75 : size,
+        height: mobile ? size * 0.75 : size,
         borderRadius: "50%", pointerEvents: "none",
         background: `radial-gradient(circle at 30% 30%, ${color}, transparent 70%)`,
-        filter: `blur(${blur}px)`,
+        filter: mobile ? "none" : `blur(${blur}px)`,
+        willChange: "opacity",
       }}
-      initial={{ opacity: 0, scale: 0.6 }}
-      animate={{
+      initial={{ opacity: 0 }}
+      animate={mobile ? {
+        opacity: [0, 0.35, 0.15, 0.30, 0],
+      } : {
         opacity: [0, 0.55, 0.30, 0.50, 0.20, 0.45, 0],
         scale:   [0.6, 1.1, 0.9, 1.2, 0.95, 1.05, 0.7],
         x: [0, 14, -8, 18, -5, 10, 0],
         y: [0, -18, 10, -25, 8, -12, 0],
       }}
-      transition={{ delay, duration: 6 + delay * 1.5, ease: "easeInOut", repeat: Infinity, repeatType: "mirror" }}
+      transition={{ delay, duration: mobile ? 4 : 6 + delay * 1.5, ease: "easeInOut", repeat: Infinity, repeatType: "mirror" }}
     />
   );
 }
@@ -89,6 +101,8 @@ function HexGrid() {
 export default function SplashScreen() {
   const [visible, setVisible] = useState(false);
   const [phase, setPhase] = useState<"in" | "hold" | "out">("in");
+  const [exiting, setExiting] = useState(false);
+  const [mobile] = useState(() => isMobile());
 
   useEffect(() => {
     const alreadySplashed = sessionStorage.getItem(SPLASH_KEY);
@@ -96,11 +110,25 @@ export default function SplashScreen() {
     sessionStorage.setItem(SPLASH_KEY, "1");
     setVisible(true);
 
+    // Start ambient music after tiny delay (AudioContext needs user gesture on iOS — best effort)
+    let stopMusic: (() => void) | null = null;
+    const tMusic = setTimeout(() => {
+      stopMusic = playSplashMusic();
+    }, 80);
+
     const tBoot = setTimeout(() => playSound("boot"), 120);
     const t1 = setTimeout(() => setPhase("hold"), 900);
-    const t2 = setTimeout(() => setPhase("out"), 3200);
-    const t3 = setTimeout(() => setVisible(false), 3800);
-    return () => { clearTimeout(tBoot); clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
+    const t2 = setTimeout(() => {
+      setPhase("out");
+      setExiting(true);
+      stopMusic?.();
+    }, 3200);
+    const t3 = setTimeout(() => setVisible(false), 3900);
+    return () => {
+      clearTimeout(tMusic); clearTimeout(tBoot);
+      clearTimeout(t1); clearTimeout(t2); clearTimeout(t3);
+      stopMusic?.();
+    };
   }, []);
 
   const orbs = [
@@ -117,9 +145,18 @@ export default function SplashScreen() {
       {visible && (
         <motion.div
           key="splash"
-          initial={{ opacity: 1 }}
-          exit={{ opacity: 0, scale: 0.96 }}
-          transition={{ duration: 0.55, ease: [0.4, 0, 0.2, 1] }}
+          initial={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
+          exit={mobile ? {
+            opacity: 0,
+            scale: 1.06,
+            y: -20,
+          } : {
+            opacity: 0,
+            scale: 1.18,
+            filter: "blur(22px) brightness(2.5)",
+            y: -40,
+          }}
+          transition={{ duration: mobile ? 0.45 : 0.65, ease: [0.55, 0, 1, 0.45] }}
           style={{
             position: "fixed", inset: 0, zIndex: 99999,
             display: "flex", flexDirection: "column",
@@ -128,25 +165,40 @@ export default function SplashScreen() {
             background: "#03070f",
           }}
         >
+          {/* Exit burst — white flash overlay */}
+          {exiting && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: [0, 0.85, 0] }}
+              transition={{ duration: 0.55, ease: "easeOut", times: [0, 0.25, 1] }}
+              style={{
+                position: "absolute", inset: 0, zIndex: 100,
+                background: "radial-gradient(ellipse at 50% 50%, rgba(255,255,255,0.95) 0%, rgba(201,165,90,0.5) 40%, transparent 70%)",
+                pointerEvents: "none",
+              }}
+            />
+          )}
           {/* ── Deep space gradient base ── */}
           <div style={{
             position: "absolute", inset: 0,
             background: "radial-gradient(ellipse 120% 80% at 50% 50%, #070f24 0%, #03070f 65%)",
           }} />
 
-          {/* ── Floating orbs ── */}
-          {orbs.map((o, i) => <FloatOrb key={i} {...o} />)}
+          {/* ── Floating orbs — fewer on mobile ── */}
+          {(mobile ? orbs.slice(0, 3) : orbs).map((o, i) => (
+            <FloatOrb key={i} {...o} mobile={mobile} />
+          ))}
 
-          {/* ── Grid overlay ── */}
-          <HexGrid />
+          {/* ── Grid overlay — skip on mobile ── */}
+          {!mobile && <HexGrid />}
 
-          {/* ── Scan line ── */}
-          <ScanLine />
+          {/* ── Scan line — skip on mobile ── */}
+          {!mobile && <ScanLine />}
 
-          {/* ── Data streams ── */}
-          <DataStream x="7%"  delay={0.5} />
-          <DataStream x="88%" delay={1.2} />
-          <DataStream x="22%" delay={2.0} />
+          {/* ── Data streams — skip on mobile ── */}
+          {!mobile && <DataStream x="7%"  delay={0.5} />}
+          {!mobile && <DataStream x="88%" delay={1.2} />}
+          {!mobile && <DataStream x="22%" delay={2.0} />}
 
           {/* ── Corner brackets ── */}
           {[
@@ -170,12 +222,12 @@ export default function SplashScreen() {
             transition={{ duration: 0.75, ease: [0.34, 1.56, 0.64, 1] }}
             style={{ position: "relative", zIndex: 3, display: "flex", flexDirection: "column", alignItems: "center" }}
           >
-            {/* Three concentric rings */}
-            {[
+            {/* Three concentric rings — fewer on mobile */}
+            {(mobile ? [{ r: 82, opacity: 0.18, sw: 1, delay: 0.3, dur: 2.5 }] : [
               { r: 160, opacity: 0.05, sw: 1, delay: 0.9, dur: 3.2 },
               { r: 118, opacity: 0.10, sw: 1, delay: 0.6, dur: 2.8 },
               { r: 82,  opacity: 0.18, sw: 1, delay: 0.3, dur: 2.5 },
-            ].map((ring, ri) => (
+            ]).map((ring, ri) => (
               <motion.div key={ri}
                 style={{
                   position: "absolute", top: "50%", left: "50%",
@@ -190,7 +242,7 @@ export default function SplashScreen() {
               />
             ))}
 
-            {/* Spinning conic arc */}
+            {/* Spinning conic arc — no blur on mobile */}
             <motion.div
               animate={{ rotate: 360 }}
               transition={{ duration: 5, repeat: Infinity, ease: "linear" }}
@@ -198,13 +250,14 @@ export default function SplashScreen() {
                 position: "absolute", width: 152, height: 152,
                 borderRadius: "50%",
                 background: "conic-gradient(from 0deg, transparent 0%, rgba(201,165,90,0.55) 18%, transparent 35%, rgba(14,165,233,0.40) 65%, transparent 80%)",
-                filter: "blur(1.5px)",
+                filter: mobile ? "none" : "blur(1.5px)",
                 top: "50%", left: "50%",
                 transform: "translate(-50%, -50%)",
               }}
             />
 
-            {/* Reverse spin arc */}
+            {/* Reverse spin arc — desktop only */}
+            {!mobile && (
             <motion.div
               animate={{ rotate: -360 }}
               transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
@@ -217,6 +270,7 @@ export default function SplashScreen() {
                 transform: "translate(-50%, -50%)",
               }}
             />
+            )}
 
             {/* Static ring */}
             <div style={{

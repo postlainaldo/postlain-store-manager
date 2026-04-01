@@ -695,6 +695,7 @@ function PickerContent({
   assignedIds: Set<string>; accentColor: string; placed: number; total: number;
   onClose?: () => void;
 }) {
+  const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
   return (
     <>
       {onClose && (
@@ -768,8 +769,8 @@ function PickerContent({
           return (
             <motion.button key={p.id}
               onClick={() => onSelect(isSelected ? null : p.id)}
-              whileHover={{ scale: 1.01 }}
-              whileTap={{ scale: 0.99 }}
+              whileHover={isMobile ? undefined : { scale: 1.01 }}
+              whileTap={isMobile ? undefined : { scale: 0.99 }}
               style={{
                 display: "flex", alignItems: "center", gap: 8, padding: "8px 10px",
                 borderRadius: 12, cursor: "pointer",

@@ -6,7 +6,7 @@ import { useStore } from "@/store/useStore";
 import {
   DollarSign, Eye, Package, Layers,
   ArrowRight, RefreshCw,
-  TrendingUp, Activity,
+  TrendingUp, Target, Trophy, Users,
 } from "lucide-react";
 import AdminNotifyPanel from "@/components/AdminNotifyPanel";
 import Link from "next/link";
@@ -24,8 +24,6 @@ type Movement = {
   byUser: string;
   createdAt: string;
 };
-
-type PalexyDay = { date: string; visits: number };
 
 // ─── Config ──────────────────────────────────────────────────────────────────
 
@@ -56,11 +54,6 @@ function timeAgo(iso: string) {
   const h = Math.floor(m / 60);
   if (h < 24) return `${h}h trước`;
   return `${Math.floor(h / 24)}d trước`;
-}
-
-function daysBack(n: number): string {
-  const d = new Date(); d.setDate(d.getDate() - n);
-  return d.toISOString().slice(0, 10);
 }
 
 // ─── Floating orb background ──────────────────────────────────────────────────
@@ -119,150 +112,209 @@ function Sparkline({ data, color, height = 32 }: { data: number[]; color: string
   );
 }
 
-// ─── Palexy analytics panel ───────────────────────────────────────────────────
+// ─── KPI Store Target Widget ─────────────────────────────────────────────────
 
-function PalexyWidget() {
-  const [days, setDays] = useState<PalexyDay[]>([]);
+type StaffRow = { advisorName: string; advisorId: number; orders: number; qty: number; revenue: number; lines: number; byGroup: { group: string; revenue: number; qty: number }[] };
+
+function KpiWidget() {
+  const { kpiStoreTarget, kpiIndividualTargets, users } = useStore();
+  const [rows, setRows] = useState<StaffRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const DOW = ["CN","T2","T3","T4","T5","T6","T7"];
+  const curMonth = new Date().toISOString().slice(0, 7);
 
   useEffect(() => {
-    (async () => {
-      setLoading(true);
-      const today = new Date().toISOString().slice(0, 10);
-      const dates = Array.from({ length: 7 }, (_, i) => daysBack(6 - i)).filter(d => d <= today);
-      const results: PalexyDay[] = [];
-      await Promise.all(dates.map(async (date) => {
-        try {
-          const r = await fetch(`/api/palexy?date=${date}`).then(x => x.json());
-          if (r.ok && r.traffic != null) results.push({ date, visits: r.traffic });
-        } catch {/* ignore */}
-      }));
-      results.sort((a, b) => a.date.localeCompare(b.date));
-      setDays(results);
-      setLoading(false);
-    })();
-  }, []);
+    setLoading(true);
+    fetch(`/api/odoo/advisor-sales?month=${curMonth}`)
+      .then(r => r.json())
+      .then(d => { if (Array.isArray(d?.rows)) setRows(d.rows); })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [curMonth]);
 
-  const visits = days.map(d => d.visits);
-  const maxV = Math.max(...visits, 1);
-  const avgVisits = visits.length ? Math.round(visits.reduce((s, v) => s + v, 0) / visits.length) : 0;
-  const last = visits[visits.length - 1] ?? 0;
-  const prev = visits[visits.length - 2] ?? 0;
-  const trend = prev > 0 ? ((last - prev) / prev) * 100 : 0;
+  const totalRev = rows.reduce((s, r) => s + r.revenue, 0);
+  const storePct = kpiStoreTarget > 0 ? Math.round(totalRev / kpiStoreTarget * 100) : null;
+  const remaining = kpiStoreTarget > 0 ? Math.max(0, kpiStoreTarget - totalRev) : 0;
 
-  const insights: { type: "warn" | "good" | "tip" | "info"; text: string }[] = [];
-  if (avgVisits > 0) {
-    if (last < avgVisits * 0.7)
-      insights.push({ type: "warn", text: `Traffic hôm qua (${fmt(last)}) thấp hơn TB tuần ${Math.round((1 - last/avgVisits)*100)}%. Tăng cường thu hút khách trước cửa.` });
-    else if (last > avgVisits * 1.2)
-      insights.push({ type: "good", text: `Traffic hôm qua (${fmt(last)}) cao hơn TB tuần ${Math.round((last/avgVisits-1)*100)}%. Đảm bảo đủ nhân lực phục vụ.` });
-    else
-      insights.push({ type: "info", text: `Traffic ổn định ~${fmt(avgVisits)} khách/ngày. Tập trung nâng conversion rate.` });
-  }
-  if (days.length >= 5) {
-    const we = days.filter(d => [0,6].includes(new Date(d.date+"T12:00:00").getDay()));
-    const wd = days.filter(d => ![0,6].includes(new Date(d.date+"T12:00:00").getDay()));
-    const weA = we.length ? we.reduce((s,d)=>s+d.visits,0)/we.length : 0;
-    const wdA = wd.length ? wd.reduce((s,d)=>s+d.visits,0)/wd.length : 0;
-    if (weA > wdA * 1.25 && we.length > 0)
-      insights.push({ type: "tip", text: `Cuối tuần đông hơn ngày thường ${Math.round((weA/wdA-1)*100)}%. Cân nhắc tăng ca T7–CN.` });
-  }
-  if (insights.length === 0 && !loading)
-    insights.push({ type: "info", text: "Chưa đủ dữ liệu Palexy để phân tích xu hướng tuần này." });
+  const fmtM = (n: number) => n >= 1e9 ? `${(n/1e9).toFixed(1)}T` : n >= 1e6 ? `${(n/1e6).toFixed(1)}M` : n >= 1e3 ? `${Math.round(n/1e3)}K` : String(Math.round(n));
+
+  // Per-person progress
+  const staffWithTarget = rows.map(row => {
+    const matched = users.find(u => {
+      const uN = u.name.toLowerCase(); const rN = row.advisorName.toLowerCase();
+      return uN === rN || uN.includes(rN) || rN.includes(uN);
+    });
+    const target = matched ? (kpiIndividualTargets[matched.id] ?? 0) : 0;
+    const pct = target > 0 ? Math.round(row.revenue / target * 100) : null;
+    return { ...row, target, pct, matchedId: matched?.id };
+  }).sort((a, b) => (b.pct ?? -1) - (a.pct ?? -1));
+
+  const pctColor = (p: number | null) =>
+    p == null ? "#64748b" : p >= 100 ? "#C9A55A" : p >= 80 ? "#10b981" : p >= 60 ? "#0ea5e9" : p >= 40 ? "#f59e0b" : "#ef4444";
+
+  const storeBarColor = storePct == null ? "#0ea5e9"
+    : storePct >= 100 ? "#C9A55A" : storePct >= 80 ? "#10b981" : storePct >= 60 ? "#0ea5e9" : "#f59e0b";
+
+  const [mn, yr] = [new Date().getMonth() + 1, new Date().getFullYear()];
+  const daysInMonth = new Date(yr, mn, 0).getDate();
+  const dayOfMonth = new Date().getDate();
+  const timeProgress = Math.round(dayOfMonth / daysInMonth * 100);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div>
           <p style={{ fontSize: 8.5, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.2em" }}>
-            Traffic Khách — Hôm Qua
+            KPI Target Cửa Hàng
           </p>
-          {avgVisits > 0 && (
-            <p style={{ fontSize: 10, color: "var(--text-secondary)", marginTop: 3 }}>
-              TB {fmt(avgVisits)}/ngày
-              {trend !== 0 && (
-                <span style={{ marginLeft: 8, fontWeight: 700, color: trend > 0 ? "#16a34a" : "#dc2626" }}>
-                  {trend > 0 ? "▲" : "▼"} {Math.abs(trend).toFixed(1)}%
-                </span>
-              )}
-            </p>
-          )}
+          <p style={{ fontSize: 10, color: "var(--text-secondary)", marginTop: 2 }}>
+            Tháng {mn}/{yr} · Ngày {dayOfMonth}/{daysInMonth}
+          </p>
         </div>
-        <Activity size={15} color="var(--blue)" strokeWidth={1.5} />
+        <Target size={15} color="#C9A55A" strokeWidth={1.5} />
       </div>
 
       {loading ? (
-        <div className="skeleton" style={{ height: 80, borderRadius: 8 }} />
-      ) : days.length === 0 ? (
-        <p style={{ fontSize: 11, color: "var(--text-muted)", textAlign: "center", padding: "16px 0" }}>Chưa có dữ liệu Palexy</p>
+        <div className="skeleton" style={{ height: 90, borderRadius: 10 }} />
+      ) : kpiStoreTarget === 0 ? (
+        <div style={{ textAlign: "center", padding: "18px 0", display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
+          <Target size={22} style={{ color: "var(--text-muted)", opacity: 0.4 }} strokeWidth={1} />
+          <p style={{ fontSize: 11, color: "var(--text-muted)" }}>Chưa đặt Target tháng này</p>
+          <p style={{ fontSize: 9, color: "var(--text-muted)", opacity: 0.7 }}>Vào Hồ Sơ → Cài Đặt để thiết lập KPI Target</p>
+        </div>
       ) : (
         <>
-          {/* Bar chart */}
-          <div style={{ display: "flex", alignItems: "flex-end", gap: 5, height: 64 }}>
-            {days.map((d, i) => {
-              const h = Math.max(4, Math.round((d.visits / maxV) * 54));
-              const dow = new Date(d.date + "T12:00:00").getDay();
-              const isWknd = dow === 0 || dow === 6;
-              const isYesterday = d.date === daysBack(1);
-              return (
-                <div key={d.date} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
-                  <motion.div
-                    initial={{ scaleY: 0, originY: 1 }}
-                    animate={{ scaleY: 1 }}
-                    transition={{ delay: 0.1 + i * 0.07, duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-                    title={`${d.date}: ${fmt(d.visits)} khách`}
-                    style={{
-                      width: "100%", height: h, borderRadius: "4px 4px 2px 2px",
-                      background: isYesterday
-                        ? "linear-gradient(180deg, var(--gold) 0%, rgba(201,165,90,0.45) 100%)"
-                        : isWknd
-                          ? "linear-gradient(180deg, var(--blue) 0%, rgba(14,165,233,0.4) 100%)"
-                          : "linear-gradient(180deg, #7c3aed 0%, rgba(124,58,237,0.35) 100%)",
-                      boxShadow: isYesterday ? "0 0 10px rgba(201,165,90,0.3)" : "none",
-                    }}
-                  />
-                  <span style={{ fontSize: 8, color: isYesterday ? "var(--gold)" : "var(--text-muted)", fontWeight: isYesterday ? 700 : 400 }}>
-                    {DOW[dow]}
-                  </span>
-                </div>
-              );
-            })}
+          {/* Big store progress */}
+          <div style={{
+            padding: "14px 16px", borderRadius: 12,
+            background: `linear-gradient(135deg, ${storeBarColor}10 0%, ${storeBarColor}05 100%)`,
+            border: `1px solid ${storeBarColor}28`,
+          }}>
+            <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: 8 }}>
+              <div>
+                <span style={{ fontSize: 26, fontWeight: 800, color: "var(--text-primary)", lineHeight: 1 }}>
+                  {storePct ?? "—"}
+                </span>
+                <span style={{ fontSize: 12, color: storeBarColor, fontWeight: 700, marginLeft: 4 }}>%</span>
+                <p style={{ fontSize: 9, color: "var(--text-muted)", marginTop: 2 }}>
+                  {fmtM(totalRev)} / {fmtM(kpiStoreTarget)}
+                </p>
+              </div>
+              <div style={{ textAlign: "right" }}>
+                {remaining > 0 && (
+                  <p style={{ fontSize: 9, color: "var(--text-secondary)" }}>Còn <span style={{ fontWeight: 700, color: storeBarColor }}>{fmtM(remaining)}</span></p>
+                )}
+                <p style={{ fontSize: 8, color: "var(--text-muted)", marginTop: 2 }}>Thời gian: {timeProgress}%</p>
+              </div>
+            </div>
+
+            {/* Store progress bar */}
+            <div style={{ position: "relative", height: 8, borderRadius: 4, background: "rgba(0,0,0,0.07)", overflow: "hidden" }}>
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: `${Math.min(100, storePct ?? 0)}%` }}
+                transition={{ duration: 1.0, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
+                style={{
+                  height: "100%", borderRadius: 4,
+                  background: `linear-gradient(90deg, ${storeBarColor}cc, ${storeBarColor})`,
+                  boxShadow: `0 0 8px ${storeBarColor}60`,
+                }}
+              />
+              {/* Time marker */}
+              <div style={{
+                position: "absolute", top: 0, bottom: 0, left: `${timeProgress}%`,
+                width: 1.5, background: "rgba(0,0,0,0.18)", borderRadius: 1,
+              }} />
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
+              <span style={{ fontSize: 7.5, color: "var(--text-muted)" }}>0</span>
+              <span style={{ fontSize: 7.5, color: "var(--text-muted)", position: "absolute", left: `${timeProgress}%`, transform: "translateX(-50%)", marginTop: 2 }}>
+                ▲ Hôm nay
+              </span>
+              <span style={{ fontSize: 7.5, color: "var(--text-muted)" }}>{fmtM(kpiStoreTarget)}</span>
+            </div>
           </div>
-          {/* Sparkline trend */}
-          <div style={{ marginTop: -8, opacity: 0.7 }}>
-            <Sparkline data={visits} color="var(--blue)" height={28} />
+
+          {/* Sparkline — daily-equivalent projection */}
+          {totalRev > 0 && (
+            <div style={{ marginTop: -4, opacity: 0.75 }}>
+              <Sparkline
+                data={[0, totalRev * 0.08, totalRev * 0.22, totalRev * 0.38, totalRev * 0.55, totalRev * 0.72, totalRev * 0.88, totalRev]}
+                color={storeBarColor} height={28}
+              />
+            </div>
+          )}
+
+          {/* Per-staff mini bars */}
+          {staffWithTarget.length > 0 && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+              <p style={{ fontSize: 8, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.16em" }}>
+                Cá Nhân
+              </p>
+              {staffWithTarget.slice(0, 5).map((s, i) => {
+                const c = pctColor(s.pct);
+                return (
+                  <motion.div key={s.advisorId}
+                    initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.3 + i * 0.07 }}
+                    style={{ display: "flex", alignItems: "center", gap: 8 }}
+                  >
+                    <div style={{
+                      width: 22, height: 22, borderRadius: "50%", flexShrink: 0,
+                      background: `${c}18`, border: `1.5px solid ${c}40`,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                    }}>
+                      <span style={{ fontSize: 8, fontWeight: 800, color: c }}>
+                        {s.advisorName.split(" ").pop()?.slice(0, 2).toUpperCase() ?? "??"}
+                      </span>
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 2 }}>
+                        <span style={{ fontSize: 9, fontWeight: 600, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "55%" }}>
+                          {s.advisorName.split(" ").slice(-2).join(" ")}
+                        </span>
+                        <span style={{ fontSize: 9, fontWeight: 700, color: c, flexShrink: 0 }}>
+                          {s.pct != null ? `${s.pct}%` : fmtM(s.revenue)}
+                        </span>
+                      </div>
+                      <div style={{ height: 4, borderRadius: 2, background: "rgba(0,0,0,0.06)", overflow: "hidden" }}>
+                        <motion.div
+                          initial={{ width: 0 }}
+                          animate={{ width: `${Math.min(100, s.pct ?? (s.target > 0 ? 0 : 50))}%` }}
+                          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1], delay: 0.4 + i * 0.07 }}
+                          style={{ height: "100%", borderRadius: 2, background: `linear-gradient(90deg, ${c}99, ${c})` }}
+                        />
+                      </div>
+                    </div>
+                    <div style={{ flexShrink: 0, display: "flex", gap: 6 }}>
+                      <span style={{ fontSize: 8, color: "var(--text-muted)" }}>{s.orders}đơn</span>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Summary chips */}
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: -4 }}>
+            {[
+              { icon: Trophy, label: `${rows.filter((_,i) => (staffWithTarget[i]?.pct ?? 0) >= 100).length} đạt 100%`, color: "#C9A55A" },
+              { icon: Users, label: `${rows.length} NV`, color: "#0ea5e9" },
+              { icon: TrendingUp, label: `${fmtM(totalRev / Math.max(1, rows.length))}/NV`, color: "#10b981" },
+            ].map((chip, i) => (
+              <div key={i} style={{
+                display: "flex", alignItems: "center", gap: 4,
+                padding: "3px 8px", borderRadius: 8,
+                background: `${chip.color}0e`, border: `1px solid ${chip.color}25`,
+              }}>
+                <chip.icon size={9} style={{ color: chip.color }} />
+                <span style={{ fontSize: 8.5, fontWeight: 600, color: chip.color }}>{chip.label}</span>
+              </div>
+            ))}
           </div>
         </>
       )}
-
-      {/* Insights */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-        {insights.map((ins, i) => (
-          <motion.div key={i}
-            initial={{ opacity: 0, x: -6 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.5 + i * 0.1 }}
-            style={{
-              display: "flex", alignItems: "flex-start", gap: 8,
-              padding: "8px 10px", borderRadius: 8,
-              background: ins.type === "warn" ? "rgba(220,38,38,0.04)"
-                : ins.type === "good" ? "rgba(22,163,74,0.05)"
-                : ins.type === "tip" ? "rgba(14,165,233,0.05)"
-                : "var(--bg-surface)",
-              border: `1px solid ${ins.type === "warn" ? "rgba(220,38,38,0.15)"
-                : ins.type === "good" ? "rgba(22,163,74,0.15)"
-                : ins.type === "tip" ? "rgba(14,165,233,0.15)"
-                : "var(--border-subtle)"}`,
-            }}>
-            <span style={{ fontSize: 12, flexShrink: 0, marginTop: 1 }}>
-              {ins.type === "warn" ? "⚠️" : ins.type === "good" ? "✅" : ins.type === "tip" ? "💡" : "ℹ️"}
-            </span>
-            <p style={{ fontSize: 11, color: "var(--text-secondary)", lineHeight: 1.55, margin: 0 }}>{ins.text}</p>
-          </motion.div>
-        ))}
-      </div>
     </div>
   );
 }
@@ -462,7 +514,7 @@ export default function OverviewPage() {
               boxShadow: cardShadow,
             }}
           >
-            <PalexyWidget />
+            <KpiWidget />
           </motion.div>
 
           {isAdmin ? (

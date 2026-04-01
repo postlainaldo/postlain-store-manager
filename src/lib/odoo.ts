@@ -333,7 +333,7 @@ export async function fetchAdvisorSales(dateFrom: string, dateTo: string): Promi
   let offset = 0;
   while (true) {
     const page = await execute(cookie, "pos.order.line", "search_read", [domain], {
-      fields: ["id", "order_id", "product_id", "x_advisor", "qty", "price_subtotal_incl", "is_program_reward"],
+      fields: ["id", "order_id", "product_id", "x_advisor", "qty", "price_unit", "discount", "price_subtotal_incl", "is_program_reward"],
       limit: PAGE, offset, order: "id asc",
     }) as (OdooPosOrderLine & { product_id: [number, string] | false })[];
     if (!page?.length) break;
@@ -376,6 +376,9 @@ export async function fetchAdvisorSales(dateFrom: string, dateTo: string): Promi
     const orderId = Array.isArray(line.order_id) ? (line.order_id as [number, string])[0] : 0;
     const productId = Array.isArray(line.product_id) ? (line.product_id as [number, string])[0] : 0;
     const group = productGroupMap.get(productId) ?? "Undefined";
+    // price_subtotal_incl is qty*price_unit*(1-discount/100)*tax_factor in Odoo POS.
+    // For VN stores with 0% VAT on retail, this equals the discounted price directly.
+    // We use it as-is since it already incorporates discount.
     const rev = line.price_subtotal_incl ?? 0;
     const qty = line.qty ?? 0;
 

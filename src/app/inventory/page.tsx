@@ -349,7 +349,7 @@ function ListView() {
         {/* Search */}
         <div style={{
           display: "flex", alignItems: "center", gap: 8, flex: "1 1 200px",
-          background: cardBg, backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)",
+          background: cardBg, backdropFilter: isMobile ? "none" : "blur(10px)", WebkitBackdropFilter: isMobile ? "none" : "blur(10px)",
           border: `1px solid ${cardBorder}`, borderRadius: 12,
           padding: "0 12px", height: 38,
           boxShadow: "0 2px 8px rgba(12,26,46,0.05)",
@@ -462,7 +462,7 @@ function ListView() {
               display: "flex", flexDirection: "column", gap: 10,
               padding: "14px 16px", borderRadius: 14,
               background: "rgba(255,255,255,0.88)", border: "1px solid rgba(186,230,253,0.55)",
-              backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)",
+              backdropFilter: isMobile ? "none" : "blur(12px)", WebkitBackdropFilter: isMobile ? "none" : "blur(12px)",
               boxShadow: "0 2px 12px rgba(12,26,46,0.05)",
             }}>
               {/* Row 1: Tồn kho + Vị trí */}
@@ -874,7 +874,6 @@ function ListView() {
             <div key={p.id} style={{
               borderRadius: 12,
               background: cardBg,
-              backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)",
               border: `1px solid ${cardBorder}`, padding: "12px 14px",
               display: "flex", alignItems: "flex-start", gap: 12,
               boxShadow: "0 2px 10px rgba(12,26,46,0.06), inset 0 1px 0 rgba(255,255,255,0.7)",

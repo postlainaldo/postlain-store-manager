@@ -10,6 +10,18 @@ import { useSFX, type SFXName } from "@/hooks/useSFX";
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
+// Random idle animation variants — each icon gets a unique float pattern
+const IDLE_FLOATS = [
+  { y: [0, -5, 2, -3, 0], x: [0, 2, -1, 1, 0], rotate: [0, 2, -1, 0.5, 0], dur: 3.8 },
+  { y: [0, -3, 4, -2, 0], x: [0, -2, 1, -1, 0], rotate: [0, -1.5, 2, -0.5, 0], dur: 4.2 },
+  { y: [0, -6, 1, -4, 0], x: [0, 1, -2, 0.5, 0], rotate: [0, 1, -2, 1, 0], dur: 3.5 },
+  { y: [0, -2, 5, -1, 0], x: [0, -1, 2, -2, 0], rotate: [0, -2, 1, -1, 0], dur: 4.5 },
+  { y: [0, -4, 2, -5, 0], x: [0, 2, -1, 2, 0], rotate: [0, 0.5, -2, 1.5, 0], dur: 3.2 },
+  { y: [0, -3, 3, -2, 0], x: [0, -1, 3, -1, 0], rotate: [0, 1.5, -1, 2, 0], dur: 4.8 },
+  { y: [0, -5, 1, -3, 0], x: [0, 1, -3, 1, 0], rotate: [0, -1, 2, -1.5, 0], dur: 3.6 },
+  { y: [0, -2, 4, -3, 0], x: [0, -2, 1, 2, 0], rotate: [0, 2, -0.5, -1, 0], dur: 4.1 },
+];
+
 // Per-nav-item distinct sound assignments
 const NAV_SOUNDS: Record<string, SFXName> = {
   "overview":     "navigate",
@@ -151,33 +163,57 @@ export default function BottomNav() {
             const isFlash  = flashId === item.id;
             const flashV   = FLASH_VARIANTS[i % FLASH_VARIANTS.length];
 
+            const float = IDLE_FLOATS[i % IDLE_FLOATS.length];
+
             return (
+              // Outer: spring to arc position + flash scale
               <motion.div
                 key={item.id}
                 initial={{ x: 0, y: 0, scale: 0.25, opacity: 0 }}
                 animate={{
-                  x, y, scale: isFlash ? flashV.scale : 1, opacity: 1,
+                  x, y,
+                  scale: isFlash ? flashV.scale : 1,
+                  opacity: 1,
                 }}
                 exit={{ x: 0, y: 0, scale: 0.25, opacity: 0 }}
                 transition={{
                   type: "spring",
                   damping: 22,
                   stiffness: 340,
-                  delay: open ? i * 0.04 : (arcItems.length - 1 - i) * 0.02,
-                  scale: isFlash ? { duration: 0.25, ease: "easeOut", times: [0, 0.5, 1] } : undefined,
+                  delay: i * 0.04,
+                  scale: isFlash
+                    ? { duration: 0.25, ease: "easeOut", times: [0, 0.5, 1] }
+                    : { type: "spring", damping: 22, stiffness: 340 },
+                  opacity: { duration: 0.18 },
                 }}
                 style={{
                   position: "absolute",
                   bottom: 0, left: "50%",
                   marginLeft: -27,
                   marginBottom: -27,
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  gap: 6,
                   width: 54,
                 }}
               >
+                {/* Inner: continuous idle float when open and not flashing */}
+                <motion.div
+                  animate={isFlash ? { x: 0, y: 0, rotate: 0 } : {
+                    x: float.x,
+                    y: float.y,
+                    rotate: float.rotate,
+                  }}
+                  transition={isFlash ? { duration: 0.1 } : {
+                    x: { duration: float.dur, repeat: Infinity, ease: "easeInOut", repeatType: "loop" },
+                    y: { duration: float.dur, repeat: Infinity, ease: "easeInOut", repeatType: "loop" },
+                    rotate: { duration: float.dur * 1.15, repeat: Infinity, ease: "easeInOut", repeatType: "loop" },
+                  }}
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    gap: 6,
+                    width: 54,
+                  }}
+                >
                 {/* Glass pill background — continuous shimmer sweep */}
                 <motion.div
                   animate={{
@@ -279,6 +315,7 @@ export default function BottomNav() {
                     {item.label}
                   </span>
                 </div>
+                </motion.div>{/* /inner float */}
               </motion.div>
             );
           })}
@@ -288,8 +325,16 @@ export default function BottomNav() {
         <motion.button
           ref={orbRef}
           onClick={() => { sfx(open ? "modalClose" : "tap"); setOpen(v => !v); }}
-          animate={{ rotate: open ? 45 : 0 }}
-          transition={{ type: "spring", damping: 18, stiffness: 280 }}
+          animate={{
+            rotate: open ? 45 : 0,
+            y: open ? 0 : [0, -4, 1, -2, 0],
+            scale: open ? 1 : [1, 1.03, 0.99, 1.02, 1],
+          }}
+          transition={{
+            rotate: { type: "spring", damping: 18, stiffness: 280 },
+            y: open ? { duration: 0.2 } : { duration: 4.0, repeat: Infinity, ease: "easeInOut" },
+            scale: open ? { duration: 0.2 } : { duration: 4.0, repeat: Infinity, ease: "easeInOut" },
+          }}
           style={{
             position: "relative",
             width: 68, height: 68,
