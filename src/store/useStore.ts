@@ -63,6 +63,12 @@ interface StoreState {
   storeEmail: string;
   setStoreSetting: (key: "storeName" | "storeAddress" | "storePhone" | "storeEmail", value: string) => void;
 
+  // ── KPI Targets ──────────────────────────────────────────────────────────
+  kpiStoreTarget: number;
+  kpiIndividualTargets: Record<string, number>;
+  setKpiStoreTarget: (value: number) => void;
+  setKpiIndividualTarget: (userId: string, value: number) => void;
+
   // ── Notify settings ──────────────────────────────────────────────────────
   notifyLowStock: boolean;
   notifyMovement: boolean;
@@ -236,6 +242,12 @@ export const useStore = create<StoreState>()(
       storePhone: "+84 263 3822 000",
       storeEmail: "store.dalat@aldo.com",
       setStoreSetting: (key, value) => set({ [key]: value }),
+      kpiStoreTarget: 0,
+      kpiIndividualTargets: {},
+      setKpiStoreTarget: (value) => set({ kpiStoreTarget: value }),
+      setKpiIndividualTarget: (userId, value) => set(s => ({
+        kpiIndividualTargets: { ...s.kpiIndividualTargets, [userId]: value },
+      })),
       notifyLowStock: true,
       notifyMovement: true,
       notifyDaily: false,
@@ -734,6 +746,8 @@ export const useStore = create<StoreState>()(
         storeAddress: s.storeAddress,
         storePhone: s.storePhone,
         storeEmail: s.storeEmail,
+        kpiStoreTarget: s.kpiStoreTarget,
+        kpiIndividualTargets: s.kpiIndividualTargets,
         notifyLowStock: s.notifyLowStock,
         notifyMovement: s.notifyMovement,
         notifyDaily: s.notifyDaily,

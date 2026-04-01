@@ -22,17 +22,17 @@ const NAV_ITEMS = [
   { id: "profile",      label: "Hồ Sơ",     href: "/profile",      icon: UserCircle,      exact: false },
 ] as const;
 
-// Arc geometry: spread 7 items (skip active) across a 180° upper arc
-// Returns (x, y) offset in px from orb center for index i of N total items
+// Arc geometry: spread items in a semi-circle above the orb
+// Center of orb is the origin; items fan out upward
 function arcPosition(i: number, total: number): { x: number; y: number } {
-  // Arc from 200° to 340° (left-upper to upper-right), open fan
-  const startDeg = 200;
-  const endDeg   = 340;
+  // Fan from -150° to -30° (straight up = -90°), symmetric arc above orb
+  const startDeg = -150;
+  const endDeg   = -30;
   const span     = endDeg - startDeg;
   const step     = total <= 1 ? 0 : span / (total - 1);
   const deg      = startDeg + step * i;
   const rad      = (deg * Math.PI) / 180;
-  const r        = 82; // radius in px
+  const r        = 96; // radius in px — larger so labels don't overlap
   return {
     x: Math.cos(rad) * r,
     y: Math.sin(rad) * r,
@@ -112,8 +112,9 @@ export default function BottomNav() {
         className="md:hidden"
         style={{
           position: "fixed",
-          bottom: "calc(22px + env(safe-area-inset-bottom, 0px))",
-          right: 20,
+          bottom: "calc(18px + env(safe-area-inset-bottom, 0px))",
+          left: "50%",
+          transform: "translateX(-50%)",
           zIndex: 50,
         }}
       >
@@ -126,85 +127,90 @@ export default function BottomNav() {
             const isProf = item.id === "profile";
 
             return (
-              <motion.button
+              <motion.div
                 key={item.id}
-                initial={{ x: 0, y: 0, scale: 0.4, opacity: 0 }}
+                initial={{ x: 0, y: 0, scale: 0.3, opacity: 0 }}
                 animate={{ x, y, scale: 1, opacity: 1 }}
-                exit={{ x: 0, y: 0, scale: 0.4, opacity: 0 }}
+                exit={{ x: 0, y: 0, scale: 0.3, opacity: 0 }}
                 transition={{
                   type: "spring",
-                  damping: 20,
-                  stiffness: 320,
-                  delay: open ? i * 0.04 : (arcItems.length - 1 - i) * 0.025,
+                  damping: 22,
+                  stiffness: 340,
+                  delay: open ? i * 0.045 : (arcItems.length - 1 - i) * 0.025,
                 }}
-                onClick={() => handleNavigate(item.href)}
                 style={{
                   position: "absolute",
-                  bottom: 0, right: 0,
-                  width: 46, height: 46,
-                  borderRadius: "50%",
-                  border: `1.5px solid ${active ? "rgba(201,165,90,0.65)" : "rgba(255,255,255,0.12)"}`,
-                  background: active
-                    ? "linear-gradient(135deg, #0c1a2e 0%, #1a2e4a 100%)"
-                    : "rgba(15,23,42,0.90)",
-                  backdropFilter: "blur(16px)",
-                  WebkitBackdropFilter: "blur(16px)",
-                  boxShadow: active
-                    ? "0 0 0 2px rgba(201,165,90,0.28), 0 6px 20px rgba(0,0,0,0.40)"
-                    : "0 4px 16px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.06)",
-                  cursor: "pointer",
+                  bottom: 0,
+                  left: "50%",
+                  marginLeft: -27, // half of 54px
+                  marginBottom: -27,
+                  width: 54, height: 54,
                   display: "flex",
                   flexDirection: "column",
                   alignItems: "center",
-                  justifyContent: "center",
-                  gap: 2,
-                  padding: 0,
-                  transform: "translate(0,0)", // framer-motion handles actual transform
+                  gap: 5,
                 }}
               >
-                {isProf && currentUser ? (
-                  <div style={{
-                    width: 22, height: 22, borderRadius: "50%",
+                <button
+                  onClick={() => handleNavigate(item.href)}
+                  style={{
+                    width: 54, height: 54,
+                    borderRadius: "50%",
+                    border: `1.5px solid ${active ? "rgba(201,165,90,0.70)" : "rgba(255,255,255,0.14)"}`,
                     background: active
-                      ? "linear-gradient(135deg, #C9A55A, #E2C07A)"
-                      : "linear-gradient(135deg, #1e3a5f, #2d4a7a)",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    border: `1.5px solid ${active ? "rgba(201,165,90,0.6)" : "rgba(255,255,255,0.15)"}`,
-                  }}>
-                    <span style={{ fontSize: 9, fontWeight: 800, color: active ? "#0c1a2e" : "#C9A55A" }}>
-                      {currentUser.name.slice(0, 1).toUpperCase()}
-                    </span>
-                  </div>
-                ) : (
-                  <Icon
-                    size={17}
-                    strokeWidth={active ? 2.2 : 1.6}
-                    style={{
-                      color: active ? "#C9A55A" : "rgba(255,255,255,0.70)",
-                      filter: active ? "drop-shadow(0 0 5px rgba(201,165,90,0.50))" : "none",
-                    }}
-                  />
-                )}
-                {/* Label tooltip above icon */}
+                      ? "linear-gradient(135deg, #132238 0%, #1e3a5f 100%)"
+                      : "rgba(12,18,36,0.92)",
+                    backdropFilter: "blur(20px)",
+                    WebkitBackdropFilter: "blur(20px)",
+                    boxShadow: active
+                      ? "0 0 0 3px rgba(201,165,90,0.22), 0 8px 24px rgba(0,0,0,0.50)"
+                      : "0 4px 18px rgba(0,0,0,0.40), inset 0 1px 0 rgba(255,255,255,0.07)",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    padding: 0,
+                    flexShrink: 0,
+                  }}
+                >
+                  {isProf && currentUser ? (
+                    <div style={{
+                      width: 26, height: 26, borderRadius: "50%",
+                      background: active
+                        ? "linear-gradient(135deg, #C9A55A, #E2C07A)"
+                        : "linear-gradient(135deg, #1e3a5f, #2d4a7a)",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      border: `1.5px solid ${active ? "rgba(201,165,90,0.65)" : "rgba(255,255,255,0.18)"}`,
+                    }}>
+                      <span style={{ fontSize: 11, fontWeight: 800, color: active ? "#0c1a2e" : "#C9A55A" }}>
+                        {currentUser.name.slice(0, 1).toUpperCase()}
+                      </span>
+                    </div>
+                  ) : (
+                    <Icon
+                      size={20}
+                      strokeWidth={active ? 2.2 : 1.6}
+                      style={{
+                        color: active ? "#C9A55A" : "rgba(255,255,255,0.72)",
+                        filter: active ? "drop-shadow(0 0 6px rgba(201,165,90,0.55))" : "none",
+                      }}
+                    />
+                  )}
+                </button>
+                {/* Label below button — no overlap since it's outside the circle */}
                 <span style={{
-                  position: "absolute",
-                  bottom: "calc(100% + 6px)",
-                  left: "50%",
-                  transform: "translateX(-50%)",
                   fontSize: 9,
                   fontWeight: 700,
-                  color: active ? "#C9A55A" : "#94a3b8",
+                  color: active ? "#C9A55A" : "rgba(255,255,255,0.75)",
                   whiteSpace: "nowrap",
-                  background: "rgba(2,6,23,0.85)",
-                  padding: "2px 7px",
-                  borderRadius: 6,
-                  border: `1px solid ${active ? "rgba(201,165,90,0.22)" : "rgba(255,255,255,0.08)"}`,
+                  letterSpacing: "0.03em",
+                  textShadow: "0 1px 4px rgba(0,0,0,0.90)",
                   pointerEvents: "none",
-                  letterSpacing: "0.04em",
+                  lineHeight: 1,
                 }}>
                   {item.label}
                 </span>
-              </motion.button>
+              </motion.div>
             );
           })}
         </AnimatePresence>
@@ -217,7 +223,7 @@ export default function BottomNav() {
           transition={{ type: "spring", damping: 18, stiffness: 280 }}
           style={{
             position: "relative",
-            width: 58, height: 58,
+            width: 68, height: 68,
             borderRadius: "50%",
             border: "none",
             cursor: "pointer",

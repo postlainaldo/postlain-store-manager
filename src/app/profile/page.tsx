@@ -1047,10 +1047,136 @@ function VersionPanel() {
   );
 }
 
+// ─── KPI Target Panel ──────────────────────────────────────────────────────────
+
+function fmtM(n: number) {
+  if (n === 0) return "";
+  if (n >= 1e9) return `${(n/1e9).toFixed(2)}B`;
+  if (n >= 1e6) return `${(n/1e6).toFixed(1)}M`;
+  return `${Math.round(n/1e3)}K`;
+}
+
+function parseTargetInput(v: string): number {
+  const s = v.replace(/[^\d.,BMKbmk]/g, "");
+  const n = parseFloat(s.replace(",", "."));
+  if (isNaN(n)) return 0;
+  const u = s.slice(-1).toUpperCase();
+  if (u === "B") return Math.round(n * 1e9);
+  if (u === "M") return Math.round(n * 1e6);
+  if (u === "K") return Math.round(n * 1e3);
+  return Math.round(n);
+}
+
+function KpiTargetPanel({ storeTarget, individualTargets, allUsers, onSetStoreTarget, onSetIndividualTarget, cardBg, cardBorder, cardShadow }: {
+  storeTarget: number;
+  individualTargets: Record<string, number>;
+  allUsers: import("@/store/useStore").AppUser[];
+  onSetStoreTarget: (v: number) => void;
+  onSetIndividualTarget: (userId: string, v: number) => void;
+  cardBg: string; cardBorder: string; cardShadow: string;
+}) {
+  const [storeInput, setStoreInput] = useState(storeTarget > 0 ? fmtM(storeTarget) : "");
+  const [indivInputs, setIndivInputs] = useState<Record<string, string>>(() => {
+    const m: Record<string, string> = {};
+    for (const u of allUsers) m[u.id] = individualTargets[u.id] ? fmtM(individualTargets[u.id]) : "";
+    return m;
+  });
+  const [saved, setSaved] = useState(false);
+
+  const activeUsers = allUsers.filter(u => u.active && u.role !== "admin");
+
+  function handleSave() {
+    onSetStoreTarget(parseTargetInput(storeInput));
+    for (const u of activeUsers) {
+      onSetIndividualTarget(u.id, parseTargetInput(indivInputs[u.id] ?? ""));
+    }
+    playSound("save");
+    setSaved(true);
+    setTimeout(() => setSaved(false), 1800);
+  }
+
+  return (
+    <PremiumCard title="Target KPI" icon={TrendingUp} iconColor="#C9A55A" accentColor="#C9A55A">
+      <div style={{ padding: "14px 20px", display: "flex", flexDirection: "column", gap: 16 }}>
+        {/* Store target */}
+        <div>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+            <Store size={12} style={{ color: "#C9A55A" }} />
+            <span style={{ fontSize: 10, fontWeight: 700, color: "var(--text-muted)", letterSpacing: "0.1em", textTransform: "uppercase" }}>Target Cửa Hàng / Tháng</span>
+          </div>
+          <div style={{ position: "relative" }}>
+            <input
+              value={storeInput}
+              onChange={e => setStoreInput(e.target.value)}
+              placeholder="VD: 150M hoặc 150000000"
+              className="input-glow"
+              style={{ width: "100%", height: 40, padding: "0 12px", fontSize: 14, fontWeight: 700, color: "var(--text-primary)", boxSizing: "border-box" }}
+            />
+            {storeInput && parseTargetInput(storeInput) > 0 && (
+              <span style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", fontSize: 10, color: "#C9A55A", fontWeight: 700, pointerEvents: "none" }}>
+                = {fmtM(parseTargetInput(storeInput))} ₫
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Individual targets */}
+        {activeUsers.length > 0 && (
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+              <Users size={12} style={{ color: "#0ea5e9" }} />
+              <span style={{ fontSize: 10, fontWeight: 700, color: "var(--text-muted)", letterSpacing: "0.1em", textTransform: "uppercase" }}>Target Cá Nhân / Tháng</span>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {activeUsers.map(u => (
+                <div key={u.id} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div style={{ width: 30, height: 30, borderRadius: "50%", background: "linear-gradient(135deg, #0c1a2e, #1e3a5f)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, border: "1.5px solid rgba(201,165,90,0.3)" }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: "#C9A55A" }}>{u.name.slice(0,1).toUpperCase()}</span>
+                  </div>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-primary)", width: 90, flexShrink: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{u.name}</span>
+                  <div style={{ flex: 1, position: "relative" }}>
+                    <input
+                      value={indivInputs[u.id] ?? ""}
+                      onChange={e => setIndivInputs(prev => ({ ...prev, [u.id]: e.target.value }))}
+                      placeholder="VD: 50M"
+                      className="input-glow"
+                      style={{ width: "100%", height: 36, padding: "0 10px", fontSize: 12, fontWeight: 600, color: "var(--text-primary)", boxSizing: "border-box" }}
+                    />
+                    {(indivInputs[u.id] ?? "") && parseTargetInput(indivInputs[u.id]) > 0 && (
+                      <span style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", fontSize: 9, color: "#0ea5e9", fontWeight: 700, pointerEvents: "none" }}>
+                        {fmtM(parseTargetInput(indivInputs[u.id]))}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <button
+          onClick={handleSave}
+          style={{
+            height: 40, borderRadius: 10, border: "none",
+            background: saved ? "#10b981" : "linear-gradient(135deg, #C9A55A, #a07830)",
+            cursor: "pointer", fontFamily: "inherit",
+            fontSize: 12, fontWeight: 700, color: "#fff",
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+            boxShadow: saved ? "none" : "0 4px 16px rgba(201,165,90,0.35)",
+            transition: "background 0.2s",
+          }}
+        >
+          {saved ? <><Check size={14} /> Đã lưu!</> : "Lưu Target KPI"}
+        </button>
+      </div>
+    </PremiumCard>
+  );
+}
+
 // ─── Main ──────────────────────────────────────────────────────────────────────
 
 export default function ProfilePage() {
-  const { currentUser, logout } = useStore();
+  const { currentUser, logout, users, kpiStoreTarget, kpiIndividualTargets, setKpiStoreTarget, setKpiIndividualTarget } = useStore();
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
   const cardBg = "rgba(255,255,255,0.88)";
@@ -1626,7 +1752,6 @@ export default function ProfilePage() {
             {tab === "leaderboard" && (() => {
               const myName = (profile?.name ?? currentUser.name).toLowerCase();
               const maxRev = staffSales[0]?.revenue ?? 1;
-              const rankColors: Record<string, string> = { "Xuất sắc": "#C9A55A", "Tốt": "#10b981", "Trung bình": "#0ea5e9", "Yếu": "#f59e0b", "Kém": "#ef4444" };
               const medals = ["🥇", "🥈", "🥉"];
               // Month navigation
               const prevMonth = () => {
@@ -1674,10 +1799,25 @@ export default function ProfilePage() {
                       {staffSales.map((row, i) => {
                         const isMe = row.advisorName.toLowerCase().includes(myName) || myName.includes(row.advisorName.toLowerCase());
                         const barPct = maxRev > 0 ? row.revenue / maxRev : 0;
-                        const staffCount = staffSales.length;
-                        const posPct = (i + 1) / staffCount;
-                        const rank = posPct <= 0.2 ? "Xuất sắc" : posPct <= 0.4 ? "Tốt" : posPct <= 0.6 ? "Trung bình" : posPct <= 0.8 ? "Yếu" : "Kém";
-                        const rankColor = rankColors[rank] ?? "#64748b";
+
+                        // Find userId by matching advisor name to users list
+                        const matchedUser = users.find(u =>
+                          u.name.toLowerCase().includes(row.advisorName.toLowerCase()) ||
+                          row.advisorName.toLowerCase().includes(u.name.toLowerCase())
+                        );
+                        const indivTarget = matchedUser ? (kpiIndividualTargets[matchedUser.id] ?? 0) : 0;
+                        const achievedPct = indivTarget > 0 ? Math.round(row.revenue / indivTarget * 100) : null;
+                        const pctColor = achievedPct == null ? "#94a3b8"
+                          : achievedPct >= 100 ? "#C9A55A"
+                          : achievedPct >= 80  ? "#10b981"
+                          : achievedPct >= 60  ? "#0ea5e9"
+                          : achievedPct >= 40  ? "#f59e0b"
+                          : "#ef4444";
+                        const barColor = i === 0 ? "linear-gradient(90deg, #C9A55A, #e6c474)"
+                          : i === 1 ? "linear-gradient(90deg, #94a3b8, #cbd5e1)"
+                          : i === 2 ? "linear-gradient(90deg, #c07a38, #d4956a)"
+                          : `linear-gradient(90deg, ${pctColor}80, ${pctColor})`;
+
                         const ipt = row.orders > 0 ? row.qty / row.orders : 0;
                         return (
                           <motion.div key={row.advisorId}
@@ -1689,22 +1829,46 @@ export default function ProfilePage() {
                               borderRadius: 14, padding: "14px 16px", boxShadow: isMe ? "0 4px 20px rgba(201,165,90,0.12)" : "0 1px 4px rgba(0,0,0,0.04)",
                             }}>
                             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                              <div style={{ width: 32, height: 32, borderRadius: 10, background: i < 3 ? `${rankColor}15` : "var(--bg-base)", border: `1.5px solid ${i < 3 ? rankColor : "var(--border)"}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                              <div style={{ width: 32, height: 32, borderRadius: 10, background: i < 3 ? `${pctColor}15` : "var(--bg-base)", border: `1.5px solid ${i < 3 ? pctColor : "var(--border)"}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                                 {i < 3 ? <span style={{ fontSize: 15 }}>{medals[i]}</span> : <span style={{ fontSize: 11, fontWeight: 800, color: "var(--text-muted)" }}>#{i + 1}</span>}
                               </div>
                               <div style={{ flex: 1, minWidth: 0 }}>
                                 <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                                   <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-primary)" }}>{row.advisorName}</span>
                                   {isMe && <span style={{ fontSize: 7, color: "#0ea5e9", background: "rgba(14,165,233,0.1)", padding: "1px 6px", borderRadius: 10, fontWeight: 700 }}>BẠN</span>}
-                                  <span style={{ fontSize: 8, fontWeight: 700, color: rankColor, background: `${rankColor}12`, padding: "1px 8px", borderRadius: 10, border: `1px solid ${rankColor}25` }}>{rank}</span>
+                                  {achievedPct != null && (
+                                    <span style={{ fontSize: 9, fontWeight: 800, color: pctColor, background: `${pctColor}12`, padding: "2px 8px", borderRadius: 10, border: `1px solid ${pctColor}25` }}>
+                                      {achievedPct}%
+                                    </span>
+                                  )}
                                 </div>
-                                {/* Revenue bar */}
-                                <div style={{ marginTop: 5, height: 4, background: "var(--bg-base)", borderRadius: 4, overflow: "hidden" }}>
-                                  <motion.div
-                                    initial={{ width: 0 }} animate={{ width: `${barPct * 100}%` }}
-                                    transition={{ duration: 0.6, delay: i * 0.04, ease: [0.16, 1, 0.3, 1] }}
-                                    style={{ height: "100%", borderRadius: 4, background: i === 0 ? "linear-gradient(90deg, #C9A55A, #e6c474)" : i === 1 ? "linear-gradient(90deg, #94a3b8, #cbd5e1)" : i === 2 ? "linear-gradient(90deg, #c07a38, #d4956a)" : `linear-gradient(90deg, ${rankColor}80, ${rankColor})` }}
-                                  />
+                                {/* Revenue bar vs individual target */}
+                                <div style={{ marginTop: 5 }}>
+                                  {indivTarget > 0 && (
+                                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
+                                      <span style={{ fontSize: 8, color: "var(--text-muted)" }}>
+                                        {row.revenue >= 1e6 ? `${(row.revenue/1e6).toFixed(1)}M` : `${Math.round(row.revenue/1e3)}K`} / {indivTarget >= 1e6 ? `${(indivTarget/1e6).toFixed(0)}M` : `${Math.round(indivTarget/1e3)}K`}
+                                      </span>
+                                      <span style={{ fontSize: 8, fontWeight: 700, color: pctColor }}>{achievedPct}%</span>
+                                    </div>
+                                  )}
+                                  {/* Target line overlay bar */}
+                                  <div style={{ height: 5, background: "var(--bg-base)", borderRadius: 4, overflow: "hidden", position: "relative" }}>
+                                    <motion.div
+                                      initial={{ width: 0 }} animate={{ width: `${barPct * 100}%` }}
+                                      transition={{ duration: 0.6, delay: i * 0.04, ease: [0.16, 1, 0.3, 1] }}
+                                      style={{ height: "100%", borderRadius: 4, background: barColor }}
+                                    />
+                                    {/* Target marker line */}
+                                    {indivTarget > 0 && maxRev > 0 && (
+                                      <div style={{
+                                        position: "absolute", top: 0, bottom: 0,
+                                        left: `${Math.min(indivTarget / maxRev * 100, 100)}%`,
+                                        width: 2, background: "rgba(201,165,90,0.7)",
+                                        borderRadius: 2,
+                                      }} />
+                                    )}
+                                  </div>
                                 </div>
                                 {/* Product group breakdown pills */}
                                 {row.byGroup && row.byGroup.length > 0 && (
@@ -1717,20 +1881,22 @@ export default function ProfilePage() {
                                   </div>
                                 )}
                               </div>
-                              <div style={{ display: "flex", gap: 16, flexShrink: 0 }}>
+                              <div style={{ display: "flex", flexDirection: "column", gap: 6, flexShrink: 0, alignItems: "flex-end" }}>
                                 <div style={{ textAlign: "right" }}>
                                   <div style={{ fontSize: 14, fontWeight: 800, color: "var(--text-primary)" }}>
                                     {row.revenue >= 1e9 ? `${(row.revenue / 1e9).toFixed(2)}B` : row.revenue >= 1e6 ? `${(row.revenue / 1e6).toFixed(1)}M` : `${Math.round(row.revenue / 1e3)}K`}
                                   </div>
                                   <div style={{ fontSize: 7.5, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em" }}>Doanh số</div>
                                 </div>
-                                <div style={{ textAlign: "right" }}>
-                                  <div style={{ fontSize: 14, fontWeight: 800, color: "#0ea5e9" }}>{row.orders}</div>
-                                  <div style={{ fontSize: 7.5, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em" }}>Đơn</div>
-                                </div>
-                                <div style={{ textAlign: "right" }}>
-                                  <div style={{ fontSize: 14, fontWeight: 800, color: "#7c3aed" }}>{ipt.toFixed(1)}</div>
-                                  <div style={{ fontSize: 7.5, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em" }}>IPT</div>
+                                <div style={{ display: "flex", gap: 10 }}>
+                                  <div style={{ textAlign: "right" }}>
+                                    <div style={{ fontSize: 12, fontWeight: 800, color: "#0ea5e9" }}>{row.orders}</div>
+                                    <div style={{ fontSize: 7.5, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em" }}>Đơn</div>
+                                  </div>
+                                  <div style={{ textAlign: "right" }}>
+                                    <div style={{ fontSize: 12, fontWeight: 800, color: "#7c3aed" }}>{ipt.toFixed(1)}</div>
+                                    <div style={{ fontSize: 7.5, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em" }}>IPT</div>
+                                  </div>
                                 </div>
                               </div>
                             </div>
@@ -1740,16 +1906,41 @@ export default function ProfilePage() {
                     </div>
                   )}
 
-                  {/* Summary totals */}
+                  {/* Summary totals + store target progress */}
                   {staffSales.length > 0 && (() => {
                     const totalRev = staffSales.reduce((s, r) => s + r.revenue, 0);
                     const totalOrders = staffSales.reduce((s, r) => s + r.orders, 0);
+                    const storePct = kpiStoreTarget > 0 ? Math.round(totalRev / kpiStoreTarget * 100) : null;
+                    const storePctColor = storePct == null ? "#C9A55A"
+                      : storePct >= 100 ? "#C9A55A" : storePct >= 80 ? "#10b981" : storePct >= 60 ? "#0ea5e9" : storePct >= 40 ? "#f59e0b" : "#ef4444";
                     return (
                       <div style={{ background: "linear-gradient(135deg, rgba(12,26,46,0.04), rgba(14,165,233,0.04))", borderRadius: 14, border: "1px solid var(--border)", padding: "12px 16px" }}>
-                        <div style={{ display: "flex", gap: 4, alignItems: "center", marginBottom: 8 }}>
+                        <div style={{ display: "flex", gap: 4, alignItems: "center", marginBottom: 10 }}>
                           <TrendingUp size={12} style={{ color: "#C9A55A" }} />
-                          <span style={{ fontSize: 9, fontWeight: 700, color: "var(--text-muted)", letterSpacing: "0.08em", textTransform: "uppercase" }}>Tổng Cộng Tháng</span>
+                          <span style={{ fontSize: 9, fontWeight: 700, color: "var(--text-muted)", letterSpacing: "0.08em", textTransform: "uppercase", flex: 1 }}>Tổng Cộng Tháng</span>
+                          {storePct != null && (
+                            <span style={{ fontSize: 12, fontWeight: 800, color: storePctColor, background: `${storePctColor}12`, padding: "2px 10px", borderRadius: 10, border: `1px solid ${storePctColor}25` }}>
+                              {storePct}% target
+                            </span>
+                          )}
                         </div>
+                        {kpiStoreTarget > 0 && (
+                          <div style={{ marginBottom: 10 }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                              <span style={{ fontSize: 8, color: "var(--text-muted)" }}>
+                                {totalRev >= 1e6 ? `${(totalRev/1e6).toFixed(1)}M` : `${Math.round(totalRev/1e3)}K`} / {kpiStoreTarget >= 1e6 ? `${(kpiStoreTarget/1e6).toFixed(0)}M` : `${Math.round(kpiStoreTarget/1e3)}K`}
+                              </span>
+                            </div>
+                            <div style={{ height: 6, background: "var(--bg-base)", borderRadius: 4, overflow: "hidden" }}>
+                              <motion.div
+                                initial={{ width: 0 }}
+                                animate={{ width: `${Math.min(storePct ?? 0, 100)}%` }}
+                                transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+                                style={{ height: "100%", borderRadius: 4, background: `linear-gradient(90deg, ${storePctColor}80, ${storePctColor})` }}
+                              />
+                            </div>
+                          </div>
+                        )}
                         <div style={{ display: "flex", gap: 20 }}>
                           <div>
                             <div style={{ fontSize: 16, fontWeight: 800, color: "var(--text-primary)" }}>
@@ -1780,6 +1971,16 @@ export default function ProfilePage() {
                 <PushPanel userId={currentUser.id} />
                 <SecurityPanel currentUser={{ id: currentUser.id, email: currentUser.email, name: currentUser.name, role: currentUser.role }} />
                 {isAdmin && <UsersPanel />}
+                {isAdmin && (
+                  <KpiTargetPanel
+                    storeTarget={kpiStoreTarget}
+                    individualTargets={kpiIndividualTargets}
+                    allUsers={users}
+                    onSetStoreTarget={setKpiStoreTarget}
+                    onSetIndividualTarget={setKpiIndividualTarget}
+                    cardBg={cardBg} cardBorder={cardBorder} cardShadow={cardShadow}
+                  />
+                )}
                 {isAdmin && <BackupPanel currentUser={{ id: currentUser.id }} />}
                 <VersionPanel />
               </div>
