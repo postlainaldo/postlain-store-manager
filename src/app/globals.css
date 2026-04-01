@@ -263,9 +263,9 @@ button { font-family: inherit; -webkit-tap-highlight-color: transparent; }
 /* ═══════════════════════════════════════════════════════════════════════════
    UTILITY — animations
    ═══════════════════════════════════════════════════════════════════════════ */
-.pulse-green { animation: pulseGreen 2s ease-in-out infinite; will-change: box-shadow, opacity; }
-.pulse-gold  { animation: pulseGold  2s ease-in-out infinite; will-change: box-shadow, opacity; }
-.pulse-blue  { animation: pulseBlue  2s ease-in-out infinite; will-change: box-shadow, opacity; }
+.pulse-green { animation: pulseGreen 2s ease-in-out infinite; }
+.pulse-gold  { animation: pulseGold  2s ease-in-out infinite; }
+.pulse-blue  { animation: pulseBlue  2s ease-in-out infinite; }
 
 .anim-fade-in    { animation: fadeIn    0.22s var(--ease-out) both; }
 .anim-slide-up   { animation: slideUp   0.28s var(--ease-out) both; }
@@ -273,7 +273,7 @@ button { font-family: inherit; -webkit-tap-highlight-color: transparent; }
 .anim-spring-in  { animation: springIn  0.32s var(--ease-spring) both; }
 
 /* ── Tap feedback ─────────────────────────────────────────────────────── */
-.tap-scale { transition: transform 80ms var(--ease-out); will-change: transform; }
+.tap-scale { transition: transform 80ms var(--ease-out); }
 .tap-scale:active { transform: scale(0.95); }
 
 /* ── Focus rings ──────────────────────────────────────────────────────── */
@@ -293,11 +293,9 @@ button { font-family: inherit; -webkit-tap-highlight-color: transparent; }
    ═══════════════════════════════════════════════════════════════════════════ */
 .text-gradient-gold {
   background: linear-gradient(135deg, var(--gold-dark) 0%, var(--gold) 40%, var(--gold-light) 70%, var(--gold) 100%);
-  background-size: 200% auto;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  animation: goldSweep 4s linear infinite;
 }
 .text-gradient-gold-static {
   background: linear-gradient(135deg, var(--gold) 0%, var(--gold-light) 50%, var(--gold) 100%);
@@ -358,7 +356,6 @@ button { font-family: inherit; -webkit-tap-highlight-color: transparent; }
   cursor: pointer;
   box-shadow: var(--shadow-blue), inset 0 1px 0 rgba(255,255,255,0.15);
   transition: transform 0.12s var(--ease-out), box-shadow 0.18s var(--ease-smooth);
-  will-change: transform;
 }
 .btn-primary:hover {
   transform: translateY(-1px);
@@ -377,7 +374,6 @@ button { font-family: inherit; -webkit-tap-highlight-color: transparent; }
   letter-spacing: 0.1em;
   cursor: pointer;
   transition: transform 0.12s var(--ease-out), box-shadow 0.18s var(--ease-smooth), background 0.15s;
-  will-change: transform;
 }
 .btn-gold:hover {
   background: linear-gradient(135deg, rgba(201,165,90,0.22), rgba(201,165,90,0.10));
@@ -480,7 +476,6 @@ button { font-family: inherit; -webkit-tap-highlight-color: transparent; }
   transition:
     background 0.18s var(--ease-smooth),
     box-shadow  0.18s var(--ease-smooth);
-  will-change: transform;
 }
 .topnav-link:hover {
   background: rgba(14,165,233,0.07);
@@ -563,7 +558,6 @@ button { font-family: inherit; -webkit-tap-highlight-color: transparent; }
 
 .bottomnav-icon {
   transition: transform 0.22s var(--ease-spring), color 0.16s;
-  will-change: transform;
 }
 .bottomnav-item.active .bottomnav-icon {
   transform: translateY(-1px) scale(1.08);
@@ -608,7 +602,7 @@ button { font-family: inherit; -webkit-tap-highlight-color: transparent; }
   position: relative;
 }
 
-/* ── Animated floating orbs (3D depth effect) ─── */
+/* ── Animated floating orbs (3D depth effect) — desktop only ─── */
 .page-bg-aurora::before,
 .page-bg-aurora::after {
   content: '';
@@ -630,6 +624,16 @@ button { font-family: inherit; -webkit-tap-highlight-color: transparent; }
   background: radial-gradient(circle at 60% 60%, rgba(216,180,254,0.60) 0%, rgba(186,230,253,0.40) 50%, transparent 70%);
   bottom: -140px; right: -80px;
   animation: orb2 22s ease-in-out infinite alternate;
+}
+@media (max-width: 768px) {
+  /* Disable heavy blur-filter orb animations on mobile */
+  .page-bg-aurora::before,
+  .page-bg-aurora::after {
+    display: none;
+  }
+  .page-bg-aurora-mid {
+    display: none;
+  }
 }
 
 @keyframes orb1 {
@@ -667,7 +671,7 @@ button { font-family: inherit; -webkit-tap-highlight-color: transparent; }
 
 /* ── Floating card — glass morphism with spring hover lift ─── */
 .card-float {
-  background: rgba(255,255,255,0.82);
+  background: rgba(255,255,255,0.92);
   backdrop-filter: blur(12px) saturate(1.4);
   -webkit-backdrop-filter: blur(12px) saturate(1.4);
   border: 1px solid rgba(186,230,253,0.55);
@@ -679,7 +683,6 @@ button { font-family: inherit; -webkit-tap-highlight-color: transparent; }
   transition:
     transform   0.24s var(--ease-spring),
     box-shadow  0.24s var(--ease-smooth);
-  will-change: transform;
 }
 .card-float:hover {
   transform: translateY(-2px);
@@ -702,7 +705,6 @@ button { font-family: inherit; -webkit-tap-highlight-color: transparent; }
   transition:
     transform  0.22s var(--ease-spring),
     box-shadow 0.22s var(--ease-smooth);
-  will-change: transform;
 }
 .card-kpi::before {
   content: '';
@@ -835,14 +837,48 @@ button { font-family: inherit; -webkit-tap-highlight-color: transparent; }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   ANDROID PERFORMANCE — disable backdrop-filter blur (kills Android GPU)
+   MOBILE PERFORMANCE — reduce GPU load on all mobile browsers
    ═══════════════════════════════════════════════════════════════════════════ */
 @media (max-width: 768px) {
-  @supports not (-webkit-touch-callout: none) {
-    /* Android Chrome: replace glass blur with solid background */
-    * {
-      backdrop-filter: none !important;
-      -webkit-backdrop-filter: none !important;
-    }
+  /* Disable all backdrop-filter blur — single biggest Android GPU killer */
+  * {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
   }
+
+  /* Boost opacity on glass elements to compensate for lost blur */
+  .topnav    { background: rgba(255,255,255,0.97) !important; }
+  .bottomnav { background: rgba(255,255,255,0.97) !important; }
+  .glass-card     { background: rgba(255,255,255,0.97) !important; }
+  .glass-card-dark { background: rgba(8,14,26,0.95) !important; }
+  .card-float { background: rgba(255,255,255,0.97) !important; }
+
+  /* Disable continuous pulse animations — drain battery */
+  .pulse-green, .pulse-gold, .pulse-blue {
+    animation: none !important;
+  }
+
+  /* Disable infinite skeleton shimmer when not actively loading */
+  .skeleton {
+    animation-duration: 2.5s !important;
+  }
+
+  /* Disable slot placement pulse */
+  .slot-placement-pulse {
+    animation: none !important;
+    border-color: rgba(14,165,233,0.65) !important;
+    background: rgba(14,165,233,0.08) !important;
+  }
+
+  /* Remove will-change entirely on mobile (wastes GPU memory) */
+  * { will-change: auto !important; }
+
+  /* Disable hover transforms — no hover on touch */
+  .card-float:hover { transform: none !important; }
+  .card-kpi:hover   { transform: none !important; box-shadow: none !important; }
+  .btn-primary:hover { transform: none !important; }
+  .btn-gold:hover    { transform: none !important; }
+
+  /* Drop-shadow filters on icons — swap for simpler box-shadow or none */
+  svg { filter: none !important; }
 }

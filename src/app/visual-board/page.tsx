@@ -1716,36 +1716,35 @@ export default function VisualBoardPage() {
   // Scroll to highlighted product — restarts whenever the visible section/shelf changes
   useEffect(() => {
     if (!highlightPid) return;
-    let intervalId: ReturnType<typeof setInterval> | null = null;
+    let rafId: number;
     let attempts = 0;
-    const tid = setTimeout(() => {
-      intervalId = setInterval(() => {
-        const el = document.querySelector(`[data-hpid="${highlightPid}"]`) as HTMLElement | null;
-        if (el) {
-          clearInterval(intervalId!);
-          // Find the nearest scrollable ancestor (overflowY: auto/scroll)
-          let scrollable: HTMLElement | null = el.parentElement;
-          while (scrollable) {
-            const { overflowY } = window.getComputedStyle(scrollable);
-            if (overflowY === "auto" || overflowY === "scroll") break;
-            scrollable = scrollable.parentElement;
-          }
-          if (scrollable) {
-            const containerRect = scrollable.getBoundingClientRect();
-            const elRect = el.getBoundingClientRect();
-            const scrollOffset = elRect.top - containerRect.top - containerRect.height / 2 + elRect.height / 2;
-            scrollable.scrollBy({ top: scrollOffset, behavior: "smooth" });
-          } else {
-            el.scrollIntoView({ behavior: "smooth", block: "center" });
-          }
-        } else if (++attempts > 100) {
-          clearInterval(intervalId!);
+    const tryScroll = () => {
+      const el = document.querySelector(`[data-hpid="${highlightPid}"]`) as HTMLElement | null;
+      if (el) {
+        // Find the nearest scrollable ancestor (overflowY: auto/scroll)
+        let scrollable: HTMLElement | null = el.parentElement;
+        while (scrollable) {
+          const { overflowY } = window.getComputedStyle(scrollable);
+          if (overflowY === "auto" || overflowY === "scroll") break;
+          scrollable = scrollable.parentElement;
         }
-      }, 50);
-    }, 80);
+        if (scrollable) {
+          const containerRect = scrollable.getBoundingClientRect();
+          const elRect = el.getBoundingClientRect();
+          const scrollOffset = elRect.top - containerRect.top - containerRect.height / 2 + elRect.height / 2;
+          scrollable.scrollBy({ top: scrollOffset, behavior: "smooth" });
+        } else {
+          el.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+        return;
+      }
+      if (++attempts < 60) rafId = requestAnimationFrame(tryScroll);
+    };
+    // Small delay to let React commit the render before querying DOM
+    const tid = setTimeout(() => { rafId = requestAnimationFrame(tryScroll); }, 80);
     return () => {
       clearTimeout(tid);
-      if (intervalId) clearInterval(intervalId);
+      cancelAnimationFrame(rafId);
     };
   }, [highlightPid, sectionIdx, shelfIdx, subsectionIdx]);
 

@@ -27,7 +27,6 @@ function FloatOrb({ x, y, size, color, delay, blur, mobile }: {
         borderRadius: "50%", pointerEvents: "none",
         background: `radial-gradient(circle at 30% 30%, ${color}, transparent 70%)`,
         filter: mobile ? "none" : `blur(${blur}px)`,
-        willChange: "opacity",
       }}
       initial={{ opacity: 0 }}
       animate={mobile ? {
@@ -38,7 +37,7 @@ function FloatOrb({ x, y, size, color, delay, blur, mobile }: {
         x: [0, 14, -8, 18, -5, 10, 0],
         y: [0, -18, 10, -25, 8, -12, 0],
       }}
-      transition={{ delay, duration: mobile ? 4 : 6 + delay * 1.5, ease: "easeInOut", repeat: Infinity, repeatType: "mirror" }}
+      transition={{ delay, duration: mobile ? 4 : 6 + delay * 1.5, ease: "easeInOut", repeat: mobile ? 0 : Infinity, repeatType: "mirror" }}
     />
   );
 }

@@ -78,9 +78,10 @@ export default function BottomNav() {
   const [flashId, setFlashId]     = useState<string | null>(null);
   const orbRef = useRef<HTMLButtonElement>(null);
 
-  // Disable looping animations on Android (GPU performance)
+  // Disable looping animations on mobile (GPU performance)
   const isAndroid = typeof navigator !== "undefined" && /android/i.test(navigator.userAgent);
-  const infiniteRepeat = isAndroid ? 0 : Infinity;
+  const isMobile = typeof navigator !== "undefined" && /android|iphone|ipad|ipod|mobile/i.test(navigator.userAgent);
+  const infiniteRepeat = isMobile ? 0 : Infinity;
 
   const isActive = (href: string, exact: boolean) =>
     exact ? pathname === href : pathname.startsWith(href);
@@ -136,9 +137,9 @@ export default function BottomNav() {
             onClick={() => setOpen(false)}
             style={{
               position: "fixed", inset: 0,
-              background: "rgba(2,6,23,0.60)",
-              backdropFilter: "blur(8px)",
-              WebkitBackdropFilter: "blur(8px)",
+              background: "rgba(2,6,23,0.65)",
+              backdropFilter: isMobile ? "none" : "blur(8px)",
+              WebkitBackdropFilter: isMobile ? "none" : "blur(8px)",
               zIndex: 49,
             }}
           />
@@ -232,8 +233,8 @@ export default function BottomNav() {
                     background: "linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(201,165,90,0.08) 40%, rgba(14,165,233,0.06) 60%, rgba(255,255,255,0.03) 100%)",
                     backgroundSize: "300% 100%",
                     border: `1px solid ${active ? "rgba(201,165,90,0.22)" : "rgba(255,255,255,0.06)"}`,
-                    backdropFilter: "blur(12px)",
-                    WebkitBackdropFilter: "blur(12px)",
+                    backdropFilter: isMobile ? "none" : "blur(12px)",
+                    WebkitBackdropFilter: isMobile ? "none" : "blur(12px)",
                     pointerEvents: "none",
                     zIndex: 0,
                     boxShadow: isFlash
@@ -256,8 +257,8 @@ export default function BottomNav() {
                       : isFlash
                         ? "linear-gradient(135deg, #1e3a5f 0%, #0c1a2e 100%)"
                         : "rgba(10,15,30,0.88)",
-                    backdropFilter: "blur(20px)",
-                    WebkitBackdropFilter: "blur(20px)",
+                    backdropFilter: isMobile ? "none" : "blur(20px)",
+                    WebkitBackdropFilter: isMobile ? "none" : "blur(20px)",
                     boxShadow: active
                       ? "0 0 0 3px rgba(201,165,90,0.22), 0 8px 24px rgba(0,0,0,0.50)"
                       : isFlash
@@ -288,8 +289,7 @@ export default function BottomNav() {
                       strokeWidth={active || isFlash ? 2.2 : 1.6}
                       style={{
                         color: active || isFlash ? "#C9A55A" : "rgba(255,255,255,0.75)",
-                        filter: active || isFlash ? "drop-shadow(0 0 8px rgba(201,165,90,0.75))" : "none",
-                        transition: "color 0.15s, filter 0.15s",
+                        transition: "color 0.15s",
                       }}
                     />
                   )}
@@ -302,8 +302,8 @@ export default function BottomNav() {
                   borderRadius: 10,
                   background: "rgba(5,10,22,0.75)",
                   border: `1px solid ${active ? "rgba(201,165,90,0.30)" : "rgba(255,255,255,0.08)"}`,
-                  backdropFilter: "blur(8px)",
-                  WebkitBackdropFilter: "blur(8px)",
+                  backdropFilter: isMobile ? "none" : "blur(8px)",
+                  WebkitBackdropFilter: isMobile ? "none" : "blur(8px)",
                 }}>
                   <span style={{
                     fontSize: 8.5,
@@ -351,20 +351,22 @@ export default function BottomNav() {
             WebkitTapHighlightColor: "transparent",
           }}
         >
-          {/* Continuous shimmer ring on orb */}
-          <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ duration: 6, repeat: infiniteRepeat, ease: "linear" }}
-            style={{
-              position: "absolute", inset: -3,
-              borderRadius: "50%",
-              background: "conic-gradient(from 0deg, transparent 0%, rgba(201,165,90,0.35) 25%, transparent 50%, rgba(14,165,233,0.25) 75%, transparent 100%)",
-              filter: "blur(1px)",
-              opacity: open ? 0.9 : 0.55,
-              transition: "opacity 0.3s",
-              pointerEvents: "none",
-            }}
-          />
+          {/* Continuous shimmer ring on orb — desktop only */}
+          {!isMobile && (
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ duration: 6, repeat: Infinity, ease: "linear" }}
+              style={{
+                position: "absolute", inset: -3,
+                borderRadius: "50%",
+                background: "conic-gradient(from 0deg, transparent 0%, rgba(201,165,90,0.35) 25%, transparent 50%, rgba(14,165,233,0.25) 75%, transparent 100%)",
+                filter: "blur(1px)",
+                opacity: open ? 0.9 : 0.55,
+                transition: "opacity 0.3s",
+                pointerEvents: "none",
+              }}
+            />
+          )}
           {/* Pulse ring */}
           <motion.div
             animate={{ scale: open ? [1, 1.22, 1] : 1, opacity: open ? [0.5, 0, 0.5] : 0.4 }}
@@ -395,19 +397,21 @@ export default function BottomNav() {
             overflow: "hidden",
             position: "relative",
           }}>
-            {/* Shimmer sweep on orb body */}
-            <motion.div
-              animate={{ x: ["-100%", "200%"] }}
-              transition={{ duration: 2.2, repeat: infiniteRepeat, ease: "easeInOut", repeatDelay: 1.5 }}
-              style={{
-                position: "absolute",
-                top: 0, bottom: 0, left: 0,
-                width: "40%",
-                background: "linear-gradient(90deg, transparent, rgba(201,165,90,0.18), transparent)",
-                pointerEvents: "none",
-                borderRadius: "50%",
-              }}
-            />
+            {/* Shimmer sweep on orb body — desktop only */}
+            {!isMobile && (
+              <motion.div
+                animate={{ x: ["-100%", "200%"] }}
+                transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut", repeatDelay: 1.5 }}
+                style={{
+                  position: "absolute",
+                  top: 0, bottom: 0, left: 0,
+                  width: "40%",
+                  background: "linear-gradient(90deg, transparent, rgba(201,165,90,0.18), transparent)",
+                  pointerEvents: "none",
+                  borderRadius: "50%",
+                }}
+              />
+            )}
 
             {/* Active page icon or close X */}
             <AnimatePresence mode="wait">
