@@ -20,6 +20,10 @@ export async function GET(req: NextRequest) {
     const dayStart = new Date(date + "T00:00:00+07:00").toISOString();
     const dayEnd   = new Date(date + "T23:59:59+07:00").toISOString();
 
+    if (!process.env.ODOO_URL) {
+      return NextResponse.json({ ok: false, error: "ODOO_URL chưa được cấu hình trên server. Vui lòng thêm env var ODOO_URL." }, { status: 503 });
+    }
+
     try {
       const [summary, topProducts, orders, savedReport, palexyTraffic] = await Promise.all([
         dbGetPosSummary(dayStart, dayEnd),

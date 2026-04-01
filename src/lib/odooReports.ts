@@ -15,6 +15,7 @@ const STORE_FILTER  = "47";
 // ─── Auth (no cache — Vercel is stateless) ────────────────────────────────────
 
 async function getSession(): Promise<string> {
+  if (!ODOO_URL) throw new Error("ODOO_URL env var not set");
   const res = await fetch(`${ODOO_URL}/web/session/authenticate`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

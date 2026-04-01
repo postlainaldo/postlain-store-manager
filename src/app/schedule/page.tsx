@@ -657,10 +657,11 @@ export default function SchedulePage() {
 
   async function handleAddSlot(slotData: Omit<ShiftSlot,"id"|"createdAt"|"updatedAt">) {
     const now = new Date().toISOString();
-    await fetch("/api/shifts", {
+    const res = await fetch("/api/shifts", {
       method:"POST", headers:{"Content-Type":"application/json"},
       body: JSON.stringify({ kind:"slot", data:{ ...slotData, createdAt:now, updatedAt:now } }),
     });
+    if (!res.ok) { alert("Thêm ca thất bại, thử lại."); return; }
     setAddingSlot(null);
     load();
   }
@@ -673,8 +674,9 @@ export default function SchedulePage() {
 
   async function handleRegister(slotId: string) {
     if (!currentUser) return;
-    await fetch("/api/shifts/register", { method:"POST", headers:{"Content-Type":"application/json"},
+    const res = await fetch("/api/shifts/register", { method:"POST", headers:{"Content-Type":"application/json"},
       body: JSON.stringify({ action:"register", slotId, userId:currentUser.id, userName:currentUser.name }) });
+    if (!res.ok) { alert("Đăng ký ca thất bại, thử lại."); return; }
     load();
   }
 
@@ -699,14 +701,16 @@ export default function SchedulePage() {
   }
 
   async function handleAssign(slotId: string, user: AppUser) {
-    await fetch("/api/shifts/register", { method:"POST", headers:{"Content-Type":"application/json"},
+    const res = await fetch("/api/shifts/register", { method:"POST", headers:{"Content-Type":"application/json"},
       body: JSON.stringify({ action:"assign", slotId, userId:user.id, userName:user.name }) });
+    if (!res.ok) { alert("Xếp ca thất bại, thử lại."); return; }
     load();
   }
 
   async function handleUnassign(slotId: string, userId: string) {
-    await fetch("/api/shifts/register", { method:"POST", headers:{"Content-Type":"application/json"},
+    const res = await fetch("/api/shifts/register", { method:"POST", headers:{"Content-Type":"application/json"},
       body: JSON.stringify({ action:"unassign", slotId, userId, userName:"" }) });
+    if (!res.ok) { alert("Bỏ xếp ca thất bại, thử lại."); return; }
     load();
   }
 
