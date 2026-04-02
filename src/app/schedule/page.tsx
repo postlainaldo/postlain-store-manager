@@ -734,6 +734,72 @@ export default function SchedulePage() {
     load();
   }
 
+  // ── Auto-generate next week's slots from templates ──────────────────────────
+  const [generating, setGenerating] = useState(false);
+
+  /** Returns Mon–Sun dates of next week (VN time) */
+  function getNextWeekDates(): string[] {
+    const nowVN = new Date(Date.now() + 7 * 60 * 60 * 1000);
+    const dow = nowVN.getUTCDay();
+    const daysToNextMon = ((8 - dow) % 7) || 7;
+    const nextMon = new Date(nowVN);
+    nextMon.setUTCDate(nowVN.getUTCDate() + daysToNextMon);
+    nextMon.setUTCHours(0, 0, 0, 0);
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(nextMon);
+      d.setUTCDate(nextMon.getUTCDate() + i);
+      return d.toISOString().slice(0, 10);
+    });
+  }
+
+  /** True when viewing next week */
+  const isNextWeek = weekOffset === 1;
+
+  /** Next week already has slots? */
+  const nextWeekHasSlots = useMemo(() => {
+    if (!isNextWeek) return false;
+    return slots.length > 0;
+  }, [isNextWeek, slots]);
+
+  async function handleGenerateNextWeek() {
+    if (templates.length === 0) { alert("Chưa có mẫu ca nào. Tạo mẫu ca trước."); return; }
+    const dates = getNextWeekDates();
+    const total = dates.length * templates.length;
+    if (!confirm(`Tạo ${total} ca cho tuần sau (${templates.length} mẫu × 7 ngày)?\nNhân viên sẽ thấy nút đăng ký ngay.`)) return;
+    setGenerating(true);
+    try {
+      const now = new Date().toISOString();
+      const jobs = dates.flatMap(date =>
+        templates.map(t => fetch("/api/shifts", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            kind: "slot",
+            data: {
+              id: `slot_${date}_${t.id}_${Date.now()}_${Math.random().toString(36).slice(2,7)}`,
+              templateId: t.id,
+              date,
+              name: t.name,
+              startTime: t.startTime,
+              endTime: t.endTime,
+              color: t.color,
+              maxStaff: t.maxStaff,
+              note: null,
+              staffType: t.staffType ?? "ALL",
+              createdAt: now,
+              updatedAt: now,
+            },
+          }),
+        }))
+      );
+      await Promise.all(jobs);
+      playSound("save");
+      load();
+    } finally {
+      setGenerating(false);
+    }
+  }
+
   // ── Derived ────────────────────────────────────────────────────────────────
   const filteredSlots = useMemo(() =>
     filterType === "ALL"
@@ -809,6 +875,16 @@ export default function SchedulePage() {
                 <AlertCircle size={12} style={{ color:"#f59e0b" }} />
                 <span style={{ fontSize:10, fontWeight:800, color:"#d97706" }}>{pendingCount} chờ duyệt</span>
               </div>
+            )}
+            {/* Generate next-week slots button — shown when Admin views next week and no slots yet */}
+            {isAdmin && isNextWeek && !nextWeekHasSlots && templates.length > 0 && (
+              <button
+                onClick={handleGenerateNextWeek}
+                disabled={generating}
+                style={{ display:"flex", alignItems:"center", gap:5, padding:"7px 12px", borderRadius:10, border:"1px solid #bbf7d0", background:generating?"#f0fdf4":"#f0fdf4", cursor:generating?"default":"pointer", fontFamily:"inherit", opacity:generating?0.7:1 }}>
+                <CalendarDays size={12} style={{ color:"#10b981" }} />
+                <span style={{ fontSize:10, fontWeight:700, color:"#10b981" }}>{generating ? "Đang tạo..." : "Tạo ca tuần này"}</span>
+              </button>
             )}
             {isAdmin && (
               <button onClick={()=>{ setShowTemplates(v=>!v); setAddTemplate(false); setEditTemplate(null); }}
