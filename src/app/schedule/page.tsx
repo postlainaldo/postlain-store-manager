@@ -5,7 +5,7 @@ import {
   ChevronLeft, ChevronRight, Plus, X, Check, Clock,
   Users, Trash2, Edit3, CalendarDays, Settings2,
   ChevronDown, AlertCircle, CheckCircle2, XCircle, UserPlus, UserMinus,
-  CheckSquare, Square,
+  CheckSquare, Square, MessageCircle, Send,
 } from "lucide-react";
 import { useStore, AppUser } from "@/store/useStore";
 import { motion, AnimatePresence } from "framer-motion";
@@ -576,6 +576,232 @@ function AddSlotModal({ templates, date, onSave, onClose }: {
         </div>
       </motion.div>
     </div>
+  );
+}
+
+// ─── Shift Note Widget ────────────────────────────────────────────────────────
+const ROOM_ID = "room_schedule_issues";
+
+type NoteMsg = { id: string; userId: string; userName: string; content: string; createdAt: string };
+
+function ShiftNoteWidget({ currentUser, isAdmin }: { currentUser: AppUser | null; isAdmin: boolean }) {
+  const [open, setOpen]         = useState(false);
+  const [msgs, setMsgs]         = useState<NoteMsg[]>([]);
+  const [text, setText]         = useState("");
+  const [sending, setSending]   = useState(false);
+  const [unread, setUnread]     = useState(0);
+  const bottomRef               = useRef<HTMLDivElement>(null);
+  const lastSeenRef             = useRef<string>("");
+
+  // Ensure room exists + fetch messages
+  const fetchMsgs = useCallback(async () => {
+    const res = await fetch(`/api/chat?roomId=${ROOM_ID}`);
+    if (!res.ok) return;
+    const data: NoteMsg[] = await res.json();
+    setMsgs(data);
+    if (!open) {
+      const newCount = data.filter(m => m.createdAt > lastSeenRef.current && m.userId !== currentUser?.id).length;
+      if (newCount > 0) setUnread(newCount);
+    }
+  }, [open, currentUser?.id]);
+
+  // Init room + poll every 8s
+  useEffect(() => {
+    // Ensure room exists (idempotent PUT)
+    fetch("/api/chat", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: ROOM_ID, name: "Ghi chú lịch làm", type: "channel", createdBy: "user_admin" }),
+    }).catch(() => {});
+    fetchMsgs();
+    const iv = setInterval(fetchMsgs, 8000);
+    return () => clearInterval(iv);
+  }, [fetchMsgs]);
+
+  // Scroll to bottom when open
+  useEffect(() => {
+    if (open) {
+      setUnread(0);
+      lastSeenRef.current = new Date().toISOString();
+      setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 80);
+    }
+  }, [open, msgs]);
+
+  async function handleSend() {
+    if (!text.trim() || !currentUser || sending) return;
+    setSending(true);
+    const body = {
+      roomId: ROOM_ID,
+      userId: currentUser.id,
+      userName: currentUser.name,
+      content: text.trim(),
+    };
+    await fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    setText("");
+    setSending(false);
+    fetchMsgs();
+  }
+
+  function formatTime(iso: string) {
+    const d = new Date(iso);
+    return d.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }) +
+      " " + d.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" });
+  }
+
+  return (
+    <>
+      {/* Floating button */}
+      <button
+        onClick={() => { setOpen(v => !v); playSound("tap"); }}
+        style={{
+          position: "fixed",
+          bottom: "calc(72px + env(safe-area-inset-bottom, 0px))",
+          right: 16,
+          width: 46, height: 46,
+          borderRadius: "50%",
+          background: "linear-gradient(135deg,#0c1a2e,#1e3a5f)",
+          border: "2px solid #C9A55A",
+          cursor: "pointer",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          boxShadow: "0 4px 16px rgba(12,26,46,0.30)",
+          zIndex: 180,
+          transition: "transform 0.18s",
+        }}
+        onMouseEnter={e => (e.currentTarget.style.transform = "scale(1.08)")}
+        onMouseLeave={e => (e.currentTarget.style.transform = "scale(1)")}
+      >
+        <MessageCircle size={18} style={{ color: "#C9A55A" }} />
+        {unread > 0 && (
+          <div style={{
+            position: "absolute", top: -4, right: -4,
+            width: 18, height: 18, borderRadius: "50%",
+            background: "#ef4444", border: "2px solid #fff",
+            display: "flex", alignItems: "center", justifyContent: "center",
+          }}>
+            <span style={{ fontSize: 8, fontWeight: 800, color: "#fff" }}>{unread > 9 ? "9+" : unread}</span>
+          </div>
+        )}
+      </button>
+
+      {/* Chat panel */}
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.92, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.92, y: 20 }}
+            transition={{ type: "spring", damping: 28, stiffness: 320 }}
+            style={{
+              position: "fixed",
+              bottom: "calc(126px + env(safe-area-inset-bottom, 0px))",
+              right: 16,
+              width: "min(340px, calc(100vw - 32px))",
+              height: 420,
+              borderRadius: 18,
+              background: "rgba(255,255,255,0.97)",
+              backdropFilter: "blur(20px)",
+              WebkitBackdropFilter: "blur(20px)",
+              boxShadow: "0 16px 48px rgba(12,26,46,0.22), 0 2px 8px rgba(12,26,46,0.08)",
+              border: "1px solid rgba(201,165,90,0.3)",
+              display: "flex", flexDirection: "column",
+              zIndex: 179,
+              overflow: "hidden",
+            }}
+          >
+            {/* Header */}
+            <div style={{
+              padding: "12px 14px 10px",
+              background: "linear-gradient(135deg,#0c1a2e,#1e3a5f)",
+              display: "flex", alignItems: "center", gap: 8,
+            }}>
+              <MessageCircle size={14} style={{ color: "#C9A55A", flexShrink: 0 }} />
+              <div style={{ flex: 1 }}>
+                <p style={{ fontSize: 12, fontWeight: 700, color: "#fff", margin: 0 }}>Ghi chú & Yêu cầu</p>
+                <p style={{ fontSize: 9, color: "#94a3b8", margin: 0 }}>Nhân viên gửi vấn đề → Admin xem & duyệt</p>
+              </div>
+              <button onClick={() => setOpen(false)} style={{ background: "none", border: "none", cursor: "pointer", padding: 2 }}>
+                <X size={14} style={{ color: "#64748b" }} />
+              </button>
+            </div>
+
+            {/* Messages */}
+            <div style={{ flex: 1, overflowY: "auto", padding: "10px 12px", display: "flex", flexDirection: "column", gap: 8 }}>
+              {msgs.length === 0 && (
+                <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <p style={{ fontSize: 11, color: "#cbd5e1", textAlign: "center" }}>Chưa có tin nhắn nào.<br/>Gửi yêu cầu hoặc ghi chú ở đây.</p>
+                </div>
+              )}
+              {msgs.map(m => {
+                const isMine = m.userId === currentUser?.id;
+                return (
+                  <div key={m.id} style={{ display: "flex", flexDirection: "column", alignItems: isMine ? "flex-end" : "flex-start" }}>
+                    {!isMine && (
+                      <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 3 }}>
+                        <div style={{ width: 18, height: 18, borderRadius: "50%", background: "linear-gradient(135deg,#0c1a2e,#1e3a5f)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                          <span style={{ fontSize: 7, fontWeight: 700, color: "#C9A55A" }}>{m.userName[0]?.toUpperCase()}</span>
+                        </div>
+                        <span style={{ fontSize: 9, fontWeight: 600, color: "#64748b" }}>{m.userName}</span>
+                        {isAdmin && m.userId !== "user_admin" && (
+                          <span style={{ fontSize: 8, padding: "1px 5px", borderRadius: 10, background: "#fef3c7", color: "#d97706", fontWeight: 700 }}>NV</span>
+                        )}
+                      </div>
+                    )}
+                    <div style={{
+                      maxWidth: "85%",
+                      padding: "7px 11px",
+                      borderRadius: isMine ? "12px 12px 4px 12px" : "12px 12px 12px 4px",
+                      background: isMine ? "linear-gradient(135deg,#0c1a2e,#1e3a5f)" : "#f1f5f9",
+                      color: isMine ? "#fff" : "#0c1a2e",
+                      fontSize: 11,
+                      lineHeight: 1.4,
+                      wordBreak: "break-word",
+                    }}>
+                      {m.content}
+                    </div>
+                    <span style={{ fontSize: 8, color: "#cbd5e1", marginTop: 2 }}>{formatTime(m.createdAt)}</span>
+                  </div>
+                );
+              })}
+              <div ref={bottomRef} />
+            </div>
+
+            {/* Input */}
+            <div style={{ padding: "8px 12px 12px", borderTop: "1px solid #f1f5f9", display: "flex", gap: 8, alignItems: "flex-end" }}>
+              <textarea
+                value={text}
+                onChange={e => setText(e.target.value)}
+                onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
+                placeholder={isAdmin ? "Trả lời nhân viên..." : "Gửi yêu cầu / vấn đề đến Admin..."}
+                rows={2}
+                style={{
+                  flex: 1, borderRadius: 10, border: "1px solid #e2e8f0",
+                  padding: "8px 10px", fontSize: 11, fontFamily: "inherit",
+                  outline: "none", resize: "none", color: "#0c1a2e",
+                  background: "#f8fafc", lineHeight: 1.4,
+                }}
+              />
+              <button
+                onClick={handleSend}
+                disabled={!text.trim() || sending}
+                style={{
+                  width: 36, height: 36, borderRadius: 10, border: "none", flexShrink: 0,
+                  background: text.trim() ? "linear-gradient(135deg,#0c1a2e,#1e3a5f)" : "#f1f5f9",
+                  cursor: text.trim() ? "pointer" : "default",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  transition: "all 0.15s",
+                }}
+              >
+                <Send size={14} style={{ color: text.trim() ? "#C9A55A" : "#cbd5e1" }} />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
   );
 }
 
@@ -1441,6 +1667,9 @@ export default function SchedulePage() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Shift note / request widget */}
+      {currentUser && <ShiftNoteWidget currentUser={currentUser} isAdmin={isAdmin} />}
     </div>
   );
 }
