@@ -1,6 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
+import { useState, useEffect } from "react";
 import TopNav from "@/components/TopNav";
 import BottomNav from "@/components/BottomNav";
 import AuthGuard from "@/components/AuthGuard";
@@ -18,6 +19,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isShellless = NO_SHELL_PATHS.includes(pathname);
   const isFullHeight = FULL_HEIGHT_PATHS.some(p => pathname.startsWith(p));
+
+  // Detect mobile after hydration to avoid blur on mobile top bar
+  const [isMobileDevice, setIsMobileDevice] = useState(true); // safe default = no blur
+  useEffect(() => {
+    setIsMobileDevice(/android|iphone|ipad|ipod|mobile/i.test(navigator.userAgent) || window.innerWidth < 768);
+  }, []);
 
   if (isShellless) {
     return <AuthGuard>{children}</AuthGuard>;
@@ -55,9 +62,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           flexShrink: 0,
           display: "flex", alignItems: "center", gap: 8,
           padding: "6px 12px",
-          background: "rgba(255,255,255,0.72)",
-          backdropFilter: "blur(24px) saturate(1.8)",
-          WebkitBackdropFilter: "blur(24px) saturate(1.8)",
+          background: isMobileDevice ? "rgba(255,255,255,0.96)" : "rgba(255,255,255,0.72)",
+          backdropFilter: isMobileDevice ? "none" : "blur(24px) saturate(1.8)",
+          WebkitBackdropFilter: isMobileDevice ? "none" : "blur(24px) saturate(1.8)",
           borderBottom: "1px solid rgba(186,230,253,0.65)",
           boxShadow: "0 1px 0 rgba(186,230,253,0.9), 0 2px 12px rgba(12,26,46,0.05), inset 0 1px 0 rgba(255,255,255,0.95)",
           minHeight: 46,

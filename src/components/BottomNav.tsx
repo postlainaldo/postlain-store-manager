@@ -78,9 +78,12 @@ export default function BottomNav() {
   const [flashId, setFlashId]     = useState<string | null>(null);
   const orbRef = useRef<HTMLButtonElement>(null);
 
-  // Disable looping animations on mobile (GPU performance)
-  const isAndroid = typeof navigator !== "undefined" && /android/i.test(navigator.userAgent);
-  const isMobile = typeof navigator !== "undefined" && /android|iphone|ipad|ipod|mobile/i.test(navigator.userAgent);
+  // Disable looping animations on mobile — use state to avoid SSR mismatch
+  const [isMobile, setIsMobile] = useState(true); // default true = safe (no animations until confirmed desktop)
+  useEffect(() => {
+    setIsMobile(/android|iphone|ipad|ipod|mobile/i.test(navigator.userAgent) || window.innerWidth < 768);
+  }, []);
+  const isAndroid = isMobile;
   const infiniteRepeat = isMobile ? 0 : Infinity;
 
   const isActive = (href: string, exact: boolean) =>
