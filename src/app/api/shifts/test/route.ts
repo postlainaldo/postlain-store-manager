@@ -30,6 +30,24 @@ export async function GET() {
   log.push(`DATA_DIR: ${process.env.DATA_DIR ?? "(not set)"}`);
   log.push(`NODE_ENV: ${process.env.NODE_ENV}`);
 
+  // Check actual Supabase columns
+  if (IS_SUPABASE) {
+    await step("supabase: shift_templates columns", async () => {
+      const { getSupabase } = await import("@/lib/supabase");
+      const { data, error } = await getSupabase().from("shift_templates").select("*").limit(1);
+      if (error) return "ERROR: " + error.message;
+      if (!data?.length) return "table exists but empty — cannot inspect columns";
+      return "columns: " + Object.keys(data[0]).join(", ");
+    });
+    await step("supabase: shift_slots columns", async () => {
+      const { getSupabase } = await import("@/lib/supabase");
+      const { data, error } = await getSupabase().from("shift_slots").select("*").limit(1);
+      if (error) return "ERROR: " + error.message;
+      if (!data?.length) return "table exists but empty — cannot inspect columns";
+      return "columns: " + Object.keys(data[0]).join(", ");
+    });
+  }
+
   if (!IS_SUPABASE) {
     // Test SQLite connection
     await step("sqlite connect", async () => {
@@ -89,12 +107,19 @@ export async function GET() {
     return "inserted";
   });
 
-  // Test get it back
+  // Test get it back — query directly from Supabase to see raw row
   await step("dbGetShiftTemplates after insert", async () => {
+    const { IS_SUPABASE, getSupabase } = await import("@/lib/supabase");
+    if (IS_SUPABASE) {
+      const { data, error } = await getSupabase().from("shift_templates").select("*").eq("id", tmplId).maybeSingle();
+      if (error) return "SUPABASE ERROR: " + error.message;
+      if (!data) return "NOT FOUND in Supabase";
+      return "found raw: " + JSON.stringify(data);
+    }
     const { dbGetShiftTemplates } = await import("@/lib/dbAdapter");
     const r = await dbGetShiftTemplates();
     const found = r.find(t => t.id === tmplId);
-    return found ? `found: ${found.name} staffType=${found.staffType}` : `NOT FOUND (total=${r.length}, ids=${r.map(x=>x.id).slice(-3).join(",")})`;
+    return found ? `found: ${found.name}` : `NOT FOUND (total=${r.length})`;
   });
 
   // Test insert slot

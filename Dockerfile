@@ -1,6 +1,8 @@
 # ── Stage 1: deps ────────────────────────────────────────────────────────────
-FROM node:20-alpine AS deps
-RUN apk add --no-cache libc6-compat python3 make g++
+# Use Debian slim for build stages — avoids Alpine gcc I/O errors
+FROM node:20-bookworm-slim AS deps
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 make g++ && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 
 COPY package.json package-lock.json* ./
@@ -8,8 +10,9 @@ COPY package.json package-lock.json* ./
 RUN npm ci
 
 # ── Stage 2: builder ──────────────────────────────────────────────────────────
-FROM node:20-alpine AS builder
-RUN apk add --no-cache libc6-compat python3 make g++
+FROM node:20-bookworm-slim AS builder
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 make g++ && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 
 COPY --from=deps /app/node_modules ./node_modules
@@ -19,6 +22,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 
 # ── Stage 3: runner ───────────────────────────────────────────────────────────
+# Use Alpine for the final image to keep it small
 FROM node:20-alpine AS runner
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
@@ -34,7 +38,8 @@ COPY --from=builder /app/public       ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static  ./.next/static
 
-# Copy native modules (better-sqlite3 .node binary)
+# Copy native modules (better-sqlite3 .node binary built on Debian)
+# Note: binaries built on Debian work on Alpine via gcompat (libc6-compat)
 COPY --from=builder /app/node_modules/better-sqlite3 ./node_modules/better-sqlite3
 COPY --from=builder /app/node_modules/bindings       ./node_modules/bindings
 COPY --from=builder /app/node_modules/file-uri-to-path ./node_modules/file-uri-to-path

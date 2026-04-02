@@ -1842,13 +1842,18 @@ export async function dbGetShiftTemplates(): Promise<DBShiftTemplate[]> {
 
 export async function dbUpsertShiftTemplate(t: DBShiftTemplate): Promise<void> {
   if (IS_SUPABASE) {
-    const row = {
+    const row: Record<string, unknown> = {
       id: t.id, name: t.name,
       "startTime": t.startTime, "endTime": t.endTime,
       color: t.color, "maxStaff": t.maxStaff,
       "createdAt": t.createdAt, "staffType": t.staffType ?? "ALL",
     };
-    const { error } = await getSupabase().from("shift_templates").upsert(row, { onConflict: "id" });
+    let { error } = await getSupabase().from("shift_templates").upsert(row, { onConflict: "id" });
+    if (error?.message?.includes("staffType") || error?.message?.includes("column")) {
+      // staffType column not yet added — retry without it
+      delete row["staffType"];
+      ({ error } = await getSupabase().from("shift_templates").upsert(row, { onConflict: "id" }));
+    }
     if (error) throw new Error("dbUpsertShiftTemplate: " + error.message);
     return;
   }
@@ -1881,14 +1886,18 @@ export async function dbGetShiftSlots(dateFrom: string, dateTo: string): Promise
 
 export async function dbUpsertShiftSlot(s: DBShiftSlot): Promise<void> {
   if (IS_SUPABASE) {
-    const row = {
+    const row: Record<string, unknown> = {
       id: s.id, "templateId": s.templateId, date: s.date, name: s.name,
       "startTime": s.startTime, "endTime": s.endTime,
       color: s.color, "maxStaff": s.maxStaff, note: s.note,
       "createdAt": s.createdAt, "updatedAt": s.updatedAt,
       "staffType": s.staffType ?? "ALL",
     };
-    const { error } = await getSupabase().from("shift_slots").upsert(row, { onConflict: "id" });
+    let { error } = await getSupabase().from("shift_slots").upsert(row, { onConflict: "id" });
+    if (error?.message?.includes("staffType") || error?.message?.includes("column")) {
+      delete row["staffType"];
+      ({ error } = await getSupabase().from("shift_slots").upsert(row, { onConflict: "id" }));
+    }
     if (error) throw new Error("dbUpsertShiftSlot: " + error.message);
     return;
   }
