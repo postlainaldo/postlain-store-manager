@@ -3,7 +3,7 @@
 import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard, Focus, Box, MessageSquare, UserCircle,
-  ShoppingBag, ClipboardList, CalendarDays,
+  ShoppingBag, ClipboardList, CalendarDays, Grid2x2,
 } from "lucide-react";
 import { useStore } from "@/store/useStore";
 import { useSFX, type SFXName } from "@/hooks/useSFX";
@@ -46,15 +46,16 @@ const FLASH_VARIANTS = [
   { scale: [1, 1.30, 0.92], brightness: [1, 2.4, 1] },
 ];
 
-const NAV_ITEMS = [
-  { id: "overview",     label: "Tổng Quan", href: "/",             icon: LayoutDashboard, exact: true  },
-  { id: "visual-board", label: "Vị Trí",    href: "/visual-board", icon: Focus,           exact: false },
-  { id: "inventory",    label: "Dữ Liệu",   href: "/inventory",    icon: Box,             exact: false },
-  { id: "sales",        label: "Bán Hàng",  href: "/sales",        icon: ShoppingBag,     exact: false },
-  { id: "report",       label: "Báo Cáo",   href: "/report",       icon: ClipboardList,   exact: false },
-  { id: "chat",         label: "Chat",      href: "/chat",         icon: MessageSquare,   exact: false },
-  { id: "schedule",     label: "Lịch Làm",  href: "/schedule",     icon: CalendarDays,    exact: false },
-  { id: "profile",      label: "Hồ Sơ",     href: "/profile",      icon: UserCircle,      exact: false },
+const NAV_ITEMS_ALL = [
+  { id: "overview",     label: "Tổng Quan", href: "/",             icon: LayoutDashboard, exact: true,  adminOnly: false },
+  { id: "visual-board", label: "Vị Trí",    href: "/visual-board", icon: Focus,           exact: false, adminOnly: false },
+  { id: "inventory",    label: "Dữ Liệu",   href: "/inventory",    icon: Box,             exact: false, adminOnly: false },
+  { id: "sales",        label: "Bán Hàng",  href: "/sales",        icon: ShoppingBag,     exact: false, adminOnly: false },
+  { id: "report",       label: "Báo Cáo",   href: "/report",       icon: ClipboardList,   exact: false, adminOnly: false },
+  { id: "chat",         label: "Chat",      href: "/chat",         icon: MessageSquare,   exact: false, adminOnly: false },
+  { id: "schedule",     label: "Lịch Làm",  href: "/schedule",     icon: CalendarDays,    exact: false, adminOnly: false },
+  { id: "apps",         label: "Ứng Dụng",  href: "/apps",         icon: Grid2x2,         exact: false, adminOnly: true  },
+  { id: "profile",      label: "Hồ Sơ",     href: "/profile",      icon: UserCircle,      exact: false, adminOnly: false },
 ] as const;
 
 // Arc geometry — wider radius so labels clear each other
@@ -74,6 +75,8 @@ export default function BottomNav() {
   const router      = useRouter();
   const currentUser = useStore(s => s.currentUser);
   const sfx         = useSFX();
+  const isAdmin     = currentUser?.role === "admin" || currentUser?.role === "manager";
+  const NAV_ITEMS   = NAV_ITEMS_ALL.filter(it => !it.adminOnly || isAdmin);
   const [open, setOpen]           = useState(false);
   const [flashId, setFlashId]     = useState<string | null>(null);
   const orbRef = useRef<HTMLButtonElement>(null);

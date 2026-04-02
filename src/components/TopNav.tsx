@@ -4,21 +4,22 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, Focus, Box, LogIn, LogOut,
-  MessageSquare, ShoppingBag, ClipboardList, CalendarDays,
+  MessageSquare, ShoppingBag, ClipboardList, CalendarDays, Grid2x2,
 } from "lucide-react";
 import { useStore } from "@/store/useStore";
 import NotificationBanner from "@/components/NotificationBanner";
 import GlobalSearch from "@/components/GlobalSearch";
 import { useSFX } from "@/hooks/useSFX";
 
-const NAV_ITEMS = [
-  { id: "overview",     label: "Tổng Quan",  href: "/",             icon: LayoutDashboard, exact: true  },
-  { id: "visual-board", label: "Vị Trí",     href: "/visual-board", icon: Focus,           exact: false },
-  { id: "inventory",    label: "Dữ Liệu",    href: "/inventory",    icon: Box,             exact: false },
-  { id: "sales",        label: "Bán Hàng",   href: "/sales",        icon: ShoppingBag,     exact: false },
-  { id: "report",       label: "Báo Cáo",    href: "/report",       icon: ClipboardList,   exact: false },
-  { id: "chat",         label: "Chat",        href: "/chat",         icon: MessageSquare,   exact: false },
-  { id: "schedule",     label: "Lịch Làm",   href: "/schedule",     icon: CalendarDays,    exact: false },
+const NAV_ITEMS_BASE = [
+  { id: "overview",     label: "Tổng Quan",  href: "/",             icon: LayoutDashboard, exact: true,  adminOnly: false },
+  { id: "visual-board", label: "Vị Trí",     href: "/visual-board", icon: Focus,           exact: false, adminOnly: false },
+  { id: "inventory",    label: "Dữ Liệu",    href: "/inventory",    icon: Box,             exact: false, adminOnly: false },
+  { id: "sales",        label: "Bán Hàng",   href: "/sales",        icon: ShoppingBag,     exact: false, adminOnly: false },
+  { id: "report",       label: "Báo Cáo",    href: "/report",       icon: ClipboardList,   exact: false, adminOnly: false },
+  { id: "chat",         label: "Chat",       href: "/chat",         icon: MessageSquare,   exact: false, adminOnly: false },
+  { id: "schedule",     label: "Lịch Làm",   href: "/schedule",     icon: CalendarDays,    exact: false, adminOnly: false },
+  { id: "apps",         label: "Ứng Dụng",   href: "/apps",         icon: Grid2x2,         exact: false, adminOnly: true  },
 ] as const;
 
 export default function TopNav() {
@@ -27,6 +28,8 @@ export default function TopNav() {
   const currentUser = useStore(s => s.currentUser);
   const logout = useStore(s => s.logout);
   const sfx = useSFX();
+  const isAdmin = currentUser?.role === "admin" || currentUser?.role === "manager";
+  const NAV_ITEMS = NAV_ITEMS_BASE.filter(it => !it.adminOnly || isAdmin);
 
   const isActive = (href: string, exact: boolean) =>
     exact ? pathname === href : pathname.startsWith(href);
