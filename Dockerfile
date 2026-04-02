@@ -21,7 +21,9 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 ENV NEXT_TELEMETRY_DISABLED=1
-RUN npm run build
+# Cache Next.js build artifacts on VPS SSD — incremental compile on code changes
+RUN --mount=type=cache,target=/app/.next/cache \
+    npm run build
 
 # ── Stage 3: runner ───────────────────────────────────────────────────────────
 # Use Alpine for the final image to keep it small
