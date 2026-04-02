@@ -19,9 +19,7 @@
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
     "@ducanh2912/next-pwa": "^10.2.9",
-    "@supabase/supabase-js": "^2.99.3",
     "@tanstack/react-virtual": "^3.13.23",
-    "@vercel/analytics": "^2.0.1",
     "@zxing/browser": "^0.1.5",
     "@zxing/library": "^0.21.3",
     "barcode-detector": "^3.1.1",
@@ -36,18 +34,15 @@
     "zustand": "^5.0.2"
   },
   "devDependencies": {
-    "@prisma/client": "^7.5.0",
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^22",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "@types/three": "^0.169.0",
     "@types/web-push": "^3.6.4",
     "autoprefixer": "^10.4.20",
     "eslint": "^8",
     "eslint-config-next": "^15.1.0",
     "postcss": "^8.4.47",
-    "prisma": "^7.5.0",
     "tailwindcss": "^3.4.17",
     "typescript": "^5.7.2"
   }

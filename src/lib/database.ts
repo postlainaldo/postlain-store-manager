@@ -13,22 +13,11 @@ import fs from "fs";
 
 // ─── Singleton ────────────────────────────────────────────────────────────────
 
-// DB path priority:
-//  1. DATA_DIR env var  — set this in Coolify to a mounted volume path (e.g. /data)
-//  2. Vercel            — /tmp (ephemeral, but writable; use Supabase for persistence)
-//  3. Everything else   — ./data/postlain.db next to project root
-const isVercel = process.env.VERCEL === "1";
-const dataDir = process.env.DATA_DIR
-  ? process.env.DATA_DIR
-  : isVercel
-    ? "/tmp"
-    : path.join(process.cwd(), "data");
+// DB path: DATA_DIR env var (set in Coolify volume mount) or ./data/postlain.db
+const dataDir = process.env.DATA_DIR ?? path.join(process.cwd(), "data");
 const DB_PATH = path.join(dataDir, "postlain.db");
 
-// Ensure data directory exists (skip for Vercel /tmp which always exists)
-if (!isVercel || process.env.DATA_DIR) {
-  if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
-}
+if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
 
 // Module-level singleton (Next.js hot-reload safe via globalThis cache)
 declare global {

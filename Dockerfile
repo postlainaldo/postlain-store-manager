@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 # ── Stage 1: deps ────────────────────────────────────────────────────────────
 # Use Debian slim for build stages — avoids Alpine gcc I/O errors
 FROM node:20-bookworm-slim AS deps
@@ -6,8 +7,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /app
 
 COPY package.json package-lock.json* ./
-# Install all deps (including better-sqlite3 native build)
-RUN npm ci
+# Cache npm downloads on VPS SSD — only re-runs when package.json changes
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci
 
 # ── Stage 2: builder ──────────────────────────────────────────────────────────
 FROM node:20-bookworm-slim AS builder

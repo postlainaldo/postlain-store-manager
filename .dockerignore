@@ -6,3 +6,11 @@ data
 .env.local
 .env.local.tmp
 README.md
+*.md
+.github
+scripts
+docs
+*.log
+*.pid
+.DS_Store
+Thumbs.db

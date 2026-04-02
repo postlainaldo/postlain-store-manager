@@ -2,11 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import Database from "better-sqlite3";
 import path from "path";
 
-// ── same DB path logic as database.ts ────────────────────────────────────────
-const isVercel = process.env.VERCEL === "1";
-const DB_PATH = isVercel
-  ? "/tmp/postlain.db"
-  : path.join(process.cwd(), "data", "postlain.db");
+const DB_PATH = path.join(process.env.DATA_DIR ?? path.join(process.cwd(), "data"), "postlain.db");
 
 // Tables to backup — order matters for restore (FK dependencies)
 const TABLES = [
