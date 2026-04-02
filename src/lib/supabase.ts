@@ -1,6 +1,6 @@
 /**
  * Supabase client — server-side only (uses service role key for full access)
- * Used for persistent storage on Vercel.
+ * Used for persistent data storage (Supabase PostgreSQL).
  */
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -28,7 +28,7 @@ export function getSupabase(): SupabaseClient {
   return globalThis.__supabase!;
 }
 
-/** Returns true when running on Vercel with Supabase configured */
+/** Returns true when Supabase env vars are configured */
 export const IS_SUPABASE = !!(
   process.env.NEXT_PUBLIC_SUPABASE_URL &&
   (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
