@@ -110,15 +110,17 @@ export async function GET() {
 
     await sql`
       CREATE TABLE IF NOT EXISTS shift_templates (
-        id          TEXT PRIMARY KEY,
-        name        TEXT NOT NULL,
-        "startTime" TEXT NOT NULL,
-        "endTime"   TEXT NOT NULL,
-        color       TEXT NOT NULL DEFAULT '#0ea5e9',
-        "maxStaff"  INTEGER NOT NULL DEFAULT 3,
-        "createdAt" TEXT NOT NULL
+        id           TEXT PRIMARY KEY,
+        name         TEXT NOT NULL,
+        "startTime"  TEXT NOT NULL,
+        "endTime"    TEXT NOT NULL,
+        color        TEXT NOT NULL DEFAULT '#0ea5e9',
+        "maxStaff"   INTEGER NOT NULL DEFAULT 3,
+        "createdAt"  TEXT NOT NULL,
+        "staffType"  TEXT NOT NULL DEFAULT 'ALL'
       )
     `;
+    await sql`ALTER TABLE shift_templates ADD COLUMN IF NOT EXISTS "staffType" TEXT NOT NULL DEFAULT 'ALL'`;
 
     await sql`
       CREATE TABLE IF NOT EXISTS shift_slots (
@@ -132,9 +134,11 @@ export async function GET() {
         "maxStaff"   INTEGER NOT NULL DEFAULT 3,
         note         TEXT,
         "createdAt"  TEXT NOT NULL,
-        "updatedAt"  TEXT NOT NULL
+        "updatedAt"  TEXT NOT NULL,
+        "staffType"  TEXT NOT NULL DEFAULT 'ALL'
       )
     `;
+    await sql`ALTER TABLE shift_slots ADD COLUMN IF NOT EXISTS "staffType" TEXT NOT NULL DEFAULT 'ALL'`;
 
     await sql`
       CREATE INDEX IF NOT EXISTS idx_shift_slots_date ON shift_slots(date)

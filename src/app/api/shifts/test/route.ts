@@ -94,7 +94,7 @@ export async function GET() {
     const { dbGetShiftTemplates } = await import("@/lib/dbAdapter");
     const r = await dbGetShiftTemplates();
     const found = r.find(t => t.id === tmplId);
-    return found ? `found: ${found.name}` : "NOT FOUND";
+    return found ? `found: ${found.name} staffType=${found.staffType}` : `NOT FOUND (total=${r.length}, ids=${r.map(x=>x.id).slice(-3).join(",")})`;
   });
 
   // Test insert slot
@@ -139,7 +139,7 @@ export async function GET() {
   await step("dbGetShiftRegistrations", async () => {
     const { dbGetShiftRegistrations } = await import("@/lib/dbAdapter");
     const r = await dbGetShiftRegistrations([slotId]);
-    return `${r.length} registrations`;
+    return `${r.length} registrations${r[0] ? `: userId=${r[0].userId} status=${r[0].status}` : ""}`;
   });
 
   // Cleanup
