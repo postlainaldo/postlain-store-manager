@@ -1,9 +1,7 @@
 # syntax=docker/dockerfile:1
 # ── Stage 1: deps ────────────────────────────────────────────────────────────
-# Use Debian slim for build stages — avoids Alpine gcc I/O errors
-FROM node:20-bookworm-slim AS deps
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    python3 make g++ && rm -rf /var/lib/apt/lists/*
+# Use pre-built base image (python3/make/g++ already installed) — skips apt-get every build
+FROM postlain/node-build-base:20 AS deps
 WORKDIR /app
 
 COPY package.json package-lock.json* ./
@@ -12,9 +10,7 @@ RUN --mount=type=cache,target=/root/.npm \
     npm ci
 
 # ── Stage 2: builder ──────────────────────────────────────────────────────────
-FROM node:20-bookworm-slim AS builder
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    python3 make g++ && rm -rf /var/lib/apt/lists/*
+FROM postlain/node-build-base:20 AS builder
 WORKDIR /app
 
 COPY --from=deps /app/node_modules ./node_modules
