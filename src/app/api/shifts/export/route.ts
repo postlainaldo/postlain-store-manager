@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import * as XLSX from "xlsx";
-import { getDb } from "@/lib/db";
+import getDb from "@/lib/database";
 
 // Shift code mapping from time range
 const SHIFT_CODES: Record<string, string> = {
