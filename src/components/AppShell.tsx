@@ -9,6 +9,8 @@ import GlobalSearch from "@/components/GlobalSearch";
 import NotificationBanner from "@/components/NotificationBanner";
 import AudioUnlocker from "@/components/AudioUnlocker";
 import PushPrompt from "@/components/PushPrompt";
+import AIChatWidget from "@/components/AIChatWidget";
+import { useStore } from "@/store/useStore";
 
 const NO_SHELL_PATHS = ["/login", "/setup", "/install"];
 
@@ -19,6 +21,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isShellless = NO_SHELL_PATHS.includes(pathname);
   const isFullHeight = FULL_HEIGHT_PATHS.some(p => pathname.startsWith(p));
+
+  const currentUser = useStore(s => s.currentUser);
 
   // Detect mobile after hydration to avoid blur on mobile top bar
   const [isMobileDevice, setIsMobileDevice] = useState(true); // safe default = no blur
@@ -107,6 +111,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
         <BottomNav />
       </div>
+
+      {/* AI Chat Widget — visible on all authenticated pages */}
+      <AIChatWidget currentUser={currentUser} />
     </AuthGuard>
   );
 }
