@@ -49,7 +49,7 @@ ${shifts.length > 0 ? shifts.map(s => `- ${s.startTime}-${s.endTime}: ${s.staffN
 
 export async function POST(req: NextRequest) {
   if (!GEMINI_API_KEY) {
-    return NextResponse.json({ error: "Gemini API key chưa được cấu hình" }, { status: 500 });
+    return NextResponse.json({ error: "GEMINI_API_KEY chưa được cấu hình trong environment variables" }, { status: 500 });
   }
 
   const { messages } = await req.json();

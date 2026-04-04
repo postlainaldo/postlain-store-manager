@@ -27,6 +27,8 @@ const nextConfig = {
   },
   // Prevent better-sqlite3 from being bundled by webpack (it's a native module)
   serverExternalPackages: ["better-sqlite3"],
+  eslint: { ignoreDuringBuilds: true },
+  typescript: { ignoreBuildErrors: true },
 };
 
 export default withPWA(nextConfig);

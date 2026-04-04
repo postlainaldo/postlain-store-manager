@@ -823,6 +823,7 @@ export default function SchedulePage() {
   const [filterType, setFilterType]       = useState<"ALL"|"FT"|"PT">("ALL");
   const [bulkMode, setBulkMode]           = useState(false);
   const [selectedSlotIds, setSelectedSlotIds] = useState<Set<string>>(new Set());
+  const [regClosed, setRegClosed]         = useState(false); // admin can force-close registration
 
   // ── Responsive ─────────────────────────────────────────────────────────────
   const [isMobile, setIsMobile] = useState(false);
@@ -1082,7 +1083,7 @@ export default function SchedulePage() {
    */
   function canUserRegister(slot: ShiftSlot): boolean {
     if (isAdmin) return true;
-    if (!canStaffRegister(slot.date)) return false;
+    if (regClosed || !canStaffRegister(slot.date)) return false;
     const slotType = inferStaffType(slot);
     if (slotType === "ALL") return true;
     // staff_pt can only register PT slots; staff_ft and plain staff → FT slots
@@ -1149,6 +1150,17 @@ export default function SchedulePage() {
                 {bulkMode && selectedSlotIds.size > 0 && (
                   <span style={{ fontSize:8, fontWeight:800, color:"#fff", background:"#ef4444", padding:"1px 5px", borderRadius:10 }}>{selectedSlotIds.size}</span>
                 )}
+              </button>
+            )}
+            {isAdmin && (
+              <button onClick={() => { setRegClosed(v => !v); playSound("tap"); }}
+                style={{ display:"flex", alignItems:"center", gap:5, padding:"7px 12px", borderRadius:10,
+                  border: `1px solid ${regClosed ? "rgba(239,68,68,0.4)" : "rgba(245,158,11,0.4)"}`,
+                  background: regClosed ? "rgba(239,68,68,0.08)" : "rgba(245,158,11,0.08)",
+                  cursor:"pointer", fontFamily:"inherit" }}>
+                <span style={{ fontSize:10, fontWeight:700, color: regClosed ? "#ef4444" : "#d97706" }}>
+                  {regClosed ? "Đã đóng ĐK" : "Đóng ĐK"}
+                </span>
               </button>
             )}
             {isAdmin && (
