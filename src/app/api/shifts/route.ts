@@ -86,6 +86,7 @@ export async function POST(req: NextRequest) {
 // PATCH /api/shifts  — update settings (e.g. regClosed)
 export async function PATCH(req: NextRequest) {
   try {
+    await ensureSupabaseSchema();
     const body = await req.json() as { regClosed?: boolean };
     if (typeof body.regClosed === "boolean") {
       await setRegClosed(body.regClosed);
