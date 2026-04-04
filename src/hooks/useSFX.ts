@@ -12,13 +12,7 @@ let _unlocked = false;
 
 function getCtx(): AudioContext | null {
   if (typeof window === "undefined") return null;
-  if (!_ctx) {
-    try {
-      const AC = window.AudioContext ?? (window as unknown as Record<string, typeof AudioContext>)["webkitAudioContext"];
-      if (!AC) return null;
-      _ctx = new AC();
-    } catch { return null; }
-  }
+  if (!_ctx) return null; // Don't create before user gesture
   if (_ctx.state === "suspended") {
     _ctx.resume().catch(() => {});
   }
@@ -31,9 +25,18 @@ function getCtx(): AudioContext | null {
  */
 export function unlockAudio() {
   if (_unlocked) return;
-  const ac = getCtx();
-  if (!ac) return;
-  // Create and immediately stop a silent buffer — this counts as user-gesture audio
+  if (typeof window === "undefined") return;
+  // Create AudioContext here — inside user gesture handler
+  if (!_ctx) {
+    try {
+      const AC = window.AudioContext ?? (window as unknown as Record<string, typeof AudioContext>)["webkitAudioContext"];
+      if (!AC) return;
+      _ctx = new AC();
+    } catch { return; }
+  }
+  const ac = _ctx;
+  if (ac.state === "suspended") ac.resume().catch(() => {});
+  // Play a silent buffer to fully unlock
   const buf = ac.createBuffer(1, 1, ac.sampleRate);
   const src = ac.createBufferSource();
   src.buffer = buf;
