@@ -2036,29 +2036,30 @@ function ensureShiftRequestsTable() {
   )`).run();
 }
 
-// Supabase returns lowercase keys when columns were created without quoting.
-// Normalize to camelCase regardless of how the table was created.
+// Normalize Supabase row to DBShiftRequest — handles both quoted (camelCase)
+// and unquoted (lowercase) column names depending on how the table was created.
 function normalizeSR(row: Record<string, unknown>): DBShiftRequest {
   return {
-    id:         (row.id         ?? "") as string,
-    userId:     (row.userid     ?? row.userId     ?? "") as string,
-    userName:   (row.username   ?? row.userName   ?? "") as string,
-    type:       (row.type       ?? "other") as string,
-    status:     (row.status     ?? "pending") as string,
-    content:    (row.content    ?? "") as string,
-    adminNote:  (row.adminnote  ?? row.adminNote  ?? null) as string | null,
-    targetDate: (row.targetdate ?? row.targetDate ?? null) as string | null,
-    createdAt:  (row.createdat  ?? row.createdAt  ?? "") as string,
-    updatedAt:  (row.updatedat  ?? row.updatedAt  ?? "") as string,
+    id:         String(row.id         ?? ""),
+    userId:     String(row.userId     ?? row.userid     ?? ""),
+    userName:   String(row.userName   ?? row.username   ?? ""),
+    type:       String(row.type       ?? "other"),
+    status:     String(row.status     ?? "pending"),
+    content:    String(row.content    ?? ""),
+    adminNote:  (row.adminNote  ?? row.adminnote  ?? null) as string | null,
+    targetDate: (row.targetDate ?? row.targetdate ?? null) as string | null,
+    createdAt:  String(row.createdAt  ?? row.createdat  ?? ""),
+    updatedAt:  String(row.updatedAt  ?? row.updatedat  ?? ""),
   };
 }
 
 export async function dbGetShiftRequests(userId?: string): Promise<DBShiftRequest[]> {
   if (IS_SUPABASE) {
     const sb = getSupabase();
-    let q = sb.from("shift_requests").select("*").order("createdat", { ascending: false }).limit(100);
-    if (userId) q = q.eq("userid", userId);
-    const { data } = await q;
+    let q = sb.from("shift_requests").select("*").order("createdAt", { ascending: false }).limit(100);
+    if (userId) q = q.eq("userId", userId);
+    const { data, error } = await q;
+    if (error) console.error("dbGetShiftRequests error:", error);
     return (data ?? []).map(normalizeSR);
   }
   ensureShiftRequestsTable();
@@ -2070,12 +2071,13 @@ export async function dbGetShiftRequests(userId?: string): Promise<DBShiftReques
 
 export async function dbInsertShiftRequest(r: DBShiftRequest): Promise<void> {
   if (IS_SUPABASE) {
-    await getSupabase().from("shift_requests").insert({
-      id: r.id, userid: r.userId, username: r.userName,
+    const { error } = await getSupabase().from("shift_requests").insert({
+      id: r.id, userId: r.userId, userName: r.userName,
       type: r.type, status: r.status, content: r.content,
-      adminnote: r.adminNote, targetdate: r.targetDate,
-      createdat: r.createdAt, updatedat: r.updatedAt,
+      adminNote: r.adminNote, targetDate: r.targetDate,
+      createdAt: r.createdAt, updatedAt: r.updatedAt,
     });
+    if (error) console.error("dbInsertShiftRequest error:", error);
     return;
   }
   ensureShiftRequestsTable();
@@ -2084,11 +2086,12 @@ export async function dbInsertShiftRequest(r: DBShiftRequest): Promise<void> {
 
 export async function dbUpdateShiftRequest(id: string, fields: { status: string; adminNote?: string; updatedAt: string }): Promise<void> {
   if (IS_SUPABASE) {
-    await getSupabase().from("shift_requests").update({
+    const { error } = await getSupabase().from("shift_requests").update({
       status: fields.status,
-      adminnote: fields.adminNote || null,
-      updatedat: fields.updatedAt,
+      adminNote: fields.adminNote || null,
+      updatedAt: fields.updatedAt,
     }).eq("id", id);
+    if (error) console.error("dbUpdateShiftRequest error:", error);
     return;
   }
   ensureShiftRequestsTable();
