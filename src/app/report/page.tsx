@@ -47,12 +47,10 @@ const M = (n: number) => new Intl.NumberFormat("vi-VN").format(Math.round(n));
 const K = (n: number) => n >= 1_000_000 ? (n / 1_000_000).toFixed(2) + "M" : M(n);
 
 function todayVN() {
-  const d = new Date();
-  const local = new Date(d.getTime() + (7 * 60 - d.getTimezoneOffset()) * 60000);
-  return local.toISOString().slice(0, 10);
+  return new Date(new Date().toLocaleString("en-CA", { timeZone: "Asia/Ho_Chi_Minh" })).toISOString().slice(0, 10);
 }
 function yesterdayVN() {
-  const d = new Date(todayVN());
+  const d = new Date(new Date().toLocaleString("en-CA", { timeZone: "Asia/Ho_Chi_Minh" }));
   d.setDate(d.getDate() - 1);
   return d.toISOString().slice(0, 10);
 }
