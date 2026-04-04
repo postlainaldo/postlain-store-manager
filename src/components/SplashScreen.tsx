@@ -109,13 +109,7 @@ export default function SplashScreen() {
     sessionStorage.setItem(SPLASH_KEY, "1");
     setVisible(true);
 
-    // Start ambient music after tiny delay (AudioContext needs user gesture on iOS — best effort)
     let stopMusic: (() => void) | null = null;
-    const tMusic = setTimeout(() => {
-      stopMusic = playSplashMusic();
-    }, 80);
-
-    const tBoot = setTimeout(() => playSound("boot"), 120);
     const t1 = setTimeout(() => setPhase("hold"), 900);
     const t2 = setTimeout(() => {
       setPhase("out");
@@ -123,9 +117,21 @@ export default function SplashScreen() {
       stopMusic?.();
     }, 3200);
     const t3 = setTimeout(() => setVisible(false), 3900);
+
+    // Play audio only after first user gesture — browser policy
+    const onGesture = () => {
+      stopMusic = playSplashMusic();
+      playSound("boot");
+      window.removeEventListener("pointerdown", onGesture);
+      window.removeEventListener("keydown", onGesture);
+    };
+    window.addEventListener("pointerdown", onGesture, { once: true });
+    window.addEventListener("keydown", onGesture, { once: true });
+
     return () => {
-      clearTimeout(tMusic); clearTimeout(tBoot);
       clearTimeout(t1); clearTimeout(t2); clearTimeout(t3);
+      window.removeEventListener("pointerdown", onGesture);
+      window.removeEventListener("keydown", onGesture);
       stopMusic?.();
     };
   }, []);
