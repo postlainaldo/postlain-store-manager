@@ -6,11 +6,11 @@
 @tailwind utilities;
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   POSTLAIN v3 — Dark Premium Blue Design System
+   POSTLAIN — Midnight Gold Design System
    ═══════════════════════════════════════════════════════════════════════════ */
 :root {
   --font-montserrat: "Montserrat", sans-serif;
-  color-scheme: dark;
+  color-scheme: light;
 
   /* ── Brand Gold ─────────────────────────────────────────────────────── */
   --gold:        #C9A55A;
@@ -20,58 +20,58 @@
   --gold-glow:   rgba(201,165,90,0.18);
   --gold-glow2:  rgba(201,165,90,0.32);
 
-  /* ── Premium Blue ────────────────────────────────────────────────────── */
-  --blue:        #3b82f6;
-  --blue-light:  #60a5fa;
-  --blue-dark:   #1d4ed8;
-  --blue-glow:   rgba(59,130,246,0.22);
-  --blue-subtle: rgba(59,130,246,0.08);
+  /* ── Sky Blue ────────────────────────────────────────────────────────── */
+  --blue:        #0ea5e9;
+  --blue-light:  #38bdf8;
+  --blue-dark:   #0284c7;
+  --blue-glow:   rgba(14,165,233,0.20);
+  --blue-subtle: rgba(14,165,233,0.07);
 
   /* ── Mint / Success ──────────────────────────────────────────────────── */
   --mint:        #10b981;
   --mint-light:  #34d399;
   --mint-subtle: rgba(16,185,129,0.10);
 
-  /* ── Dark Backgrounds ────────────────────────────────────────────────── */
-  --bg-base:      #060d1a;
-  --bg-surface:   #0a1628;
-  --bg-card:      #0d1c30;
-  --bg-elevated:  #112038;
-  --bg-overlay:   rgba(0,0,0,0.70);
-  --bg-input:     #0f1e33;
-  --bg-sidebar:   #080f1e;
-  /* Nav chrome — glass dark */
-  --bg-nav:       rgba(6,13,26,0.88);
-  --bg-nav-glass: rgba(10,22,40,0.92);
+  /* ── Backgrounds ─────────────────────────────────────────────────────── */
+  --bg-base:      #eef6fd;   /* crisp ice — slightly deeper than before */
+  --bg-surface:   #ffffff;
+  --bg-card:      #ffffff;
+  --bg-elevated:  #dbeafe;
+  --bg-overlay:   rgba(8,14,26,0.55);
+  --bg-input:     #f5faff;
+  --bg-sidebar:   #dbeafe;
+  /* Nav chrome — glass light */
+  --bg-nav:       rgba(255,255,255,0.70);
+  --bg-nav-glass: rgba(255,255,255,0.82);
 
   /* ── Borders ─────────────────────────────────────────────────────────── */
-  --border:        rgba(59,130,246,0.14);
-  --border-subtle: rgba(59,130,246,0.08);
-  --border-strong: rgba(59,130,246,0.28);
-  --border-nav:    rgba(59,130,246,0.12);
+  --border:        #bae6fd;
+  --border-subtle: #dbeafe;
+  --border-strong: #7dd3fc;
+  --border-nav:    rgba(186,230,253,0.65);
 
   /* ── Text ────────────────────────────────────────────────────────────── */
-  --text-primary:   #e8f0fe;
-  --text-secondary: #94afd6;
-  --text-muted:     #4d6a8a;
-  --text-inverse:   #060d1a;
+  --text-primary:   #0c1a2e;
+  --text-secondary: #334e68;
+  --text-muted:     #64748b;
+  --text-inverse:   #ffffff;
 
   /* ── Accents ─────────────────────────────────────────────────────────── */
-  --accent-blue:   #3b82f6;
-  --accent-green:  #10b981;
-  --accent-red:    #f87171;
-  --accent-purple: #a78bfa;
+  --accent-blue:   #0ea5e9;
+  --accent-green:  #16a34a;
+  --accent-red:    #dc2626;
+  --accent-purple: #7c3aed;
   --accent-gold:   #C9A55A;
 
   /* ── Shadows ─────────────────────────────────────────────────────────── */
-  --shadow-xs:   0 1px 2px rgba(0,0,0,0.30);
-  --shadow-sm:   0 2px 8px rgba(0,0,0,0.35), 0 1px 2px rgba(0,0,0,0.20);
-  --shadow-md:   0 4px 16px rgba(0,0,0,0.40), 0 2px 4px rgba(0,0,0,0.25);
-  --shadow-lg:   0 8px 32px rgba(0,0,0,0.50), 0 4px 8px rgba(0,0,0,0.30);
-  --shadow-xl:   0 16px 48px rgba(0,0,0,0.60), 0 8px 16px rgba(0,0,0,0.35);
-  --shadow-blue: 0 4px 20px rgba(59,130,246,0.25);
+  --shadow-xs:   0 1px 2px rgba(12,26,46,0.05);
+  --shadow-sm:   0 2px 8px rgba(12,26,46,0.07), 0 1px 2px rgba(12,26,46,0.04);
+  --shadow-md:   0 4px 16px rgba(12,26,46,0.09), 0 2px 4px rgba(12,26,46,0.05);
+  --shadow-lg:   0 8px 32px rgba(12,26,46,0.11), 0 4px 8px rgba(12,26,46,0.06);
+  --shadow-xl:   0 16px 48px rgba(12,26,46,0.14), 0 8px 16px rgba(12,26,46,0.08);
+  --shadow-blue: 0 4px 20px rgba(14,165,233,0.22);
   --shadow-gold: 0 4px 24px rgba(201,165,90,0.28);
-  --shadow-nav:  0 1px 0 rgba(59,130,246,0.12), 0 4px 24px rgba(0,0,0,0.40), inset 0 1px 0 rgba(255,255,255,0.04);
+  --shadow-nav:  0 1px 0 rgba(186,230,253,0.8), 0 4px 24px rgba(12,26,46,0.06), inset 0 1px 0 rgba(255,255,255,0.9);
 
   /* ── Radius ──────────────────────────────────────────────────────────── */
   --r-xs:   3px;
@@ -282,7 +282,7 @@ button { font-family: inherit; -webkit-tap-highlight-color: transparent; }
 
 /* ── Skeleton shimmer ─────────────────────────────────────────────────── */
 .skeleton {
-  background: linear-gradient(90deg, var(--bg-elevated) 25%, rgba(59,130,246,0.06) 50%, var(--bg-elevated) 75%);
+  background: linear-gradient(90deg, var(--bg-elevated) 25%, #f0f9ff 50%, var(--bg-elevated) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.4s ease-in-out infinite;
   border-radius: 4px;
@@ -314,11 +314,11 @@ button { font-family: inherit; -webkit-tap-highlight-color: transparent; }
    GLASS CARD
    ═══════════════════════════════════════════════════════════════════════════ */
 .glass-card {
-  background: rgba(10,22,40,0.80);
-  backdrop-filter: blur(20px) saturate(1.4);
-  -webkit-backdrop-filter: blur(20px) saturate(1.4);
-  border: 1px solid rgba(59,130,246,0.14);
-  box-shadow: var(--shadow-md), inset 0 1px 0 rgba(255,255,255,0.04);
+  background: rgba(255,255,255,0.72);
+  backdrop-filter: blur(16px) saturate(1.6);
+  -webkit-backdrop-filter: blur(16px) saturate(1.6);
+  border: 1px solid rgba(186,230,253,0.55);
+  box-shadow: var(--shadow-md), inset 0 1px 0 rgba(255,255,255,0.8);
 }
 .glass-card-dark {
   background: rgba(8,14,26,0.82);
@@ -446,18 +446,18 @@ button { font-family: inherit; -webkit-tap-highlight-color: transparent; }
   border-bottom: 1px solid var(--border-nav);
   box-shadow: var(--shadow-nav);
 }
-/* Premium blue shimmer bottom line */
+/* Soft blue shimmer bottom line */
 .topnav::after {
   content: '';
   position: absolute;
   bottom: 0; left: 0; right: 0; height: 1px;
   background: linear-gradient(90deg,
     transparent 0%,
-    rgba(59,130,246,0.0) 10%,
-    rgba(59,130,246,0.45) 35%,
-    rgba(201,165,90,0.55) 50%,
-    rgba(59,130,246,0.45) 65%,
-    rgba(59,130,246,0.0) 90%,
+    rgba(186,230,253,0.0) 10%,
+    rgba(14,165,233,0.45) 35%,
+    rgba(14,165,233,0.65) 50%,
+    rgba(14,165,233,0.45) 65%,
+    rgba(186,230,253,0.0) 90%,
     transparent 100%
   );
 }
@@ -478,20 +478,20 @@ button { font-family: inherit; -webkit-tap-highlight-color: transparent; }
     box-shadow  0.18s var(--ease-smooth);
 }
 .topnav-link:hover {
-  background: rgba(59,130,246,0.08);
+  background: rgba(14,165,233,0.07);
 }
 .topnav-link .topnav-label {
   font-size: 9px;
   font-weight: 600;
   letter-spacing: 0.12em;
-  color: rgba(148,175,214,0.65);
+  color: rgba(12,26,46,0.45);
   transition: color 0.16s;
 }
 .topnav-link .topnav-icon {
-  color: rgba(148,175,214,0.50);
+  color: rgba(12,26,46,0.35);
   transition: color 0.16s;
 }
-.topnav-link:hover .topnav-label { color: var(--blue-light); }
+.topnav-link:hover .topnav-label { color: var(--blue-dark); }
 .topnav-link:hover .topnav-icon  { color: var(--blue); }
 
 /* Active nav link */
@@ -518,11 +518,11 @@ button { font-family: inherit; -webkit-tap-highlight-color: transparent; }
    BOTTOM NAV — Glass Light Chrome (mobile)
    ═══════════════════════════════════════════════════════════════════════════ */
 .bottomnav {
-  background: rgba(6,13,26,0.92);
+  background: rgba(255,255,255,0.78);
   backdrop-filter: blur(24px) saturate(1.8);
   -webkit-backdrop-filter: blur(24px) saturate(1.8);
-  border-top: 1px solid rgba(59,130,246,0.14);
-  box-shadow: 0 -1px 0 rgba(59,130,246,0.12), 0 -8px 40px rgba(0,0,0,0.50), inset 0 1px 0 rgba(255,255,255,0.04);
+  border-top: 1px solid rgba(186,230,253,0.65);
+  box-shadow: 0 -1px 0 rgba(186,230,253,0.9), 0 -8px 32px rgba(12,26,46,0.06), inset 0 1px 0 rgba(255,255,255,0.95);
   position: relative;
 }
 .bottomnav::before {
@@ -531,11 +531,11 @@ button { font-family: inherit; -webkit-tap-highlight-color: transparent; }
   top: 0; left: 0; right: 0; height: 1px;
   background: linear-gradient(90deg,
     transparent 0%,
-    rgba(59,130,246,0.0) 5%,
-    rgba(59,130,246,0.45) 30%,
-    rgba(201,165,90,0.55) 50%,
-    rgba(59,130,246,0.45) 70%,
-    rgba(59,130,246,0.0) 95%,
+    rgba(186,230,253,0.0) 5%,
+    rgba(14,165,233,0.5) 30%,
+    rgba(14,165,233,0.7) 50%,
+    rgba(14,165,233,0.5) 70%,
+    rgba(186,230,253,0.0) 95%,
     transparent 100%
   );
 }
@@ -567,12 +567,12 @@ button { font-family: inherit; -webkit-tap-highlight-color: transparent; }
   font-size: 7.5px;
   font-weight: 500;
   letter-spacing: 0.02em;
-  color: rgba(148,175,214,0.45);
+  color: rgba(12,26,46,0.38);
   white-space: nowrap;
   transition: color 0.16s, font-weight 0.16s;
 }
 .bottomnav-item.active .bottomnav-label {
-  color: var(--blue-light);
+  color: var(--blue-dark);
   font-weight: 700;
 }
 
@@ -595,9 +595,9 @@ button { font-family: inherit; -webkit-tap-highlight-color: transparent; }
    SOFT AURORA — Page & Card Elevation System
    ═══════════════════════════════════════════════════════════════════════════ */
 
-/* Page background — dark premium blue aurora */
+/* Page background — animated 3D aurora with floating orbs */
 .page-bg-aurora {
-  background: linear-gradient(160deg, #060d1a 0%, #080f20 55%, #060d1a 100%);
+  background: linear-gradient(160deg, #eef6fd 0%, #f0effe 55%, #eef6fd 100%);
   min-height: 100%;
   position: relative;
 }
@@ -615,13 +615,13 @@ button { font-family: inherit; -webkit-tap-highlight-color: transparent; }
 }
 .page-bg-aurora::before {
   width: 600px; height: 600px;
-  background: radial-gradient(circle at 40% 40%, rgba(29,78,216,0.20) 0%, rgba(59,130,246,0.10) 50%, transparent 70%);
+  background: radial-gradient(circle at 40% 40%, rgba(186,230,253,0.80) 0%, rgba(165,180,252,0.45) 50%, transparent 70%);
   top: -180px; left: -120px;
   animation: orb1 18s ease-in-out infinite alternate;
 }
 .page-bg-aurora::after {
   width: 500px; height: 500px;
-  background: radial-gradient(circle at 60% 60%, rgba(201,165,90,0.08) 0%, rgba(59,130,246,0.06) 50%, transparent 70%);
+  background: radial-gradient(circle at 60% 60%, rgba(216,180,254,0.60) 0%, rgba(186,230,253,0.40) 50%, transparent 70%);
   bottom: -140px; right: -80px;
   animation: orb2 22s ease-in-out infinite alternate;
 }
@@ -669,17 +669,17 @@ button { font-family: inherit; -webkit-tap-highlight-color: transparent; }
   100% { transform: translate(-60%, -40%) scale(0.90); opacity: 0.28; }
 }
 
-/* ── Floating card — dark glass morphism with spring hover lift ─── */
+/* ── Floating card — glass morphism with spring hover lift ─── */
 .card-float {
-  background: rgba(10,22,40,0.85);
-  backdrop-filter: blur(16px) saturate(1.3);
-  -webkit-backdrop-filter: blur(16px) saturate(1.3);
-  border: 1px solid rgba(59,130,246,0.12);
+  background: rgba(255,255,255,0.92);
+  backdrop-filter: blur(12px) saturate(1.4);
+  -webkit-backdrop-filter: blur(12px) saturate(1.4);
+  border: 1px solid rgba(186,230,253,0.55);
   border-radius: var(--r-lg);
   box-shadow:
-    0 2px 16px rgba(0,0,0,0.35),
-    0 1px 4px  rgba(0,0,0,0.25),
-    inset 0 1px 0 rgba(255,255,255,0.04);
+    0 2px 12px rgba(12,26,46,0.06),
+    0 1px 3px  rgba(12,26,46,0.04),
+    inset 0 1px 0 rgba(255,255,255,0.7);
   transition:
     transform   0.24s var(--ease-spring),
     box-shadow  0.24s var(--ease-smooth);
@@ -687,20 +687,19 @@ button { font-family: inherit; -webkit-tap-highlight-color: transparent; }
 .card-float:hover {
   transform: translateY(-2px);
   box-shadow:
-    0 8px 32px rgba(0,0,0,0.45),
-    0 2px 8px  rgba(0,0,0,0.30),
-    inset 0 1px 0 rgba(255,255,255,0.05);
+    0 8px 28px rgba(12,26,46,0.10),
+    0 2px 6px  rgba(12,26,46,0.06),
+    inset 0 1px 0 rgba(255,255,255,0.7);
 }
 
 /* ── KPI card — top accent bar + subtle glow ─── */
 .card-kpi {
-  background: rgba(10,22,40,0.90);
-  border: 1px solid rgba(59,130,246,0.14);
+  background: rgba(255,255,255,0.92);
+  border: 1px solid rgba(186,230,253,0.5);
   border-radius: var(--r-lg);
   box-shadow:
-    0 2px 16px rgba(0,0,0,0.35),
-    0 1px 4px rgba(0,0,0,0.25),
-    inset 0 1px 0 rgba(255,255,255,0.04);
+    0 2px 12px rgba(12,26,46,0.05),
+    inset 0 1px 0 rgba(255,255,255,0.8);
   position: relative;
   overflow: hidden;
   transition:
@@ -711,15 +710,13 @@ button { font-family: inherit; -webkit-tap-highlight-color: transparent; }
   content: '';
   position: absolute;
   top: 0; left: 0; right: 0; height: 2px;
-  background: var(--kpi-accent, linear-gradient(90deg, var(--blue-dark), var(--blue), var(--blue-light)));
-  opacity: 0.8;
+  background: var(--kpi-accent, linear-gradient(90deg, var(--blue), var(--blue-light)));
 }
 .card-kpi:hover {
   transform: translateY(-2px);
   box-shadow:
-    0 8px 32px rgba(0,0,0,0.45),
-    0 2px 8px rgba(0,0,0,0.30),
-    inset 0 1px 0 rgba(255,255,255,0.06);
+    0 6px 24px rgba(12,26,46,0.08),
+    inset 0 1px 0 rgba(255,255,255,0.8);
 }
 
 /* ── Section accent bar — colored left line before title ─── */
@@ -777,10 +774,10 @@ button { font-family: inherit; -webkit-tap-highlight-color: transparent; }
 .tab-nav {
   display: flex;
   gap: 3px;
-  background: rgba(6,13,26,0.60);
+  background: rgba(186,230,253,0.22);
   padding: 3px;
   border-radius: var(--r-lg);
-  border: 1px solid rgba(59,130,246,0.14);
+  border: 1px solid rgba(186,230,253,0.40);
 }
 .tab-nav-item {
   flex: 1;
@@ -800,16 +797,16 @@ button { font-family: inherit; -webkit-tap-highlight-color: transparent; }
 }
 .tab-nav-item:hover {
   color: var(--text-secondary);
-  background: rgba(59,130,246,0.08);
+  background: rgba(255,255,255,0.45);
 }
 .tab-nav-item.active {
-  background: rgba(17,32,56,0.95);
+  background: #ffffff;
   color: var(--text-primary);
-  box-shadow: 0 1px 8px rgba(0,0,0,0.35), 0 0 0 1px rgba(59,130,246,0.22), inset 0 1px 0 rgba(255,255,255,0.06);
+  box-shadow: 0 1px 6px rgba(12,26,46,0.10), 0 0 0 1px rgba(186,230,253,0.4);
 }
 .tab-nav-item.active-gold {
   background: linear-gradient(135deg, var(--gold-dark), var(--gold));
-  color: #0c1a2e;
+  color: #ffffff;
   box-shadow: var(--shadow-gold);
 }
 
@@ -850,11 +847,11 @@ button { font-family: inherit; -webkit-tap-highlight-color: transparent; }
   }
 
   /* Boost opacity on glass elements to compensate for lost blur */
-  .topnav    { background: rgba(6,13,26,0.98) !important; }
-  .bottomnav { background: rgba(6,13,26,0.98) !important; }
-  .glass-card     { background: rgba(10,22,40,0.97) !important; }
-  .glass-card-dark { background: rgba(8,14,26,0.98) !important; }
-  .card-float { background: rgba(10,22,40,0.97) !important; }
+  .topnav    { background: rgba(255,255,255,0.97) !important; }
+  .bottomnav { background: rgba(255,255,255,0.97) !important; }
+  .glass-card     { background: rgba(255,255,255,0.97) !important; }
+  .glass-card-dark { background: rgba(8,14,26,0.95) !important; }
+  .card-float { background: rgba(255,255,255,0.97) !important; }
 
   /* Disable continuous pulse animations — drain battery */
   .pulse-green, .pulse-gold, .pulse-blue {
