@@ -13,6 +13,9 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
+      - name: Wait for any in-progress Coolify deploy to settle
+        run: sleep 15
+
       - name: Trigger Coolify Deploy
         run: |
           curl -s -o /dev/null -w "%{http_code}" \
