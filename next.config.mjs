@@ -5,13 +5,17 @@ const { version } = require("./package.json");
 
 const withPWA = withPWAInit({
   dest: "public",
-  cacheOnFrontEndNav: true,
-  aggressiveFrontEndNavCaching: true,
+  // Don't aggressively prefetch all pages on nav — causes unnecessary network
+  // requests and CPU work that makes the app feel sluggish on mobile
+  cacheOnFrontEndNav: false,
+  aggressiveFrontEndNavCaching: false,
   reloadOnOnline: true,
   swMinify: true,
   disable: false,
   workboxOptions: {
     swSrc: "src/sw/index.ts",
+    // Exclude source maps and server chunks from precache
+    exclude: [/\.map$/, /\/_next\/server\//],
   },
 });
 
