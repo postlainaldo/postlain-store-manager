@@ -5,7 +5,7 @@ import {
   ChevronLeft, ChevronRight, Plus, X, Check, Clock,
   Users, Trash2, Edit3, CalendarDays, Settings2,
   ChevronDown, AlertCircle, CheckCircle2, XCircle, UserPlus, UserMinus,
-  CheckSquare, Square, MessageCircle, Send, Download,
+  CheckSquare, Square, MessageCircle, Send, Download, ClipboardList,
 } from "lucide-react";
 import { useStore, AppUser } from "@/store/useStore";
 import { motion, AnimatePresence } from "framer-motion";
@@ -583,16 +583,42 @@ function AddSlotModal({ templates, date, onSave, onClose }: {
 const ROOM_ID = "room_schedule_issues";
 
 type NoteMsg = { id: string; userId: string; userName: string; content: string; createdAt: string };
+type ShiftRequest = {
+  id: string; userId: string; userName: string; type: string;
+  status: "pending" | "approved" | "rejected";
+  content: string; adminNote: string | null;
+  targetDate: string | null; createdAt: string;
+};
+
+const REQ_TYPE_LABEL: Record<string, string> = {
+  swap_shift: "Đổi ca", day_off: "Xin nghỉ", note: "Ghi chú", other: "Khác",
+};
+const STATUS_CFG = {
+  pending:  { label: "Chờ duyệt", bg: "#fef3c7", color: "#d97706" },
+  approved: { label: "Đã duyệt",  bg: "#dcfce7", color: "#16a34a" },
+  rejected: { label: "Từ chối",   bg: "#fee2e2", color: "#dc2626" },
+};
 
 function ShiftNoteWidget({ currentUser, isAdmin }: { currentUser: AppUser | null; isAdmin: boolean }) {
-  const [open, setOpen]         = useState(false);
-  const [msgs, setMsgs]         = useState<NoteMsg[]>([]);
-  const [text, setText]         = useState("");
-  const [sending, setSending]   = useState(false);
-  const [unread, setUnread]     = useState(0);
-  const bottomRef               = useRef<HTMLDivElement>(null);
+  const [open, setOpen]           = useState(false);
+  const [tab, setTab]             = useState<"notes" | "requests">("notes");
+  // Notes tab
+  const [msgs, setMsgs]           = useState<NoteMsg[]>([]);
+  const [text, setText]           = useState("");
+  const [sending, setSending]     = useState(false);
+  const [unread, setUnread]       = useState(0);
+  const bottomRef                 = useRef<HTMLDivElement>(null);
   const lsKey = currentUser ? `shiftnote_seen_${currentUser.id}` : null;
-  const lastSeenRef             = useRef<string>("");
+  const lastSeenRef               = useRef<string>("");
+  // Requests tab
+  const [requests, setRequests]   = useState<ShiftRequest[]>([]);
+  const [reqType, setReqType]     = useState("other");
+  const [reqContent, setReqContent] = useState("");
+  const [reqDate, setReqDate]     = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [pendingCount, setPendingCount] = useState(0);
+  // Admin reply input per request
+  const [replyNote, setReplyNote] = useState<Record<string, string>>({});
 
   // Load lastSeen from localStorage on mount
   useEffect(() => {
@@ -600,59 +626,82 @@ function ShiftNoteWidget({ currentUser, isAdmin }: { currentUser: AppUser | null
     lastSeenRef.current = localStorage.getItem(lsKey) ?? "";
   }, [lsKey]);
 
-  // Ensure room exists + fetch messages
   const fetchMsgs = useCallback(async () => {
     const res = await fetch(`/api/chat?roomId=${ROOM_ID}`);
     if (!res.ok) return;
     const data: NoteMsg[] = await res.json();
     setMsgs(data);
-    if (!open) {
+    if (!open || tab !== "notes") {
       const newCount = data.filter(m => m.createdAt > lastSeenRef.current && m.userId !== currentUser?.id).length;
       setUnread(newCount);
     }
-  }, [open, currentUser?.id]);
+  }, [open, tab, currentUser?.id]);
 
-  // Init room + poll every 8s
+  const fetchRequests = useCallback(async () => {
+    const url = isAdmin
+      ? "/api/shifts/requests"
+      : `/api/shifts/requests?userId=${currentUser?.id}`;
+    const data: ShiftRequest[] = await fetch(url).then(r => r.json()).catch(() => []);
+    if (!Array.isArray(data)) return;
+    setRequests(data);
+    if (isAdmin) setPendingCount(data.filter(r => r.status === "pending").length);
+  }, [isAdmin, currentUser?.id]);
+
   useEffect(() => {
-    // Ensure room exists (idempotent PUT)
     fetch("/api/chat", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
+      method: "PUT", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id: ROOM_ID, name: "Ghi chú lịch làm", type: "channel", createdBy: "user_admin" }),
     }).catch(() => {});
     fetchMsgs();
-    const iv = setInterval(fetchMsgs, 8000);
+    fetchRequests();
+    const iv = setInterval(() => { fetchMsgs(); fetchRequests(); }, 8000);
     return () => clearInterval(iv);
-  }, [fetchMsgs]);
+  }, [fetchMsgs, fetchRequests]);
 
-  // Scroll to bottom when open + persist lastSeen
+  // Scroll + mark seen when notes tab open
   useEffect(() => {
-    if (open) {
+    if (open && tab === "notes") {
       setUnread(0);
       const now = new Date().toISOString();
       lastSeenRef.current = now;
       if (lsKey) localStorage.setItem(lsKey, now);
       setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 80);
     }
-  }, [open, msgs]);
+  }, [open, tab, msgs]);
 
   async function handleSend() {
     if (!text.trim() || !currentUser || sending) return;
     setSending(true);
-    const body = {
-      roomId: ROOM_ID,
-      userId: currentUser.id,
-      userName: currentUser.name,
-      content: text.trim(),
-    };
     await fetch("/api/chat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ roomId: ROOM_ID, userId: currentUser.id, userName: currentUser.name, content: text.trim() }),
     });
-    setText("");
-    setSending(false);
-    fetchMsgs();
+    setText(""); setSending(false); fetchMsgs();
+  }
+
+  async function handleSubmitRequest() {
+    if (!reqContent.trim() || !currentUser || submitting) return;
+    setSubmitting(true);
+    await fetch("/api/shifts/requests", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userId: currentUser.id, userName: currentUser.name,
+        type: reqType, content: reqContent.trim(),
+        targetDate: reqDate || null,
+      }),
+    });
+    setReqContent(""); setReqDate(""); setSubmitting(false);
+    playSound("save"); fetchRequests();
+  }
+
+  async function handleAdminAction(id: string, status: "approved" | "rejected") {
+    await fetch("/api/shifts/requests", {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, status, adminNote: replyNote[id] ?? "" }),
+    });
+    playSound(status === "approved" ? "save" : "tap");
+    setReplyNote(prev => { const n = { ...prev }; delete n[id]; return n; });
+    fetchRequests();
   }
 
   function formatTime(iso: string) {
@@ -660,6 +709,9 @@ function ShiftNoteWidget({ currentUser, isAdmin }: { currentUser: AppUser | null
     return d.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }) +
       " " + d.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" });
   }
+
+  const totalBadge = unread + (isAdmin ? pendingCount : 0);
+  const badgeColor = pendingCount > 0 ? "#d97706" : "#ef4444";
 
   return (
     <>
@@ -669,34 +721,30 @@ function ShiftNoteWidget({ currentUser, isAdmin }: { currentUser: AppUser | null
         style={{
           position: "fixed",
           bottom: "calc(72px + env(safe-area-inset-bottom, 0px))",
-          right: 16,
-          width: 46, height: 46,
-          borderRadius: "50%",
+          right: 16, width: 46, height: 46, borderRadius: "50%",
           background: "linear-gradient(135deg,#0c1a2e,#1e3a5f)",
-          border: "2px solid #C9A55A",
-          cursor: "pointer",
+          border: "2px solid #C9A55A", cursor: "pointer",
           display: "flex", alignItems: "center", justifyContent: "center",
-          boxShadow: "0 4px 16px rgba(12,26,46,0.30)",
-          zIndex: 180,
+          boxShadow: "0 4px 16px rgba(12,26,46,0.30)", zIndex: 180,
           transition: "transform 0.18s",
         }}
         onMouseEnter={e => (e.currentTarget.style.transform = "scale(1.08)")}
         onMouseLeave={e => (e.currentTarget.style.transform = "scale(1)")}
       >
         <MessageCircle size={18} style={{ color: "#C9A55A" }} />
-        {unread > 0 && (
+        {totalBadge > 0 && (
           <div style={{
             position: "absolute", top: -4, right: -4,
             width: 18, height: 18, borderRadius: "50%",
-            background: "#ef4444", border: "2px solid #fff",
+            background: badgeColor, border: "2px solid #fff",
             display: "flex", alignItems: "center", justifyContent: "center",
           }}>
-            <span style={{ fontSize: 8, fontWeight: 800, color: "#fff" }}>{unread > 9 ? "9+" : unread}</span>
+            <span style={{ fontSize: 8, fontWeight: 800, color: "#fff" }}>{totalBadge > 9 ? "9+" : totalBadge}</span>
           </div>
         )}
       </button>
 
-      {/* Chat panel */}
+      {/* Panel */}
       <AnimatePresence>
         {open && (
           <motion.div
@@ -709,104 +757,171 @@ function ShiftNoteWidget({ currentUser, isAdmin }: { currentUser: AppUser | null
               bottom: "calc(126px + env(safe-area-inset-bottom, 0px))",
               right: 16,
               width: "min(340px, calc(100vw - 32px))",
-              height: 420,
+              height: 460,
               borderRadius: 18,
-              background: "rgba(255,255,255,0.97)",
-              backdropFilter: "blur(20px)",
-              WebkitBackdropFilter: "blur(20px)",
+              background: "rgba(255,255,255,0.98)",
               boxShadow: "0 16px 48px rgba(12,26,46,0.22), 0 2px 8px rgba(12,26,46,0.08)",
               border: "1px solid rgba(201,165,90,0.3)",
               display: "flex", flexDirection: "column",
-              zIndex: 179,
-              overflow: "hidden",
+              zIndex: 179, overflow: "hidden",
             }}
           >
             {/* Header */}
-            <div style={{
-              padding: "12px 14px 10px",
-              background: "linear-gradient(135deg,#0c1a2e,#1e3a5f)",
-              display: "flex", alignItems: "center", gap: 8,
-            }}>
-              <MessageCircle size={14} style={{ color: "#C9A55A", flexShrink: 0 }} />
-              <div style={{ flex: 1 }}>
-                <p style={{ fontSize: 12, fontWeight: 700, color: "#fff", margin: 0 }}>Ghi chú & Yêu cầu</p>
-                <p style={{ fontSize: 9, color: "#94a3b8", margin: 0 }}>Nhân viên gửi vấn đề → Admin xem & duyệt</p>
-              </div>
-              <button onClick={() => setOpen(false)} style={{ background: "none", border: "none", cursor: "pointer", padding: 2 }}>
-                <X size={14} style={{ color: "#64748b" }} />
-              </button>
-            </div>
-
-            {/* Messages */}
-            <div style={{ flex: 1, overflowY: "auto", padding: "10px 12px", display: "flex", flexDirection: "column", gap: 8 }}>
-              {msgs.length === 0 && (
-                <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <p style={{ fontSize: 11, color: "#cbd5e1", textAlign: "center" }}>Chưa có tin nhắn nào.<br/>Gửi yêu cầu hoặc ghi chú ở đây.</p>
+            <div style={{ padding: "12px 14px 0", background: "linear-gradient(135deg,#0c1a2e,#1e3a5f)", flexShrink: 0 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                <MessageCircle size={14} style={{ color: "#C9A55A", flexShrink: 0 }} />
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontSize: 12, fontWeight: 700, color: "#fff", margin: 0 }}>Ghi chú & Yêu cầu</p>
+                  <p style={{ fontSize: 9, color: "rgba(201,165,90,0.6)", margin: 0 }}>Lịch làm việc · POSTLAIN</p>
                 </div>
-              )}
-              {msgs.map(m => {
-                const isMine = m.userId === currentUser?.id;
-                return (
-                  <div key={m.id} style={{ display: "flex", flexDirection: "column", alignItems: isMine ? "flex-end" : "flex-start" }}>
-                    {!isMine && (
-                      <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 3 }}>
-                        <div style={{ width: 18, height: 18, borderRadius: "50%", background: "linear-gradient(135deg,#0c1a2e,#1e3a5f)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                          <span style={{ fontSize: 7, fontWeight: 700, color: "#C9A55A" }}>{m.userName[0]?.toUpperCase()}</span>
-                        </div>
-                        <span style={{ fontSize: 9, fontWeight: 600, color: "#64748b" }}>{m.userName}</span>
-                        {isAdmin && m.userId !== "user_admin" && (
-                          <span style={{ fontSize: 8, padding: "1px 5px", borderRadius: 10, background: "#fef3c7", color: "#d97706", fontWeight: 700 }}>NV</span>
-                        )}
-                      </div>
-                    )}
-                    <div style={{
-                      maxWidth: "85%",
-                      padding: "7px 11px",
-                      borderRadius: isMine ? "12px 12px 4px 12px" : "12px 12px 12px 4px",
-                      background: isMine ? "linear-gradient(135deg,#0c1a2e,#1e3a5f)" : "#f1f5f9",
-                      color: isMine ? "#fff" : "#0c1a2e",
-                      fontSize: 11,
-                      lineHeight: 1.4,
-                      wordBreak: "break-word",
+                <button onClick={() => setOpen(false)} style={{ background: "none", border: "none", cursor: "pointer", padding: 2 }}>
+                  <X size={14} style={{ color: "#64748b" }} />
+                </button>
+              </div>
+              {/* Tab bar */}
+              <div style={{ display: "flex", gap: 4, paddingBottom: 10 }}>
+                {([["notes", "Ghi chú", MessageCircle], ["requests", "Yêu cầu", ClipboardList]] as const).map(([key, label, Icon]) => (
+                  <button key={key} onClick={() => setTab(key)}
+                    style={{
+                      flex: 1, height: 30, borderRadius: 8, border: "none",
+                      background: tab === key ? "rgba(201,165,90,0.18)" : "rgba(255,255,255,0.06)",
+                      cursor: "pointer", fontFamily: "inherit",
+                      display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
+                      transition: "all 0.15s",
                     }}>
-                      {m.content}
-                    </div>
-                    <span style={{ fontSize: 8, color: "#cbd5e1", marginTop: 2 }}>{formatTime(m.createdAt)}</span>
-                  </div>
-                );
-              })}
-              <div ref={bottomRef} />
+                    <Icon size={11} style={{ color: tab === key ? "#C9A55A" : "#64748b" }} />
+                    <span style={{ fontSize: 10, fontWeight: 700, color: tab === key ? "#C9A55A" : "#64748b" }}>{label}</span>
+                    {key === "requests" && isAdmin && pendingCount > 0 && (
+                      <span style={{ fontSize: 7, fontWeight: 800, color: "#fff", background: "#d97706", padding: "1px 5px", borderRadius: 10 }}>{pendingCount}</span>
+                    )}
+                    {key === "notes" && unread > 0 && (
+                      <span style={{ fontSize: 7, fontWeight: 800, color: "#fff", background: "#ef4444", padding: "1px 5px", borderRadius: 10 }}>{unread}</span>
+                    )}
+                  </button>
+                ))}
+              </div>
             </div>
 
-            {/* Input */}
-            <div style={{ padding: "8px 12px 12px", borderTop: "1px solid #f1f5f9", display: "flex", gap: 8, alignItems: "flex-end" }}>
-              <textarea
-                value={text}
-                onChange={e => setText(e.target.value)}
-                onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
-                placeholder={isAdmin ? "Trả lời nhân viên..." : "Gửi yêu cầu / vấn đề đến Admin..."}
-                rows={2}
-                style={{
-                  flex: 1, borderRadius: 10, border: "1px solid #e2e8f0",
-                  padding: "8px 10px", fontSize: 11, fontFamily: "inherit",
-                  outline: "none", resize: "none", color: "#0c1a2e",
-                  background: "#f8fafc", lineHeight: 1.4,
-                }}
-              />
-              <button
-                onClick={handleSend}
-                disabled={!text.trim() || sending}
-                style={{
-                  width: 36, height: 36, borderRadius: 10, border: "none", flexShrink: 0,
-                  background: text.trim() ? "linear-gradient(135deg,#0c1a2e,#1e3a5f)" : "#f1f5f9",
-                  cursor: text.trim() ? "pointer" : "default",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  transition: "all 0.15s",
-                }}
-              >
-                <Send size={14} style={{ color: text.trim() ? "#C9A55A" : "#cbd5e1" }} />
-              </button>
-            </div>
+            {/* ── Tab: Ghi chú ── */}
+            {tab === "notes" && (
+              <>
+                <div style={{ flex: 1, overflowY: "auto", padding: "10px 12px", display: "flex", flexDirection: "column", gap: 8 }}>
+                  {msgs.length === 0 && (
+                    <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <p style={{ fontSize: 11, color: "#cbd5e1", textAlign: "center" }}>Chưa có tin nhắn.<br/>Ghi chú trao đổi nhanh ở đây.</p>
+                    </div>
+                  )}
+                  {msgs.map(m => {
+                    const isMine = m.userId === currentUser?.id;
+                    return (
+                      <div key={m.id} style={{ display: "flex", flexDirection: "column", alignItems: isMine ? "flex-end" : "flex-start" }}>
+                        {!isMine && (
+                          <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 3 }}>
+                            <div style={{ width: 18, height: 18, borderRadius: "50%", background: "linear-gradient(135deg,#0c1a2e,#1e3a5f)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                              <span style={{ fontSize: 7, fontWeight: 700, color: "#C9A55A" }}>{m.userName[0]?.toUpperCase()}</span>
+                            </div>
+                            <span style={{ fontSize: 9, fontWeight: 600, color: "#64748b" }}>{m.userName}</span>
+                          </div>
+                        )}
+                        <div style={{
+                          maxWidth: "85%", padding: "7px 11px",
+                          borderRadius: isMine ? "12px 12px 4px 12px" : "12px 12px 12px 4px",
+                          background: isMine ? "linear-gradient(135deg,#0c1a2e,#1e3a5f)" : "#f1f5f9",
+                          color: isMine ? "#fff" : "#0c1a2e", fontSize: 11, lineHeight: 1.4, wordBreak: "break-word",
+                        }}>{m.content}</div>
+                        <span style={{ fontSize: 8, color: "#cbd5e1", marginTop: 2 }}>{formatTime(m.createdAt)}</span>
+                      </div>
+                    );
+                  })}
+                  <div ref={bottomRef} />
+                </div>
+                <div style={{ padding: "8px 12px 12px", borderTop: "1px solid #f1f5f9", display: "flex", gap: 8, alignItems: "flex-end" }}>
+                  <textarea value={text} onChange={e => setText(e.target.value)}
+                    onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
+                    placeholder={isAdmin ? "Phản hồi nhân viên..." : "Trao đổi nhanh với admin..."}
+                    rows={2} style={{ flex: 1, borderRadius: 10, border: "1px solid #e2e8f0", padding: "8px 10px", fontSize: 11, fontFamily: "inherit", outline: "none", resize: "none", color: "#0c1a2e", background: "#f8fafc", lineHeight: 1.4 }} />
+                  <button onClick={handleSend} disabled={!text.trim() || sending}
+                    style={{ width: 36, height: 36, borderRadius: 10, border: "none", flexShrink: 0, background: text.trim() ? "linear-gradient(135deg,#0c1a2e,#1e3a5f)" : "#f1f5f9", cursor: text.trim() ? "pointer" : "default", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <Send size={14} style={{ color: text.trim() ? "#C9A55A" : "#cbd5e1" }} />
+                  </button>
+                </div>
+              </>
+            )}
+
+            {/* ── Tab: Yêu cầu ── */}
+            {tab === "requests" && (
+              <div style={{ flex: 1, overflowY: "auto", padding: "10px 12px", display: "flex", flexDirection: "column", gap: 10 }}>
+
+                {/* Staff: form gửi yêu cầu */}
+                {!isAdmin && (
+                  <div style={{ padding: "12px", borderRadius: 12, border: "1px solid #e0f2fe", background: "#f0f9ff", display: "flex", flexDirection: "column", gap: 8 }}>
+                    <p style={{ fontSize: 10, fontWeight: 700, color: "#0c1a2e", margin: 0 }}>Gửi yêu cầu mới</p>
+                    <select value={reqType} onChange={e => setReqType(e.target.value)}
+                      style={{ borderRadius: 8, border: "1px solid #bae6fd", padding: "6px 8px", fontSize: 11, fontFamily: "inherit", color: "#0c1a2e", background: "#fff", outline: "none" }}>
+                      {Object.entries(REQ_TYPE_LABEL).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                    </select>
+                    {(reqType === "swap_shift" || reqType === "day_off") && (
+                      <input type="date" value={reqDate} onChange={e => setReqDate(e.target.value)}
+                        style={{ borderRadius: 8, border: "1px solid #bae6fd", padding: "6px 8px", fontSize: 11, fontFamily: "inherit", color: "#0c1a2e", background: "#fff", outline: "none" }} />
+                    )}
+                    <textarea value={reqContent} onChange={e => setReqContent(e.target.value)}
+                      placeholder="Mô tả yêu cầu của bạn..." rows={2}
+                      style={{ borderRadius: 8, border: "1px solid #bae6fd", padding: "7px 9px", fontSize: 11, fontFamily: "inherit", resize: "none", color: "#0c1a2e", background: "#fff", outline: "none", lineHeight: 1.4 }} />
+                    <button onClick={handleSubmitRequest} disabled={!reqContent.trim() || submitting}
+                      style={{ height: 32, borderRadius: 8, border: "none", background: reqContent.trim() ? "linear-gradient(135deg,#0c1a2e,#1e3a5f)" : "#e2e8f0", color: reqContent.trim() ? "#C9A55A" : "#94a3b8", fontSize: 11, fontWeight: 700, cursor: reqContent.trim() ? "pointer" : "default", fontFamily: "inherit" }}>
+                      {submitting ? "Đang gửi..." : "Gửi yêu cầu"}
+                    </button>
+                  </div>
+                )}
+
+                {/* Request list */}
+                {requests.length === 0 && (
+                  <p style={{ fontSize: 11, color: "#cbd5e1", textAlign: "center", marginTop: 20 }}>
+                    {isAdmin ? "Chưa có yêu cầu nào." : "Bạn chưa gửi yêu cầu nào."}
+                  </p>
+                )}
+                {requests.map(r => {
+                  const scfg = STATUS_CFG[r.status];
+                  const isPending = r.status === "pending";
+                  return (
+                    <div key={r.id} style={{ borderRadius: 12, border: `1px solid ${isPending ? "#fde68a" : "#e2e8f0"}`, background: isPending && isAdmin ? "#fffbeb" : "#fff", padding: "10px 12px", display: "flex", flexDirection: "column", gap: 6 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <span style={{ fontSize: 9, fontWeight: 700, padding: "2px 7px", borderRadius: 20, background: scfg.bg, color: scfg.color }}>{scfg.label}</span>
+                        <span style={{ fontSize: 9, fontWeight: 600, color: "#64748b", background: "#f1f5f9", padding: "2px 7px", borderRadius: 20 }}>{REQ_TYPE_LABEL[r.type] ?? r.type}</span>
+                        {isAdmin && <span style={{ fontSize: 9, color: "#94a3b8", marginLeft: "auto" }}>{r.userName}</span>}
+                      </div>
+                      <p style={{ fontSize: 11, color: "#0c1a2e", margin: 0, lineHeight: 1.4 }}>{r.content}</p>
+                      {r.targetDate && <p style={{ fontSize: 9, color: "#64748b", margin: 0 }}>📅 {r.targetDate}</p>}
+                      {r.adminNote && (
+                        <div style={{ padding: "6px 9px", borderRadius: 8, background: "#f0fdf4", border: "1px solid #bbf7d0" }}>
+                          <p style={{ fontSize: 9, fontWeight: 700, color: "#16a34a", margin: "0 0 2px" }}>Phản hồi từ Admin</p>
+                          <p style={{ fontSize: 10, color: "#15803d", margin: 0 }}>{r.adminNote}</p>
+                        </div>
+                      )}
+                      <p style={{ fontSize: 8, color: "#cbd5e1", margin: 0 }}>{formatTime(r.createdAt)}</p>
+                      {/* Admin actions for pending */}
+                      {isAdmin && isPending && (
+                        <div style={{ display: "flex", flexDirection: "column", gap: 5, marginTop: 2 }}>
+                          <input value={replyNote[r.id] ?? ""} onChange={e => setReplyNote(prev => ({ ...prev, [r.id]: e.target.value }))}
+                            placeholder="Ghi chú phản hồi (tuỳ chọn)..."
+                            style={{ borderRadius: 7, border: "1px solid #e2e8f0", padding: "5px 8px", fontSize: 10, fontFamily: "inherit", outline: "none", color: "#0c1a2e" }} />
+                          <div style={{ display: "flex", gap: 6 }}>
+                            <button onClick={() => handleAdminAction(r.id, "approved")}
+                              style={{ flex: 1, height: 28, borderRadius: 7, border: "none", background: "#16a34a", color: "#fff", fontSize: 10, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                              ✓ Duyệt
+                            </button>
+                            <button onClick={() => handleAdminAction(r.id, "rejected")}
+                              style={{ flex: 1, height: 28, borderRadius: 7, border: "none", background: "#dc2626", color: "#fff", fontSize: 10, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                              ✕ Từ chối
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>

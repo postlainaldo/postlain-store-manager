@@ -2005,3 +2005,75 @@ export async function dbDeleteShiftRegistration(id: string): Promise<void> {
   await ensureShiftTables();
   getDb().prepare("DELETE FROM shift_registrations WHERE id=?").run(id);
 }
+
+// ─── Shift Requests ───────────────────────────────────────────────────────────
+
+export type DBShiftRequest = {
+  id: string;
+  userId: string;
+  userName: string;
+  type: string;
+  status: string;
+  content: string;
+  adminNote: string | null;
+  targetDate: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+function ensureShiftRequestsTable() {
+  getDb().prepare(`CREATE TABLE IF NOT EXISTS shift_requests (
+    id TEXT PRIMARY KEY,
+    "userId" TEXT NOT NULL,
+    "userName" TEXT NOT NULL,
+    type TEXT NOT NULL DEFAULT 'other',
+    status TEXT NOT NULL DEFAULT 'pending',
+    content TEXT NOT NULL,
+    "adminNote" TEXT,
+    "targetDate" TEXT,
+    "createdAt" TEXT NOT NULL,
+    "updatedAt" TEXT NOT NULL
+  )`).run();
+}
+
+export async function dbGetShiftRequests(userId?: string): Promise<DBShiftRequest[]> {
+  if (IS_SUPABASE) {
+    const sb = getSupabase();
+    let q = sb.from("shift_requests").select("*").order("createdAt", { ascending: false }).limit(100);
+    if (userId) q = q.eq("userId", userId);
+    const { data } = await q;
+    return (data ?? []) as DBShiftRequest[];
+  }
+  ensureShiftRequestsTable();
+  if (userId) {
+    return getDb().prepare(`SELECT * FROM shift_requests WHERE "userId"=? ORDER BY "createdAt" DESC LIMIT 100`).all(userId) as DBShiftRequest[];
+  }
+  return getDb().prepare(`SELECT * FROM shift_requests ORDER BY "createdAt" DESC LIMIT 100`).all() as DBShiftRequest[];
+}
+
+export async function dbInsertShiftRequest(r: DBShiftRequest): Promise<void> {
+  if (IS_SUPABASE) {
+    await getSupabase().from("shift_requests").insert({
+      id: r.id, userId: r.userId, userName: r.userName,
+      type: r.type, status: r.status, content: r.content,
+      adminNote: r.adminNote, targetDate: r.targetDate,
+      createdAt: r.createdAt, updatedAt: r.updatedAt,
+    });
+    return;
+  }
+  ensureShiftRequestsTable();
+  getDb().prepare(`INSERT INTO shift_requests(id,"userId","userName",type,status,content,"adminNote","targetDate","createdAt","updatedAt") VALUES(@id,@userId,@userName,@type,@status,@content,@adminNote,@targetDate,@createdAt,@updatedAt)`).run(r);
+}
+
+export async function dbUpdateShiftRequest(id: string, fields: { status: string; adminNote?: string; updatedAt: string }): Promise<void> {
+  if (IS_SUPABASE) {
+    await getSupabase().from("shift_requests").update({
+      status: fields.status,
+      adminNote: fields.adminNote ?? null,
+      updatedAt: fields.updatedAt,
+    }).eq("id", id);
+    return;
+  }
+  ensureShiftRequestsTable();
+  getDb().prepare(`UPDATE shift_requests SET status=?, "adminNote"=?, "updatedAt"=? WHERE id=?`).run(fields.status, fields.adminNote ?? null, fields.updatedAt, id);
+}
