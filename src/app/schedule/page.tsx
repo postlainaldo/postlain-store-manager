@@ -1356,7 +1356,8 @@ export default function SchedulePage() {
                     {hasSlots && (
                       <div style={{ padding:"0 16px 12px", display:"flex", flexDirection:"column", gap:8 }}>
                         {(["FT","PT","ALL"] as StaffType[]).map(group => {
-                          const groupSlots = daySlots.filter(s => inferStaffType(s) === group);
+                          let groupSlots = daySlots.filter(s => inferStaffType(s) === group);
+                          if (!isAdmin && regClosed) groupSlots = groupSlots.filter(s => (regsBySlot[s.id] ?? []).some(r => r.status === "approved"));
                           if (groupSlots.length === 0) return null;
                           const cfg = STAFF_TYPE_CFG[group];
                           const groupLabel = group === "FT" ? "FULL TIME" : group === "PT" ? "PART TIME" : null;
@@ -1407,7 +1408,8 @@ export default function SchedulePage() {
                       </div>
                     </div>
                     {(["FT","PT","ALL"] as StaffType[]).map(group => {
-                      const groupSlots = daySlots.filter(s => inferStaffType(s) === group);
+                      let groupSlots = daySlots.filter(s => inferStaffType(s) === group);
+                      if (!isAdmin && regClosed) groupSlots = groupSlots.filter(s => (regsBySlot[s.id] ?? []).some(r => r.status === "approved"));
                       if (groupSlots.length === 0) return null;
                       const cfg = STAFF_TYPE_CFG[group];
                       const groupLabel = group === "FT" ? "FULL TIME" : group === "PT" ? "PART TIME" : null;
