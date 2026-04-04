@@ -3,10 +3,11 @@
 FROM node:20-slim AS deps
 WORKDIR /app
 
-# Install build tools for native modules (better-sqlite3)
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    python3 make g++ \
-    && rm -rf /var/lib/apt/lists/*
+# Install build tools for native modules (better-sqlite3) — cache apt lists on SSD
+RUN --mount=type=cache,id=postlain-apt,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,id=postlain-apt-lib,target=/var/lib/apt,sharing=locked \
+    apt-get update && apt-get install -y --no-install-recommends \
+    python3 make g++
 
 COPY package.json package-lock.json* ./
 # Cache npm on VPS SSD — only re-runs when package.json changes
@@ -30,9 +31,9 @@ RUN --mount=type=cache,id=postlain-nextjs,target=/app/.next/cache \
 FROM node:20-slim AS runner
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    libc6 \
-    && rm -rf /var/lib/apt/lists/*
+RUN --mount=type=cache,id=postlain-apt,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,id=postlain-apt-lib,target=/var/lib/apt,sharing=locked \
+    apt-get update && apt-get install -y --no-install-recommends libc6
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
