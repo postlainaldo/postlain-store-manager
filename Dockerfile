@@ -1,56 +1,58 @@
 # syntax=docker/dockerfile:1.4
-# ── Stage 1: deps ────────────────────────────────────────────────────────────
-# Use pre-built base image (python3/make/g++ already installed) — skips apt-get every build
-FROM postlain/node-build-base:20 AS deps
+# ── Stage 1: deps ─────────────────────────────────────────────────────────────
+FROM node:20-slim AS deps
 WORKDIR /app
+
+# Install build tools for native modules (better-sqlite3)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 make g++ \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY package.json package-lock.json* ./
-# Cache npm downloads on VPS SSD — only re-runs when package.json changes
-RUN --mount=type=cache,id=npm,target=/root/.npm \
-    npm ci
+# Cache npm on VPS SSD — only re-runs when package.json changes
+RUN --mount=type=cache,id=postlain-npm,target=/root/.npm \
+    npm ci --prefer-offline
 
 # ── Stage 2: builder ──────────────────────────────────────────────────────────
-FROM postlain/node-build-base:20 AS builder
+FROM node:20-slim AS builder
 WORKDIR /app
+
+ENV NEXT_TELEMETRY_DISABLED=1
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-ENV NEXT_TELEMETRY_DISABLED=1
-# Cache Next.js build artifacts on VPS SSD — incremental compile on code changes
-RUN --mount=type=cache,id=nextjs,target=/app/.next/cache \
+# Cache Next.js incremental build on VPS SSD — only recompiles changed files
+RUN --mount=type=cache,id=postlain-nextjs,target=/app/.next/cache \
     npm run build
 
 # ── Stage 3: runner ───────────────────────────────────────────────────────────
-# Use Alpine for the final image to keep it small
-FROM node:20-alpine AS runner
-RUN apk add --no-cache libc6-compat
+FROM node:20-slim AS runner
 WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libc6 \
+    && rm -rf /var/lib/apt/lists/*
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser  --system --uid 1001 nextjs
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 nextjs
 
-# Copy built output
-COPY --from=builder /app/public       ./public
+COPY --from=builder /app/public           ./public
 COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static  ./.next/static
+COPY --from=builder /app/.next/static     ./.next/static
 
-# Copy native modules (better-sqlite3 .node binary built on Debian)
-# Note: binaries built on Debian work on Alpine via gcompat (libc6-compat)
-COPY --from=builder /app/node_modules/better-sqlite3 ./node_modules/better-sqlite3
-COPY --from=builder /app/node_modules/bindings       ./node_modules/bindings
-COPY --from=builder /app/node_modules/file-uri-to-path ./node_modules/file-uri-to-path
+# Native modules
+COPY --from=builder /app/node_modules/better-sqlite3      ./node_modules/better-sqlite3
+COPY --from=builder /app/node_modules/bindings            ./node_modules/bindings
+COPY --from=builder /app/node_modules/file-uri-to-path    ./node_modules/file-uri-to-path
 
-# Persistent data directory (mount a volume here in Coolify)
 RUN mkdir -p /app/data && chown nextjs:nodejs /app/data
 
 USER nextjs
-
 EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
-
 CMD ["node", "server.js"]
