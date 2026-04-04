@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1
+# syntax=docker/dockerfile:1.4
 # ── Stage 1: deps ────────────────────────────────────────────────────────────
 # Use pre-built base image (python3/make/g++ already installed) — skips apt-get every build
 FROM postlain/node-build-base:20 AS deps
@@ -6,7 +6,7 @@ WORKDIR /app
 
 COPY package.json package-lock.json* ./
 # Cache npm downloads on VPS SSD — only re-runs when package.json changes
-RUN --mount=type=cache,target=/root/.npm \
+RUN --mount=type=cache,id=npm,target=/root/.npm \
     npm ci
 
 # ── Stage 2: builder ──────────────────────────────────────────────────────────
@@ -18,7 +18,7 @@ COPY . .
 
 ENV NEXT_TELEMETRY_DISABLED=1
 # Cache Next.js build artifacts on VPS SSD — incremental compile on code changes
-RUN --mount=type=cache,target=/app/.next/cache \
+RUN --mount=type=cache,id=nextjs,target=/app/.next/cache \
     npm run build
 
 # ── Stage 3: runner ───────────────────────────────────────────────────────────
