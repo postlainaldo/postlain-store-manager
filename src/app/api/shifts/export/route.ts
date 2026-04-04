@@ -1,29 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import * as XLSX from "xlsx";
+import { IS_SUPABASE, getSupabase } from "@/lib/supabase";
 import getDb from "@/lib/database";
 
 // Shift code mapping from time range
 const SHIFT_CODES: Record<string, string> = {
   "07:30-15:30": "A",
-  "07:30-15:30:00": "A",
   "14:00-22:00": "B",
-  "14:00-22:00:00": "B",
   "12:00-20:00": "C",
-  "12:00-20:00:00": "C",
   "07:30-11:30": "A1",
-  "07:30-11:30:00": "A1",
   "09:00-13:00": "A2",
-  "09:00-13:00:00": "A2",
   "11:00-15:00": "A3",
-  "11:00-15:00:00": "A3",
   "12:00-16:00": "A4",
-  "12:00-16:00:00": "A4",
   "15:00-19:00": "B1",
-  "15:00-19:00:00": "B1",
   "17:00-21:00": "B2",
-  "17:00-21:00:00": "B2",
   "18:00-22:00": "B3",
-  "18:00-22:00:00": "B3",
 };
 
 function getShiftCode(startTime: string, endTime: string): string {
@@ -39,6 +30,46 @@ function toExcelDate(dateStr: string): number {
 
 const DAYS_EN = ["SUN","MON","TUE","WED","THU","FRI","SAT"];
 
+type StaffRow = { id: string; name: string; role: string };
+type SlotRow  = { id: string; date: string; name: string; startTime: string; endTime: string; staffType: string | null };
+type RegRow   = { slotId: string; userId: string };
+
+async function fetchData(dateFrom: string, dateTo: string): Promise<{ staff: StaffRow[]; slots: SlotRow[]; regs: RegRow[] }> {
+  if (IS_SUPABASE) {
+    const sb = getSupabase();
+    const [staffRes, slotsRes, regsRes] = await Promise.all([
+      sb.from("users").select("id, name, role").eq("active", true).order("role").order("name"),
+      sb.from("shift_slots").select("id, date, name, startTime, endTime, staffType")
+        .gte("date", dateFrom).lte("date", dateTo).order("date").order("startTime"),
+      sb.from("shift_registrations").select("slotId, userId")
+        .eq("status", "approved")
+        .gte("slotId", "") // need join — fetch all approved and filter by slot date below
+    ]);
+
+    const slots = (slotsRes.data ?? []) as SlotRow[];
+    const slotIds = new Set(slots.map(s => s.id));
+    const regs = ((regsRes.data ?? []) as RegRow[]).filter(r => slotIds.has(r.slotId));
+
+    return {
+      staff: (staffRes.data ?? []) as StaffRow[],
+      slots,
+      regs,
+    };
+  } else {
+    const db = getDb();
+    const staff = db.prepare("SELECT id, name, role FROM users WHERE active = 1 ORDER BY role, name").all() as StaffRow[];
+    const slots = db.prepare(
+      "SELECT id, date, name, startTime, endTime, staffType FROM shift_slots WHERE date >= ? AND date <= ? ORDER BY date, startTime"
+    ).all(dateFrom, dateTo) as SlotRow[];
+    const regs = db.prepare(
+      `SELECT r.slotId, r.userId FROM shift_registrations r
+       JOIN shift_slots s ON s.id = r.slotId
+       WHERE s.date >= ? AND s.date <= ? AND r.status = 'approved'`
+    ).all(dateFrom, dateTo) as RegRow[];
+    return { staff, slots, regs };
+  }
+}
+
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
   const dateFrom = searchParams.get("dateFrom");
@@ -48,26 +79,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "dateFrom and dateTo required" }, { status: 400 });
   }
 
-  const db = getDb();
-
-  // Load all staff
-  const staff = db.prepare("SELECT id, name, role FROM users WHERE active = 1 ORDER BY role, name").all() as
-    { id: string; name: string; role: string }[];
-
-  // Load slots in range
-  const slots = db.prepare(
-    "SELECT * FROM shift_slots WHERE date >= ? AND date <= ? ORDER BY date, startTime"
-  ).all(dateFrom, dateTo) as {
-    id: string; date: string; name: string; startTime: string; endTime: string;
-    staffType: string | null;
-  }[];
-
-  // Load approved registrations
-  const regs = db.prepare(
-    `SELECT r.* FROM shift_registrations r
-     JOIN shift_slots s ON s.id = r.slotId
-     WHERE s.date >= ? AND s.date <= ? AND r.status = 'approved'`
-  ).all(dateFrom, dateTo) as { slotId: string; userId: string }[];
+  const { staff, slots, regs } = await fetchData(dateFrom, dateTo);
 
   // Build date list
   const dates: string[] = [];

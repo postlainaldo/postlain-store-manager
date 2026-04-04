@@ -848,6 +848,7 @@ export default function SchedulePage() {
         setTemplates(data.templates ?? []);
         setSlots(data.slots ?? []);
         setRegistrations(data.registrations ?? []);
+        setRegClosed(data.regClosed ?? false);
       }
     } finally { setLoading(false); }
   }, [dateFrom, dateTo]);
@@ -1153,7 +1154,16 @@ export default function SchedulePage() {
               </button>
             )}
             {isAdmin && (
-              <button onClick={() => { setRegClosed(v => !v); playSound("tap"); }}
+              <button onClick={async () => {
+                const next = !regClosed;
+                setRegClosed(next);
+                playSound("tap");
+                await fetch("/api/shifts", {
+                  method: "PATCH",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ regClosed: next }),
+                });
+              }}
                 style={{ display:"flex", alignItems:"center", gap:5, padding:"7px 12px", borderRadius:10,
                   border: `1px solid ${regClosed ? "rgba(239,68,68,0.4)" : "rgba(245,158,11,0.4)"}`,
                   background: regClosed ? "rgba(239,68,68,0.08)" : "rgba(245,158,11,0.08)",
