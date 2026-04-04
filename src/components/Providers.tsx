@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, createContext, useContext } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useStore } from "@/store/useStore";
 import SplashScreen from "@/components/SplashScreen";
 import OnboardingGate from "@/components/OnboardingGate";
@@ -98,28 +99,54 @@ export default function Providers({ children }: { children: React.ReactNode }) {
 
     // ── PWA Service Worker update detection ──────────────────────
     if ("serviceWorker" in navigator) {
+      const applyUpdate = (reg: ServiceWorkerRegistration) => {
+        if (reg.waiting) reg.waiting.postMessage({ type: "SKIP_WAITING" });
+      };
+
       navigator.serviceWorker.ready.then(reg => {
         if (reg.waiting) setUpdateReady(true);
+
         reg.addEventListener("updatefound", () => {
           const nw = reg.installing;
           if (!nw) return;
           nw.addEventListener("statechange", () => {
-            if (nw.state === "installed" && navigator.serviceWorker.controller) setUpdateReady(true);
+            if (nw.state === "installed" && navigator.serviceWorker.controller) {
+              setUpdateReady(true);
+            }
           });
         });
+
+        // Check for updates every 60s (catches deploys while app is open)
+        const checkInterval = setInterval(() => reg.update(), 60_000);
+        // Cleanup on unload
+        window.addEventListener("beforeunload", () => clearInterval(checkInterval), { once: true });
       });
 
       let refreshing = false;
       navigator.serviceWorker.addEventListener("controllerchange", () => {
         if (!refreshing) { refreshing = true; window.location.reload(); }
       });
+
+      // Register periodic background sync if supported (keeps app shell fresh)
+      navigator.serviceWorker.ready.then(reg => {
+        if ("periodicSync" in reg) {
+          (reg as unknown as { periodicSync: { register: (tag: string, opts: object) => Promise<void> } })
+            .periodicSync.register("app-refresh", { minInterval: 24 * 60 * 60 * 1000 })
+            .catch(() => {});
+        }
+      });
+
+      // Store applyUpdate so handleUpdate can use it
+      (window as unknown as { __pwa_apply_update?: (r: ServiceWorkerRegistration) => void }).__pwa_apply_update = applyUpdate;
     }
   }, []);
 
   const handleUpdate = () => {
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.ready.then(reg => {
-        if (reg.waiting) reg.waiting.postMessage({ type: "SKIP_WAITING" });
+        const apply = (window as unknown as { __pwa_apply_update?: (r: ServiceWorkerRegistration) => void }).__pwa_apply_update;
+        if (apply) apply(reg);
+        else if (reg.waiting) reg.waiting.postMessage({ type: "SKIP_WAITING" });
       });
     }
     setUpdateReady(false);
@@ -130,6 +157,39 @@ export default function Providers({ children }: { children: React.ReactNode }) {
   return (
     <UpdateContext.Provider value={{ updateReady, onUpdate: handleUpdate }}>
       <SplashScreen />
+      {/* Global update toast — visible anywhere in the app */}
+      <AnimatePresence>
+        {updateReady && (
+          <motion.div
+            initial={{ opacity: 0, y: -48 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -48 }}
+            transition={{ duration: 0.25, ease: "easeOut" }}
+            style={{
+              position: "fixed", top: 12, left: "50%", transform: "translateX(-50%)",
+              zIndex: 9999, width: "min(360px, calc(100vw - 24px))",
+              background: "linear-gradient(135deg, #0c1a2e, #162336)",
+              border: "1px solid rgba(201,165,90,0.4)",
+              borderRadius: 14, padding: "11px 16px",
+              display: "flex", alignItems: "center", gap: 12,
+              boxShadow: "0 8px 32px rgba(0,0,0,0.35)",
+            }}
+          >
+            <div style={{ flex: 1 }}>
+              <p style={{ fontSize: 11, fontWeight: 700, color: "#C9A55A", margin: 0 }}>Có phiên bản mới</p>
+              <p style={{ fontSize: 10, color: "#94a3b8", margin: 0, marginTop: 1 }}>Cập nhật để dùng tính năng mới nhất</p>
+            </div>
+            <button onClick={handleUpdate}
+              style={{
+                padding: "7px 14px", borderRadius: 8, border: "none", flexShrink: 0,
+                background: "linear-gradient(135deg, #C9A55A, #a07c3a)",
+                color: "#0c1a2e", fontSize: 10, fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
+              }}>
+              Cập nhật
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
       <OnboardingGate>
         {children}
       </OnboardingGate>
