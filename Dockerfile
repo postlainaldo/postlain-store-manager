@@ -3,16 +3,14 @@
 FROM node:20-slim AS deps
 WORKDIR /app
 
-# Install build tools for native modules (better-sqlite3) — cache apt lists on SSD
-RUN --mount=type=cache,id=postlain-apt,target=/var/cache/apt,sharing=locked \
-    --mount=type=cache,id=postlain-apt-lib,target=/var/lib/apt,sharing=locked \
-    apt-get update && apt-get install -y --no-install-recommends \
-    python3 make g++
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 make g++ \
+    && rm -rf /var/lib/apt/lists/*
 
+# Copy ONLY package files first — Docker image layer cache will skip npm ci
+# if package.json + package-lock.json haven't changed
 COPY package.json package-lock.json* ./
-# Cache npm on VPS SSD — only re-runs when package.json changes
-RUN --mount=type=cache,id=postlain-npm,target=/root/.npm \
-    npm ci --prefer-offline
+RUN npm ci --prefer-offline
 
 # ── Stage 2: builder ──────────────────────────────────────────────────────────
 FROM node:20-slim AS builder
@@ -23,17 +21,11 @@ ENV NEXT_TELEMETRY_DISABLED=1
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Cache Next.js incremental build on VPS SSD — only recompiles changed files
-RUN --mount=type=cache,id=postlain-nextjs,target=/app/.next/cache \
-    npm run build
+RUN npm run build
 
 # ── Stage 3: runner ───────────────────────────────────────────────────────────
 FROM node:20-slim AS runner
 WORKDIR /app
-
-RUN --mount=type=cache,id=postlain-apt,target=/var/cache/apt,sharing=locked \
-    --mount=type=cache,id=postlain-apt-lib,target=/var/lib/apt,sharing=locked \
-    apt-get update && apt-get install -y --no-install-recommends libc6
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
