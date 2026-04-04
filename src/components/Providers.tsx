@@ -3,6 +3,7 @@
 import { useEffect, useState, createContext, useContext } from "react";
 import { useStore } from "@/store/useStore";
 import SplashScreen from "@/components/SplashScreen";
+import OnboardingGate from "@/components/OnboardingGate";
 
 // ─── Update context (consumed by Settings page) ───────────────────────────────
 export const UpdateContext = createContext<{ updateReady: boolean; onUpdate: () => void }>({
@@ -129,7 +130,9 @@ export default function Providers({ children }: { children: React.ReactNode }) {
   return (
     <UpdateContext.Provider value={{ updateReady, onUpdate: handleUpdate }}>
       <SplashScreen />
-      {children}
+      <OnboardingGate>
+        {children}
+      </OnboardingGate>
     </UpdateContext.Provider>
   );
 }

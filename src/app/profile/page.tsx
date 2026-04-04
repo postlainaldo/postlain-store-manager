@@ -533,21 +533,84 @@ function DisplayPanel() {
   );
 }
 
+// Notification preference keys stored in localStorage
+const NOTIF_PREFS_KEY = "notif_prefs";
+type NotifPrefs = { schedule: boolean; requests: boolean; announcements: boolean; lowStock: boolean };
+const DEFAULT_PREFS: NotifPrefs = { schedule: true, requests: true, announcements: true, lowStock: false };
+
+export function getNotifPrefs(): NotifPrefs {
+  if (typeof window === "undefined") return DEFAULT_PREFS;
+  try { return { ...DEFAULT_PREFS, ...JSON.parse(localStorage.getItem(NOTIF_PREFS_KEY) ?? "{}") }; }
+  catch { return DEFAULT_PREFS; }
+}
+
 function NotifyPanel() {
   const { lowStockThreshold, setLowStockThreshold } = useStore();
   const [thresh, setThresh] = useState(String(lowStockThreshold ?? 5));
   const [saved, setSaved] = useState(false);
+  const [prefs, setPrefs] = useState<NotifPrefs>(DEFAULT_PREFS);
+
+  useEffect(() => { setPrefs(getNotifPrefs()); }, []);
+
   const save = () => { setLowStockThreshold(Number(thresh) || 5); setSaved(true); setTimeout(() => setSaved(false), 1400); };
+
+  const togglePref = (key: keyof NotifPrefs) => {
+    const next = { ...prefs, [key]: !prefs[key] };
+    setPrefs(next);
+    localStorage.setItem(NOTIF_PREFS_KEY, JSON.stringify(next));
+  };
+
+  const NOTIF_TYPES: { key: keyof NotifPrefs; label: string; desc: string; important?: boolean }[] = [
+    { key: "schedule", label: "Lịch làm việc", desc: "Thay đổi ca, nhắc nhở lịch" },
+    { key: "requests", label: "Yêu cầu của bạn", desc: "Khi admin duyệt/từ chối yêu cầu" },
+    { key: "announcements", label: "Thông báo chung", desc: "Tin tức, cập nhật từ admin", important: true },
+    { key: "lowStock", label: "Cảnh báo tồn kho", desc: "Khi hàng sắp hết (admin)" },
+  ];
+
   return (
     <PremiumCard title="THÔNG BÁO" icon={Bell} iconColor="#7c3aed" accentColor="#7c3aed">
-      <div style={{ padding: "12px 20px", display: "flex", alignItems: "center", gap: 16 }}>
-        <label style={{ fontSize: 11, color: "var(--text-muted)", flexShrink: 0, width: 140 }}>Ngưỡng cảnh báo tồn kho</label>
-        <input type="number" value={thresh} onChange={e => setThresh(e.target.value)} min={1}
-          style={{ width: 80, background: "var(--bg-base)", border: "1px solid var(--border)", borderRadius: 8, padding: "7px 12px", fontSize: 11, color: "var(--text-primary)", outline: "none", fontFamily: "inherit" }} />
-        <motion.button whileTap={{ scale: 0.96 }} onClick={save}
-          style={{ padding: "7px 14px", borderRadius: 8, border: "none", background: saved ? "#10b981" : "#7c3aed", color: "#fff", fontSize: 9, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", transition: "background 0.2s" }}>
-          {saved ? "✓" : "LƯU"}
-        </motion.button>
+      <div style={{ padding: "4px 0 8px" }}>
+        {NOTIF_TYPES.map(({ key, label, desc, important }) => (
+          <div key={key} style={{ padding: "10px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid var(--border)" }}>
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <span style={{ fontSize: 11, fontWeight: 600, color: "var(--text-primary)" }}>{label}</span>
+                {important && <span style={{ fontSize: 8, padding: "1px 5px", borderRadius: 8, background: "rgba(201,165,90,0.15)", color: "#C9A55A", fontWeight: 700 }}>Quan trọng</span>}
+              </div>
+              <span style={{ fontSize: 10, color: "var(--text-muted)" }}>{desc}</span>
+            </div>
+            <div onClick={() => togglePref(key)}
+              style={{
+                width: 36, height: 20, borderRadius: 10, cursor: "pointer", flexShrink: 0,
+                background: prefs[key] ? "#7c3aed" : "#e2e8f0",
+                position: "relative", transition: "background 0.2s",
+              }}>
+              <div style={{
+                position: "absolute", top: 3, left: prefs[key] ? 18 : 3,
+                width: 14, height: 14, borderRadius: "50%", background: "#fff",
+                transition: "left 0.2s", boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
+              }} />
+            </div>
+          </div>
+        ))}
+        <div style={{ padding: "12px 20px", display: "flex", alignItems: "center", gap: 16 }}>
+          <label style={{ fontSize: 11, color: "var(--text-muted)", flexShrink: 0, width: 140 }}>Ngưỡng cảnh báo tồn kho</label>
+          <input type="number" value={thresh} onChange={e => setThresh(e.target.value)} min={1}
+            style={{ width: 70, background: "var(--bg-base)", border: "1px solid var(--border)", borderRadius: 8, padding: "7px 10px", fontSize: 11, color: "var(--text-primary)", outline: "none", fontFamily: "inherit" }} />
+          <motion.button whileTap={{ scale: 0.96 }} onClick={save}
+            style={{ padding: "7px 14px", borderRadius: 8, border: "none", background: saved ? "#10b981" : "#7c3aed", color: "#fff", fontSize: 9, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", transition: "background 0.2s" }}>
+            {saved ? "✓" : "LƯU"}
+          </motion.button>
+        </div>
+        <div style={{ padding: "0 20px 12px" }}>
+          <p style={{ fontSize: 10, color: "var(--text-muted)", margin: 0, lineHeight: 1.6 }}>
+            Thông báo <strong>Quan trọng</strong> (thông báo chung từ admin) không thể tắt hoàn toàn — chỉ có thể quản lý từ cài đặt trình duyệt.{" "}
+            <span style={{ color: "#7c3aed", cursor: "pointer", textDecoration: "underline" }}
+              onClick={() => window.open("https://support.google.com/chrome/answer/3220216", "_blank")}>
+              Hướng dẫn tắt thông báo trình duyệt
+            </span>
+          </p>
+        </div>
       </div>
     </PremiumCard>
   );
