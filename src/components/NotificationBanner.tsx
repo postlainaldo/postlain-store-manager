@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Bell, X, Pin, Megaphone, Info, AlertTriangle, CheckCircle } from "lucide-react";
-import { useStore } from "@/store/useStore";
+import { useStore, sel } from "@/store/useStore";
 import { playSound } from "@/hooks/useSFX";
 
 type Notif = { id: string; title: string; body: string; type: string; createdBy: string; createdAt: string; pinned: number };
@@ -26,7 +26,7 @@ function timeAgo(iso: string) {
 }
 
 export default function NotificationBanner() {
-  const { currentUser } = useStore();
+  const currentUser = useStore(sel.currentUser);
   const [notifs, setNotifs] = useState<Notif[]>([]);
   const [open, setOpen] = useState(false);
   // For banner popup (latest pinned/urgent)

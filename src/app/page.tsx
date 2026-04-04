@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { motion } from "framer-motion";
-import { useStore } from "@/store/useStore";
+import { useStore, sel } from "@/store/useStore";
 import {
   DollarSign, Eye, Package, Layers,
   ArrowRight, RefreshCw,
@@ -117,7 +117,9 @@ function Sparkline({ data, color, height = 32 }: { data: number[]; color: string
 type StaffRow = { advisorName: string; advisorId: number; orders: number; qty: number; revenue: number; lines: number; byGroup: { group: string; revenue: number; qty: number }[] };
 
 function KpiWidget() {
-  const { kpiStoreTarget, kpiIndividualTargets, users } = useStore();
+  const kpiStoreTarget       = useStore(sel.kpiStoreTarget);
+  const kpiIndividualTargets = useStore(sel.kpiIndividualTargets);
+  const users                = useStore(sel.users);
   const [rows, setRows] = useState<StaffRow[]>([]);
   const [loading, setLoading] = useState(true);
   const curMonth = new Date().toISOString().slice(0, 7);
@@ -322,7 +324,12 @@ function KpiWidget() {
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function OverviewPage() {
-  const { products, warehouseShelves, storeSections, fetchProducts, currentUser, storeName } = useStore();
+  const products         = useStore(sel.products);
+  const warehouseShelves = useStore(sel.warehouseShelves);
+  const storeSections    = useStore(sel.storeSections);
+  const fetchProducts    = useStore(sel.fetchProducts);
+  const currentUser      = useStore(sel.currentUser);
+  const storeName        = useStore(sel.storeName);
   const isAdmin = currentUser?.role === "admin" || currentUser?.role === "manager";
   const cardBg = "rgba(255,255,255,0.88)";
   const cardBorder = "rgba(186,230,253,0.55)";

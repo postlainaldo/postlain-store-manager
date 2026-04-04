@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Smartphone, Bell, Check, ChevronRight, Apple, Chrome, Share2, PlusSquare, AlertTriangle, RefreshCw } from "lucide-react";
-import { useStore } from "@/store/useStore";
+import { useStore, sel } from "@/store/useStore";
 
 // Only marks install step done — notify step is re-checked every visit via real permission
 const LS_INSTALL_KEY = (uid: string) => `onboarding_install_${uid}`;
@@ -339,7 +339,7 @@ function StepNotify({ userId, onDone }: { userId: string; onDone: () => void }) 
 
 // ─── Main Gate ────────────────────────────────────────────────────────────────
 export default function OnboardingGate({ children }: { children: React.ReactNode }) {
-  const { currentUser } = useStore();
+  const currentUser = useStore(sel.currentUser);
   const [step, setStep] = useState<0 | 1 | 2>(0);
   const [checked, setChecked] = useState(false);
 

@@ -3,14 +3,14 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Bell, X, Smartphone } from "lucide-react";
-import { useStore } from "@/store/useStore";
+import { useStore, sel } from "@/store/useStore";
 import { playSound } from "@/hooks/useSFX";
 
 const PROMPT_DEADLINE = new Date("2026-04-10T23:59:59+07:00");
 const STORAGE_KEY = "postlain_push_prompted";
 
 export default function PushPrompt() {
-  const { currentUser } = useStore();
+  const currentUser = useStore(sel.currentUser);
   const [show, setShow] = useState(false);
   const [subscribing, setSubscribing] = useState(false);
   const [done, setDone] = useState(false);

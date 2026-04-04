@@ -7,7 +7,7 @@ import {
   ChevronDown, AlertCircle, CheckCircle2, XCircle, UserPlus, UserMinus,
   CheckSquare, Square, MessageCircle, Send, Download, ClipboardList,
 } from "lucide-react";
-import { useStore, AppUser } from "@/store/useStore";
+import { useStore, sel, AppUser } from "@/store/useStore";
 import { motion, AnimatePresence } from "framer-motion";
 import { playSound } from "@/hooks/useSFX";
 
@@ -971,7 +971,9 @@ function ShiftNoteWidget({ currentUser, isAdmin }: { currentUser: AppUser | null
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function SchedulePage() {
-  const { currentUser, users, fetchUsersFromDb } = useStore();
+  const currentUser      = useStore(sel.currentUser);
+  const users            = useStore(sel.users);
+  const fetchUsersFromDb = useStore(sel.fetchUsersFromDb);
   const isAdmin = currentUser?.role === "admin" || currentUser?.role === "manager";
 
   const [weekOffset, setWeekOffset]       = useState(0);

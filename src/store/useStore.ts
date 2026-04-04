@@ -762,3 +762,47 @@ export const useStore = create<StoreState>()(
     }
   )
 );
+
+// ─── Typed selectors ──────────────────────────────────────────────────────────
+// Usage: const currentUser = useStore(sel.currentUser)
+// This ensures only the selected slice triggers a re-render,
+// instead of re-rendering on any store change.
+export const sel = {
+  // Auth
+  currentUser:          (s: StoreState) => s.currentUser,
+  users:                (s: StoreState) => s.users,
+  login:                (s: StoreState) => s.login,
+  logout:               (s: StoreState) => s.logout,
+  fetchUsersFromDb:     (s: StoreState) => s.fetchUsersFromDb,
+  // Products
+  products:             (s: StoreState) => s.products,
+  fetchProducts:        (s: StoreState) => s.fetchProducts,
+  addProduct:           (s: StoreState) => s.addProduct,
+  updateProduct:        (s: StoreState) => s.updateProduct,
+  deleteProduct:        (s: StoreState) => s.deleteProduct,
+  setProducts:          (s: StoreState) => s.setProducts,
+  // Layout
+  storeSections:        (s: StoreState) => s.storeSections,
+  warehouseShelves:     (s: StoreState) => s.warehouseShelves,
+  fetchDbState:         (s: StoreState) => s.fetchDbState,
+  // Settings
+  storeName:            (s: StoreState) => s.storeName,
+  storeAddress:         (s: StoreState) => s.storeAddress,
+  storePhone:           (s: StoreState) => s.storePhone,
+  storeEmail:           (s: StoreState) => s.storeEmail,
+  setStoreSetting:      (s: StoreState) => s.setStoreSetting,
+  uiAnimations:         (s: StoreState) => s.uiAnimations,
+  uiCompact:            (s: StoreState) => s.uiCompact,
+  setUISetting:         (s: StoreState) => s.setUISetting,
+  lowStockThreshold:    (s: StoreState) => s.lowStockThreshold,
+  setLowStockThreshold: (s: StoreState) => s.setLowStockThreshold,
+  kpiStoreTarget:       (s: StoreState) => s.kpiStoreTarget,
+  kpiIndividualTargets: (s: StoreState) => s.kpiIndividualTargets,
+  setKpiStoreTarget:    (s: StoreState) => s.setKpiStoreTarget,
+  setKpiIndividualTarget:(s: StoreState) => s.setKpiIndividualTarget,
+  // Warehouse
+  addWarehouseShelf:    (s: StoreState) => s.addWarehouseShelf,
+  removeWarehouseShelf: (s: StoreState) => s.removeWarehouseShelf,
+  updateUser:           (s: StoreState) => s.updateUser,
+  removeUser:           (s: StoreState) => s.removeUser,
+} as const;

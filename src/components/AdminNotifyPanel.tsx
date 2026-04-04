@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Bell, Send, Pin, Trash2, Megaphone, Info, AlertTriangle, CheckCircle, X } from "lucide-react";
-import { useStore } from "@/store/useStore";
+import { useStore, sel } from "@/store/useStore";
 
 type Notif = { id: string; title: string; body: string; type: string; createdBy: string; createdAt: string; pinned: number };
 
@@ -15,7 +15,7 @@ const TYPES = [
 ];
 
 export default function AdminNotifyPanel() {
-  const { currentUser } = useStore();
+  const currentUser = useStore(sel.currentUser);
   const [notifs, setNotifs] = useState<Notif[]>([]);
   const [form, setForm] = useState({ title: "", body: "", type: "info", pinned: false });
   const [sending, setSending] = useState(false);

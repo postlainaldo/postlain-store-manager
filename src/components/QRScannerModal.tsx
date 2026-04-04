@@ -6,7 +6,7 @@ import {
   X, Camera, Package, ArrowUpRight, ArrowDownRight,
   Check, AlertTriangle, ScanLine,
 } from "lucide-react";
-import { useStore } from "@/store/useStore";
+import { useStore, sel } from "@/store/useStore";
 import "barcode-detector/polyfill";
 
 type Product = {
@@ -55,7 +55,7 @@ function isIOS() {
 }
 
 export default function QRScannerModal({ open, onClose }: Props) {
-  const { currentUser } = useStore();
+  const currentUser = useStore(sel.currentUser);
   const [mode, setMode] = useState<"scan" | "manual">("scan");
   const [scanning, setScanning] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);

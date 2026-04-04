@@ -11,7 +11,7 @@ import {
   Award, Bell, Zap, Shield, Store, Trophy, BarChart2, TrendingUp, ChevronLeft, ChevronRight,
   Download, Upload, Database, AlertTriangle,
 } from "lucide-react";
-import { useStore } from "@/store/useStore";
+import { useStore, sel } from "@/store/useStore";
 import { useRouter } from "next/navigation";
 import type { UserRole, AppUser } from "@/store/useStore";
 import { useUpdateContext } from "@/components/Providers";
@@ -480,7 +480,11 @@ function TeamCard({ member, isMe, onView, canView, kpiTarget, revenue }: {
 // ─── Settings sub-components ──────────────────────────────────────────────────
 
 function StorePanel() {
-  const { storeName, storeAddress, storePhone, storeEmail, setStoreSetting } = useStore();
+  const storeName      = useStore(sel.storeName);
+  const storeAddress   = useStore(sel.storeAddress);
+  const storePhone     = useStore(sel.storePhone);
+  const storeEmail     = useStore(sel.storeEmail);
+  const setStoreSetting = useStore(sel.setStoreSetting);
   const [name, setName] = useState(storeName);
   const [addr, setAddr] = useState(storeAddress);
   const [phone, setPhone] = useState(storePhone);
@@ -525,7 +529,8 @@ function StorePanel() {
 }
 
 function DisplayPanel() {
-  const { uiAnimations, setUISetting } = useStore();
+  const uiAnimations = useStore(sel.uiAnimations);
+  const setUISetting  = useStore(sel.setUISetting);
   return (
     <PremiumCard title="GIAO DIỆN" icon={Zap} iconColor="#C9A55A" accentColor="#C9A55A">
       <AnimatedToggle label="Hiệu ứng chuyển động" desc="Bật/tắt animation toàn app" on={!!uiAnimations} set={v => setUISetting("uiAnimations", v)} />
@@ -545,7 +550,8 @@ export function getNotifPrefs(): NotifPrefs {
 }
 
 function NotifyPanel() {
-  const { lowStockThreshold, setLowStockThreshold } = useStore();
+  const lowStockThreshold    = useStore(sel.lowStockThreshold);
+  const setLowStockThreshold = useStore(sel.setLowStockThreshold);
   const [thresh, setThresh] = useState(String(lowStockThreshold ?? 5));
   const [saved, setSaved] = useState(false);
   const [prefs, setPrefs] = useState<NotifPrefs>(DEFAULT_PREFS);
@@ -617,7 +623,9 @@ function NotifyPanel() {
 }
 
 function ShelvesPanel() {
-  const { warehouseShelves, addWarehouseShelf, removeWarehouseShelf } = useStore();
+  const warehouseShelves      = useStore(sel.warehouseShelves);
+  const addWarehouseShelf     = useStore(sel.addWarehouseShelf);
+  const removeWarehouseShelf  = useStore(sel.removeWarehouseShelf);
   const [shelfType, setShelfType] = useState<"shoes" | "bags">("shoes");
   return (
     <PremiumCard title="QUẢN LÝ KỆ KHO" icon={Info} iconColor="#0ea5e9" accentColor="#0ea5e9">
@@ -647,7 +655,11 @@ function ShelvesPanel() {
 }
 
 function UsersPanel() {
-  const { users, currentUser, removeUser, updateUser, fetchUsersFromDb } = useStore();
+  const users            = useStore(sel.users);
+  const currentUser      = useStore(sel.currentUser);
+  const removeUser       = useStore(sel.removeUser);
+  const updateUser       = useStore(sel.updateUser);
+  const fetchUsersFromDb = useStore(sel.fetchUsersFromDb);
   const [showAdd, setShowAdd] = useState(false);
   const [newUser, setNewUser] = useState({ name: "", username: "", password: "", role: "staff" as UserRole });
   const [addMsg, setAddMsg] = useState<string | null>(null);
@@ -1261,7 +1273,13 @@ function KpiTargetPanel({ storeTarget, individualTargets, allUsers, onSetStoreTa
 // ─── Main ──────────────────────────────────────────────────────────────────────
 
 export default function ProfilePage() {
-  const { currentUser, logout, users, kpiStoreTarget, kpiIndividualTargets, setKpiStoreTarget, setKpiIndividualTarget } = useStore();
+  const currentUser          = useStore(sel.currentUser);
+  const logout               = useStore(sel.logout);
+  const users                = useStore(sel.users);
+  const kpiStoreTarget       = useStore(sel.kpiStoreTarget);
+  const kpiIndividualTargets = useStore(sel.kpiIndividualTargets);
+  const setKpiStoreTarget    = useStore(sel.setKpiStoreTarget);
+  const setKpiIndividualTarget = useStore(sel.setKpiIndividualTarget);
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
   const cardBg = "rgba(255,255,255,0.88)";

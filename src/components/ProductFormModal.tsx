@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useStore } from "@/store/useStore";
+import { useStore, sel } from "@/store/useStore";
 import { Product } from "@/types";
 import { PRODUCT_TYPES, PRODUCT_GROUPS, PRODUCT_COLORS } from "@/lib/productTypes";
 import { playSound } from "@/hooks/useSFX";
@@ -38,7 +38,8 @@ const emptyForm = {
 };
 
 export default function ProductFormModal({ product, onClose }: Props) {
-  const { addProduct, updateProduct } = useStore();
+  const addProduct    = useStore(sel.addProduct);
+  const updateProduct = useStore(sel.updateProduct);
   const [form, setForm] = useState({
     ...emptyForm,
     ...(product

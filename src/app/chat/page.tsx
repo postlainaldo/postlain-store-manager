@@ -12,7 +12,7 @@ import {
   Pin, Search, Image as ImageIcon, Users, MessageCircle,
   RotateCcw, Eye, ZoomIn,
 } from "lucide-react";
-import { useStore } from "@/store/useStore";
+import { useStore, sel } from "@/store/useStore";
 import { playSound } from "@/hooks/useSFX";
 
 
@@ -468,7 +468,7 @@ function UploadPreview({ file, onCancel }: { file: File; onCancel: () => void })
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function ChatPage() {
-  const { currentUser } = useStore();
+  const currentUser = useStore(sel.currentUser);
   const isAdmin = currentUser?.role === "admin" || currentUser?.role === "manager";
   const cardBg = "rgba(255,255,255,0.88)";
   const cardBorder = "rgba(186,230,253,0.55)";

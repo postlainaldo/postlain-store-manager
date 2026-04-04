@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useStore } from "@/store/useStore";
+import { useStore, sel } from "@/store/useStore";
 import type { Product, WarehouseShelf } from "@/types";
 import ProductFormModal from "@/components/ProductFormModal";
 import { useRouter } from "next/navigation";
@@ -182,7 +182,12 @@ function SortIcon({ col, sortKey, sortDir }: { col: SortKey; sortKey: SortKey; s
 // ─── Main list view ──────────────────────────────────────────────────────────
 
 function ListView() {
-  const { products, storeSections, warehouseShelves, fetchProducts, fetchDbState, deleteProduct } = useStore();
+  const products         = useStore(sel.products);
+  const storeSections    = useStore(sel.storeSections);
+  const warehouseShelves = useStore(sel.warehouseShelves);
+  const fetchProducts    = useStore(sel.fetchProducts);
+  const fetchDbState     = useStore(sel.fetchDbState);
+  const deleteProduct    = useStore(sel.deleteProduct);
   const router = useRouter();
   const cardBg = "rgba(255,255,255,0.88)";
   const cardBorder = "rgba(186,230,253,0.55)";
@@ -1007,7 +1012,7 @@ function ListView() {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function InventoryPage() {
-  const { products } = useStore();
+  const products = useStore(sel.products);
   const totalValue = products.reduce((s, p) => s + ((p.markdownPrice ?? p.price) || 0) * p.quantity, 0);
   const totalQty   = products.reduce((s, p) => s + p.quantity, 0);
   const onSale     = products.filter(p => !!p.markdownPrice).length;
