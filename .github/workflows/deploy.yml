@@ -2,24 +2,16 @@ name: Deploy to Coolify
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: SSH & trigger Coolify redeploy
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: 103.90.224.59
-          username: root
-          key: ${{ secrets.VPS_SSH_KEY }}
-          script: |
-            TOKEN=$(curl -s -X POST http://localhost:3000/api/v1/login \
-              -H "Content-Type: application/json" \
-              -d '{"email":"postlain.aldo@gmail.com","password":"${{ secrets.COOLIFY_PASSWORD }}","isLogin":true}' \
-              | grep -o '"token":"[^"]*"' | cut -d'"' -f4)
-            curl -s -X POST http://localhost:3000/api/v1/applications/cmng4ozwv000kpc9r09zlyv76/deploy \
-              -H "Authorization: Bearer $TOKEN" \
-              -H "Content-Type: application/json" \
-              -d '{"pullmergeRequestId":null}'
+      - name: Trigger Coolify Deploy
+        run: |
+          curl -s -o /dev/null -w "%{http_code}" \
+            -X GET \
+            -H "Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}" \
+            "http://103.90.224.59:8000/api/v1/deploy?uuid=t14ce362eahwqnyahr2eypax&force=false"
