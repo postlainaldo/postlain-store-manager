@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { IS_SUPABASE, getSupabase } from "@/lib/supabase";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${GEMINI_API_KEY}`;
+// gemini-2.0-flash: latest stable, replaces deprecated gemini-2.0-flash-lite
+const GEMINI_MODEL = "gemini-2.0-flash";
+const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
 
 async function getStoreContext(): Promise<string> {
   if (!IS_SUPABASE) return "";
@@ -96,8 +98,12 @@ ${storeContext ? `\n${storeContext}` : ""}`;
 
   if (!res.ok) {
     const err = await res.text();
-    console.error("Gemini error:", res.status, err);
-    return NextResponse.json({ error: `Gemini ${res.status}: ${err.slice(0, 200)}` }, { status: 502 });
+    console.error(`Gemini [${GEMINI_MODEL}] error:`, res.status, err);
+    let friendly = `Lỗi Gemini ${res.status}`;
+    if (res.status === 404) friendly = `Model ${GEMINI_MODEL} không tồn tại hoặc chưa được kích hoạt`;
+    else if (res.status === 429) friendly = "Đã vượt quota Gemini, thử lại sau ít phút";
+    else if (res.status === 400) friendly = "Yêu cầu không hợp lệ — kiểm tra nội dung tin nhắn";
+    return NextResponse.json({ error: friendly }, { status: 502 });
   }
 
   const data = await res.json();

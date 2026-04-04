@@ -622,6 +622,10 @@ function ShiftNoteWidget({ currentUser, isAdmin }: { currentUser: AppUser | null
   const reqLsKey = currentUser ? `sreq_seen_${currentUser.id}` : null;
   // Admin reply input per request
   const [replyNote, setReplyNote] = useState<Record<string, string>>({});
+  // Admin: which resolved request is being edited
+  const [editingReqId, setEditingReqId] = useState<string | null>(null);
+  const [editReqStatus, setEditReqStatus] = useState<"approved" | "rejected">("approved");
+  const [editReqNote, setEditReqNote] = useState("");
 
   // Load lastSeen from localStorage on mount
   useEffect(() => {
@@ -629,16 +633,25 @@ function ShiftNoteWidget({ currentUser, isAdmin }: { currentUser: AppUser | null
     lastSeenRef.current = localStorage.getItem(lsKey) ?? "";
   }, [lsKey]);
 
+  // Use refs so the interval callback always reads latest values without
+  // being in its dependency array (avoids restarting interval on tab/open changes)
+  const openRef    = useRef(open);
+  const tabRef     = useRef(tab);
+  const userIdRef  = useRef(currentUser?.id);
+  useEffect(() => { openRef.current = open; },           [open]);
+  useEffect(() => { tabRef.current  = tab; },            [tab]);
+  useEffect(() => { userIdRef.current = currentUser?.id; }, [currentUser?.id]);
+
   const fetchMsgs = useCallback(async () => {
     const res = await fetch(`/api/chat?roomId=${ROOM_ID}`);
     if (!res.ok) return;
     const data: NoteMsg[] = await res.json();
     setMsgs(data);
-    if (!open || tab !== "notes") {
-      const newCount = data.filter(m => m.createdAt > lastSeenRef.current && m.userId !== currentUser?.id).length;
+    if (!openRef.current || tabRef.current !== "notes") {
+      const newCount = data.filter(m => m.createdAt > lastSeenRef.current && m.userId !== userIdRef.current).length;
       setUnread(newCount);
     }
-  }, [open, tab, currentUser?.id]);
+  }, []); // stable — reads state via refs
 
   const fetchRequests = useCallback(async () => {
     const url = isAdmin
@@ -650,7 +663,6 @@ function ShiftNoteWidget({ currentUser, isAdmin }: { currentUser: AppUser | null
     if (isAdmin) {
       setPendingCount(data.filter(r => r.status === "pending").length);
     } else if (reqLsKey) {
-      // Count resolved requests staff hasn't seen yet
       const seenIds: string[] = JSON.parse(localStorage.getItem(reqLsKey) ?? "[]");
       const resolved = data.filter(r => r.status !== "pending" && !seenIds.includes(r.id));
       setResolvedUnread(resolved.length);
@@ -664,6 +676,8 @@ function ShiftNoteWidget({ currentUser, isAdmin }: { currentUser: AppUser | null
     }).catch(() => {});
     fetchMsgs();
     fetchRequests();
+    // Single stable interval — fetchMsgs is stable (uses refs), fetchRequests
+    // only changes when user/role changes which triggers a new effect anyway
     const iv = setInterval(() => { fetchMsgs(); fetchRequests(); }, 8000);
     return () => clearInterval(iv);
   }, [fetchMsgs, fetchRequests]);
@@ -717,6 +731,23 @@ function ShiftNoteWidget({ currentUser, isAdmin }: { currentUser: AppUser | null
     });
     playSound(status === "approved" ? "save" : "tap");
     setReplyNote(prev => { const n = { ...prev }; delete n[id]; return n; });
+    fetchRequests();
+  }
+
+  function startEditReq(r: ShiftRequest) {
+    setEditingReqId(r.id);
+    setEditReqStatus(r.status as "approved" | "rejected");
+    setEditReqNote(r.adminNote ?? "");
+  }
+
+  async function saveEditReq() {
+    if (!editingReqId) return;
+    await fetch("/api/shifts/requests", {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: editingReqId, status: editReqStatus, adminNote: editReqNote }),
+    });
+    playSound("save");
+    setEditingReqId(null);
     fetchRequests();
   }
 
@@ -939,7 +970,7 @@ function ShiftNoteWidget({ currentUser, isAdmin }: { currentUser: AppUser | null
                         <p style={{ fontSize: 9, color: "#94a3b8", margin: 0, fontStyle: "italic" }}>Không có ghi chú phản hồi.</p>
                       )}
                       <p style={{ fontSize: 8, color: "#cbd5e1", margin: 0 }}>{formatTime(r.createdAt)}</p>
-                      {/* Admin actions for pending */}
+                      {/* Admin: xử lý pending */}
                       {isAdmin && isPending && (
                         <div style={{ display: "flex", flexDirection: "column", gap: 5, marginTop: 2 }}>
                           <input value={replyNote[r.id] ?? ""} onChange={e => setReplyNote(prev => ({ ...prev, [r.id]: e.target.value }))}
@@ -956,6 +987,41 @@ function ShiftNoteWidget({ currentUser, isAdmin }: { currentUser: AppUser | null
                             </button>
                           </div>
                         </div>
+                      )}
+                      {/* Admin: sửa yêu cầu đã xử lý */}
+                      {isAdmin && !isPending && editingReqId === r.id && (
+                        <div style={{ display: "flex", flexDirection: "column", gap: 5, marginTop: 2, padding: "8px 10px", borderRadius: 8, background: "#f8fafc", border: "1px solid #e2e8f0" }}>
+                          <p style={{ fontSize: 9, fontWeight: 700, color: "#64748b", margin: 0, textTransform: "uppercase", letterSpacing: "0.08em" }}>Chỉnh sửa quyết định</p>
+                          <div style={{ display: "flex", gap: 5 }}>
+                            <button onClick={() => setEditReqStatus("approved")}
+                              style={{ flex: 1, height: 26, borderRadius: 6, border: `1.5px solid ${editReqStatus === "approved" ? "#16a34a" : "#e2e8f0"}`, background: editReqStatus === "approved" ? "#f0fdf4" : "#fff", color: editReqStatus === "approved" ? "#16a34a" : "#94a3b8", fontSize: 10, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                              ✓ Duyệt
+                            </button>
+                            <button onClick={() => setEditReqStatus("rejected")}
+                              style={{ flex: 1, height: 26, borderRadius: 6, border: `1.5px solid ${editReqStatus === "rejected" ? "#dc2626" : "#e2e8f0"}`, background: editReqStatus === "rejected" ? "#fff1f2" : "#fff", color: editReqStatus === "rejected" ? "#dc2626" : "#94a3b8", fontSize: 10, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                              ✕ Từ chối
+                            </button>
+                          </div>
+                          <input value={editReqNote} onChange={e => setEditReqNote(e.target.value)}
+                            placeholder="Ghi chú phản hồi..."
+                            style={{ borderRadius: 6, border: "1px solid #e2e8f0", padding: "5px 8px", fontSize: 10, fontFamily: "inherit", outline: "none", color: "#0c1a2e" }} />
+                          <div style={{ display: "flex", gap: 5 }}>
+                            <button onClick={saveEditReq}
+                              style={{ flex: 1, height: 26, borderRadius: 6, border: "none", background: "linear-gradient(135deg,#0c1a2e,#1e3a5f)", color: "#C9A55A", fontSize: 10, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                              Lưu
+                            </button>
+                            <button onClick={() => setEditingReqId(null)}
+                              style={{ height: 26, padding: "0 12px", borderRadius: 6, border: "1px solid #e2e8f0", background: "#fff", color: "#64748b", fontSize: 10, cursor: "pointer", fontFamily: "inherit" }}>
+                              Huỷ
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                      {isAdmin && !isPending && editingReqId !== r.id && (
+                        <button onClick={() => startEditReq(r)}
+                          style={{ alignSelf: "flex-start", height: 22, padding: "0 10px", borderRadius: 6, border: "1px solid #e2e8f0", background: "transparent", color: "#94a3b8", fontSize: 9, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", marginTop: 2 }}>
+                          ✎ Sửa
+                        </button>
                       )}
                     </div>
                   );

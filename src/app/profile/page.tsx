@@ -1180,6 +1180,22 @@ function KpiTargetPanel({ storeTarget, individualTargets, allUsers, onSetStoreTa
   });
   const [saved, setSaved] = useState(false);
 
+  // Sync khi Zustand rehydrate (targets load từ localStorage sau khi mount)
+  useEffect(() => {
+    if (storeTarget > 0) setStoreInput(fmtM(storeTarget));
+  }, [storeTarget]);
+
+  useEffect(() => {
+    setIndivInputs(prev => {
+      const m: Record<string, string> = { ...prev };
+      for (const u of allUsers) {
+        // Chỉ ghi đè nếu field đang trống (tránh xoá input đang gõ)
+        if (!m[u.id] && individualTargets[u.id]) m[u.id] = fmtM(individualTargets[u.id]);
+      }
+      return m;
+    });
+  }, [individualTargets, allUsers]);
+
   const activeUsers = allUsers.filter(u => u.active && u.role !== "admin");
 
   function handleSave() {
