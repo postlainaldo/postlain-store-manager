@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Bell, X, Pin, Megaphone, Info, AlertTriangle, CheckCircle } from "lucide-react";
 import { useStore } from "@/store/useStore";
@@ -29,20 +29,23 @@ export default function NotificationBanner() {
   const { currentUser } = useStore();
   const [notifs, setNotifs] = useState<Notif[]>([]);
   const [open, setOpen] = useState(false);
-  const [dismissed, setDismissed] = useState<Set<string>>(new Set());
   // For banner popup (latest pinned/urgent)
   const [banner, setBanner] = useState<Notif | null>(null);
 
-  // Load dismissed IDs from localStorage (per user)
+  // Load dismissed IDs from localStorage synchronously on first render
   const lsKey = currentUser ? `notif_dismissed_${currentUser.id}` : null;
-
-  useEffect(() => {
-    if (!lsKey) return;
+  const [dismissed, setDismissed] = useState<Set<string>>(() => {
+    if (typeof window === "undefined" || !currentUser) return new Set<string>();
     try {
-      const saved = JSON.parse(localStorage.getItem(lsKey) ?? "[]");
-      if (Array.isArray(saved)) setDismissed(new Set(saved));
+      const key = `notif_dismissed_${currentUser.id}`;
+      const saved = JSON.parse(localStorage.getItem(key) ?? "[]");
+      if (Array.isArray(saved)) return new Set<string>(saved);
     } catch { /* ignore */ }
-  }, [lsKey]);
+    return new Set<string>();
+  });
+  // Keep a ref so load() always reads current dismissed without re-subscribing
+  const dismissedRef = useRef(dismissed);
+  useEffect(() => { dismissedRef.current = dismissed; }, [dismissed]);
 
   // Persist dismissed to localStorage whenever it changes
   useEffect(() => {
@@ -50,22 +53,22 @@ export default function NotificationBanner() {
     localStorage.setItem(lsKey, JSON.stringify([...dismissed]));
   }, [dismissed, lsKey]);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     const data = await fetch("/api/notifications").then(r => r.json()).catch(() => []);
     if (!Array.isArray(data)) return;
     setNotifs(data);
     // Show banner for latest urgent/pinned not yet dismissed
     const important = data.find((n: Notif) =>
-      (n.pinned || n.type === "urgent") && !dismissed.has(n.id)
+      (n.pinned || n.type === "urgent") && !dismissedRef.current.has(n.id)
     );
-    if (important && !open) setBanner(important);
-  };
+    if (important) setBanner(prev => prev?.id === important.id ? prev : important);
+  }, []);
 
   useEffect(() => {
     load();
     const t = setInterval(load, 300000); // poll every 5 min
     return () => clearInterval(t);
-  }, [dismissed]);
+  }, [load]);
 
   const unread = notifs.filter(n => !dismissed.has(n.id)).length;
 

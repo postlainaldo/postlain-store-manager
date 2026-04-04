@@ -2036,13 +2036,30 @@ function ensureShiftRequestsTable() {
   )`).run();
 }
 
+// Supabase returns lowercase keys when columns were created without quoting.
+// Normalize to camelCase regardless of how the table was created.
+function normalizeSR(row: Record<string, unknown>): DBShiftRequest {
+  return {
+    id:         (row.id         ?? "") as string,
+    userId:     (row.userid     ?? row.userId     ?? "") as string,
+    userName:   (row.username   ?? row.userName   ?? "") as string,
+    type:       (row.type       ?? "other") as string,
+    status:     (row.status     ?? "pending") as string,
+    content:    (row.content    ?? "") as string,
+    adminNote:  (row.adminnote  ?? row.adminNote  ?? null) as string | null,
+    targetDate: (row.targetdate ?? row.targetDate ?? null) as string | null,
+    createdAt:  (row.createdat  ?? row.createdAt  ?? "") as string,
+    updatedAt:  (row.updatedat  ?? row.updatedAt  ?? "") as string,
+  };
+}
+
 export async function dbGetShiftRequests(userId?: string): Promise<DBShiftRequest[]> {
   if (IS_SUPABASE) {
     const sb = getSupabase();
-    let q = sb.from("shift_requests").select("*").order("createdAt", { ascending: false }).limit(100);
-    if (userId) q = q.eq("userId", userId);
+    let q = sb.from("shift_requests").select("*").order("createdat", { ascending: false }).limit(100);
+    if (userId) q = q.eq("userid", userId);
     const { data } = await q;
-    return (data ?? []) as DBShiftRequest[];
+    return (data ?? []).map(normalizeSR);
   }
   ensureShiftRequestsTable();
   if (userId) {
@@ -2054,10 +2071,10 @@ export async function dbGetShiftRequests(userId?: string): Promise<DBShiftReques
 export async function dbInsertShiftRequest(r: DBShiftRequest): Promise<void> {
   if (IS_SUPABASE) {
     await getSupabase().from("shift_requests").insert({
-      id: r.id, userId: r.userId, userName: r.userName,
+      id: r.id, userid: r.userId, username: r.userName,
       type: r.type, status: r.status, content: r.content,
-      adminNote: r.adminNote, targetDate: r.targetDate,
-      createdAt: r.createdAt, updatedAt: r.updatedAt,
+      adminnote: r.adminNote, targetdate: r.targetDate,
+      createdat: r.createdAt, updatedat: r.updatedAt,
     });
     return;
   }
@@ -2069,8 +2086,8 @@ export async function dbUpdateShiftRequest(id: string, fields: { status: string;
   if (IS_SUPABASE) {
     await getSupabase().from("shift_requests").update({
       status: fields.status,
-      adminNote: fields.adminNote ?? null,
-      updatedAt: fields.updatedAt,
+      adminnote: fields.adminNote || null,
+      updatedat: fields.updatedAt,
     }).eq("id", id);
     return;
   }

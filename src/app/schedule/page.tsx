@@ -617,6 +617,9 @@ function ShiftNoteWidget({ currentUser, isAdmin }: { currentUser: AppUser | null
   const [reqDate, setReqDate]     = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [pendingCount, setPendingCount] = useState(0);
+  // Staff: count of own requests resolved since last viewed
+  const [resolvedUnread, setResolvedUnread] = useState(0);
+  const reqLsKey = currentUser ? `sreq_seen_${currentUser.id}` : null;
   // Admin reply input per request
   const [replyNote, setReplyNote] = useState<Record<string, string>>({});
 
@@ -644,8 +647,15 @@ function ShiftNoteWidget({ currentUser, isAdmin }: { currentUser: AppUser | null
     const data: ShiftRequest[] = await fetch(url).then(r => r.json()).catch(() => []);
     if (!Array.isArray(data)) return;
     setRequests(data);
-    if (isAdmin) setPendingCount(data.filter(r => r.status === "pending").length);
-  }, [isAdmin, currentUser?.id]);
+    if (isAdmin) {
+      setPendingCount(data.filter(r => r.status === "pending").length);
+    } else if (reqLsKey) {
+      // Count resolved requests staff hasn't seen yet
+      const seenIds: string[] = JSON.parse(localStorage.getItem(reqLsKey) ?? "[]");
+      const resolved = data.filter(r => r.status !== "pending" && !seenIds.includes(r.id));
+      setResolvedUnread(resolved.length);
+    }
+  }, [isAdmin, currentUser?.id, reqLsKey]);
 
   useEffect(() => {
     fetch("/api/chat", {
@@ -667,7 +677,13 @@ function ShiftNoteWidget({ currentUser, isAdmin }: { currentUser: AppUser | null
       if (lsKey) localStorage.setItem(lsKey, now);
       setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 80);
     }
-  }, [open, tab, msgs]);
+    // Mark resolved requests as seen when staff opens requests tab
+    if (open && tab === "requests" && !isAdmin && reqLsKey) {
+      const resolvedIds = requests.filter(r => r.status !== "pending").map(r => r.id);
+      localStorage.setItem(reqLsKey, JSON.stringify(resolvedIds));
+      setResolvedUnread(0);
+    }
+  }, [open, tab, msgs, requests]);
 
   async function handleSend() {
     if (!text.trim() || !currentUser || sending) return;
@@ -710,8 +726,8 @@ function ShiftNoteWidget({ currentUser, isAdmin }: { currentUser: AppUser | null
       " " + d.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" });
   }
 
-  const totalBadge = unread + (isAdmin ? pendingCount : 0);
-  const badgeColor = pendingCount > 0 ? "#d97706" : "#ef4444";
+  const totalBadge = unread + (isAdmin ? pendingCount : resolvedUnread);
+  const badgeColor = (isAdmin ? pendingCount > 0 : resolvedUnread > 0) ? "#d97706" : "#ef4444";
 
   return (
     <>
@@ -793,6 +809,9 @@ function ShiftNoteWidget({ currentUser, isAdmin }: { currentUser: AppUser | null
                     <span style={{ fontSize: 10, fontWeight: 700, color: tab === key ? "#C9A55A" : "#64748b" }}>{label}</span>
                     {key === "requests" && isAdmin && pendingCount > 0 && (
                       <span style={{ fontSize: 7, fontWeight: 800, color: "#fff", background: "#d97706", padding: "1px 5px", borderRadius: 10 }}>{pendingCount}</span>
+                    )}
+                    {key === "requests" && !isAdmin && resolvedUnread > 0 && (
+                      <span style={{ fontSize: 7, fontWeight: 800, color: "#fff", background: "#d97706", padding: "1px 5px", borderRadius: 10 }}>{resolvedUnread}</span>
                     )}
                     {key === "notes" && unread > 0 && (
                       <span style={{ fontSize: 7, fontWeight: 800, color: "#fff", background: "#ef4444", padding: "1px 5px", borderRadius: 10 }}>{unread}</span>
@@ -883,27 +902,48 @@ function ShiftNoteWidget({ currentUser, isAdmin }: { currentUser: AppUser | null
                 {requests.map(r => {
                   const scfg = STATUS_CFG[r.status];
                   const isPending = r.status === "pending";
+                  const isApproved = r.status === "approved";
+                  const isRejected = r.status === "rejected";
+                  // Staff: highlight cards that were just resolved and not yet seen
+                  const seenIds: string[] = !isAdmin && reqLsKey
+                    ? JSON.parse(localStorage.getItem(reqLsKey) ?? "[]") : [];
+                  const isNewlyResolved = !isAdmin && !isPending && !seenIds.includes(r.id);
+                  const cardBorder = isPending && isAdmin ? "#fde68a"
+                    : isNewlyResolved && isApproved ? "#86efac"
+                    : isNewlyResolved && isRejected ? "#fca5a5"
+                    : "#e2e8f0";
+                  const cardBg = isPending && isAdmin ? "#fffbeb"
+                    : isNewlyResolved && isApproved ? "#f0fdf4"
+                    : isNewlyResolved && isRejected ? "#fff1f2"
+                    : "#fff";
+                  const noteStyle = isApproved
+                    ? { bg: "#f0fdf4", border: "#bbf7d0", label: "#16a34a", text: "#15803d" }
+                    : { bg: "#fff1f2", border: "#fecaca", label: "#dc2626", text: "#b91c1c" };
                   return (
-                    <div key={r.id} style={{ borderRadius: 12, border: `1px solid ${isPending ? "#fde68a" : "#e2e8f0"}`, background: isPending && isAdmin ? "#fffbeb" : "#fff", padding: "10px 12px", display: "flex", flexDirection: "column", gap: 6 }}>
+                    <div key={r.id} style={{ borderRadius: 12, border: `1px solid ${cardBorder}`, background: cardBg, padding: "10px 12px", display: "flex", flexDirection: "column", gap: 6 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                         <span style={{ fontSize: 9, fontWeight: 700, padding: "2px 7px", borderRadius: 20, background: scfg.bg, color: scfg.color }}>{scfg.label}</span>
                         <span style={{ fontSize: 9, fontWeight: 600, color: "#64748b", background: "#f1f5f9", padding: "2px 7px", borderRadius: 20 }}>{REQ_TYPE_LABEL[r.type] ?? r.type}</span>
                         {isAdmin && <span style={{ fontSize: 9, color: "#94a3b8", marginLeft: "auto" }}>{r.userName}</span>}
+                        {isNewlyResolved && <span style={{ fontSize: 8, fontWeight: 800, color: isApproved ? "#16a34a" : "#dc2626", marginLeft: "auto" }}>● Mới</span>}
                       </div>
                       <p style={{ fontSize: 11, color: "#0c1a2e", margin: 0, lineHeight: 1.4 }}>{r.content}</p>
                       {r.targetDate && <p style={{ fontSize: 9, color: "#64748b", margin: 0 }}>📅 {r.targetDate}</p>}
-                      {r.adminNote && (
-                        <div style={{ padding: "6px 9px", borderRadius: 8, background: "#f0fdf4", border: "1px solid #bbf7d0" }}>
-                          <p style={{ fontSize: 9, fontWeight: 700, color: "#16a34a", margin: "0 0 2px" }}>Phản hồi từ Admin</p>
-                          <p style={{ fontSize: 10, color: "#15803d", margin: 0 }}>{r.adminNote}</p>
+                      {!isPending && r.adminNote && r.adminNote.trim() !== "" && (
+                        <div style={{ padding: "6px 9px", borderRadius: 8, background: noteStyle.bg, border: `1px solid ${noteStyle.border}` }}>
+                          <p style={{ fontSize: 9, fontWeight: 700, color: noteStyle.label, margin: "0 0 2px" }}>Phản hồi từ Admin</p>
+                          <p style={{ fontSize: 10, color: noteStyle.text, margin: 0 }}>{r.adminNote}</p>
                         </div>
+                      )}
+                      {!isPending && (!r.adminNote || r.adminNote.trim() === "") && !isAdmin && (
+                        <p style={{ fontSize: 9, color: "#94a3b8", margin: 0, fontStyle: "italic" }}>Không có ghi chú phản hồi.</p>
                       )}
                       <p style={{ fontSize: 8, color: "#cbd5e1", margin: 0 }}>{formatTime(r.createdAt)}</p>
                       {/* Admin actions for pending */}
                       {isAdmin && isPending && (
                         <div style={{ display: "flex", flexDirection: "column", gap: 5, marginTop: 2 }}>
                           <input value={replyNote[r.id] ?? ""} onChange={e => setReplyNote(prev => ({ ...prev, [r.id]: e.target.value }))}
-                            placeholder="Ghi chú phản hồi (tuỳ chọn)..."
+                            placeholder="Lý do / ghi chú phản hồi (tuỳ chọn)..."
                             style={{ borderRadius: 7, border: "1px solid #e2e8f0", padding: "5px 8px", fontSize: 10, fontFamily: "inherit", outline: "none", color: "#0c1a2e" }} />
                           <div style={{ display: "flex", gap: 6 }}>
                             <button onClick={() => handleAdminAction(r.id, "approved")}
