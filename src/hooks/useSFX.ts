@@ -119,7 +119,7 @@ function chord(ac: AudioContext, out: AudioNode, freqs: number[], t: number, att
   for (const f of freqs) tone(ac, out, f, t, attack, sustain, release, peak / freqs.length);
 }
 
-// ── Sound Library — Chill Edition ─────────────────────────────────────────────
+// ── Sound Library — Dark Premium Blue Edition ─────────────────────────────────
 
 const SFX = {
 
@@ -127,147 +127,247 @@ const SFX = {
   tap() {
     const ac = getCtx(); if (!ac) return;
     const out = bus(ac, 0.9);
-    const rev = reverbBus(ac, out, 0.25);
+    const rev = reverbBus(ac, out, 0.28);
     const t = ac.currentTime;
-    // Soft marimba-like click: fundamental + 2nd partial
-    tone(ac, rev, 1047, t, 0.003, 0.01, 0.18, 0.65); // C6
-    tone(ac, rev, 2093, t, 0.003, 0.005, 0.12, 0.20); // C7
+    tone(ac, rev, 1047, t, 0.002, 0.008, 0.16, 0.68); // C6 — crisp marimba
+    tone(ac, rev, 2093, t, 0.002, 0.004, 0.10, 0.22); // C7 — air partial
+    tone(ac, rev, 3136, t, 0.001, 0.002, 0.06, 0.10); // G7 — ultra-air shimmer
   },
 
-  /** Even softer — cancel / secondary */
+  /** Even softer — cancel / secondary / dismiss */
   softTap() {
     const ac = getCtx(); if (!ac) return;
-    const out = bus(ac, 0.75);
-    const rev = reverbBus(ac, out, 0.30);
+    const out = bus(ac, 0.72);
+    const rev = reverbBus(ac, out, 0.32);
     const t = ac.currentTime;
-    tone(ac, rev, 880, t, 0.004, 0.01, 0.20, 0.50); // A5
+    tone(ac, rev, 880,  t,        0.003, 0.008, 0.22, 0.50); // A5
+    tone(ac, rev, 1320, t + 0.04, 0.002, 0.004, 0.14, 0.22); // E6 overtone
   },
 
-  /** Page navigate — gentle ascending two-note */
+  /** Page navigate — premium rising two-note with tail shimmer */
   navigate() {
     const ac = getCtx(); if (!ac) return;
     const out = bus(ac, 0.85);
-    const rev = reverbBus(ac, out, 0.40);
+    const rev = reverbBus(ac, out, 0.42);
     const t = ac.currentTime;
-    tone(ac, rev, 659, t,        0.004, 0.01, 0.22, 0.55); // E5
-    tone(ac, rev, 988, t + 0.10, 0.004, 0.01, 0.28, 0.50); // B5
+    tone(ac, rev, 659,  t,        0.003, 0.01, 0.22, 0.55); // E5
+    tone(ac, rev, 988,  t + 0.10, 0.003, 0.01, 0.30, 0.52); // B5
+    tone(ac, rev, 1319, t + 0.20, 0.002, 0.005, 0.24, 0.28); // E6 — shimmer
   },
 
-  /** Modal open — warm rising whoosh */
+  /** FAB open — cinematic bloom: deep bass + rising chord */
   modalOpen() {
     const ac = getCtx(); if (!ac) return;
-    const out = bus(ac, 0.80);
-    const rev = reverbBus(ac, out, 0.45);
-    const t = ac.currentTime;
-    tone(ac, rev, 523, t,        0.008, 0.02, 0.30, 0.45); // C5
-    tone(ac, rev, 784, t + 0.08, 0.006, 0.01, 0.28, 0.40); // G5
-    tone(ac, rev, 1047, t + 0.16, 0.005, 0.01, 0.24, 0.28); // C6
-  },
-
-  /** Modal close — descending sigh */
-  modalClose() {
-    const ac = getCtx(); if (!ac) return;
-    const out = bus(ac, 0.75);
-    const rev = reverbBus(ac, out, 0.40);
-    const t = ac.currentTime;
-    tone(ac, rev, 784,  t,        0.004, 0.01, 0.25, 0.45); // G5
-    tone(ac, rev, 523,  t + 0.10, 0.004, 0.01, 0.30, 0.38); // C5
-  },
-
-  /** Save / confirm — warm major chord strum */
-  save() {
-    const ac = getCtx(); if (!ac) return;
-    const out = bus(ac, 0.85);
-    const rev = reverbBus(ac, out, 0.50);
-    const t = ac.currentTime;
-    // C major arpeggio: C4–E4–G4–C5
-    tone(ac, rev, 262, t,         0.006, 0.02, 0.35, 0.50); // C4
-    tone(ac, rev, 330, t + 0.06,  0.005, 0.02, 0.32, 0.45); // E4
-    tone(ac, rev, 392, t + 0.12,  0.005, 0.02, 0.30, 0.42); // G4
-    tone(ac, rev, 523, t + 0.18,  0.005, 0.01, 0.40, 0.55); // C5
-  },
-
-  /** Login submit — quiet anticipation chime */
-  loginSubmit() {
-    const ac = getCtx(); if (!ac) return;
-    const out = bus(ac, 0.80);
-    const rev = reverbBus(ac, out, 0.40);
-    const t = ac.currentTime;
-    tone(ac, rev, 440, t,        0.006, 0.02, 0.30, 0.48); // A4
-    tone(ac, rev, 554, t + 0.08, 0.005, 0.01, 0.28, 0.40); // C#5
-  },
-
-  /** Login success — bright ascending fanfare */
-  loginSuccess() {
-    const ac = getCtx(); if (!ac) return;
-    const out = bus(ac, 0.90);
+    const out = bus(ac, 0.88);
     const rev = reverbBus(ac, out, 0.55);
     const t = ac.currentTime;
-    // G major pentatonic rise
-    tone(ac, rev, 392,  t,         0.006, 0.02, 0.40, 0.52); // G4
-    tone(ac, rev, 494,  t + 0.08,  0.005, 0.02, 0.38, 0.50); // B4
-    tone(ac, rev, 587,  t + 0.16,  0.005, 0.02, 0.36, 0.52); // D5
-    tone(ac, rev, 784,  t + 0.24,  0.006, 0.02, 0.50, 0.60); // G5
-    tone(ac, rev, 1175, t + 0.34,  0.005, 0.01, 0.55, 0.45); // D6
+    tone(ac, rev, 130,  t,        0.015, 0.04, 0.40, 0.45); // C3 — sub bloom
+    tone(ac, rev, 523,  t + 0.05, 0.008, 0.02, 0.32, 0.42); // C5
+    tone(ac, rev, 784,  t + 0.12, 0.006, 0.015, 0.30, 0.38); // G5
+    tone(ac, rev, 1047, t + 0.20, 0.005, 0.01, 0.26, 0.32); // C6
+    tone(ac, rev, 1568, t + 0.30, 0.003, 0.005, 0.24, 0.18); // G6 — sparkle tail
   },
 
-  /** Error — gentle descending minor 3rd, not harsh */
+  /** FAB close / modal dismiss — graceful exhale */
+  modalClose() {
+    const ac = getCtx(); if (!ac) return;
+    const out = bus(ac, 0.78);
+    const rev = reverbBus(ac, out, 0.42);
+    const t = ac.currentTime;
+    tone(ac, rev, 1047, t,        0.003, 0.01, 0.22, 0.40); // C6
+    tone(ac, rev, 784,  t + 0.08, 0.004, 0.01, 0.26, 0.38); // G5
+    tone(ac, rev, 523,  t + 0.18, 0.005, 0.01, 0.32, 0.35); // C5
+    tone(ac, rev, 262,  t + 0.30, 0.008, 0.02, 0.40, 0.28); // C4 — grounding bass
+  },
+
+  /** Save / confirm — warm Cmaj7 arpeggio with gold shimmer */
+  save() {
+    const ac = getCtx(); if (!ac) return;
+    const out = bus(ac, 0.88);
+    const rev = reverbBus(ac, out, 0.52);
+    const t = ac.currentTime;
+    tone(ac, rev, 262,  t,        0.006, 0.02, 0.38, 0.52); // C4
+    tone(ac, rev, 330,  t + 0.06, 0.005, 0.02, 0.34, 0.48); // E4
+    tone(ac, rev, 392,  t + 0.12, 0.005, 0.02, 0.32, 0.45); // G4
+    tone(ac, rev, 494,  t + 0.18, 0.004, 0.015, 0.35, 0.42); // B4 — maj7 colour
+    tone(ac, rev, 523,  t + 0.24, 0.004, 0.01, 0.42, 0.55); // C5
+    tone(ac, rev, 1047, t + 0.32, 0.003, 0.005, 0.50, 0.28); // C6 — gold shimmer
+  },
+
+  /** Login submit — subtle anticipation with suspended chord */
+  loginSubmit() {
+    const ac = getCtx(); if (!ac) return;
+    const out = bus(ac, 0.82);
+    const rev = reverbBus(ac, out, 0.42);
+    const t = ac.currentTime;
+    tone(ac, rev, 440,  t,        0.006, 0.02, 0.30, 0.50); // A4
+    tone(ac, rev, 587,  t + 0.06, 0.005, 0.015, 0.28, 0.42); // D5 — sus4
+    tone(ac, rev, 659,  t + 0.14, 0.004, 0.01, 0.26, 0.38); // E5
+  },
+
+  /** Login success — bright G major pentatonic fanfare */
+  loginSuccess() {
+    const ac = getCtx(); if (!ac) return;
+    const out = bus(ac, 0.92);
+    const rev = reverbBus(ac, out, 0.58);
+    const t = ac.currentTime;
+    tone(ac, rev, 392,  t,         0.006, 0.02, 0.42, 0.55); // G4
+    tone(ac, rev, 494,  t + 0.07,  0.005, 0.02, 0.40, 0.52); // B4
+    tone(ac, rev, 587,  t + 0.14,  0.005, 0.02, 0.38, 0.55); // D5
+    tone(ac, rev, 784,  t + 0.22,  0.005, 0.02, 0.52, 0.62); // G5
+    tone(ac, rev, 988,  t + 0.30,  0.004, 0.015, 0.48, 0.52); // B5
+    tone(ac, rev, 1175, t + 0.38,  0.004, 0.01, 0.58, 0.48); // D6
+    // Gold crown sparkle chord
+    chord(ac, rev, [1568, 1976, 2349], t + 0.48, 0.003, 0.005, 0.60, 0.32); // G6 B6 D7
+  },
+
+  /** Error — warm minor descend, never harsh */
   error() {
     const ac = getCtx(); if (!ac) return;
-    const out = bus(ac, 0.80);
-    const rev = reverbBus(ac, out, 0.35);
+    const out = bus(ac, 0.82);
+    const rev = reverbBus(ac, out, 0.38);
     const t = ac.currentTime;
-    tone(ac, rev, 440, t,        0.005, 0.02, 0.32, 0.50); // A4
-    tone(ac, rev, 370, t + 0.12, 0.005, 0.02, 0.35, 0.45); // F#4 — minor feel
+    tone(ac, rev, 494,  t,        0.005, 0.02, 0.30, 0.52); // B4
+    tone(ac, rev, 415,  t + 0.10, 0.005, 0.02, 0.34, 0.48); // G#4 — minor colour
+    tone(ac, rev, 370,  t + 0.22, 0.006, 0.02, 0.38, 0.45); // F#4
   },
 
-  /** Destroy / delete — low soft thud */
+  /** Destroy / delete — deep low thud + subtle reverb */
   destroy() {
     const ac = getCtx(); if (!ac) return;
-    const out = bus(ac, 0.80);
-    const rev = reverbBus(ac, out, 0.30);
+    const out = bus(ac, 0.82);
+    const rev = reverbBus(ac, out, 0.32);
     const t = ac.currentTime;
-    tone(ac, rev, 196, t,        0.010, 0.02, 0.30, 0.60, "sine"); // G3
-    tone(ac, rev, 147, t + 0.10, 0.008, 0.01, 0.35, 0.45, "sine"); // D3
+    tone(ac, rev, 196, t,        0.010, 0.025, 0.32, 0.62); // G3
+    tone(ac, rev, 147, t + 0.08, 0.008, 0.015, 0.38, 0.48); // D3
+    tone(ac, rev, 98,  t + 0.18, 0.012, 0.02, 0.42, 0.35); // G2 — sub body
   },
 
-  /** Notification — soft crystal ping */
+  /** Notification — crystal bell triad, rich and clear */
   notify() {
     const ac = getCtx(); if (!ac) return;
-    const out = bus(ac, 0.85);
-    const rev = reverbBus(ac, out, 0.60);
+    const out = bus(ac, 0.88);
+    const rev = reverbBus(ac, out, 0.62);
     const t = ac.currentTime;
-    // Crystal bell chord
-    chord(ac, rev, [1047, 1319, 1568], t, 0.004, 0.01, 0.55, 0.65); // C6 E6 G6
+    tone(ac, rev, 1047, t,        0.003, 0.01, 0.60, 0.55); // C6
+    tone(ac, rev, 1319, t + 0.05, 0.003, 0.01, 0.58, 0.50); // E6
+    tone(ac, rev, 1568, t + 0.10, 0.003, 0.008, 0.58, 0.48); // G6
+    tone(ac, rev, 2093, t + 0.18, 0.002, 0.005, 0.55, 0.30); // C7 shimmer
   },
 
   /** App boot / splash — cinematic ambient swell */
   boot() {
     const ac = getCtx(); if (!ac) return;
-    const out = bus(ac, 0.90);
-    const rev = reverbBus(ac, out, 0.65);
+    const out = bus(ac, 0.92);
+    const rev = reverbBus(ac, out, 0.68);
     const t = ac.currentTime;
-    // Sub bass breath
-    tone(ac, rev, 65,  t,         0.20, 0.30, 0.80, 0.40); // C2
-    tone(ac, rev, 130, t + 0.10,  0.15, 0.20, 0.70, 0.30); // C3
-    // Pad chord swell — Cmaj7
-    tone(ac, rev, 262, t + 0.20,  0.18, 0.25, 0.80, 0.35); // C4
-    tone(ac, rev, 330, t + 0.28,  0.16, 0.22, 0.75, 0.32); // E4
-    tone(ac, rev, 392, t + 0.36,  0.14, 0.20, 0.70, 0.30); // G4
-    tone(ac, rev, 494, t + 0.44,  0.12, 0.18, 0.65, 0.28); // B4
-    // Top sparkle
-    tone(ac, rev, 1047, t + 0.55, 0.008, 0.01, 0.60, 0.38); // C6
-    tone(ac, rev, 1319, t + 0.65, 0.006, 0.01, 0.55, 0.28); // E6
+    tone(ac, rev, 65,  t,         0.22, 0.32, 0.85, 0.42); // C2
+    tone(ac, rev, 130, t + 0.10,  0.16, 0.22, 0.72, 0.32); // C3
+    tone(ac, rev, 262, t + 0.22,  0.18, 0.26, 0.82, 0.36); // C4
+    tone(ac, rev, 330, t + 0.30,  0.16, 0.23, 0.78, 0.33); // E4
+    tone(ac, rev, 392, t + 0.38,  0.14, 0.21, 0.72, 0.31); // G4
+    tone(ac, rev, 494, t + 0.46,  0.12, 0.19, 0.68, 0.29); // B4
+    tone(ac, rev, 1047, t + 0.58, 0.008, 0.01, 0.62, 0.40); // C6
+    tone(ac, rev, 1319, t + 0.68, 0.006, 0.01, 0.57, 0.30); // E6
+    tone(ac, rev, 1568, t + 0.78, 0.004, 0.008, 0.55, 0.20); // G6 — final glimmer
   },
 
-  /** Register / join — warm acceptance note */
+  /** Scan / register — warm two-note acceptance */
   scan() {
     const ac = getCtx(); if (!ac) return;
-    const out = bus(ac, 0.80);
-    const rev = reverbBus(ac, out, 0.45);
+    const out = bus(ac, 0.82);
+    const rev = reverbBus(ac, out, 0.46);
     const t = ac.currentTime;
-    tone(ac, rev, 659, t,        0.005, 0.02, 0.30, 0.52); // E5
-    tone(ac, rev, 784, t + 0.10, 0.005, 0.01, 0.30, 0.45); // G5
+    tone(ac, rev, 659,  t,        0.004, 0.018, 0.30, 0.54); // E5
+    tone(ac, rev, 784,  t + 0.10, 0.004, 0.015, 0.32, 0.48); // G5
+    tone(ac, rev, 1047, t + 0.20, 0.003, 0.01, 0.28, 0.32); // C6 — shimmer
+  },
+
+  /** Purchase / sale — premium cash register with gold chord */
+  purchase() {
+    const ac = getCtx(); if (!ac) return;
+    const out = bus(ac, 0.90);
+    const rev = reverbBus(ac, out, 0.50);
+    const t = ac.currentTime;
+    // Bright clink
+    tone(ac, rev, 2637, t,        0.002, 0.004, 0.12, 0.60); // E7 — clink
+    tone(ac, rev, 2093, t + 0.03, 0.002, 0.005, 0.10, 0.45); // C7
+    // Rich Amaj chord body
+    tone(ac, rev, 440,  t + 0.05, 0.006, 0.02, 0.42, 0.52); // A4
+    tone(ac, rev, 554,  t + 0.10, 0.005, 0.02, 0.40, 0.48); // C#5
+    tone(ac, rev, 659,  t + 0.15, 0.005, 0.02, 0.38, 0.50); // E5
+    tone(ac, rev, 880,  t + 0.22, 0.004, 0.015, 0.50, 0.45); // A5 — crown
+  },
+
+  /** Success / tick — crisp satisfying confirm */
+  success() {
+    const ac = getCtx(); if (!ac) return;
+    const out = bus(ac, 0.88);
+    const rev = reverbBus(ac, out, 0.48);
+    const t = ac.currentTime;
+    tone(ac, rev, 784,  t,        0.003, 0.015, 0.28, 0.55); // G5
+    tone(ac, rev, 1047, t + 0.08, 0.003, 0.012, 0.32, 0.60); // C6
+    tone(ac, rev, 1319, t + 0.15, 0.002, 0.008, 0.28, 0.50); // E6
+  },
+
+  /** Warning / caution — amber two-tone alert */
+  warning() {
+    const ac = getCtx(); if (!ac) return;
+    const out = bus(ac, 0.80);
+    const rev = reverbBus(ac, out, 0.35);
+    const t = ac.currentTime;
+    tone(ac, rev, 554,  t,        0.005, 0.04, 0.18, 0.55, "triangle"); // C#5 — amber pulse
+    tone(ac, rev, 440,  t + 0.18, 0.005, 0.04, 0.22, 0.52, "triangle"); // A4
+    tone(ac, rev, 554,  t + 0.38, 0.004, 0.03, 0.20, 0.48, "triangle"); // C#5 echo
+  },
+
+  /** Swipe / drag — soft whoosh */
+  swipe() {
+    const ac = getCtx(); if (!ac) return;
+    const out = bus(ac, 0.65);
+    const rev = reverbBus(ac, out, 0.38);
+    const t = ac.currentTime;
+    // Rising then falling noise-like via quick frequency sweep
+    const env = ac.createGain();
+    env.gain.setValueAtTime(0, t);
+    env.gain.linearRampToValueAtTime(0.5, t + 0.04);
+    env.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
+    env.connect(out);
+    const o = ac.createOscillator();
+    o.type = "sine";
+    o.frequency.setValueAtTime(400, t);
+    o.frequency.exponentialRampToValueAtTime(1200, t + 0.08);
+    o.frequency.exponentialRampToValueAtTime(600, t + 0.22);
+    o.connect(env);
+    o.start(t); o.stop(t + 0.25);
+  },
+
+  /** Long press / hold confirm — rising swell resolve */
+  longPress() {
+    const ac = getCtx(); if (!ac) return;
+    const out = bus(ac, 0.82);
+    const rev = reverbBus(ac, out, 0.50);
+    const t = ac.currentTime;
+    tone(ac, rev, 392,  t,        0.012, 0.03, 0.28, 0.45); // G4
+    tone(ac, rev, 523,  t + 0.12, 0.010, 0.025, 0.30, 0.48); // C5
+    tone(ac, rev, 659,  t + 0.25, 0.008, 0.02, 0.32, 0.52); // E5
+    tone(ac, rev, 784,  t + 0.38, 0.006, 0.015, 0.42, 0.58); // G5 — resolve
+  },
+
+  /** Unlock / access granted — bright crystal unlock */
+  unlock() {
+    const ac = getCtx(); if (!ac) return;
+    const out = bus(ac, 0.88);
+    const rev = reverbBus(ac, out, 0.56);
+    const t = ac.currentTime;
+    // Mechanical lock click
+    tone(ac, rev, 2637, t,        0.001, 0.003, 0.08, 0.70); // E7 snap
+    tone(ac, rev, 1760, t + 0.05, 0.002, 0.005, 0.10, 0.55); // A6
+    // Open chord swell
+    tone(ac, rev, 523,  t + 0.12, 0.008, 0.02, 0.38, 0.50); // C5
+    tone(ac, rev, 659,  t + 0.18, 0.006, 0.018, 0.35, 0.52); // E5
+    tone(ac, rev, 784,  t + 0.24, 0.005, 0.015, 0.40, 0.48); // G5
+    tone(ac, rev, 1047, t + 0.32, 0.004, 0.01, 0.50, 0.42); // C6 — open!
   },
 };
 

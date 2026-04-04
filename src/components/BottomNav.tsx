@@ -3,7 +3,7 @@
 import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard, Focus, Box, MessageSquare, UserCircle,
-  ShoppingBag, ClipboardList, CalendarDays, Grid2x2,
+  ShoppingBag, ClipboardList, CalendarDays,
 } from "lucide-react";
 import { useStore } from "@/store/useStore";
 import { useSFX, type SFXName } from "@/hooks/useSFX";
@@ -27,11 +27,11 @@ const NAV_SOUNDS: Record<string, SFXName> = {
   "overview":     "navigate",
   "visual-board": "scan",
   "inventory":    "softTap",
-  "sales":        "loginSuccess",
+  "sales":        "purchase",
   "report":       "loginSubmit",
   "chat":         "notify",
-  "schedule":     "modalOpen",
-  "profile":      "save",
+  "schedule":     "unlock",
+  "profile":      "success",
 };
 
 // Pre-navigate flash variants (random per item for variety)
@@ -54,7 +54,6 @@ const NAV_ITEMS_ALL = [
   { id: "report",       label: "Báo Cáo",   href: "/report",       icon: ClipboardList,   exact: false, adminOnly: false },
   { id: "chat",         label: "Chat",      href: "/chat",         icon: MessageSquare,   exact: false, adminOnly: false },
   { id: "schedule",     label: "Lịch Làm",  href: "/schedule",     icon: CalendarDays,    exact: false, adminOnly: false },
-  { id: "apps",         label: "Ứng Dụng",  href: "/apps",         icon: Grid2x2,         exact: false, adminOnly: true  },
   { id: "profile",      label: "Hồ Sơ",     href: "/profile",      icon: UserCircle,      exact: false, adminOnly: false },
 ] as const;
 
@@ -337,17 +336,17 @@ export default function BottomNav() {
           onClick={() => { sfx(open ? "modalClose" : "tap"); setOpen(v => !v); }}
           animate={{
             rotate: open ? 45 : 0,
-            y: open ? 0 : [0, -4, 1, -2, 0],
-            scale: open ? 1 : [1, 1.03, 0.99, 1.02, 1],
+            y: open ? 0 : [0, -5, 1.5, -3, 0],
+            scale: open ? 1 : [1, 1.04, 0.98, 1.02, 1],
           }}
           transition={{
-            rotate: { type: "spring", damping: 18, stiffness: 280 },
-            y: open ? { duration: 0.2 } : { duration: 4.0, repeat: infiniteRepeat, ease: "easeInOut" },
-            scale: open ? { duration: 0.2 } : { duration: 4.0, repeat: infiniteRepeat, ease: "easeInOut" },
+            rotate: { type: "spring", damping: 16, stiffness: 300 },
+            y: open ? { duration: 0.2 } : { duration: 4.2, repeat: infiniteRepeat, ease: "easeInOut" },
+            scale: open ? { duration: 0.2 } : { duration: 4.2, repeat: infiniteRepeat, ease: "easeInOut" },
           }}
           style={{
             position: "relative",
-            width: 68, height: 68,
+            width: 72, height: 72,
             borderRadius: "50%",
             border: "none",
             cursor: "pointer",
@@ -357,30 +356,54 @@ export default function BottomNav() {
             WebkitTapHighlightColor: "transparent",
           }}
         >
+          {/* Outer ambient glow layer */}
+          <div style={{
+            position: "absolute", inset: -8,
+            borderRadius: "50%",
+            background: open
+              ? "radial-gradient(circle, rgba(201,165,90,0.22) 0%, rgba(59,130,246,0.12) 60%, transparent 75%)"
+              : "radial-gradient(circle, rgba(201,165,90,0.14) 0%, rgba(59,130,246,0.06) 60%, transparent 75%)",
+            transition: "background 0.35s",
+            pointerEvents: "none",
+          }} />
+
           {/* Continuous shimmer ring on orb — desktop only */}
           {!isMobile && (
             <motion.div
               animate={{ rotate: 360 }}
-              transition={{ duration: 6, repeat: Infinity, ease: "linear" }}
+              transition={{ duration: 5, repeat: Infinity, ease: "linear" }}
               style={{
-                position: "absolute", inset: -3,
+                position: "absolute", inset: -4,
                 borderRadius: "50%",
-                background: "conic-gradient(from 0deg, transparent 0%, rgba(201,165,90,0.35) 25%, transparent 50%, rgba(14,165,233,0.25) 75%, transparent 100%)",
-                filter: "blur(1px)",
-                opacity: open ? 0.9 : 0.55,
-                transition: "opacity 0.3s",
+                background: open
+                  ? "conic-gradient(from 0deg, transparent 0%, rgba(201,165,90,0.55) 20%, rgba(59,130,246,0.35) 40%, transparent 55%, rgba(201,165,90,0.40) 75%, transparent 100%)"
+                  : "conic-gradient(from 0deg, transparent 0%, rgba(201,165,90,0.40) 25%, transparent 50%, rgba(59,130,246,0.25) 75%, transparent 100%)",
+                filter: "blur(1.5px)",
+                opacity: open ? 1 : 0.65,
+                transition: "opacity 0.3s, background 0.3s",
                 pointerEvents: "none",
               }}
             />
           )}
-          {/* Pulse ring */}
+
+          {/* Double pulse rings */}
           <motion.div
-            animate={{ scale: open ? [1, 1.22, 1] : 1, opacity: open ? [0.5, 0, 0.5] : 0.4 }}
-            transition={{ duration: 1.6, repeat: open ? Infinity : 0, ease: "easeInOut" }}
+            animate={{ scale: [1, 1.35, 1], opacity: [0.45, 0, 0.45] }}
+            transition={{ duration: 2.0, repeat: open ? Infinity : 0, ease: "easeOut", delay: 0 }}
             style={{
-              position: "absolute", inset: -7,
+              position: "absolute", inset: -9,
               borderRadius: "50%",
-              border: "1.5px solid rgba(201,165,90,0.35)",
+              border: "1.5px solid rgba(201,165,90,0.40)",
+              pointerEvents: "none",
+            }}
+          />
+          <motion.div
+            animate={{ scale: [1, 1.55, 1], opacity: [0.25, 0, 0.25] }}
+            transition={{ duration: 2.0, repeat: open ? Infinity : 0, ease: "easeOut", delay: 0.4 }}
+            style={{
+              position: "absolute", inset: -9,
+              borderRadius: "50%",
+              border: "1px solid rgba(59,130,246,0.28)",
               pointerEvents: "none",
             }}
           />
@@ -390,31 +413,31 @@ export default function BottomNav() {
             width: "100%", height: "100%",
             borderRadius: "50%",
             background: open
-              ? "linear-gradient(135deg, #1a2e4a 0%, #0c1a2e 100%)"
-              : "linear-gradient(135deg, #0c1a2e 0%, #152540 50%, #0c1a2e 100%)",
-            border: "1.5px solid rgba(201,165,90,0.55)",
+              ? "linear-gradient(135deg, #1a3050 0%, #0d1e38 50%, #0c1a2e 100%)"
+              : "linear-gradient(145deg, #122040 0%, #0c1a2e 45%, #071020 100%)",
+            border: "1.5px solid rgba(201,165,90,0.65)",
             boxShadow: open
-              ? "0 0 0 3px rgba(201,165,90,0.18), 0 8px 32px rgba(0,0,0,0.55), inset 0 1px 0 rgba(201,165,90,0.22)"
-              : "0 0 0 2px rgba(201,165,90,0.12), 0 6px 24px rgba(0,0,0,0.45), inset 0 1px 0 rgba(201,165,90,0.18)",
+              ? "0 0 0 3px rgba(201,165,90,0.22), 0 0 30px rgba(201,165,90,0.35), 0 10px 40px rgba(0,0,0,0.60), inset 0 1px 0 rgba(201,165,90,0.28)"
+              : "0 0 0 2px rgba(201,165,90,0.15), 0 0 18px rgba(201,165,90,0.22), 0 8px 28px rgba(0,0,0,0.55), inset 0 1px 0 rgba(201,165,90,0.20)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            transition: "background 0.25s, box-shadow 0.25s",
+            transition: "background 0.28s, box-shadow 0.28s",
             overflow: "hidden",
             position: "relative",
           }}>
             {/* Shimmer sweep on orb body — desktop only */}
             {!isMobile && (
               <motion.div
-                animate={{ x: ["-100%", "200%"] }}
-                transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut", repeatDelay: 1.5 }}
+                animate={{ x: ["-120%", "220%"] }}
+                transition={{ duration: 2.0, repeat: Infinity, ease: "easeInOut", repeatDelay: 2.0 }}
                 style={{
                   position: "absolute",
-                  top: 0, bottom: 0, left: 0,
-                  width: "40%",
-                  background: "linear-gradient(90deg, transparent, rgba(201,165,90,0.18), transparent)",
+                  top: "-10%", bottom: "-10%", left: 0,
+                  width: "45%",
+                  background: "linear-gradient(90deg, transparent, rgba(201,165,90,0.22), rgba(255,255,255,0.08), transparent)",
                   pointerEvents: "none",
-                  borderRadius: "50%",
+                  transform: "skewX(-15deg)",
                 }}
               />
             )}
@@ -424,43 +447,44 @@ export default function BottomNav() {
               {open ? (
                 <motion.div
                   key="close"
-                  initial={{ scale: 0.6, opacity: 0, rotate: -45 }}
+                  initial={{ scale: 0.5, opacity: 0, rotate: -60 }}
                   animate={{ scale: 1, opacity: 1, rotate: 0 }}
-                  exit={{ scale: 0.6, opacity: 0 }}
-                  transition={{ duration: 0.15 }}
+                  exit={{ scale: 0.5, opacity: 0, rotate: 60 }}
+                  transition={{ type: "spring", damping: 18, stiffness: 360 }}
                   style={{ display: "flex", alignItems: "center", justifyContent: "center" }}
                 >
-                  <div style={{ position: "relative", width: 16, height: 16 }}>
+                  <div style={{ position: "relative", width: 18, height: 18 }}>
                     <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <div style={{ width: 16, height: 1.5, background: "rgba(201,165,90,0.9)", borderRadius: 2, transform: "rotate(45deg)", position: "absolute" }} />
-                      <div style={{ width: 16, height: 1.5, background: "rgba(201,165,90,0.9)", borderRadius: 2, transform: "rotate(-45deg)", position: "absolute" }} />
+                      <div style={{ width: 18, height: 2, background: "rgba(201,165,90,0.95)", borderRadius: 2, transform: "rotate(45deg)", position: "absolute", boxShadow: "0 0 6px rgba(201,165,90,0.6)" }} />
+                      <div style={{ width: 18, height: 2, background: "rgba(201,165,90,0.95)", borderRadius: 2, transform: "rotate(-45deg)", position: "absolute", boxShadow: "0 0 6px rgba(201,165,90,0.6)" }} />
                     </div>
                   </div>
                 </motion.div>
               ) : (
                 <motion.div
                   key="active-icon"
-                  initial={{ scale: 0.7, opacity: 0 }}
+                  initial={{ scale: 0.65, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
-                  exit={{ scale: 0.7, opacity: 0 }}
-                  transition={{ duration: 0.15 }}
+                  exit={{ scale: 0.65, opacity: 0 }}
+                  transition={{ type: "spring", damping: 20, stiffness: 380 }}
                   style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}
                 >
                   {isProfile && currentUser ? (
                     <div style={{
-                      width: 24, height: 24, borderRadius: "50%",
+                      width: 26, height: 26, borderRadius: "50%",
                       background: "linear-gradient(135deg, #C9A55A, #E2C07A)",
                       display: "flex", alignItems: "center", justifyContent: "center",
+                      boxShadow: "0 0 10px rgba(201,165,90,0.55)",
                     }}>
-                      <span style={{ fontSize: 10, fontWeight: 800, color: "#0c1a2e" }}>
+                      <span style={{ fontSize: 11, fontWeight: 800, color: "#0c1a2e" }}>
                         {currentUser.name.slice(0, 1).toUpperCase()}
                       </span>
                     </div>
                   ) : (
                     <ActiveIcon
-                      size={20}
+                      size={22}
                       strokeWidth={2}
-                      style={{ color: "#C9A55A", filter: "drop-shadow(0 0 6px rgba(201,165,90,0.55))" }}
+                      style={{ color: "#C9A55A", filter: "drop-shadow(0 0 8px rgba(201,165,90,0.70))" }}
                     />
                   )}
                 </motion.div>
@@ -470,13 +494,17 @@ export default function BottomNav() {
 
           {/* Active indicator dot */}
           {!open && (
-            <div style={{
-              position: "absolute", bottom: -1, left: "50%", transform: "translateX(-50%)",
-              width: 5, height: 5, borderRadius: "50%",
-              background: "linear-gradient(135deg, #C9A55A, #E2C07A)",
-              boxShadow: "0 0 6px rgba(201,165,90,0.70)",
-              border: "1px solid rgba(12,26,46,0.8)",
-            }} />
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              style={{
+                position: "absolute", bottom: -2, left: "50%", transform: "translateX(-50%)",
+                width: 6, height: 6, borderRadius: "50%",
+                background: "linear-gradient(135deg, #C9A55A, #E2C07A)",
+                boxShadow: "0 0 8px rgba(201,165,90,0.80)",
+                border: "1.5px solid rgba(7,16,32,0.9)",
+              }}
+            />
           )}
         </motion.button>
       </div>
