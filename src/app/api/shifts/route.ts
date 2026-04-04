@@ -13,7 +13,7 @@ const REG_CLOSED_KEY = "regClosed";
 
 async function getRegClosed(): Promise<boolean> {
   if (IS_SUPABASE) {
-    const { data } = await getSupabase().from("app_settings").select("value").eq("key", REG_CLOSED_KEY).single();
+    const { data } = await getSupabase().from("app_settings").select("value").eq("key", REG_CLOSED_KEY).maybeSingle();
     return (data as { value: string } | null)?.value === "1";
   }
   const db = getDb();
