@@ -33,6 +33,23 @@ export default function NotificationBanner() {
   // For banner popup (latest pinned/urgent)
   const [banner, setBanner] = useState<Notif | null>(null);
 
+  // Load dismissed IDs from localStorage (per user)
+  const lsKey = currentUser ? `notif_dismissed_${currentUser.id}` : null;
+
+  useEffect(() => {
+    if (!lsKey) return;
+    try {
+      const saved = JSON.parse(localStorage.getItem(lsKey) ?? "[]");
+      if (Array.isArray(saved)) setDismissed(new Set(saved));
+    } catch { /* ignore */ }
+  }, [lsKey]);
+
+  // Persist dismissed to localStorage whenever it changes
+  useEffect(() => {
+    if (!lsKey) return;
+    localStorage.setItem(lsKey, JSON.stringify([...dismissed]));
+  }, [dismissed, lsKey]);
+
   const load = async () => {
     const data = await fetch("/api/notifications").then(r => r.json()).catch(() => []);
     if (!Array.isArray(data)) return;

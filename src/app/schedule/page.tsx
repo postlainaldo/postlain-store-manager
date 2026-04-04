@@ -591,7 +591,14 @@ function ShiftNoteWidget({ currentUser, isAdmin }: { currentUser: AppUser | null
   const [sending, setSending]   = useState(false);
   const [unread, setUnread]     = useState(0);
   const bottomRef               = useRef<HTMLDivElement>(null);
+  const lsKey = currentUser ? `shiftnote_seen_${currentUser.id}` : null;
   const lastSeenRef             = useRef<string>("");
+
+  // Load lastSeen from localStorage on mount
+  useEffect(() => {
+    if (!lsKey) return;
+    lastSeenRef.current = localStorage.getItem(lsKey) ?? "";
+  }, [lsKey]);
 
   // Ensure room exists + fetch messages
   const fetchMsgs = useCallback(async () => {
@@ -601,7 +608,7 @@ function ShiftNoteWidget({ currentUser, isAdmin }: { currentUser: AppUser | null
     setMsgs(data);
     if (!open) {
       const newCount = data.filter(m => m.createdAt > lastSeenRef.current && m.userId !== currentUser?.id).length;
-      if (newCount > 0) setUnread(newCount);
+      setUnread(newCount);
     }
   }, [open, currentUser?.id]);
 
@@ -618,11 +625,13 @@ function ShiftNoteWidget({ currentUser, isAdmin }: { currentUser: AppUser | null
     return () => clearInterval(iv);
   }, [fetchMsgs]);
 
-  // Scroll to bottom when open
+  // Scroll to bottom when open + persist lastSeen
   useEffect(() => {
     if (open) {
       setUnread(0);
-      lastSeenRef.current = new Date().toISOString();
+      const now = new Date().toISOString();
+      lastSeenRef.current = now;
+      if (lsKey) localStorage.setItem(lsKey, now);
       setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 80);
     }
   }, [open, msgs]);
