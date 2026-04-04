@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { IS_SUPABASE, getSupabase } from "@/lib/supabase";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`;
+const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
 
 async function getStoreContext(): Promise<string> {
   if (!IS_SUPABASE) return "";
@@ -96,8 +96,8 @@ ${storeContext ? `\n${storeContext}` : ""}`;
 
   if (!res.ok) {
     const err = await res.text();
-    console.error("Gemini error:", err);
-    return NextResponse.json({ error: "Lỗi kết nối AI" }, { status: 502 });
+    console.error("Gemini error:", res.status, err);
+    return NextResponse.json({ error: `Gemini ${res.status}: ${err.slice(0, 200)}` }, { status: 502 });
   }
 
   const data = await res.json();
