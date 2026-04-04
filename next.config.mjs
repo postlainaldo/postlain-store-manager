@@ -12,7 +12,6 @@ const withPWA = withPWAInit({
   disable: false,
   workboxOptions: {
     swSrc: "src/sw/index.ts",
-    disableDevLogs: true,
   },
 });
 
