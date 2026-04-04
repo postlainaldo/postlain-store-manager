@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Smartphone, Bell, Check, ChevronRight, Apple, Chrome, Share2, MoreVertical, PlusSquare, AlertTriangle } from "lucide-react";
+import { Smartphone, Bell, Check, ChevronRight, Apple, Chrome, Share2, PlusSquare, AlertTriangle, RefreshCw } from "lucide-react";
 import { useStore } from "@/store/useStore";
 
-const LS_KEY = (uid: string) => `onboarding_done_${uid}`;
+// Only marks install step done — notify step is re-checked every visit via real permission
+const LS_INSTALL_KEY = (uid: string) => `onboarding_install_${uid}`;
 
 function urlB64ToUint8Array(base64String: string) {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
@@ -14,61 +15,64 @@ function urlB64ToUint8Array(base64String: string) {
   return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
 }
 
-// ─── Step 1: Install PWA ──────────────────────────────────────────────────────
+// ─── Step 1: Install PWA ─────────────────────────────────────────────────────
 function StepInstall({ onDone }: { onDone: () => void }) {
   const [platform, setPlatform] = useState<"android" | "ios" | "desktop" | null>(null);
   const [installed, setInstalled] = useState(false);
+  const [checked, setChecked] = useState(false);
+
+  const isStandalone = () =>
+    window.matchMedia("(display-mode: standalone)").matches ||
+    !!(navigator as { standalone?: boolean }).standalone;
 
   useEffect(() => {
-    // Detect if already running as PWA
-    if (window.matchMedia("(display-mode: standalone)").matches || (navigator as { standalone?: boolean }).standalone) {
-      setInstalled(true);
-    }
-    // Detect platform
+    if (isStandalone()) setInstalled(true);
     const ua = navigator.userAgent.toLowerCase();
     if (/iphone|ipad|ipod/.test(ua)) setPlatform("ios");
     else if (/android/.test(ua)) setPlatform("android");
     else setPlatform("desktop");
   }, []);
 
-  const steps: Record<NonNullable<typeof platform>, { icon: React.ReactNode; steps: string[] }> = {
-    android: {
-      icon: <Chrome size={16} style={{ color: "#4285f4" }} />,
-      steps: [
-        "Mở trang web bằng Chrome",
-        "Nhấn menu ⋮ (3 chấm) góc trên phải",
-        "Chọn \"Thêm vào màn hình chính\" hoặc \"Cài đặt ứng dụng\"",
-        "Nhấn \"Cài đặt\" để xác nhận",
-        "Mở app từ màn hình chính",
-      ],
-    },
-    ios: {
-      icon: <Apple size={16} style={{ color: "#000" }} />,
-      steps: [
-        "Mở trang web bằng Safari",
-        "Nhấn nút Chia sẻ  (hình vuông có mũi tên lên)",
-        "Cuộn xuống, chọn \"Thêm vào Màn hình chính\"",
-        "Nhấn \"Thêm\" để xác nhận",
-        "Mở app từ màn hình chính",
-      ],
-    },
-    desktop: {
-      icon: <Chrome size={16} style={{ color: "#4285f4" }} />,
-      steps: [
-        "Trên Chrome: nhấn biểu tượng  ở thanh địa chỉ",
-        "Chọn \"Cài đặt POSTLAIN\"",
-        "Nhấn \"Cài đặt\" để xác nhận",
-        "Mở app từ desktop hoặc Start menu",
-      ],
-    },
+  const checkInstall = () => {
+    setChecked(true);
+    if (isStandalone()) {
+      setInstalled(true);
+    } else {
+      setInstalled(false);
+    }
   };
 
-  const cfg = platform ? steps[platform] : null;
+  const STEPS: Record<NonNullable<typeof platform>, string[]> = {
+    android: [
+      "Mở trang web bằng Chrome trên điện thoại",
+      "Nhấn menu ⋮ (3 chấm) góc trên phải màn hình",
+      "Chọn \"Thêm vào màn hình chính\" hoặc \"Cài đặt ứng dụng\"",
+      "Nhấn \"Cài đặt\" để xác nhận",
+      "Đóng trình duyệt → mở app từ màn hình chính",
+    ],
+    ios: [
+      "Mở trang web bằng Safari trên iPhone/iPad",
+      "Nhấn nút Chia sẻ (hình vuông có mũi tên lên ↑) ở thanh dưới",
+      "Cuộn xuống trong menu, chọn \"Thêm vào Màn hình Chính\"",
+      "Nhấn \"Thêm\" ở góc trên phải để xác nhận",
+      "Đóng Safari → mở app từ màn hình chính",
+    ],
+    desktop: [
+      "Trên Chrome: nhấn biểu tượng cài đặt ở thanh địa chỉ (góc phải)",
+      "Chọn \"Cài đặt POSTLAIN Store Manager\"",
+      "Nhấn \"Cài đặt\" để xác nhận",
+      "Mở app từ desktop hoặc Start Menu",
+    ],
+  };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-      {/* Platform selector */}
-      <div style={{ display: "flex", gap: 8 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+      <p style={{ fontSize: 11, color: "#64748b", margin: 0, lineHeight: 1.7 }}>
+        Cài app lên thiết bị để dùng đầy đủ tính năng, nhận thông báo và truy cập nhanh hơn.
+      </p>
+
+      {/* Platform tabs */}
+      <div style={{ display: "flex", gap: 6 }}>
         {(["android", "ios", "desktop"] as const).map(p => (
           <button key={p} onClick={() => setPlatform(p)}
             style={{
@@ -77,7 +81,6 @@ function StepInstall({ onDone }: { onDone: () => void }) {
               background: platform === p ? "rgba(201,165,90,0.08)" : "#f8fafc",
               color: platform === p ? "#C9A55A" : "#64748b",
               fontSize: 10, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
-              transition: "all 0.15s",
             }}>
             {p === "android" ? "Android" : p === "ios" ? "iOS" : "Máy tính"}
           </button>
@@ -85,9 +88,9 @@ function StepInstall({ onDone }: { onDone: () => void }) {
       </div>
 
       {/* Steps */}
-      {cfg && (
+      {platform && (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {cfg.steps.map((s, i) => (
+          {STEPS[platform].map((s, i) => (
             <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
               <div style={{
                 width: 22, height: 22, borderRadius: "50%", flexShrink: 0,
@@ -102,83 +105,99 @@ function StepInstall({ onDone }: { onDone: () => void }) {
         </div>
       )}
 
-      {/* Icons legend for iOS */}
+      {/* iOS icon legend */}
       {platform === "ios" && (
-        <div style={{ display: "flex", gap: 12, padding: "10px 14px", borderRadius: 10, background: "#f0f9ff", border: "1px solid #bae6fd" }}>
+        <div style={{ display: "flex", gap: 16, padding: "10px 14px", borderRadius: 10, background: "#f0f9ff", border: "1px solid #bae6fd" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <Share2 size={14} style={{ color: "#0ea5e9" }} />
+            <Share2 size={13} style={{ color: "#0ea5e9" }} />
             <span style={{ fontSize: 10, color: "#0369a1" }}>Chia sẻ</span>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <PlusSquare size={14} style={{ color: "#0ea5e9" }} />
+            <PlusSquare size={13} style={{ color: "#0ea5e9" }} />
             <span style={{ fontSize: 10, color: "#0369a1" }}>Thêm vào MH chính</span>
           </div>
         </div>
       )}
 
-      {/* Check */}
+      {/* Check result */}
+      {checked && !installed && (
+        <div style={{ padding: "11px 14px", borderRadius: 10, background: "#fff7ed", border: "1px solid #fed7aa", display: "flex", gap: 8 }}>
+          <AlertTriangle size={14} style={{ color: "#ea580c", flexShrink: 0, marginTop: 1 }} />
+          <p style={{ fontSize: 11, color: "#9a3412", margin: 0, lineHeight: 1.6 }}>
+            Chưa phát hiện app được cài. Hãy làm theo hướng dẫn rồi <strong>mở lại từ biểu tượng trên màn hình chính</strong>, sau đó kiểm tra lại.
+          </p>
+        </div>
+      )}
+
+      {installed && (
+        <div style={{ padding: "11px 14px", borderRadius: 10, background: "#f0fdf4", border: "1px solid #86efac", display: "flex", alignItems: "center", gap: 8 }}>
+          <Check size={14} style={{ color: "#16a34a" }} />
+          <span style={{ fontSize: 11, fontWeight: 700, color: "#15803d" }}>Đã cài thành công!</span>
+        </div>
+      )}
+
+      {/* Actions */}
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        {installed ? (
-          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", borderRadius: 10, background: "#f0fdf4", border: "1px solid #86efac" }}>
-            <Check size={14} style={{ color: "#16a34a" }} />
-            <span style={{ fontSize: 11, fontWeight: 700, color: "#15803d" }}>Đã cài đặt thành công!</span>
-          </div>
-        ) : (
-          <button onClick={() => {
-            if (window.matchMedia("(display-mode: standalone)").matches || (navigator as { standalone?: boolean }).standalone) {
-              setInstalled(true);
-            } else {
-              setInstalled(false);
-              // Show hint
-              alert("Chưa phát hiện app được cài. Hãy cài theo hướng dẫn rồi mở lại từ màn hình chính.");
-            }
-          }}
-            style={{ padding: "10px", borderRadius: 10, border: "1.5px dashed #cbd5e1", background: "#f8fafc", color: "#64748b", fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
-            Kiểm tra đã cài chưa
+        {!installed && (
+          <button onClick={checkInstall}
+            style={{
+              padding: "11px", borderRadius: 10,
+              border: "1.5px dashed #cbd5e1", background: "#f8fafc",
+              color: "#475569", fontSize: 11, fontWeight: 600,
+              cursor: "pointer", fontFamily: "inherit",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+            }}>
+            <RefreshCw size={13} /> Kiểm tra đã cài chưa
           </button>
         )}
 
-        <motion.button whileTap={{ scale: 0.97 }}
-          onClick={onDone}
+        <motion.button whileTap={{ scale: 0.97 }} onClick={onDone}
+          disabled={!installed}
           style={{
             padding: "13px", borderRadius: 12, border: "none",
             background: installed ? "linear-gradient(135deg, #C9A55A, #a07c3a)" : "#e2e8f0",
             color: installed ? "#fff" : "#94a3b8",
-            fontSize: 12, fontWeight: 800, cursor: installed ? "pointer" : "not-allowed", fontFamily: "inherit",
+            fontSize: 12, fontWeight: 800,
+            cursor: installed ? "pointer" : "not-allowed",
+            fontFamily: "inherit",
             display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
           }}>
           Tiếp theo <ChevronRight size={14} />
         </motion.button>
-        {!installed && (
-          <button onClick={onDone}
-            style={{ background: "none", border: "none", fontSize: 10, color: "#94a3b8", cursor: "pointer", fontFamily: "inherit", textDecoration: "underline" }}>
-            Bỏ qua (không khuyến nghị)
-          </button>
-        )}
       </div>
     </div>
   );
 }
 
-// ─── Step 2: Enable Push ──────────────────────────────────────────────────────
+// ─── Step 2: Enable Push ─────────────────────────────────────────────────────
 function StepNotify({ userId, onDone }: { userId: string; onDone: () => void }) {
   const [status, setStatus] = useState<"idle" | "loading" | "granted" | "denied" | "unsupported">("idle");
+  const [testSent, setTestSent] = useState(false);
 
   useEffect(() => {
     if (!("Notification" in window)) { setStatus("unsupported"); return; }
-    if (Notification.permission === "granted") setStatus("granted");
-    else if (Notification.permission === "denied") setStatus("denied");
+    if (Notification.permission === "granted") {
+      setStatus("granted");
+      doSubscribe(userId); // ensure subscription registered
+    } else if (Notification.permission === "denied") {
+      setStatus("denied");
+    }
   }, []);
 
-  const doSubscribe = async () => {
+  const doSubscribe = async (uid: string) => {
     const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
     if (!vapidKey || !("serviceWorker" in navigator)) return;
     try {
       const reg = await navigator.serviceWorker.ready;
       const existing = await reg.pushManager.getSubscription();
-      if (existing) await existing.unsubscribe();
-      const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlB64ToUint8Array(vapidKey) });
-      await fetch("/api/push/subscribe", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId, subscription: sub.toJSON() }) });
+      const sub = existing ?? await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlB64ToUint8Array(vapidKey),
+      });
+      await fetch("/api/push/subscribe", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: uid, subscription: sub.toJSON() }),
+      });
     } catch { /* ignore */ }
   };
 
@@ -187,7 +206,7 @@ function StepNotify({ userId, onDone }: { userId: string; onDone: () => void }) 
     try {
       const perm = await Notification.requestPermission();
       if (perm === "granted") {
-        await doSubscribe();
+        await doSubscribe(userId);
         setStatus("granted");
       } else {
         setStatus("denied");
@@ -196,80 +215,124 @@ function StepNotify({ userId, onDone }: { userId: string; onDone: () => void }) 
   };
 
   const sendTest = async () => {
-    await fetch("/api/push/test", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title: "POSTLAIN", body: "Thông báo hoạt động ✓" }) });
+    setTestSent(true);
+    await fetch("/api/push/test", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: "POSTLAIN", body: "Thông báo hoạt động ✓ — bạn sẽ luôn nhận được thông báo quan trọng." }),
+    });
   };
+
+  const isGranted = status === "granted";
+  const isDenied = status === "denied";
+  const isUnsupported = status === "unsupported";
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <p style={{ fontSize: 11, color: "#64748b", margin: 0, lineHeight: 1.7 }}>
-        Bật thông báo để nhận cập nhật về ca làm việc, yêu cầu được duyệt, và thông báo quan trọng từ admin — ngay cả khi không mở app.
+        Bật thông báo để <strong>luôn nhận được</strong> cập nhật ca làm, yêu cầu được duyệt và thông báo quan trọng — ngay cả khi không mở app.
       </p>
 
-      {status === "unsupported" && (
+      {/* Unsupported */}
+      {isUnsupported && (
         <div style={{ padding: "12px 14px", borderRadius: 10, background: "#fef3c7", border: "1px solid #fde68a", display: "flex", gap: 8 }}>
           <AlertTriangle size={14} style={{ color: "#d97706", flexShrink: 0, marginTop: 1 }} />
-          <p style={{ fontSize: 11, color: "#92400e", margin: 0, lineHeight: 1.6 }}>
-            Trình duyệt không hỗ trợ push notification. Vui lòng dùng Chrome hoặc Safari.
-          </p>
-        </div>
-      )}
-
-      {status === "denied" && (
-        <div style={{ padding: "12px 14px", borderRadius: 10, background: "#fff1f2", border: "1px solid #fecaca", display: "flex", gap: 8 }}>
-          <AlertTriangle size={14} style={{ color: "#dc2626", flexShrink: 0, marginTop: 1 }} />
           <div>
-            <p style={{ fontSize: 11, fontWeight: 700, color: "#dc2626", margin: "0 0 4px" }}>Thông báo bị chặn</p>
-            <p style={{ fontSize: 10, color: "#b91c1c", margin: 0, lineHeight: 1.6 }}>
-              Vào <strong>Cài đặt trình duyệt → Quyền trang web → store.postlain.com → Thông báo</strong> → chọn <strong>Cho phép</strong>, sau đó quay lại và thử lại.
+            <p style={{ fontSize: 11, fontWeight: 700, color: "#92400e", margin: "0 0 4px" }}>Trình duyệt không hỗ trợ</p>
+            <p style={{ fontSize: 10, color: "#92400e", margin: 0, lineHeight: 1.6 }}>
+              Vui lòng dùng <strong>Chrome</strong> (Android/Desktop) hoặc <strong>Safari</strong> (iOS 16.4+) để nhận thông báo.
             </p>
           </div>
         </div>
       )}
 
-      {status === "granted" && (
+      {/* Denied */}
+      {isDenied && (
+        <div style={{ padding: "12px 14px", borderRadius: 10, background: "#fff1f2", border: "1px solid #fecaca" }}>
+          <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+            <AlertTriangle size={14} style={{ color: "#dc2626", flexShrink: 0, marginTop: 1 }} />
+            <p style={{ fontSize: 11, fontWeight: 700, color: "#dc2626", margin: 0 }}>Thông báo đang bị chặn</p>
+          </div>
+          <p style={{ fontSize: 10, color: "#b91c1c", margin: "0 0 8px", lineHeight: 1.7 }}>
+            Cần mở lại quyền thủ công:
+          </p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {[
+              "Chrome Android: Cài đặt → Quyền riêng tư → Cài đặt trang web → Thông báo → store.postlain.com → Cho phép",
+              "Chrome Desktop: Nhấn biểu tượng khóa 🔒 ở thanh địa chỉ → Thông báo → Cho phép",
+              "Safari iOS: Cài đặt iPhone → Safari → Trang web → Thông báo → store.postlain.com → Cho phép",
+            ].map((s, i) => (
+              <div key={i} style={{ display: "flex", gap: 8 }}>
+                <span style={{ fontSize: 10, fontWeight: 700, color: "#dc2626", flexShrink: 0 }}>{i + 1}.</span>
+                <span style={{ fontSize: 10, color: "#b91c1c", lineHeight: 1.6 }}>{s}</span>
+              </div>
+            ))}
+          </div>
+          <button onClick={requestPermission}
+            style={{ marginTop: 12, padding: "9px 14px", borderRadius: 9, border: "none", background: "#dc2626", color: "#fff", fontSize: 10, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", width: "100%" }}>
+            Thử lại sau khi đã mở quyền
+          </button>
+        </div>
+      )}
+
+      {/* Granted */}
+      {isGranted && (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           <div style={{ padding: "12px 14px", borderRadius: 10, background: "#f0fdf4", border: "1px solid #86efac", display: "flex", alignItems: "center", gap: 8 }}>
             <Check size={14} style={{ color: "#16a34a" }} />
-            <span style={{ fontSize: 11, fontWeight: 700, color: "#15803d" }}>Đã bật thông báo thành công!</span>
+            <span style={{ fontSize: 11, fontWeight: 700, color: "#15803d" }}>Thông báo đã được bật!</span>
           </div>
-          <button onClick={sendTest}
-            style={{ padding: "9px 14px", borderRadius: 10, border: "1.5px dashed #86efac", background: "#f0fdf4", color: "#15803d", fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
-            Gửi thông báo thử — kiểm tra thiết bị nhận được không
+          <button onClick={sendTest} disabled={testSent}
+            style={{
+              padding: "10px 14px", borderRadius: 10,
+              border: `1.5px dashed ${testSent ? "#86efac" : "#cbd5e1"}`,
+              background: testSent ? "#f0fdf4" : "#f8fafc",
+              color: testSent ? "#15803d" : "#475569",
+              fontSize: 11, fontWeight: 600, cursor: testSent ? "default" : "pointer", fontFamily: "inherit",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+            }}>
+            {testSent ? <><Check size={13} /> Đã gửi — kiểm tra thiết bị</> : "Gửi thông báo thử nghiệm"}
           </button>
-          <p style={{ fontSize: 10, color: "#94a3b8", margin: 0, textAlign: "center" }}>
-            Có thể tắt từng loại thông báo trong <strong>Cài đặt → Thông báo</strong>
-          </p>
         </div>
       )}
 
-      {(status === "idle" || status === "denied") && (
-        <motion.button whileTap={{ scale: 0.97 }} onClick={requestPermission}
+      {/* Request permission button */}
+      {(status === "idle" || status === "loading") && (
+        <motion.button whileTap={{ scale: 0.97 }} onClick={requestPermission} disabled={status === "loading"}
           style={{
             padding: "13px", borderRadius: 12, border: "none",
             background: "linear-gradient(135deg, #7c3aed, #5b21b6)",
-            color: "#fff", fontSize: 12, fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
+            color: "#fff", fontSize: 12, fontWeight: 800,
+            cursor: status === "loading" ? "not-allowed" : "pointer",
+            fontFamily: "inherit",
             display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
           }}>
-          <Bell size={14} /> Bật thông báo
+          {status === "loading" ? "Đang xử lý…" : <><Bell size={14} /> Bật thông báo</>}
         </motion.button>
       )}
 
-      {status === "loading" && (
-        <div style={{ padding: "13px", borderRadius: 12, background: "#f1f5f9", textAlign: "center", fontSize: 11, color: "#64748b" }}>
-          Đang xử lý…
-        </div>
+      {/* Done — only available when granted */}
+      {isGranted && (
+        <motion.button whileTap={{ scale: 0.97 }} onClick={onDone}
+          style={{
+            padding: "13px", borderRadius: 12, border: "none",
+            background: "linear-gradient(135deg, #C9A55A, #a07c3a)",
+            color: "#fff", fontSize: 12, fontWeight: 800,
+            cursor: "pointer", fontFamily: "inherit",
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+          }}>
+          Hoàn thành <Check size={14} />
+        </motion.button>
       )}
 
-      <motion.button whileTap={{ scale: 0.97 }} onClick={onDone}
-        style={{
-          padding: "13px", borderRadius: 12, border: "none",
-          background: status === "granted" ? "linear-gradient(135deg, #C9A55A, #a07c3a)" : "#e2e8f0",
-          color: status === "granted" ? "#fff" : "#94a3b8",
-          fontSize: 12, fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
-          display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-        }}>
-        {status === "granted" ? "Hoàn thành " : "Bỏ qua"} {status === "granted" && <Check size={14} />}
-      </motion.button>
+      {/* Blocked — cannot proceed */}
+      {(isDenied || isUnsupported) && (
+        <div style={{ padding: "10px 14px", borderRadius: 10, background: "#f8fafc", border: "1px solid #e2e8f0", textAlign: "center" }}>
+          <p style={{ fontSize: 10, color: "#94a3b8", margin: 0, lineHeight: 1.6 }}>
+            Cần bật thông báo để tiếp tục sử dụng app.<br />
+            Làm theo hướng dẫn bên trên rồi nhấn <strong>Thử lại</strong>.
+          </p>
+        </div>
+      )}
     </div>
   );
 }
@@ -277,50 +340,60 @@ function StepNotify({ userId, onDone }: { userId: string; onDone: () => void }) 
 // ─── Main Gate ────────────────────────────────────────────────────────────────
 export default function OnboardingGate({ children }: { children: React.ReactNode }) {
   const { currentUser } = useStore();
-  const [step, setStep] = useState<0 | 1 | 2>(0); // 0=hidden, 1=install, 2=notify
+  const [step, setStep] = useState<0 | 1 | 2>(0);
   const [checked, setChecked] = useState(false);
 
   useEffect(() => {
     if (!currentUser) { setChecked(true); return; }
-    const done = localStorage.getItem(LS_KEY(currentUser.id));
-    if (done === "2") {
-      setChecked(true);
+
+    // Check real notification permission every visit — cannot trust localStorage alone
+    const notifGranted =
+      typeof Notification !== "undefined" && Notification.permission === "granted";
+
+    const installDone = localStorage.getItem(LS_INSTALL_KEY(currentUser.id)) === "1";
+
+    if (installDone && notifGranted) {
+      // Both done — pass through
+      setStep(0);
+    } else if (!installDone) {
+      setStep(1);
     } else {
-      const s = Number(done ?? "0") as 0 | 1 | 2;
-      setStep(s === 0 ? 1 : s);
-      setChecked(true);
+      // Install done but notification not granted
+      setStep(2);
     }
+    setChecked(true);
   }, [currentUser?.id]);
 
-  const advanceTo = (next: 1 | 2 | 99) => {
+  const completeInstall = () => {
     if (!currentUser) return;
-    if (next === 99) {
-      localStorage.setItem(LS_KEY(currentUser.id), "2");
-      setStep(0);
-    } else {
-      localStorage.setItem(LS_KEY(currentUser.id), String(next - 1));
-      setStep(next);
-    }
+    localStorage.setItem(LS_INSTALL_KEY(currentUser.id), "1");
+    setStep(2);
+  };
+
+  const completeNotify = () => {
+    setStep(0);
   };
 
   if (!checked) return null;
   if (step === 0) return <>{children}</>;
 
   const stepLabel = step === 1 ? "Cài ứng dụng" : "Bật thông báo";
-  const stepIcon = step === 1 ? <Smartphone size={20} style={{ color: "#C9A55A" }} /> : <Bell size={20} style={{ color: "#7c3aed" }} />;
+  const stepIcon = step === 1
+    ? <Smartphone size={20} style={{ color: "#C9A55A" }} />
+    : <Bell size={20} style={{ color: "#7c3aed" }} />;
 
   return (
     <>
-      {/* Blurred background */}
-      <div style={{ position: "fixed", inset: 0, zIndex: 900, backdropFilter: "blur(8px)", background: "rgba(12,26,46,0.6)" }} />
+      {/* Full overlay — no interaction with app behind */}
+      <div style={{ position: "fixed", inset: 0, zIndex: 900, background: "rgba(12,26,46,0.75)", backdropFilter: "blur(10px)" }} />
 
-      <AnimatePresence>
+      <AnimatePresence mode="wait">
         <motion.div
           key={step}
-          initial={{ opacity: 0, y: 30, scale: 0.97 }}
+          initial={{ opacity: 0, y: 28, scale: 0.97 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -20, scale: 0.97 }}
-          transition={{ duration: 0.25, ease: "easeOut" }}
+          transition={{ duration: 0.22, ease: "easeOut" }}
           style={{
             position: "fixed", inset: 0, zIndex: 901,
             display: "flex", alignItems: "center", justifyContent: "center",
@@ -330,28 +403,28 @@ export default function OnboardingGate({ children }: { children: React.ReactNode
           <div style={{
             width: "100%", maxWidth: 420,
             background: "#fff", borderRadius: 20,
-            boxShadow: "0 24px 64px rgba(12,26,46,0.25)",
+            boxShadow: "0 28px 72px rgba(12,26,46,0.3)",
             overflow: "hidden",
           }}>
             {/* Header */}
-            <div style={{
-              padding: "20px 24px 16px",
-              borderBottom: "1px solid #f1f5f9",
-              background: "linear-gradient(135deg, #fafbfc, #f1f5f9)",
-            }}>
-              {/* Progress */}
-              <div style={{ display: "flex", gap: 6, marginBottom: 16 }}>
+            <div style={{ padding: "18px 24px 14px", borderBottom: "1px solid #f1f5f9", background: "#fafbfc" }}>
+              {/* Progress bar */}
+              <div style={{ display: "flex", gap: 6, marginBottom: 14 }}>
                 {[1, 2].map(i => (
                   <div key={i} style={{
-                    flex: 1, height: 3, borderRadius: 3,
-                    background: i <= step ? (i === 1 ? "#C9A55A" : "#7c3aed") : "#e2e8f0",
+                    flex: 1, height: 4, borderRadius: 4,
+                    background: i < step ? "#16a34a" : i === step ? (step === 1 ? "#C9A55A" : "#7c3aed") : "#e2e8f0",
                     transition: "background 0.3s",
-                  }} />
+                  }}>
+                    {i < step && (
+                      <div style={{ height: "100%", borderRadius: 4, background: "#16a34a", display: "flex", alignItems: "center", justifyContent: "flex-end", paddingRight: 4 }} />
+                    )}
+                  </div>
                 ))}
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <div style={{
-                  width: 38, height: 38, borderRadius: 12,
+                  width: 38, height: 38, borderRadius: 12, flexShrink: 0,
                   background: step === 1 ? "rgba(201,165,90,0.1)" : "rgba(124,58,237,0.1)",
                   border: `1.5px solid ${step === 1 ? "rgba(201,165,90,0.3)" : "rgba(124,58,237,0.3)"}`,
                   display: "flex", alignItems: "center", justifyContent: "center",
@@ -359,23 +432,23 @@ export default function OnboardingGate({ children }: { children: React.ReactNode
                   {stepIcon}
                 </div>
                 <div>
-                  <p style={{ fontSize: 9, fontWeight: 700, color: "#94a3b8", margin: 0, letterSpacing: 1 }}>BƯỚC {step}/2</p>
+                  <p style={{ fontSize: 9, fontWeight: 700, color: "#94a3b8", margin: 0, letterSpacing: 1, textTransform: "uppercase" }}>Bắt buộc · Bước {step}/2</p>
                   <p style={{ fontSize: 15, fontWeight: 800, color: "#0c1a2e", margin: 0 }}>{stepLabel}</p>
                 </div>
               </div>
             </div>
 
             {/* Body */}
-            <div style={{ padding: "20px 24px 24px", maxHeight: "65vh", overflowY: "auto" }}>
-              {step === 1 && <StepInstall onDone={() => advanceTo(2)} />}
-              {step === 2 && <StepNotify userId={currentUser?.id ?? ""} onDone={() => advanceTo(99)} />}
+            <div style={{ padding: "20px 24px 24px", maxHeight: "62vh", overflowY: "auto" }}>
+              {step === 1 && <StepInstall onDone={completeInstall} />}
+              {step === 2 && <StepNotify userId={currentUser?.id ?? ""} onDone={completeNotify} />}
             </div>
           </div>
         </motion.div>
       </AnimatePresence>
 
-      {/* Allow scrolling content behind but block interaction */}
-      <div style={{ filter: "blur(2px)", pointerEvents: "none", userSelect: "none" }}>
+      {/* App content — completely blocked */}
+      <div style={{ visibility: "hidden", pointerEvents: "none" }}>
         {children}
       </div>
     </>
