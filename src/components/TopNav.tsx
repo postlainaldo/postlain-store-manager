@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, Focus, Box, LogIn, LogOut,
-  MessageSquare, ShoppingBag, ClipboardList, CalendarDays, Grid2x2,
+  MessageSquare, ShoppingBag, ClipboardList, CalendarDays,
 } from "lucide-react";
 import { useStore } from "@/store/useStore";
 import NotificationBanner from "@/components/NotificationBanner";
@@ -19,7 +19,6 @@ const NAV_ITEMS_BASE = [
   { id: "report",       label: "Báo Cáo",    href: "/report",       icon: ClipboardList,   exact: false, adminOnly: false },
   { id: "chat",         label: "Chat",       href: "/chat",         icon: MessageSquare,   exact: false, adminOnly: false },
   { id: "schedule",     label: "Lịch Làm",   href: "/schedule",     icon: CalendarDays,    exact: false, adminOnly: false },
-  { id: "apps",         label: "Ứng Dụng",   href: "/apps",         icon: Grid2x2,         exact: false, adminOnly: true  },
 ] as const;
 
 export default function TopNav() {
