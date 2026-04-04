@@ -1186,6 +1186,26 @@ export default function SchedulePage() {
           </div>
         </div>
 
+        {/* Reg closed banner — staff only */}
+        {!isAdmin && regClosed && (
+          <div style={{
+            marginTop: 10,
+            padding: "10px 14px",
+            borderRadius: 10,
+            background: "rgba(239,68,68,0.06)",
+            border: "1px solid rgba(239,68,68,0.25)",
+            display: "flex", alignItems: "flex-start", gap: 9,
+          }}>
+            <AlertCircle size={15} style={{ color: "#ef4444", flexShrink: 0, marginTop: 1 }} />
+            <div>
+              <p style={{ fontSize: 11, fontWeight: 700, color: "#dc2626", margin: 0 }}>Đã đóng đăng ký lịch làm</p>
+              <p style={{ fontSize: 10, color: "#64748b", margin: "2px 0 0" }}>
+                Mọi yêu cầu vui lòng ghi chú trong <strong>Ghi chú &amp; Yêu cầu</strong>. Kiểm tra lịch của bạn trong tab <strong>Nhân viên</strong>.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Template panel — desktop inline accordion */}
         {!isMobile && (
           <AnimatePresence>
