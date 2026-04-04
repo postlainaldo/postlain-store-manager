@@ -5,7 +5,7 @@ import {
   ChevronLeft, ChevronRight, Plus, X, Check, Clock,
   Users, Trash2, Edit3, CalendarDays, Settings2,
   ChevronDown, AlertCircle, CheckCircle2, XCircle, UserPlus, UserMinus,
-  CheckSquare, Square, MessageCircle, Send,
+  CheckSquare, Square, MessageCircle, Send, Download,
 } from "lucide-react";
 import { useStore, AppUser } from "@/store/useStore";
 import { motion, AnimatePresence } from "framer-motion";
@@ -86,8 +86,8 @@ function inferStaffType(slot: { staffType?: StaffType; name: string }): StaffTyp
 
 /**
  * Registration window rule:
- *   Thu–Sun  (dow 4,5,6,0) → staff can register for NEXT week's shifts
- *   Mon–Wed  (dow 1,2,3)   → registration closed; view-only
+ *   Thu–Sat  (dow 4,5,6) → staff can register for NEXT week's shifts
+ *   Sun–Wed  (dow 0,1,2,3) → registration closed; view-only
  *
  * For admins this gate never applies (admin can always manage slots).
  * `slotDate` is the date string of the shift slot being checked.
@@ -96,7 +96,7 @@ function canStaffRegister(slotDate: string): boolean {
   // Use VN time (UTC+7) for day-of-week check
   const nowVN = new Date(Date.now() + 7 * 60 * 60 * 1000);
   const todayDow = nowVN.getUTCDay(); // 0=Sun … 6=Sat
-  const openWindow = todayDow === 0 || todayDow >= 4; // Thu/Fri/Sat/Sun
+  const openWindow = todayDow >= 4 && todayDow <= 6; // Thu/Fri/Sat only
 
   if (!openWindow) return false;
 
@@ -1074,6 +1074,25 @@ export default function SchedulePage() {
   const pendingCount = registrations.filter(r => r.status === "pending").length;
   const today = todayVN();
 
+  /**
+   * Whether the current staff can register for a given slot:
+   * - Admin/manager: always yes
+   * - FT staff: only FT or ALL slots, within registration window
+   * - PT staff: only PT or ALL slots, within registration window
+   */
+  function canUserRegister(slot: ShiftSlot): boolean {
+    if (isAdmin) return true;
+    if (!canStaffRegister(slot.date)) return false;
+    const slotType = inferStaffType(slot);
+    if (slotType === "ALL") return true;
+    // staff_pt can only register PT slots; staff_ft and plain staff → FT slots
+    const userIsPT = currentUser?.role === "staff_pt";
+    const userIsFT = !userIsPT; // staff_ft, staff, manager, admin
+    if (slotType === "PT") return userIsPT;
+    if (slotType === "FT") return userIsFT;
+    return true;
+  }
+
   const weekLabel = (() => {
     const m0 = weekDates[0]; const m6 = weekDates[6];
     if (m0.getUTCMonth() === m6.getUTCMonth())
@@ -1131,6 +1150,16 @@ export default function SchedulePage() {
                   <span style={{ fontSize:8, fontWeight:800, color:"#fff", background:"#ef4444", padding:"1px 5px", borderRadius:10 }}>{selectedSlotIds.size}</span>
                 )}
               </button>
+            )}
+            {isAdmin && (
+              <a
+                href={`/api/shifts/export?dateFrom=${dateFrom}&dateTo=${dateTo}`}
+                download
+                onClick={() => playSound("save")}
+                style={{ display:"flex", alignItems:"center", gap:5, padding:"7px 12px", borderRadius:10, border:"1px solid #bbf7d0", background:"#f0fdf4", cursor:"pointer", textDecoration:"none" }}>
+                <Download size={12} style={{ color:"#10b981" }} />
+                <span style={{ fontSize:10, fontWeight:600, color:"#10b981" }}>Excel</span>
+              </a>
             )}
           </div>
         </div>
@@ -1222,7 +1251,7 @@ export default function SchedulePage() {
         {/* Registration window banner (staff only) */}
         {!isAdmin && (() => {
           const dow = new Date(Date.now() + 7 * 60 * 60 * 1000).getUTCDay();
-          const open = dow === 0 || dow >= 4;
+          const open = dow >= 4 && dow <= 6;
           return (
             <div style={{
               marginTop:8, padding:"5px 12px", borderRadius:20,
@@ -1232,7 +1261,7 @@ export default function SchedulePage() {
             }}>
               <div style={{ width:6, height:6, borderRadius:"50%", background: open ? "#10b981" : "#94a3b8", flexShrink:0 }} />
               <span style={{ fontSize:9, fontWeight:700, color: open ? "#059669" : "#94a3b8" }}>
-                {open ? "Đang mở đăng ký ca tuần sau (T5–CN)" : "Đăng ký đóng từ T2–T4, mở lại vào T5"}
+                {open ? "Đang mở đăng ký ca tuần sau (T5–T7)" : "Đăng ký đóng từ CN–T4, mở lại vào T5"}
               </span>
             </div>
           );
@@ -1323,7 +1352,7 @@ export default function SchedulePage() {
                               {groupSlots.map(slot => (
                                 <SlotCard key={slot.id} slot={slot} regs={regsBySlot[slot.id] ?? []} isAdmin={isAdmin}
                                   currentUserId={currentUser?.id ?? ""} allStaff={activeStaff}
-                                  canRegister={isAdmin || canStaffRegister(slot.date)}
+                                  canRegister={canUserRegister(slot)}
                                   onRegister={handleRegister} onCancel={handleCancel}
                                   onApprove={handleApprove} onReject={handleReject}
                                   onAssign={handleAssign} onUnassign={handleUnassign} onDelete={handleDeleteSlot}
@@ -1381,7 +1410,7 @@ export default function SchedulePage() {
                               isAdmin={isAdmin}
                               currentUserId={currentUser?.id ?? ""}
                               allStaff={activeStaff}
-                              canRegister={isAdmin || canStaffRegister(slot.date)}
+                              canRegister={canUserRegister(slot)}
                               onRegister={handleRegister}
                               onCancel={handleCancel}
                               onApprove={handleApprove}
