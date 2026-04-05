@@ -1397,11 +1397,11 @@ export default function SchedulePage() {
                 });
               }}
                 style={{ display:"flex", alignItems:"center", gap:5, padding:"7px 12px", borderRadius:10,
-                  border: `1px solid ${regClosed ? "rgba(239,68,68,0.4)" : "rgba(245,158,11,0.4)"}`,
-                  background: regClosed ? "rgba(239,68,68,0.08)" : "rgba(245,158,11,0.08)",
+                  border: `1.5px solid ${regClosed ? "rgba(16,185,129,0.5)" : "rgba(239,68,68,0.4)"}`,
+                  background: regClosed ? "rgba(16,185,129,0.08)" : "rgba(239,68,68,0.06)",
                   cursor:"pointer", fontFamily:"inherit" }}>
-                <span style={{ fontSize:10, fontWeight:700, color: regClosed ? "#ef4444" : "#d97706" }}>
-                  {regClosed ? "Đã đóng ĐK" : "Đóng ĐK"}
+                <span style={{ fontSize:10, fontWeight:700, color: regClosed ? "#10b981" : "#ef4444" }}>
+                  {regClosed ? "🔓 Mở ĐK" : "🔒 Đóng ĐK"}
                 </span>
               </button>
             )}
@@ -1732,12 +1732,19 @@ export default function SchedulePage() {
                     </div>
                   </div>
                   {mySlots.length > 0 && (
-                    <div style={{ display:"flex", flexWrap:"wrap", gap:4 }}>
-                      {mySlots.map(s => (
-                        <div key={s.id} style={{ padding:"3px 8px", borderRadius:20, background:`${s.color}15`, border:`1px solid ${s.color}40` }}>
-                          <span style={{ fontSize:9, fontWeight:600, color:s.color }}>{DAYS_VI[new Date(s.date+"T00:00:00+07:00").getDay()]} {new Date(s.date+"T00:00:00+07:00").getDate()} · {s.name}</span>
-                        </div>
-                      ))}
+                    <div style={{ display:"flex", flexDirection:"column", gap:4 }}>
+                      {mySlots.map(s => {
+                        const d = new Date(s.date+"T00:00:00+07:00");
+                        return (
+                          <div key={s.id} style={{ display:"flex", alignItems:"center", gap:8, padding:"5px 10px", borderRadius:9, background:`${s.color}10`, border:`1px solid ${s.color}35` }}>
+                            <div style={{ width:3, height:28, borderRadius:2, background:s.color, flexShrink:0 }} />
+                            <div>
+                              <p style={{ fontSize:10, fontWeight:700, color:s.color, margin:0 }}>{DAYS_VI[d.getDay()]} {d.getDate()} · {s.name}</p>
+                              <p style={{ fontSize:9, color:"#64748b", margin:0 }}>{fmt(s.startTime)} – {fmt(s.endTime)}</p>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                   {mySlots.length === 0 && <p style={{ fontSize:10, color:"#cbd5e1" }}>Không có ca tuần này</p>}
@@ -1788,9 +1795,9 @@ export default function SchedulePage() {
                       return (
                         <div key={ds} style={{ display:"flex", flexDirection:"column", gap:3 }}>
                           {dayShifts.map(s => (
-                            <div key={s.id} style={{ padding:"3px 6px", borderRadius:7, background:`${s.color}18`, border:`1px solid ${s.color}40` }}>
-                              <p style={{ fontSize:9, fontWeight:700, color:s.color, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{s.name}</p>
-                              <p style={{ fontSize:7.5, color:"#64748b" }}>{fmt(s.startTime)}–{fmt(s.endTime)}</p>
+                            <div key={s.id} style={{ padding:"4px 7px", borderRadius:7, background:`${s.color}18`, border:`1px solid ${s.color}40` }}>
+                              <p style={{ fontSize:9, fontWeight:700, color:s.color, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis", margin:0 }}>{s.name}</p>
+                              <p style={{ fontSize:8.5, fontWeight:600, color:"#475569", margin:0, letterSpacing:"0.01em" }}>{fmt(s.startTime)}–{fmt(s.endTime)}</p>
                             </div>
                           ))}
                           {dayShifts.length === 0 && (
