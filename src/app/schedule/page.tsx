@@ -1292,18 +1292,10 @@ export default function SchedulePage() {
    * Whether the current staff can register for a given slot:
    * - Admin/manager: always yes
    * - FT staff: only FT or ALL slots, within registration window
-   * - PT staff: only PT or ALL slots, within registration window
    */
-  function canUserRegister(slot: ShiftSlot): boolean {
+  function canUserRegister(_slot: ShiftSlot): boolean {
     if (isAdmin) return true;
     if (regClosed) return false;
-    const slotType = inferStaffType(slot);
-    if (slotType === "ALL") return true;
-    // staff_pt can only register PT slots; staff_ft and plain staff → FT slots
-    const userIsPT = currentUser?.role === "staff_pt";
-    const userIsFT = !userIsPT; // staff_ft, staff, manager, admin
-    if (slotType === "PT") return userIsPT;
-    if (slotType === "FT") return userIsFT;
     return true;
   }
 
