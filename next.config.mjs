@@ -27,7 +27,7 @@ const nextConfig = {
     NEXT_PUBLIC_BUILD_DATE: new Date().toISOString(),
   },
   // Prevent better-sqlite3 from being bundled by webpack (it's a native module)
-  serverExternalPackages: ["better-sqlite3"],
+  serverExternalPackages: ["better-sqlite3", "exceljs"],
   eslint: { ignoreDuringBuilds: true },
   typescript: { ignoreBuildErrors: true },
 };

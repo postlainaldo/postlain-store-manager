@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
 import { IS_SUPABASE, getSupabase } from "@/lib/supabase";
 import getDb from "@/lib/database";
 
-// Map giờ bắt đầu–kết thúc → mã ca
 const SHIFT_CODES: Record<string, string> = {
   "07:30-15:30": "A",
   "14:00-22:00": "B",
@@ -17,26 +16,27 @@ const SHIFT_CODES: Record<string, string> = {
   "18:00-22:00": "B3",
 };
 
-function getShiftCode(startTime: string, endTime: string): string {
-  const key = `${startTime.slice(0, 5)}-${endTime.slice(0, 5)}`;
-  return SHIFT_CODES[key] ?? `${startTime.slice(0, 5)}-${endTime.slice(0, 5)}`;
+function getShiftCode(start: string, end: string): string {
+  const key = `${start.slice(0, 5)}-${end.slice(0, 5)}`;
+  return SHIFT_CODES[key] ?? `${start.slice(0, 5)}-${end.slice(0, 5)}`;
 }
 
 const DAYS_VI = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
-const MONTHS_VI = ["Tháng 1","Tháng 2","Tháng 3","Tháng 4","Tháng 5","Tháng 6","Tháng 7","Tháng 8","Tháng 9","Tháng 10","Tháng 11","Tháng 12"];
+const MONTHS_VI = ["Tháng 1","Tháng 2","Tháng 3","Tháng 4","Tháng 5","Tháng 6",
+                   "Tháng 7","Tháng 8","Tháng 9","Tháng 10","Tháng 11","Tháng 12"];
 
 type StaffRow = { id: string; name: string; role: string };
-type SlotRow  = { id: string; date: string; name: string; startTime: string; endTime: string; staffType: string | null };
-type RegRow   = { slotId: string; userId: string; userName: string };
+type SlotRow  = { id: string; date: string; name: string; startTime: string; endTime: string };
+type RegRow   = { slotId: string; userId: string };
 
-async function fetchData(dateFrom: string, dateTo: string): Promise<{ staff: StaffRow[]; slots: SlotRow[]; regs: RegRow[] }> {
+async function fetchData(dateFrom: string, dateTo: string) {
   if (IS_SUPABASE) {
     const sb = getSupabase();
     const [staffRes, slotsRes, regsRes] = await Promise.all([
       sb.from("users").select("id, name, role").eq("active", true).order("role").order("name"),
-      sb.from("shift_slots").select("id, date, name, startTime, endTime, staffType")
+      sb.from("shift_slots").select("id, date, name, startTime, endTime")
         .gte("date", dateFrom).lte("date", dateTo).order("date").order("startTime"),
-      sb.from("shift_registrations").select("slotId, userId, userName").eq("status", "approved"),
+      sb.from("shift_registrations").select("slotId, userId").eq("status", "approved"),
     ]);
     const slots = (slotsRes.data ?? []) as SlotRow[];
     const slotIds = new Set(slots.map(s => s.id));
@@ -44,12 +44,14 @@ async function fetchData(dateFrom: string, dateTo: string): Promise<{ staff: Sta
     return { staff: (staffRes.data ?? []) as StaffRow[], slots, regs };
   } else {
     const db = getDb();
-    const staff = db.prepare("SELECT id, name, role FROM users WHERE active = 1 ORDER BY role, name").all() as StaffRow[];
+    const staff = db.prepare(
+      "SELECT id, name, role FROM users WHERE active = 1 ORDER BY role, name"
+    ).all() as StaffRow[];
     const slots = db.prepare(
-      "SELECT id, date, name, startTime, endTime, staffType FROM shift_slots WHERE date >= ? AND date <= ? ORDER BY date, startTime"
+      "SELECT id, date, name, startTime, endTime FROM shift_slots WHERE date >= ? AND date <= ? ORDER BY date, startTime"
     ).all(dateFrom, dateTo) as SlotRow[];
     const regs = db.prepare(
-      `SELECT r.slotId, r.userId, r.userName FROM shift_registrations r
+      `SELECT r.slotId, r.userId FROM shift_registrations r
        JOIN shift_slots s ON s.id = r.slotId
        WHERE s.date >= ? AND s.date <= ? AND r.status = 'approved'`
     ).all(dateFrom, dateTo) as RegRow[];
@@ -57,326 +59,302 @@ async function fetchData(dateFrom: string, dateTo: string): Promise<{ staff: Sta
   }
 }
 
-// ── Cell style helpers ────────────────────────────────────────────────────────
+// ── Style helpers ─────────────────────────────────────────────────────────────
 
-function hex2argb(hex: string) {
-  return "FF" + hex.replace("#", "").toUpperCase().padStart(6, "0");
+type FillArg   = { type: "pattern"; pattern: "solid"; fgColor: { argb: string } };
+type FontArg   = Partial<ExcelJS.Font>;
+type AlignArg  = Partial<ExcelJS.Alignment>;
+type BorderArg = Partial<ExcelJS.Borders>;
+
+function solidFill(argb: string): FillArg {
+  return { type: "pattern", pattern: "solid", fgColor: { argb } };
 }
 
-const DARK_NAVY  = hex2argb("#0C1A2E");
-const GOLD       = hex2argb("#C9A55A");
-const WHITE      = hex2argb("#FFFFFF");
-const LIGHT_BLUE = hex2argb("#EFF6FF");
-const BLUE_HEADER= hex2argb("#1E3A5F");
-const FT_BG      = hex2argb("#F0F9FF");
-const PT_BG      = hex2argb("#FFF7ED");
-const SEPARATOR  = hex2argb("#E2E8F0");
-const TODAY_BG   = hex2argb("#DBEAFE");
-const SHIFT_A_BG = hex2argb("#DCFCE7");
-const SHIFT_B_BG = hex2argb("#FEF9C3");
-const SHIFT_PT_BG= hex2argb("#FFF7ED");
-const GRAY_TEXT  = hex2argb("#64748B");
+function thinBorder(argb = "FFD1D5DB"): BorderArg {
+  const s = { style: "thin" as const, color: { argb } };
+  return { top: s, bottom: s, left: s, right: s };
+}
 
-function cell(
+function applyCell(
+  cell: ExcelJS.Cell,
   value: string | number,
   opts: {
-    bold?: boolean; italic?: boolean; fontSize?: number;
-    fgColor?: string; fontColor?: string;
-    hAlign?: "center" | "left" | "right";
-    vAlign?: "center" | "top" | "bottom";
-    border?: boolean; borderColor?: string;
-    wrapText?: boolean; numFmt?: string;
+    bold?: boolean; italic?: boolean; fontSize?: number; fontName?: string;
+    fontArgb?: string; fillArgb?: string;
+    hAlign?: ExcelJS.Alignment["horizontal"];
+    vAlign?: ExcelJS.Alignment["vertical"];
+    border?: boolean; borderArgb?: string; wrapText?: boolean;
   } = {}
-): XLSX.CellObject {
-  const c: XLSX.CellObject = {
-    v: value,
-    t: typeof value === "number" ? "n" : "s",
+) {
+  cell.value = value;
+
+  const font: FontArg = {
+    name: opts.fontName ?? "Calibri",
+    size: opts.fontSize ?? 10,
+    bold: opts.bold ?? false,
+    italic: opts.italic ?? false,
   };
-  if (opts.numFmt) c.z = opts.numFmt;
+  if (opts.fontArgb) font.color = { argb: opts.fontArgb };
+  cell.font = font as ExcelJS.Font;
 
-  const font: Record<string, unknown> = { name: "Calibri", sz: opts.fontSize ?? 10 };
-  if (opts.bold)      font.bold = true;
-  if (opts.italic)    font.italic = true;
-  if (opts.fontColor) font.color = { rgb: opts.fontColor };
+  if (opts.fillArgb) cell.fill = solidFill(opts.fillArgb) as ExcelJS.Fill;
 
-  const fill = opts.fgColor ? { patternType: "solid", fgColor: { rgb: opts.fgColor } } : undefined;
-
-  const alignment: Record<string, unknown> = {
+  const align: AlignArg = {
     horizontal: opts.hAlign ?? "center",
-    vertical:   opts.vAlign ?? "center",
+    vertical:   opts.vAlign ?? "middle",
     wrapText:   opts.wrapText ?? false,
   };
+  cell.alignment = align as ExcelJS.Alignment;
 
-  const borderSide = opts.border
-    ? { style: "thin", color: { rgb: opts.borderColor ?? SEPARATOR } }
-    : undefined;
-  const border = borderSide
-    ? { top: borderSide, bottom: borderSide, left: borderSide, right: borderSide }
-    : undefined;
-
-  c.s = { font, fill, alignment, border };
-  return c;
-}
-
-function emptyCell(fgColor?: string): XLSX.CellObject {
-  return cell("", { fgColor, border: true });
+  if (opts.border !== false) {
+    cell.border = thinBorder(opts.borderArgb) as ExcelJS.Borders;
+  }
 }
 
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
   const dateFrom = searchParams.get("dateFrom");
   const dateTo   = searchParams.get("dateTo");
-
   if (!dateFrom || !dateTo) {
     return NextResponse.json({ error: "dateFrom and dateTo required" }, { status: 400 });
   }
 
   const { staff, slots, regs } = await fetchData(dateFrom, dateTo);
 
-  // Danh sách ngày trong tuần
+  // Danh sách ngày
   const dates: string[] = [];
   const cur = new Date(dateFrom + "T00:00:00Z");
   const end = new Date(dateTo   + "T00:00:00Z");
-  while (cur <= end) {
-    dates.push(cur.toISOString().slice(0, 10));
-    cur.setUTCDate(cur.getUTCDate() + 1);
-  }
+  while (cur <= end) { dates.push(cur.toISOString().slice(0, 10)); cur.setUTCDate(cur.getUTCDate() + 1); }
 
   const todayStr = new Date(Date.now() + 7 * 3600000).toISOString().slice(0, 10);
 
-  // Build lookup: userId → date → mã ca[]
+  // userId → date → mã ca
   const regMap: Record<string, Record<string, string[]>> = {};
   for (const reg of regs) {
     const slot = slots.find(s => s.id === reg.slotId);
     if (!slot) continue;
     const code = getShiftCode(slot.startTime, slot.endTime);
-    if (!regMap[reg.userId])          regMap[reg.userId] = {};
+    if (!regMap[reg.userId])            regMap[reg.userId] = {};
     if (!regMap[reg.userId][slot.date]) regMap[reg.userId][slot.date] = [];
     regMap[reg.userId][slot.date].push(code);
   }
 
-  // Nhân viên: FT trước, PT sau, bỏ admin/manager
   const ftStaff = staff.filter(u => !["admin","manager","staff_pt"].includes(u.role));
   const ptStaff = staff.filter(u => u.role === "staff_pt");
 
-  // Thống kê: tổng ca mỗi người
-  function countShifts(userId: string) {
-    return Object.values(regMap[userId] ?? {}).reduce((s, arr) => s + arr.length, 0);
-  }
+  // ── Workbook ──────────────────────────────────────────────────────────────
+  const wb = new ExcelJS.Workbook();
+  wb.creator  = "Postlain Store Manager";
+  wb.created  = new Date();
 
-  // Thống kê: số người mỗi ngày
-  const dailyCount: Record<string, number> = {};
-  for (const d of dates) {
-    dailyCount[d] = regs.filter(r => {
-      const s = slots.find(sl => sl.id === r.slotId);
-      return s?.date === d;
-    }).length;
-  }
+  const ws = wb.addWorksheet("Lịch Làm Việc", {
+    pageSetup: { orientation: "landscape", fitToPage: true, fitToWidth: 1 },
+    views: [{ state: "frozen", xSplit: 2, ySplit: 4 }], // freeze tên + 4 header rows
+  });
 
-  // ── Xây dựng worksheet ────────────────────────────────────────────────────
+  // ── Màu sắc ───────────────────────────────────────────────────────────────
+  const C = {
+    navy:     "FF0C1A2E",
+    navyMid:  "FF1E3A5F",
+    gold:     "FFC9A55A",
+    white:    "FFFFFFFF",
+    ftBg:     "FFEFF6FF",
+    ptBg:     "FFFFF7ED",
+    ftGroup:  "FFdbeafe",
+    ptGroup:  "FFFDE68A",
+    dayHeader:"FFBFDBFE",
+    today:    "FFDBEAFE",
+    todayTxt: "FF1D4ED8",
+    shiftFT:  "FFDCFCE7",
+    shiftFTtxt:"FF166534",
+    shiftPT:  "FFFED7AA",
+    shiftPTtxt:"FF9A3412",
+    shiftOth: "FFFFF9C2",
+    shiftOthtxt:"FF92400E",
+    gray:     "FF94A3B8",
+    border:   "FFD1D5DB",
+    lightGray:"FFF8FAFC",
+    greenTxt: "FF16A34A",
+    separator:"FFE0F2FE",
+  };
 
-  const wb  = XLSX.utils.book_new();
-  const ws: XLSX.WorkSheet = {};
-  const rows: XLSX.CellObject[][] = [];
+  // ── Labo cột ──────────────────────────────────────────────────────────────
+  const FIXED_COLS = 4; // STT | Họ tên | Vị trí | Tổng ca
+  const totalCols  = FIXED_COLS + dates.length;
 
-  const dateStart = new Date(dateFrom + "T00:00:00Z");
-  const dateEnd   = new Date(dateTo   + "T00:00:00Z");
-  const monthLabel = dateStart.getUTCMonth() === dateEnd.getUTCMonth()
-    ? `${MONTHS_VI[dateStart.getUTCMonth()]} ${dateStart.getUTCFullYear()}`
-    : `${MONTHS_VI[dateStart.getUTCMonth()]}–${MONTHS_VI[dateEnd.getUTCMonth()]} ${dateEnd.getUTCFullYear()}`;
-
-  const NUM_FIXED = 4; // STT | Họ tên | Vị trí | Tổng ca
-  const totalCols = NUM_FIXED + dates.length;
-
-  // ── ROW 0: Tiêu đề lớn ───────────────────────────────────────────────────
-  const titleRow: XLSX.CellObject[] = [
-    cell(`LỊCH LÀM VIỆC POSTLAIN · ${monthLabel.toUpperCase()}`, {
-      bold: true, fontSize: 14, fontColor: GOLD,
-      fgColor: DARK_NAVY, hAlign: "center", vAlign: "center",
-    }),
+  ws.columns = [
+    { key: "stt",   width: 5  },
+    { key: "name",  width: 22 },
+    { key: "pos",   width: 8  },
+    { key: "total", width: 9  },
+    ...dates.map(d => ({ key: d, width: 7.5 })),
   ];
-  for (let i = 1; i < totalCols; i++) titleRow.push(emptyCell(DARK_NAVY));
-  rows.push(titleRow);
 
-  // ── ROW 1: Header cột ────────────────────────────────────────────────────
-  const headerRow: XLSX.CellObject[] = [
-    cell("STT",     { bold: true, fgColor: BLUE_HEADER, fontColor: WHITE, border: true }),
-    cell("HỌ TÊN",  { bold: true, fgColor: BLUE_HEADER, fontColor: WHITE, border: true }),
-    cell("VỊ TRÍ",  { bold: true, fgColor: BLUE_HEADER, fontColor: WHITE, border: true }),
-    cell("TỔNG CA", { bold: true, fgColor: BLUE_HEADER, fontColor: WHITE, border: true }),
-  ];
-  for (const d of dates) {
+  // ── ROW 1: Tiêu đề ────────────────────────────────────────────────────────
+  const d0  = new Date(dateFrom + "T00:00:00Z");
+  const dN  = new Date(dateTo   + "T00:00:00Z");
+  const monthLabel = d0.getUTCMonth() === dN.getUTCMonth()
+    ? `${MONTHS_VI[d0.getUTCMonth()]} ${d0.getUTCFullYear()}`
+    : `${MONTHS_VI[d0.getUTCMonth()]} – ${MONTHS_VI[dN.getUTCMonth()]} ${dN.getUTCFullYear()}`;
+
+  const titleRow = ws.addRow([`LỊCH LÀM VIỆC · POSTLAIN · ${monthLabel.toUpperCase()}`]);
+  titleRow.height = 36;
+  ws.mergeCells(1, 1, 1, totalCols);
+  applyCell(titleRow.getCell(1), `LỊCH LÀM VIỆC · POSTLAIN · ${monthLabel.toUpperCase()}`, {
+    bold: true, fontSize: 14, fontArgb: C.gold, fillArgb: C.navy, hAlign: "center", border: false,
+  });
+
+  // ── ROW 2: Sub-header cột ─────────────────────────────────────────────────
+  const subRow = ws.addRow([]);
+  subRow.height = 22;
+  applyCell(subRow.getCell(1), "STT",     { bold: true, fontArgb: C.white, fillArgb: C.navy });
+  applyCell(subRow.getCell(2), "HỌ TÊN",  { bold: true, fontArgb: C.white, fillArgb: C.navy, hAlign: "left" });
+  applyCell(subRow.getCell(3), "VỊ TRÍ",  { bold: true, fontArgb: C.white, fillArgb: C.navy });
+  applyCell(subRow.getCell(4), "TỔNG CA", { bold: true, fontArgb: C.white, fillArgb: C.navy });
+  dates.forEach((d, i) => {
     const isToday = d === todayStr;
-    headerRow.push(cell(DAYS_VI[new Date(d + "T00:00:00Z").getUTCDay()], {
+    const dow = DAYS_VI[new Date(d + "T00:00:00Z").getUTCDay()];
+    applyCell(subRow.getCell(FIXED_COLS + 1 + i), dow, {
       bold: true,
-      fgColor: isToday ? TODAY_BG : BLUE_HEADER,
-      fontColor: isToday ? DARK_NAVY : WHITE,
-      border: true,
-    }));
-  }
-  rows.push(headerRow);
-
-  // ── ROW 2: Ngày (DD/MM) ──────────────────────────────────────────────────
-  const dateRow: XLSX.CellObject[] = [
-    emptyCell(LIGHT_BLUE),
-    cell("TUẦN: " + dateFrom.slice(8) + "/" + dateFrom.slice(5,7) + " – " + dateTo.slice(8) + "/" + dateTo.slice(5,7), {
-      bold: true, fontSize: 9, fgColor: LIGHT_BLUE, hAlign: "left", border: true,
-    }),
-    emptyCell(LIGHT_BLUE),
-    emptyCell(LIGHT_BLUE),
-  ];
-  for (const d of dates) {
-    const isToday = d === todayStr;
-    const label = d.slice(8) + "/" + d.slice(5, 7);
-    dateRow.push(cell(label, {
-      bold: isToday, fontSize: 9,
-      fgColor: isToday ? TODAY_BG : LIGHT_BLUE,
-      fontColor: isToday ? BLUE_HEADER : GRAY_TEXT,
-      border: true,
-    }));
-  }
-  rows.push(dateRow);
-
-  // ── ROW 3: Số người trong ngày ───────────────────────────────────────────
-  const countRow: XLSX.CellObject[] = [
-    emptyCell(LIGHT_BLUE),
-    cell("Số người làm", { italic: true, fontSize: 9, fgColor: LIGHT_BLUE, hAlign: "left", border: true }),
-    emptyCell(LIGHT_BLUE),
-    emptyCell(LIGHT_BLUE),
-  ];
-  for (const d of dates) {
-    const cnt = dailyCount[d] ?? 0;
-    countRow.push(cell(cnt > 0 ? String(cnt) : "—", {
-      fontSize: 9, fgColor: LIGHT_BLUE,
-      fontColor: cnt > 0 ? BLUE_HEADER : GRAY_TEXT,
-      bold: cnt > 0, border: true,
-    }));
-  }
-  rows.push(countRow);
-
-  // ── Helper: render một nhóm nhân viên ────────────────────────────────────
-  function renderGroup(label: string, groupStaff: StaffRow[], bgRow: string, bgShift: string, startIdx: number) {
-    if (groupStaff.length === 0) return startIdx;
-
-    // Nhãn nhóm
-    const groupLabelRow: XLSX.CellObject[] = [
-      cell(label, { bold: true, fontSize: 9, fgColor: bgShift, fontColor: DARK_NAVY, hAlign: "left", border: true }),
-    ];
-    for (let i = 1; i < totalCols; i++) groupLabelRow.push(emptyCell(bgShift));
-    rows.push(groupLabelRow);
-
-    groupStaff.forEach((u, i) => {
-      const pos = u.role === "staff_pt" ? "PT" : u.role === "staff_ft" ? "FT" : "SA";
-      const total = countShifts(u.id);
-      const staffRow: XLSX.CellObject[] = [
-        cell(startIdx + i + 1, { fgColor: bgRow, border: true }),
-        cell(u.name,           { fgColor: bgRow, hAlign: "left", border: true, bold: false }),
-        cell(pos,              { fgColor: bgRow, border: true, fontColor: pos === "PT" ? hex2argb("#EA580C") : DARK_NAVY }),
-        cell(total > 0 ? total : "—", {
-          fgColor: bgRow, border: true, bold: total > 0,
-          fontColor: total >= 5 ? hex2argb("#16A34A") : total >= 3 ? DARK_NAVY : GRAY_TEXT,
-        }),
-      ];
-      for (const d of dates) {
-        const codes = regMap[u.id]?.[d];
-        const code  = codes ? codes.join("/") : "";
-        const isToday = d === todayStr;
-        const isFT = code === "A" || code === "B" || code === "C";
-        const hasPT = code && !isFT;
-        staffRow.push(cell(code, {
-          bold: !!code,
-          fgColor: code
-            ? (isFT ? SHIFT_A_BG : hasPT ? SHIFT_PT_BG : SHIFT_B_BG)
-            : (isToday ? TODAY_BG : bgRow),
-          fontColor: code
-            ? (isFT ? hex2argb("#166534") : hex2argb("#9A3412"))
-            : GRAY_TEXT,
-          border: true,
-          hAlign: "center",
-        }));
-      }
-      rows.push(staffRow);
-    });
-
-    return startIdx + groupStaff.length;
-  }
-
-  let idx = 0;
-  idx = renderGroup("▸ FULL TIME", ftStaff, FT_BG, hex2argb("#BFDBFE"), idx);
-  idx = renderGroup("▸ PART TIME", ptStaff, PT_BG, hex2argb("#FED7AA"), idx);
-
-  // ── Dòng trống ───────────────────────────────────────────────────────────
-  rows.push(Array(totalCols).fill(emptyCell()));
-
-  // ── Chú thích ca ─────────────────────────────────────────────────────────
-  const legend = [
-    ["A",  "07:30 – 15:30", "Full Time"],
-    ["B",  "14:00 – 22:00", "Full Time"],
-    ["C",  "12:00 – 20:00", "Full Time"],
-    ["A1", "07:30 – 11:30", "Part Time"],
-    ["A2", "09:00 – 13:00", "Part Time"],
-    ["A3", "11:00 – 15:00", "Part Time"],
-    ["A4", "12:00 – 16:00", "Part Time"],
-    ["B1", "15:00 – 19:00", "Part Time"],
-    ["B2", "17:00 – 21:00", "Part Time"],
-    ["B3", "18:00 – 22:00", "Part Time"],
-  ];
-
-  // Header chú thích
-  rows.push([
-    cell("CHÚ THÍCH CA LÀM", { bold: true, fontSize: 9, fgColor: BLUE_HEADER, fontColor: WHITE, border: true }),
-    cell("KHUNG GIỜ",          { bold: true, fontSize: 9, fgColor: BLUE_HEADER, fontColor: WHITE, border: true }),
-    cell("LOẠI",               { bold: true, fontSize: 9, fgColor: BLUE_HEADER, fontColor: WHITE, border: true }),
-    ...Array(totalCols - 3).fill(emptyCell()),
-  ]);
-
-  for (const [code, time, type] of legend) {
-    const isFT = type === "Full Time";
-    rows.push([
-      cell(code, { bold: true, fgColor: isFT ? SHIFT_A_BG : SHIFT_PT_BG, fontColor: isFT ? hex2argb("#166534") : hex2argb("#9A3412"), border: true }),
-      cell(time, { fgColor: isFT ? SHIFT_A_BG : SHIFT_PT_BG, hAlign: "left", border: true }),
-      cell(type, { fgColor: isFT ? SHIFT_A_BG : SHIFT_PT_BG, fontColor: isFT ? hex2argb("#166534") : hex2argb("#9A3412"), border: true }),
-      ...Array(totalCols - 3).fill(emptyCell()),
-    ]);
-  }
-
-  // ── Ghi dữ liệu vào sheet ────────────────────────────────────────────────
-  rows.forEach((row, r) => {
-    row.forEach((cellObj, c) => {
-      const addr = XLSX.utils.encode_cell({ r, c });
-      ws[addr] = cellObj;
+      fontArgb: isToday ? C.todayTxt : C.white,
+      fillArgb: isToday ? C.today    : C.navyMid,
     });
   });
 
-  // Range
-  ws["!ref"] = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: rows.length - 1, c: totalCols - 1 } });
+  // ── ROW 3: Ngày DD/MM ────────────────────────────────────────────────────
+  const dateRow = ws.addRow([]);
+  dateRow.height = 16;
+  const weekRangeLabel = `${dateFrom.slice(8)}/${dateFrom.slice(5,7)} – ${dateTo.slice(8)}/${dateTo.slice(5,7)}`;
+  applyCell(dateRow.getCell(1), "",              { fillArgb: C.ftBg, fontSize: 8 });
+  applyCell(dateRow.getCell(2), weekRangeLabel,  { fillArgb: C.ftBg, fontSize: 8, fontArgb: C.gray, hAlign: "left" });
+  applyCell(dateRow.getCell(3), "",              { fillArgb: C.ftBg, fontSize: 8 });
+  applyCell(dateRow.getCell(4), "",              { fillArgb: C.ftBg, fontSize: 8 });
+  dates.forEach((d, i) => {
+    const isToday = d === todayStr;
+    applyCell(dateRow.getCell(FIXED_COLS + 1 + i), `${d.slice(8)}/${d.slice(5,7)}`, {
+      fontSize: 8, bold: isToday,
+      fontArgb: isToday ? C.todayTxt : C.gray,
+      fillArgb: isToday ? C.today    : C.ftBg,
+    });
+  });
 
-  // Merge tiêu đề lớn (row 0)
-  ws["!merges"] = [
-    { s: { r: 0, c: 0 }, e: { r: 0, c: totalCols - 1 } },
+  // ── ROW 4: Số người mỗi ngày ─────────────────────────────────────────────
+  const cntRow = ws.addRow([]);
+  cntRow.height = 16;
+  applyCell(cntRow.getCell(1), "",             { fillArgb: C.ftBg, fontSize: 8 });
+  applyCell(cntRow.getCell(2), "Số người làm", { fillArgb: C.ftBg, fontSize: 8, fontArgb: C.gray, hAlign: "left", italic: true });
+  applyCell(cntRow.getCell(3), "",             { fillArgb: C.ftBg, fontSize: 8 });
+  applyCell(cntRow.getCell(4), "",             { fillArgb: C.ftBg, fontSize: 8 });
+  dates.forEach((d, i) => {
+    const cnt = regs.filter(r => slots.find(s => s.id === r.slotId)?.date === d).length;
+    applyCell(cntRow.getCell(FIXED_COLS + 1 + i), cnt > 0 ? cnt : "—", {
+      fontSize: 9, bold: cnt > 0,
+      fontArgb: cnt >= 3 ? C.navyMid : C.gray,
+      fillArgb: C.ftBg,
+    });
+  });
+
+  // ── Helper render nhóm nhân viên ──────────────────────────────────────────
+  let sttIdx = 0;
+
+  function renderGroup(label: string, groupStaff: StaffRow[], rowFill: string, groupFill: string) {
+    if (groupStaff.length === 0) return;
+
+    // Nhãn nhóm
+    const gRow = ws.addRow([]);
+    gRow.height = 18;
+    ws.mergeCells(gRow.number, 1, gRow.number, totalCols);
+    applyCell(gRow.getCell(1), label, {
+      bold: true, fontSize: 9, fontArgb: C.navy, fillArgb: groupFill,
+      hAlign: "left", border: false,
+    });
+    // vẽ border riêng cho merged cell
+    for (let c = 1; c <= totalCols; c++) {
+      const cell = gRow.getCell(c);
+      cell.border = thinBorder(C.border) as ExcelJS.Borders;
+    }
+
+    groupStaff.forEach(u => {
+      sttIdx++;
+      const pos = u.role === "staff_pt" ? "PT" : u.role === "staff_ft" ? "FT" : "SA";
+      const totalShifts = Object.values(regMap[u.id] ?? {}).reduce((s, arr) => s + arr.length, 0);
+
+      const row = ws.addRow([]);
+      row.height = 20;
+
+      applyCell(row.getCell(1), sttIdx,  { fillArgb: rowFill, fontArgb: C.gray, fontSize: 9 });
+      applyCell(row.getCell(2), u.name,  { fillArgb: rowFill, hAlign: "left", bold: false });
+      applyCell(row.getCell(3), pos,     {
+        fillArgb: rowFill, bold: true, fontSize: 9,
+        fontArgb: pos === "PT" ? C.shiftPTtxt : C.navyMid,
+      });
+      applyCell(row.getCell(4), totalShifts > 0 ? totalShifts : "—", {
+        fillArgb: rowFill, bold: totalShifts > 0,
+        fontArgb: totalShifts >= 5 ? C.greenTxt : totalShifts >= 3 ? C.navyMid : C.gray,
+      });
+
+      dates.forEach((d, i) => {
+        const codes = regMap[u.id]?.[d] ?? [];
+        const code  = codes.join("/");
+        const isToday = d === todayStr;
+        const isFT = ["A","B","C"].includes(code);
+        const isPT = code && !isFT;
+
+        applyCell(row.getCell(FIXED_COLS + 1 + i), code || "", {
+          bold: !!code,
+          fillArgb: code
+            ? (isFT ? C.shiftFT : isPT ? C.shiftPT : C.shiftOth)
+            : (isToday ? C.today : rowFill),
+          fontArgb: code
+            ? (isFT ? C.shiftFTtxt : isPT ? C.shiftPTtxt : C.shiftOthtxt)
+            : C.gray,
+        });
+      });
+    });
+  }
+
+  renderGroup("▸  FULL TIME", ftStaff, C.ftBg, C.ftGroup);
+  renderGroup("▸  PART TIME", ptStaff, C.ptBg, C.ptGroup);
+
+  // ── Dòng trống ───────────────────────────────────────────────────────────
+  ws.addRow([]).height = 8;
+
+  // ── Bảng chú thích ───────────────────────────────────────────────────────
+  const legendHeader = ws.addRow([]);
+  legendHeader.height = 18;
+  applyCell(legendHeader.getCell(1), "MÃ CA",      { bold: true, fontArgb: C.white, fillArgb: C.navy });
+  applyCell(legendHeader.getCell(2), "KHUNG GIỜ",  { bold: true, fontArgb: C.white, fillArgb: C.navy, hAlign: "left" });
+  applyCell(legendHeader.getCell(3), "LOẠI",       { bold: true, fontArgb: C.white, fillArgb: C.navy });
+  applyCell(legendHeader.getCell(4), "GHI CHÚ",   { bold: true, fontArgb: C.white, fillArgb: C.navy, hAlign: "left" });
+  for (let c = 5; c <= totalCols; c++) applyCell(legendHeader.getCell(c), "", { fillArgb: C.navy, border: true });
+
+  const legends = [
+    ["A",  "07:30 – 15:30", "Full Time", "Ca sáng FT"],
+    ["B",  "14:00 – 22:00", "Full Time", "Ca chiều FT"],
+    ["C",  "12:00 – 20:00", "Full Time", "Ca trưa FT"],
+    ["A1", "07:30 – 11:30", "Part Time", ""],
+    ["A2", "09:00 – 13:00", "Part Time", ""],
+    ["A3", "11:00 – 15:00", "Part Time", ""],
+    ["A4", "12:00 – 16:00", "Part Time", ""],
+    ["B1", "15:00 – 19:00", "Part Time", ""],
+    ["B2", "17:00 – 21:00", "Part Time", ""],
+    ["B3", "18:00 – 22:00", "Part Time", ""],
   ];
 
-  // Column widths
-  ws["!cols"] = [
-    { wch: 5  },  // STT
-    { wch: 22 },  // Họ tên
-    { wch: 7  },  // Vị trí
-    { wch: 8  },  // Tổng ca
-    ...dates.map(() => ({ wch: 7 })),
-  ];
+  for (const [code, time, type, note] of legends) {
+    const isFT = type === "Full Time";
+    const lRow = ws.addRow([]);
+    lRow.height = 17;
+    applyCell(lRow.getCell(1), code, { bold: true, fillArgb: isFT ? C.shiftFT  : C.shiftPT,  fontArgb: isFT ? C.shiftFTtxt  : C.shiftPTtxt });
+    applyCell(lRow.getCell(2), time, { fillArgb: isFT ? C.shiftFT  : C.shiftPT,  fontArgb: isFT ? C.shiftFTtxt  : C.shiftPTtxt, hAlign: "left" });
+    applyCell(lRow.getCell(3), type, { fillArgb: isFT ? C.shiftFT  : C.shiftPT,  fontArgb: isFT ? C.shiftFTtxt  : C.shiftPTtxt });
+    applyCell(lRow.getCell(4), note, { fillArgb: isFT ? C.shiftFT  : C.shiftPT,  fontArgb: C.gray, hAlign: "left", italic: true });
+    for (let c = 5; c <= totalCols; c++) applyCell(lRow.getCell(c), "", { fillArgb: C.lightGray });
+  }
 
-  // Row heights
-  ws["!rows"] = [
-    { hpt: 32 }, // title
-    { hpt: 20 }, // header
-    { hpt: 16 }, // date row
-    { hpt: 16 }, // count row
-    ...Array(rows.length - 4).fill({ hpt: 18 }),
-  ];
-
-  XLSX.utils.book_append_sheet(wb, ws, "Lịch Làm Việc");
-
-  const buf = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
+  // ── Export ────────────────────────────────────────────────────────────────
+  const buf = Buffer.from(await wb.xlsx.writeBuffer());
 
   const weekLabel = `${dateFrom}_${dateTo}`;
   return new NextResponse(buf, {
