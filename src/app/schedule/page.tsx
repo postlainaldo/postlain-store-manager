@@ -92,26 +92,6 @@ function inferStaffType(slot: { staffType?: StaffType; name: string }): StaffTyp
  * For admins this gate never applies (admin can always manage slots).
  * `slotDate` is the date string of the shift slot being checked.
  */
-function canStaffRegister(slotDate: string): boolean {
-  // Use VN time (UTC+7) for day-of-week check
-  const nowVN = new Date(Date.now() + 7 * 60 * 60 * 1000);
-  const todayDow = nowVN.getUTCDay(); // 0=Sun … 6=Sat
-  const openWindow = todayDow >= 4 && todayDow <= 6; // Thu/Fri/Sat only
-
-  if (!openWindow) return false;
-
-  // Next week Mon–Sun
-  const daysToNextMon = ((8 - todayDow) % 7) || 7;
-  const nextMonday = new Date(nowVN);
-  nextMonday.setUTCDate(nowVN.getUTCDate() + daysToNextMon);
-  nextMonday.setUTCHours(0,0,0,0);
-  const nextSunday = new Date(nextMonday);
-  nextSunday.setUTCDate(nextMonday.getUTCDate() + 6);
-
-  const nms = nextMonday.toISOString().slice(0, 10);
-  const nss = nextSunday.toISOString().slice(0, 10);
-  return slotDate >= nms && slotDate <= nss;
-}
 
 function statusColor(s: string) {
   return s === "approved" ? "#10b981" : s === "rejected" ? "#ef4444" : "#f59e0b";
@@ -1316,7 +1296,7 @@ export default function SchedulePage() {
    */
   function canUserRegister(slot: ShiftSlot): boolean {
     if (isAdmin) return true;
-    if (regClosed || !canStaffRegister(slot.date)) return false;
+    if (regClosed) return false;
     const slotType = inferStaffType(slot);
     if (slotType === "ALL") return true;
     // staff_pt can only register PT slots; staff_ft and plain staff → FT slots
