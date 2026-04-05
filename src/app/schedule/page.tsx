@@ -1876,15 +1876,27 @@ export default function SchedulePage() {
             }}>
             <div style={{ flex: 1 }}>
               <p style={{ fontSize: 12, fontWeight: 700, color: "#f1f5f9" }}>
-                {selectedSlotIds.size > 0 ? `Đã chọn ${selectedSlotIds.size} ca` : "Bấm vào ca để chọn"}
+                {selectedSlotIds.size > 0 ? `Đã chọn ${selectedSlotIds.size} / ${filteredSlots.length} ca` : "Bấm vào ca để chọn"}
               </p>
               <p style={{ fontSize: 10, color: "#64748b" }}>
                 {selectedSlotIds.size > 0 ? "Chọn thêm hoặc thực hiện thao tác" : "Chọn nhiều ca cùng lúc"}
               </p>
             </div>
-            {selectedSlotIds.size > 0 && (
+            <button
+              onClick={() => {
+                if (selectedSlotIds.size === filteredSlots.length) {
+                  setSelectedSlotIds(new Set());
+                } else {
+                  setSelectedSlotIds(new Set(filteredSlots.map(s => s.id)));
+                }
+                playSound("tap");
+              }}
+              style={{ height: 34, padding: "0 12px", borderRadius: 9, border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.06)", cursor: "pointer", fontSize: 11, fontWeight: 600, color: selectedSlotIds.size === filteredSlots.length ? "#C9A55A" : "#94a3b8", fontFamily: "inherit", whiteSpace: "nowrap" }}>
+              {selectedSlotIds.size === filteredSlots.length ? "Bỏ tất cả" : "Chọn tất cả"}
+            </button>
+            {selectedSlotIds.size > 0 && selectedSlotIds.size < filteredSlots.length && (
               <button
-                onClick={() => setSelectedSlotIds(new Set())}
+                onClick={() => { setSelectedSlotIds(new Set()); playSound("tap"); }}
                 style={{ height: 34, padding: "0 12px", borderRadius: 9, border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.06)", cursor: "pointer", fontSize: 11, fontWeight: 600, color: "#94a3b8", fontFamily: "inherit" }}>
                 Bỏ chọn
               </button>
