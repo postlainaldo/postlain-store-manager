@@ -1310,7 +1310,7 @@ export default function ProfilePage() {
   const [activity, setActivity] = useState<Activity[]>([]);
   const [tab, setTab] = useState<"profile" | "team" | "leaderboard" | "settings">("profile");
   const [editing, setEditing] = useState(false);
-  const [form, setForm] = useState({ name: "", fullName: "", bio: "", phone: "", employeeCode: "", status: "working" as Status });
+  const [form, setForm] = useState({ name: "", fullName: "", bio: "", phone: "", email: "", employeeCode: "", status: "working" as Status });
   const [showProfileRequired, setShowProfileRequired] = useState(false);
   const [saved, setSaved] = useState(false);
   const [pwOpen, setPwOpen] = useState(false);
@@ -1338,7 +1338,7 @@ export default function ProfilePage() {
     setProfile(p);
     setActivity(Array.isArray(a) ? a : []);
     const savedStatus = (p.status ?? "working") as Status;
-    setForm({ name: p.name ?? "", fullName: p.fullName ?? "", bio: p.bio ?? "", phone: p.phone ?? "", employeeCode: p.employeeCode ?? "", status: savedStatus });
+    setForm({ name: p.name ?? "", fullName: p.fullName ?? "", bio: p.bio ?? "", phone: p.phone ?? "", email: p.email ?? "", employeeCode: p.employeeCode ?? "", status: savedStatus });
     if (!(p.fullName ?? "").trim() && !(p.phone ?? "").trim()) {
       setShowProfileRequired(true);
     }
@@ -1389,7 +1389,7 @@ export default function ProfilePage() {
         if (autoStatus !== savedStatus) {
           setForm(f => ({ ...f, status: autoStatus }));
           await fetch("/api/profile", { method: "PUT", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ id: currentUser.id, name: p.name ?? "", fullName: p.fullName ?? "", bio: p.bio ?? "", phone: p.phone ?? "", employeeCode: p.employeeCode ?? "", status: autoStatus, avatar: p.avatar }) });
+            body: JSON.stringify({ id: currentUser.id, name: p.name ?? "", fullName: p.fullName ?? "", bio: p.bio ?? "", phone: p.phone ?? "", email: p.email ?? "", employeeCode: p.employeeCode ?? "", status: autoStatus, avatar: p.avatar }) });
         }
       }
     } catch {
@@ -1813,6 +1813,7 @@ export default function ProfilePage() {
                   {[
                     { label: "Họ và tên",     key: "fullName" as const,      icon: User,     placeholder: "Nguyễn Văn A" },
                     { label: "Số điện thoại", key: "phone" as const,         icon: Phone,    placeholder: "0901 234 567" },
+                    { label: "Email",         key: "email" as const,         icon: Mail,     placeholder: "ten@email.com" },
                     { label: "Mã nhân viên",  key: "employeeCode" as const,  icon: Hash,     placeholder: "NV001" },
                   ].map((f, i) => {
                     const FIcon = f.icon;

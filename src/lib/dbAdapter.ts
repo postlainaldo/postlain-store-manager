@@ -35,6 +35,7 @@ export type DBUser = {
   phone?: string | null;
   fullName?: string | null;
   employeeCode?: string | null;
+  email?: string | null;
 };
 
 export type DBProduct = {
@@ -405,7 +406,7 @@ export async function dbGetUsers(): Promise<DBUser[]> {
     const sb = getSupabase();
     const { data } = await sb
       .from("users")
-      .select("id, name, username, role, active, createdAt, avatar, status, bio, phone, fullName, employeeCode")
+      .select("id, name, username, role, active, createdAt, avatar, status, bio, phone, fullName, employeeCode, email")
       .order("createdAt");
     return (data ?? []) as DBUser[];
   }
@@ -460,7 +461,7 @@ export async function dbCreateUser(user: {
 
 export async function dbUpdateUser(id: string, fields: {
   name?: string; username?: string; password?: string; role?: string; active?: number;
-  avatar?: string; status?: string; bio?: string; phone?: string; fullName?: string; employeeCode?: string;
+  avatar?: string; status?: string; bio?: string; phone?: string; fullName?: string; employeeCode?: string; email?: string;
 }): Promise<void> {
   if (IS_SUPABASE()) {
     const sb = getSupabase();
@@ -476,6 +477,7 @@ export async function dbUpdateUser(id: string, fields: {
     if (fields.phone !== undefined) update.phone = fields.phone;
     if (fields.fullName !== undefined) update.fullName = fields.fullName;
     if (fields.employeeCode !== undefined) update.employeeCode = fields.employeeCode;
+    if (fields.email !== undefined) update.email = fields.email;
     await sb.from("users").update(update).eq("id", id);
     return;
   }
