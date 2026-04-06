@@ -40,7 +40,7 @@ export interface AppUser {
 
 interface StoreState {
   // ── Multi-tenant ──────────────────────────────────────────────────────────
-  currentStoreId: string;
+  currentStoreId: string | null;
   setCurrentStoreId: (id: string) => void;
 
   // ── Auth ─────────────────────────────────────────────────────────────────
@@ -174,9 +174,10 @@ export const useStore = create<StoreState>()(
   persist(
     (set, get) => ({
       // ── Multi-tenant ───────────────────────────────────────────────────────
+      // null = chưa chọn store → AuthGuard sẽ redirect về /store-select
       currentStoreId: typeof window !== "undefined"
-        ? (localStorage.getItem("plsm_store_id") ?? "postlain")
-        : "postlain",
+        ? (localStorage.getItem("plsm_store_id") ?? null)
+        : null,
       setCurrentStoreId: (id) => {
         try { localStorage.setItem("plsm_store_id", id); document.cookie = `plsm_store_id=${id};path=/;max-age=31536000`; } catch {}
         set({ currentStoreId: id });
@@ -187,7 +188,7 @@ export const useStore = create<StoreState>()(
       currentUser: null,
       login: async (username, password) => {
         try {
-          const storeId = get().currentStoreId;
+          const storeId = get().currentStoreId ?? "postlain";
           const res = await fetch("/api/auth", {
             method: "POST",
             headers: {
@@ -786,7 +787,7 @@ export const useStore = create<StoreState>()(
 // instead of re-rendering on any store change.
 export const sel = {
   // Multi-tenant
-  currentStoreId:       (s: StoreState) => s.currentStoreId,
+  currentStoreId:       (s: StoreState) => s.currentStoreId as string | null,
   setCurrentStoreId:    (s: StoreState) => s.setCurrentStoreId,
   // Auth
   currentUser:          (s: StoreState) => s.currentUser,
