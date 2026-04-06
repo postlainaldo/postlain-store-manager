@@ -11,14 +11,14 @@
 
 import { NextResponse } from "next/server";
 import {
-import { setActiveStore } from "@/lib/supabase";
-import { getStoreId } from "@/lib/storeContext";
   dbGetProducts,
   dbGetWarehouseShelvesForState,
   dbGetDisplayPlacements,
   dbGetSectionRowOverrides,
   ensureSupabaseSchema,
 } from "@/lib/dbAdapter";
+import { setActiveStore } from "@/lib/supabase";
+import { getStoreId } from "@/lib/storeContext";
 
 export async function GET() {
   await ensureSupabaseSchema();
