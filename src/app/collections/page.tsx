@@ -61,14 +61,26 @@ export default function CollectionsPage() {
     <div style={{ display: "flex", flexDirection: "column", gap: 32 }}>
 
       {/* Tiêu đề */}
-      <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-        <p style={{ fontSize: 9, letterSpacing: "0.38em", color: "#444", fontWeight: 600, textTransform: "uppercase" }}>Quản Lý Cửa Hàng · ALDO</p>
-        <h1 style={{ fontSize: 28, fontWeight: 300, color: "#E8E8E8", letterSpacing: "0.04em" }}>Bộ Sưu Tập</h1>
+      <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.28 }} style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <div style={{
+          width: 42, height: 42, borderRadius: 13,
+          background: "linear-gradient(135deg, rgba(201,165,90,0.18) 0%, rgba(201,165,90,0.06) 100%)",
+          border: "1px solid rgba(201,165,90,0.35)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          boxShadow: "0 4px 16px rgba(201,165,90,0.16)",
+          flexShrink: 0,
+        }}>
+          <Sparkles size={18} color="var(--gold)" />
+        </div>
+        <div>
+          <p style={{ fontSize: 8.5, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.32em", margin: 0 }}>POSTLAIN</p>
+          <h1 style={{ fontSize: 22, fontWeight: 300, color: "var(--text-primary)", margin: 0, letterSpacing: "0.01em", lineHeight: 1.2 }}>Bộ Sưu Tập</h1>
+        </div>
       </motion.div>
 
       {/* Thanh pipeline */}
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}
-        style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 1, background: "#1A1A1A", borderRadius: 12, overflow: "hidden", border: "1px solid #1A1A1A" }}
+        style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 1, background: "rgba(186,230,253,0.3)", borderRadius: 14, overflow: "hidden", border: "1px solid rgba(186,230,253,0.55)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)" }}
       >
         {STATUS_ORDER.map(s => {
           const cfg   = STATUS_CFG[s];
@@ -76,14 +88,14 @@ export default function CollectionsPage() {
           const isA   = filter === s;
           return (
             <button key={s} onClick={() => setFilter(prev => prev === s ? "all" : s)}
-              style={{ padding: "16px 14px", background: isA ? "#111" : "#0A0A0A", border: "none", cursor: "pointer", fontFamily: "inherit", display: "flex", flexDirection: "column", gap: 8, borderBottom: `2px solid ${isA ? cfg.color : "transparent"}`, transition: "all 0.14s" }}
+              style={{ padding: "16px 14px", background: isA ? "rgba(255,255,255,0.88)" : "rgba(255,255,255,0.44)", border: "none", cursor: "pointer", fontFamily: "inherit", display: "flex", flexDirection: "column", gap: 8, borderBottom: `2px solid ${isA ? cfg.color : "transparent"}`, transition: "all 0.14s" }}
             >
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                 <Icon size={12} color={cfg.color} strokeWidth={1.5} />
-                <span style={{ fontSize: 15, fontWeight: 300, color: isA ? cfg.color : "#444" }}>{byStatus[s] || 0}</span>
+                <span style={{ fontSize: 15, fontWeight: 300, color: isA ? cfg.color : "var(--text-muted)" }}>{byStatus[s] || 0}</span>
               </div>
               <div style={{ textAlign: "left" }}>
-                <p style={{ fontSize: 9, letterSpacing: "0.16em", color: isA ? cfg.color : "#333", fontWeight: 600 }}>{cfg.vi.toUpperCase()}</p>
+                <p style={{ fontSize: 9, letterSpacing: "0.16em", color: isA ? cfg.color : "var(--text-muted)", fontWeight: 600 }}>{cfg.vi.toUpperCase()}</p>
               </div>
             </button>
           );
@@ -91,12 +103,12 @@ export default function CollectionsPage() {
       </motion.div>
 
       {/* Filter pills */}
-      <div style={{ display: "flex", gap: 5 }}>
-        <button onClick={() => setFilter("all")} style={{ padding: "4px 12px", borderRadius: 6, border: "1px solid", borderColor: filter === "all" ? "#C9A55A44" : "#1C1C1C", background: filter === "all" ? "#C9A55A10" : "transparent", color: filter === "all" ? "#C9A55A" : "#444", fontSize: 9, letterSpacing: "0.12em", cursor: "pointer", fontFamily: "inherit" }}>Tất Cả</button>
+      <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
+        <button onClick={() => setFilter("all")} style={{ padding: "4px 12px", borderRadius: 6, border: "1px solid", borderColor: filter === "all" ? "rgba(201,165,90,0.4)" : "var(--border)", background: filter === "all" ? "rgba(201,165,90,0.10)" : "var(--bg-surface)", color: filter === "all" ? "var(--gold)" : "var(--text-muted)", fontSize: 9, letterSpacing: "0.12em", cursor: "pointer", fontFamily: "inherit" }}>Tất Cả</button>
         {STATUS_ORDER.map(s => {
           const cfg = STATUS_CFG[s];
           const isA = filter === s;
-          return <button key={s} onClick={() => setFilter(s)} style={{ padding: "4px 12px", borderRadius: 6, border: "1px solid", borderColor: isA ? cfg.color + "55" : "#1C1C1C", background: isA ? cfg.bg : "transparent", color: isA ? cfg.color : "#444", fontSize: 9, letterSpacing: "0.12em", cursor: "pointer", fontFamily: "inherit" }}>{cfg.vi}</button>;
+          return <button key={s} onClick={() => setFilter(s)} style={{ padding: "4px 12px", borderRadius: 6, border: "1px solid", borderColor: isA ? cfg.color + "55" : "var(--border)", background: isA ? cfg.bg : "var(--bg-surface)", color: isA ? cfg.color : "var(--text-muted)", fontSize: 9, letterSpacing: "0.12em", cursor: "pointer", fontFamily: "inherit" }}>{cfg.vi}</button>;
         })}
       </div>
 
@@ -108,23 +120,23 @@ export default function CollectionsPage() {
           const open = expanded === col.id;
           return (
             <motion.div key={col.id} custom={i} initial="hidden" animate="visible" variants={fadeUp}
-              style={{ background: "#0A0A0A", border: "1px solid #1A1A1A", borderRadius: 12, overflow: "hidden" }}
+              style={{ background: "rgba(255,255,255,0.88)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", border: "1px solid rgba(186,230,253,0.55)", borderRadius: 12, overflow: "hidden", boxShadow: "0 2px 12px rgba(12,26,46,0.06)" }}
             >
               <button onClick={() => setExpanded(open ? null : col.id)}
                 style={{ width: "100%", padding: "14px 20px", background: "transparent", border: "none", cursor: "pointer", fontFamily: "inherit", display: "grid", gridTemplateColumns: "1fr auto auto auto auto", gap: 16, alignItems: "center" }}
               >
                 <div style={{ textAlign: "left" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <span style={{ fontSize: 14, fontWeight: 500, color: "#CCC" }}>{col.name}</span>
+                    <span style={{ fontSize: 14, fontWeight: 500, color: "var(--text-primary)" }}>{col.name}</span>
                     <span style={{ fontSize: 8, padding: "2px 7px", borderRadius: 4, background: GENDER_COLOR[col.gender] + "18", color: GENDER_COLOR[col.gender], letterSpacing: "0.1em", fontWeight: 600 }}>{GENDER_LABEL[col.gender].toUpperCase()}</span>
                   </div>
-                  <p style={{ fontSize: 9, color: "#333", marginTop: 3 }}>{col.desc}</p>
+                  <p style={{ fontSize: 9, color: "var(--text-muted)", marginTop: 3 }}>{col.desc}</p>
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 5, color: "#444" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 5, color: "var(--text-muted)" }}>
                   <CalendarDays size={11} strokeWidth={1.5} />
                   <span style={{ fontSize: 9 }}>{fmtDate(col.launch)} – {fmtDate(col.end)}</span>
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 5, color: "#444" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 5, color: "var(--text-muted)" }}>
                   <Package size={11} strokeWidth={1.5} />
                   <span style={{ fontSize: 11 }}>{col.count}</span>
                 </div>
@@ -133,7 +145,7 @@ export default function CollectionsPage() {
                   <span style={{ fontSize: 8, color: cfg.color, letterSpacing: "0.12em", fontWeight: 600 }}>{cfg.vi.toUpperCase()}</span>
                 </div>
                 <motion.div animate={{ rotate: open ? 90 : 0 }} transition={{ duration: 0.18 }}>
-                  <ChevronRight size={13} color="#333" strokeWidth={1.5} />
+                  <ChevronRight size={13} color="var(--text-muted)" strokeWidth={1.5} />
                 </motion.div>
               </button>
 
@@ -141,7 +153,7 @@ export default function CollectionsPage() {
               <AnimatePresence initial={false}>
                 {open && (
                   <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.2 }} style={{ overflow: "hidden" }}>
-                    <div style={{ borderTop: "1px solid #141414", padding: "14px 20px", display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12 }}>
+                    <div style={{ borderTop: "1px solid var(--border-subtle)", padding: "14px 20px", display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12 }}>
                       {STATUS_ORDER.map(s => {
                         const scfg  = STATUS_CFG[s];
                         const SIcon = scfg.icon;
@@ -149,10 +161,10 @@ export default function CollectionsPage() {
                         const isPast = STATUS_ORDER.indexOf(s) < STATUS_ORDER.indexOf(col.status);
                         return (
                           <div key={s} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 5, opacity: isCur ? 1 : isPast ? 0.45 : 0.18 }}>
-                            <div style={{ width: 30, height: 30, borderRadius: 7, background: isCur ? scfg.bg : "transparent", border: `1px solid ${isCur ? scfg.color + "55" : "#1A1A1A"}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                              <SIcon size={12} color={isCur ? scfg.color : "#444"} strokeWidth={1.5} />
+                            <div style={{ width: 30, height: 30, borderRadius: 7, background: isCur ? scfg.bg : "transparent", border: `1px solid ${isCur ? scfg.color + "55" : "var(--border-subtle)"}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                              <SIcon size={12} color={isCur ? scfg.color : "var(--text-muted)"} strokeWidth={1.5} />
                             </div>
-                            <p style={{ fontSize: 8, color: isCur ? scfg.color : "#333", letterSpacing: "0.08em", textAlign: "center" }}>{scfg.vi.toUpperCase()}</p>
+                            <p style={{ fontSize: 8, color: isCur ? scfg.color : "var(--text-muted)", letterSpacing: "0.08em", textAlign: "center" }}>{scfg.vi.toUpperCase()}</p>
                           </div>
                         );
                       })}
