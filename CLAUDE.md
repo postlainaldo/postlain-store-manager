@@ -79,6 +79,86 @@ staff       → legacy (treat as staff_ft)
 
 ---
 
+## DB Types — source of truth (`src/lib/dbAdapter.ts`)
+
+### DBUser
+```typescript
+{ id, name, username, passwordHash, role, active: number,
+  createdAt, avatar?, status?, bio?, phone?, fullName?,
+  employeeCode?, email? }
+```
+- `username` = login name (readonly after create)
+- `email` = separate field for admin contact info (NOT same as username)
+- `employeeCode` = mã nhân viên (HR code)
+- `active`: 1 = active, 0 = disabled
+
+### DBProduct
+```typescript
+{ id, name, sku?, category, productType?, quantity, price?,
+  markdownPrice?, color?, size?, imagePath?, notes?,
+  createdAt, updatedAt }
+```
+
+### DBShiftSlot
+```typescript
+{ id, templateId, date, name, startTime, endTime,
+  color, maxStaff, note?, createdAt, updatedAt, staffType? }
+```
+
+### DBShiftRegistration
+```typescript
+{ id, slotId, userId, userName, status, note?, createdAt, updatedAt }
+// status: "pending" | "approved" | "rejected"
+```
+
+### DBShiftRequest (admin-managed)
+```typescript
+{ id, slotId, userId, userName, status, note?, createdAt, updatedAt }
+```
+
+### DBMessage
+```typescript
+{ id, roomId, userId, userName, content, createdAt,
+  deletedAt?, editedAt?, mediaUrl?, mediaType?,
+  replyToId?, reactions?, pinnedAt?, pinnedBy?, revokedAt? }
+```
+
+### DBMovement
+```typescript
+{ id, productId?, productName, variant, type,
+  fromLoc?, toLoc?, qty, byUser, createdAt }
+```
+
+---
+
+## API Routes — Key Contracts
+
+### Auth
+- `POST /api/auth` — `{ username, password }` → `{ id, name, role, ... }` or 401
+- `GET /api/auth/profile?id=xxx` — get profile
+
+### Profile
+- `GET /api/profile?id=xxx` — single user
+- `GET /api/profile` — all users (team view), filters `active=1`
+- `PUT /api/profile` — `{ id, name, fullName, bio, phone, email, employeeCode, avatar, status }`
+
+### Shifts
+- `GET /api/shifts?from=YYYY-MM-DD&to=YYYY-MM-DD` — slots + registrations
+- `POST /api/shifts` — create slot
+- `PUT /api/shifts` — update slot
+- `DELETE /api/shifts?id=xxx` — delete slot
+- `GET /api/shifts/register` — get registrations
+- `POST /api/shifts/register` — `{ slotId, userId, userName }` → register (status: pending)
+- `PUT /api/shifts/register` — `{ id, status, note }` → approve/reject
+- `DELETE /api/shifts/register?id=xxx` — cancel registration
+- `GET /api/shifts/export?from=&to=` — Excel file
+
+### Stores
+- `GET /api/stores` — list active stores (reads STORES_JSON env → stores.json → DEFAULT_STORES)
+- Store list config: `data/stores.json`
+
+---
+
 ## Inventory Page — RSC Split
 
 `src/app/inventory/page.tsx` = Server Component (async, reads DB directly)
@@ -93,7 +173,9 @@ Filters use **URL Search Params** (not useState):
 
 ## Schedule Page — Key Logic
 
-`src/app/schedule/page.tsx` — all in one client component (large file).
+`src/app/schedule/page.tsx` — all in one client component (~2000 lines).
+
+**Slot label format:** `{DAYS_VI[d.getDay()]} · {s.name}` — NO date number in middle.
 
 **Polling fix pattern** — prevent interval leak:
 ```typescript
@@ -114,6 +196,25 @@ const fetchMsgs = useCallback(async () => {
 - Staff registers → `status: "pending"`
 - Admin approves → `status: "approved"`
 - Admin can edit note/status on ANY request (not just pending)
+
+**Optimistic updates:** all register/cancel/approve/reject actions update `registrations` state directly via `setRegistrations()` — only call `load()` on error. No full reload on action.
+
+---
+
+## Profile Page — Key Logic
+
+`src/app/profile/page.tsx` — single client component (~2250 lines).
+
+**Form fields (THÔNG TIN CƠ BẢN):**
+- Họ và Tên = `fullName`
+- Số điện thoại = `phone`
+- Email = `email` (admin contact, NOT login username)
+- Mã nhân viên = `employeeCode`
+
+**Read-only display (not editable):**
+- Tên đăng nhập = `username` (login name, readonly)
+
+**Tab Nhóm:** shows each member's `phone`, `email`, `employeeCode`.
 
 ---
 
@@ -152,63 +253,77 @@ Key details:
 
 ---
 
-## Multi-Tenant Architecture — CRITICAL
+## Multi-Tenant Architecture
 
-Hệ thống hỗ trợ nhiều cửa hàng trên cùng 1 deployment.
+Single active store: **postlain**. Roy Villa đã bị xóa.
 
 **User flow:**
 ```
 / → store-select (chọn store) → /login?store=xxx → dashboard
 ```
 
-**Config stores:** `data/stores.json` — thêm store mới vào đây, set `active: true`.
-**API:** `GET /api/stores` trả danh sách active stores (public, không cần auth).
+**Config stores:** `data/stores.json` — chỉ có `postlain`. Để thêm store mới: thêm entry vào đây.
+**API:** `GET /api/stores` đọc theo thứ tự: `STORES_JSON` env → `data/stores.json` → DEFAULT_STORES fallback.
 
 **storeId routing:**
 - Middleware (`src/middleware.ts`) đọc cookie `plsm_store_id` → set header `x-store-id` trên mọi API request
 - Mỗi API route gọi `setActiveStore(getStoreId(req))` ở đầu handler
 - `getStoreId(req)` ưu tiên: `STORE_ID` env var → `x-store-id` header → `"postlain"` fallback
 
-**SQLite:** mỗi store = file riêng `data/{storeId}.db` — `getDb(storeId)` tự tạo nếu chưa có.
-**Supabase:** 1 project dùng chung, phân tách bằng cột `store_id` trong mọi bảng chính (users, products, shift_slots, movements, pos_orders...). Data cũ mặc định `store_id = 'postlain'`.
+**SQLite:** mỗi store = file riêng `data/{storeId}.db`
+**Supabase:** 1 project dùng chung, phân tách bằng cột `store_id` trong mọi bảng.
 
-**Single-tenant Coolify deploy:** set env var `STORE_ID=postlain` → bypass multi-tenant hoàn toàn.
-
-**Helpers:**
-```typescript
-// src/lib/storeContext.ts
-import { getStoreId } from "@/lib/storeContext";
-import { setActiveStore } from "@/lib/supabase";
-
-// Đầu mỗi API route handler:
-setActiveStore(getStoreId(req));
-```
-
-**Zustand:** `currentStoreId` trong store, `sel.currentStoreId` / `sel.setCurrentStoreId`.
-Set storeId khi chọn store → tự write localStorage + cookie.
+**Single-tenant Coolify deploy:** set env var `STORE_ID=postlain` → bypass multi-tenant.
 
 ---
 
 ## Dual-DB Pattern — CRITICAL
 
-Every data access must branch on `IS_SUPABASE`:
-
 ```typescript
-import { IS_SUPABASE, getSupabase, getActiveStoreId } from "@/lib/supabase";
+import { getIsSupabase, getSupabase, getActiveStoreId } from "@/lib/supabase";
 import getDb from "@/lib/database";
 
-if (IS_SUPABASE) {
+if (getIsSupabase()) {
   const sb = getSupabase();
-  // Supabase query — luôn filter .eq("store_id", getActiveStoreId())
+  // Supabase — filter .eq("store_id", getActiveStoreId())
 } else {
-  const db = getDb(getActiveStoreId()); // SQLite — file theo storeId
-  // SQLite query
+  const db = getDb(getActiveStoreId());
+  // SQLite
 }
 ```
 
-- All DB functions are in `src/lib/dbAdapter.ts` — dùng `getStoreDb()` helper, không gọi `getDb()` trực tiếp.
-- `IS_SUPABASE = true` when `NEXT_PUBLIC_SUPABASE_URL` env var is set.
-- Native modules (`better-sqlite3`, `exceljs`) must stay in `serverExternalPackages` in `next.config.mjs`.
+- `getIsSupabase()` = function (NOT constant) — returns true when Supabase env vars set
+- `IS_SUPABASE` also exported as constant for backward compat
+- All DB functions in `src/lib/dbAdapter.ts` — use `getStoreDb()` helper inside adapter
+- `dbAdapter.ts` imports: `import { getIsSupabase as IS_SUPABASE, ... }` then calls `IS_SUPABASE()` as function
+- Native modules (`better-sqlite3`, `exceljs`) must stay in `serverExternalPackages` in `next.config.mjs`
+
+---
+
+## Login Page — Portal Pattern
+
+`src/app/login/page.tsx` — `perspective: 900` on container creates stacking context.
+Footer modals use `createPortal(content, document.body)` to escape it.
+Pattern:
+```typescript
+const [mounted, setMounted] = useState(false);
+useEffect(() => { setMounted(true); }, []);
+
+{mounted && createPortal(
+  <AnimatePresence>
+    {active && <>...</>}
+  </AnimatePresence>,
+  document.body
+)}
+```
+`AnimatePresence` must be INSIDE the portal, not outside.
+
+---
+
+## Server RAM / Build
+
+Server: 8GB RAM, typically 87%+ used by Coolify stack.
+Build uses `NODE_OPTIONS='--max-old-space-size=512'` in package.json build script to prevent OOM kill.
 
 ---
 
@@ -221,4 +336,7 @@ if (IS_SUPABASE) {
 5. **`useSearchParams()`** in a client component rendered from RSC needs a `<Suspense>` wrapper.
 6. **Zustand `skipHydration: true`** — call `useStore.persist.rehydrate()` manually on mount if needed.
 7. **Multi-tenant API routes** — mọi route handler phải gọi `setActiveStore(getStoreId(req))` ở đầu.
-8. **Thêm store mới** — chỉ cần thêm entry vào `data/stores.json`. SQLite tự tạo DB mới. Supabase dùng `store_id` filter.
+8. **`getIsSupabase()` là function** — gọi `IS_SUPABASE()` không phải `IS_SUPABASE`.
+9. **`email` ≠ `username`** — email là field riêng cho admin nắm thông tin NV, username là login name.
+10. **Footer modals on login** — dùng portal + mounted state, AnimatePresence bên TRONG portal.
+11. **stores.json bị Coolify volume đè** — API đọc từ `STORES_JSON` env var trước, fallback file, fallback DEFAULT_STORES. Đừng hardcode store vào DEFAULT_STORES.
