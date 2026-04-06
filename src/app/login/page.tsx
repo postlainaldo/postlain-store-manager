@@ -307,9 +307,24 @@ function LoginInner() {
   const searchParams   = useSearchParams();
   const login          = useStore(sel.login);
   const setStoreId     = useStore(sel.setCurrentStoreId);
+  const currentStoreId = useStore(sel.currentStoreId);
   const sfx            = useSFX();
   const capsOn         = useCapsLock();
   const online         = useOnlineStatus();
+
+  const [storeName, setStoreName] = useState<string | null>(null);
+
+  // Fetch tên store để hiển thị
+  useEffect(() => {
+    if (!currentStoreId) return;
+    fetch("/api/stores")
+      .then(r => r.json())
+      .then((stores: { id: string; name: string }[]) => {
+        const found = stores.find(s => s.id === currentStoreId);
+        if (found) setStoreName(found.name);
+      })
+      .catch(() => {});
+  }, [currentStoreId]);
 
   // Set storeId từ URL param khi load trang
   useEffect(() => {
@@ -532,8 +547,40 @@ function LoginInner() {
             POSTLAIN
           </motion.p>
           <p style={{ fontSize: 8.5, color: "rgba(148,163,184,0.55)", letterSpacing: "0.20em", marginTop: 5, textTransform: "uppercase" }}>
-            Store Manager — Đà Lạt
+            Store Manager
           </p>
+
+          {/* Store badge + đổi cửa hàng */}
+          {storeName && (
+            <motion.div
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 10 }}
+            >
+              <div style={{
+                display: "flex", alignItems: "center", gap: 5,
+                background: "rgba(201,165,90,0.12)",
+                border: "1px solid rgba(201,165,90,0.30)",
+                borderRadius: 20, padding: "3px 10px 3px 8px",
+              }}>
+                <div style={{ width: 5, height: 5, borderRadius: "50%", background: "#c9a55a" }} />
+                <span style={{ fontSize: 9.5, color: "#c9a55a", fontWeight: 700, letterSpacing: "0.06em" }}>
+                  {storeName}
+                </span>
+              </div>
+              <button
+                onClick={() => { setStoreId(null as unknown as string); router.push("/store-select"); }}
+                style={{
+                  background: "none", border: "none", cursor: "pointer",
+                  fontSize: 8.5, color: "rgba(148,163,184,0.45)",
+                  letterSpacing: "0.06em", padding: "2px 4px",
+                  textDecoration: "underline", textUnderlineOffset: 2,
+                }}
+              >
+                đổi
+              </button>
+            </motion.div>
+          )}
 
           {/* Online indicator */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 5, marginTop: 10 }}>
