@@ -44,6 +44,9 @@ COPY --from=builder /app/node_modules/file-uri-to-path    ./node_modules/file-ur
 
 RUN mkdir -p /app/data && chown nextjs:nodejs /app/data
 
+# stores.json — config danh sách cửa hàng (không phải DB, cần có trong image)
+COPY --from=builder /app/data/stores.json ./data/stores.json
+
 USER nextjs
 EXPOSE 3000
 ENV PORT=3000
