@@ -403,20 +403,18 @@ export async function ensureSupabaseSchema() {
 export async function dbGetUsers(): Promise<DBUser[]> {
   if (IS_SUPABASE) {
     const sb = getSupabase();
-    try {
-      const { data, error } = await sb
-        .from("users")
-        .select("id, name, username, role, active, createdAt, avatar, status, bio, phone, fullName, employeeCode")
-        .eq("store_id", sid())
-        .order("createdAt");
-      if (!error) return (data ?? []) as DBUser[];
-    } catch {}
-    // Fallback without store_id
     const { data } = await sb
       .from("users")
       .select("id, name, username, role, active, createdAt, avatar, status, bio, phone, fullName, employeeCode")
+      .eq("store_id", sid())
       .order("createdAt");
-    return (data ?? []) as DBUser[];
+    if (data && data.length > 0) return data as DBUser[];
+    // Fallback without store_id (data not yet migrated or store_id mismatch)
+    const { data: data2 } = await sb
+      .from("users")
+      .select("id, name, username, role, active, createdAt, avatar, status, bio, phone, fullName, employeeCode")
+      .order("createdAt");
+    return (data2 ?? []) as DBUser[];
   }
   return getStoreDb().prepare("SELECT id, name, username, role, active, createdAt, avatar, status, bio, phone, fullName, employeeCode FROM users ORDER BY createdAt").all() as DBUser[];
 }
