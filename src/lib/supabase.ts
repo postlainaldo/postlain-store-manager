@@ -1,41 +1,32 @@
 /**
  * Supabase client — server-side only (uses service role key for full access)
- * Used for persistent data storage (Supabase PostgreSQL).
  *
- * Multi-tenant: dùng chung 1 Supabase project, phân tách bằng cột store_id.
- * Dùng getSupabaseForStore(storeId) để lấy client đã set default filter.
+ * Multi-tenant: mỗi store có Supabase project riêng.
+ * Dùng getSupabase() để lấy client đúng store đang active.
  */
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 
-declare global {
-  // eslint-disable-next-line no-var
-  var __supabase: SupabaseClient | undefined;
-}
+// ─── Per-store Supabase credentials ──────────────────────────────────────────
 
-export function getSupabase(): SupabaseClient {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !key) throw new Error("Supabase env vars not set");
-  // Always create with current key — don't cache (service role key only available at runtime)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return createClient(url, key, { auth: { persistSession: false } }) as any;
-}
+type StoreCredentials = {
+  url: string;
+  key: string;
+};
 
-/** Returns true when Supabase env vars are configured */
-export const IS_SUPABASE = !!(
-  process.env.NEXT_PUBLIC_SUPABASE_URL &&
-  (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
-);
+const STORE_CREDENTIALS: Record<string, StoreCredentials> = {
+  postlain: {
+    url: process.env.NEXT_PUBLIC_SUPABASE_URL ?? "",
+    key: process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "",
+  },
+  royvilla: {
+    url: process.env.ROYVILLA_SUPABASE_URL ?? "https://owidlhxqawukduqvlikd.supabase.co",
+    key: process.env.ROYVILLA_SUPABASE_KEY ?? "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im93aWRsaHhxYXd1a2R1cXZsaWtkIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NTQ4MTkyOSwiZXhwIjoyMDkxMDU3OTI5fQ.GL9OBUEmPUI2z57RWIQ6K9ViuU7WSgPGdh7rEIw7msI",
+  },
+};
 
-/**
- * Active storeId được set bởi API route trước khi gọi dbAdapter.
- * Pattern: setActiveStore(storeId) → dbAdapter functions → reset.
- *
- * Dùng AsyncLocalStorage trong tương lai nếu concurrency là vấn đề.
- * Hiện tại Next.js route handlers là sequential per-request nên safe.
- */
+// ─── Active store context ─────────────────────────────────────────────────────
+
 let _activeStoreId = process.env.STORE_ID ?? "postlain";
 
 export function setActiveStore(id: string) {
@@ -45,3 +36,27 @@ export function setActiveStore(id: string) {
 export function getActiveStoreId(): string {
   return _activeStoreId;
 }
+
+// ─── Client factory ───────────────────────────────────────────────────────────
+
+export function getSupabase(): SupabaseClient {
+  const storeId = _activeStoreId;
+  const creds = STORE_CREDENTIALS[storeId] ?? STORE_CREDENTIALS["postlain"];
+  const { url, key } = creds;
+  if (!url || !key) throw new Error(`Supabase credentials not set for store: ${storeId}`);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return createClient(url, key, { auth: { persistSession: false } }) as any;
+}
+
+/** Returns true when current active store has Supabase credentials */
+export function getIsSupabase(): boolean {
+  const storeId = _activeStoreId;
+  const creds = STORE_CREDENTIALS[storeId] ?? STORE_CREDENTIALS["postlain"];
+  return !!(creds.url && creds.key);
+}
+
+/** Legacy constant — true when postlain Supabase env vars are set OR royvilla is active */
+export const IS_SUPABASE = !!(
+  process.env.NEXT_PUBLIC_SUPABASE_URL &&
+  (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
+);
