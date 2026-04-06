@@ -406,15 +406,8 @@ export async function dbGetUsers(): Promise<DBUser[]> {
     const { data } = await sb
       .from("users")
       .select("id, name, username, role, active, createdAt, avatar, status, bio, phone, fullName, employeeCode")
-      .eq("store_id", sid())
       .order("createdAt");
-    if (data && data.length > 0) return data as DBUser[];
-    // Fallback without store_id (data not yet migrated or store_id mismatch)
-    const { data: data2 } = await sb
-      .from("users")
-      .select("id, name, username, role, active, createdAt, avatar, status, bio, phone, fullName, employeeCode")
-      .order("createdAt");
-    return (data2 ?? []) as DBUser[];
+    return (data ?? []) as DBUser[];
   }
   return getStoreDb().prepare("SELECT id, name, username, role, active, createdAt, avatar, status, bio, phone, fullName, employeeCode FROM users ORDER BY createdAt").all() as DBUser[];
 }
