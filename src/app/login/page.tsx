@@ -5,7 +5,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence, useMotionValue, useSpring } from "framer-motion";
 import {
   Eye, EyeOff, Lock, User, AlertCircle, Check, ArrowRight,
-  Shield, Wifi, WifiOff, Sparkles,
+  Shield, Wifi, WifiOff, Sparkles, Store, ChevronRight,
+  MessageCircle, FileText, ShieldCheck, X,
 } from "lucide-react";
 import { useStore, sel } from "@/store/useStore";
 import { useSFX, unlockAudio } from "@/hooks/useSFX";
@@ -298,6 +299,223 @@ function Field({
   );
 }
 
+// ─── Footer links with modal ──────────────────────────────────────────────────
+
+const FOOTER_CONTENT = {
+  support: {
+    icon: MessageCircle,
+    title: "Hỗ trợ",
+    color: "#38bdf8",
+    sections: [
+      {
+        heading: "Liên hệ",
+        items: [
+          "Zalo / điện thoại: liên hệ quản lý cửa hàng",
+          "Sự cố hệ thống: báo ngay cho admin",
+        ],
+      },
+      {
+        heading: "Câu hỏi thường gặp",
+        items: [
+          "Quên mật khẩu → liên hệ admin để đặt lại",
+          "Không vào được → kiểm tra kết nối mạng",
+          "Lỗi dữ liệu → chụp màn hình và báo admin",
+        ],
+      },
+    ],
+  },
+  terms: {
+    icon: FileText,
+    title: "Điều khoản sử dụng",
+    color: "#a78bfa",
+    sections: [
+      {
+        heading: "Phạm vi sử dụng",
+        items: [
+          "Hệ thống chỉ dành cho nhân viên POSTLAIN được cấp phép",
+          "Không chia sẻ tài khoản với người không thuộc cửa hàng",
+          "Mọi hành động trong hệ thống được ghi lại nhật ký",
+        ],
+      },
+      {
+        heading: "Trách nhiệm",
+        items: [
+          "Bảo mật thông tin đăng nhập là trách nhiệm cá nhân",
+          "Không sử dụng hệ thống vào mục đích ngoài công việc",
+          "Vi phạm có thể dẫn đến thu hồi quyền truy cập",
+        ],
+      },
+    ],
+  },
+  privacy: {
+    icon: ShieldCheck,
+    title: "Chính sách bảo mật",
+    color: "#34d399",
+    sections: [
+      {
+        heading: "Dữ liệu thu thập",
+        items: [
+          "Tên đăng nhập và hoạt động trong hệ thống",
+          "Thông tin thiết bị và thời gian truy cập",
+          "Dữ liệu nghiệp vụ: đơn hàng, kho, lịch làm việc",
+        ],
+      },
+      {
+        heading: "Bảo vệ dữ liệu",
+        items: [
+          "Mật khẩu được mã hóa, không lưu dạng plaintext",
+          "Kết nối HTTPS/TLS 1.3 cho toàn bộ traffic",
+          "Dữ liệu lưu trên server nội bộ, không bán cho bên thứ ba",
+        ],
+      },
+    ],
+  },
+};
+
+function FooterLinks() {
+  const [open, setOpen] = useState<keyof typeof FOOTER_CONTENT | null>(null);
+  const active = open ? FOOTER_CONTENT[open] : null;
+
+  return (
+    <>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 0 }}>
+        {(["support", "terms", "privacy"] as const).map((key, i) => {
+          const item = FOOTER_CONTENT[key];
+          const Icon = item.icon;
+          return (
+            <span key={key} style={{ display: "flex", alignItems: "center" }}>
+              {i > 0 && (
+                <span style={{ width: 1, height: 10, background: "rgba(148,163,184,0.12)", margin: "0 10px", display: "block" }} />
+              )}
+              <motion.button
+                onClick={() => setOpen(key)}
+                whileHover={{ scale: 1.06 }}
+                whileTap={{ scale: 0.94 }}
+                style={{
+                  display: "flex", alignItems: "center", gap: 4,
+                  background: "none", border: "none", cursor: "pointer", padding: "4px 6px",
+                  borderRadius: 8,
+                }}
+              >
+                <Icon size={9} style={{ color: "rgba(148,163,184,0.30)" }} />
+                <span style={{ fontSize: 8.5, color: "rgba(148,163,184,0.32)", letterSpacing: "0.05em" }}>
+                  {item.title}
+                </span>
+              </motion.button>
+            </span>
+          );
+        })}
+      </div>
+
+      {/* Modal overlay */}
+      <AnimatePresence>
+        {active && (
+          <>
+            <motion.div
+              key="overlay"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setOpen(null)}
+              style={{
+                position: "fixed", inset: 0, zIndex: 300,
+                background: "rgba(0,0,0,0.60)",
+                backdropFilter: "blur(6px)",
+              }}
+            />
+            <motion.div
+              key="modal"
+              initial={{ opacity: 0, y: 24, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 16, scale: 0.97 }}
+              transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+              style={{
+                position: "fixed", left: "50%", top: "50%",
+                transform: "translate(-50%, -50%)",
+                zIndex: 301,
+                width: "calc(100vw - 48px)", maxWidth: 380,
+                background: "rgba(8,18,36,0.96)",
+                border: "1px solid rgba(255,255,255,0.08)",
+                borderRadius: 24,
+                boxShadow: "0 32px 80px rgba(0,0,0,0.70), 0 0 0 1px rgba(255,255,255,0.04)",
+                overflow: "hidden",
+              }}
+            >
+              {/* Modal header */}
+              <div style={{
+                padding: "20px 22px 16px",
+                borderBottom: "1px solid rgba(255,255,255,0.06)",
+                display: "flex", alignItems: "center", justifyContent: "space-between",
+                background: `linear-gradient(135deg, rgba(${active.color === "#38bdf8" ? "56,189,248" : active.color === "#a78bfa" ? "167,139,250" : "52,211,153"},0.08) 0%, transparent 100%)`,
+              }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div style={{
+                    width: 34, height: 34, borderRadius: 10,
+                    background: `rgba(${active.color === "#38bdf8" ? "56,189,248" : active.color === "#a78bfa" ? "167,139,250" : "52,211,153"},0.12)`,
+                    border: `1px solid rgba(${active.color === "#38bdf8" ? "56,189,248" : active.color === "#a78bfa" ? "167,139,250" : "52,211,153"},0.25)`,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                  }}>
+                    <active.icon size={15} style={{ color: active.color }} />
+                  </div>
+                  <div>
+                    <h3 style={{ fontSize: 14, fontWeight: 700, color: "#e2e8f0", letterSpacing: "-0.01em" }}>
+                      {active.title}
+                    </h3>
+                    <p style={{ fontSize: 9, color: "rgba(148,163,184,0.40)", letterSpacing: "0.04em" }}>
+                      POSTLAIN Store Manager
+                    </p>
+                  </div>
+                </div>
+                <motion.button
+                  onClick={() => setOpen(null)}
+                  whileHover={{ scale: 1.1, background: "rgba(255,255,255,0.10)" }}
+                  whileTap={{ scale: 0.9 }}
+                  style={{
+                    width: 28, height: 28, borderRadius: 8,
+                    background: "rgba(255,255,255,0.05)",
+                    border: "1px solid rgba(255,255,255,0.08)",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    cursor: "pointer", outline: "none",
+                  }}
+                >
+                  <X size={12} style={{ color: "rgba(148,163,184,0.60)" }} />
+                </motion.button>
+              </div>
+
+              {/* Modal body */}
+              <div style={{ padding: "18px 22px 22px", display: "flex", flexDirection: "column", gap: 16 }}>
+                {active.sections.map(section => (
+                  <div key={section.heading}>
+                    <p style={{
+                      fontSize: 8.5, fontWeight: 700, letterSpacing: "0.12em",
+                      color: active.color, textTransform: "uppercase", marginBottom: 8,
+                    }}>
+                      {section.heading}
+                    </p>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                      {section.items.map((item, i) => (
+                        <div key={i} style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+                          <div style={{
+                            width: 4, height: 4, borderRadius: "50%", flexShrink: 0, marginTop: 5,
+                            background: `rgba(${active.color === "#38bdf8" ? "56,189,248" : active.color === "#a78bfa" ? "167,139,250" : "52,211,153"},0.50)`,
+                          }} />
+                          <span style={{ fontSize: 10.5, color: "rgba(148,163,184,0.70)", lineHeight: 1.55 }}>
+                            {item}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+    </>
+  );
+}
+
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 import { Suspense } from "react";
@@ -553,32 +771,45 @@ function LoginInner() {
           {/* Store badge + đổi cửa hàng */}
           {storeName && (
             <motion.div
-              initial={{ opacity: 0, y: 4 }}
-              animate={{ opacity: 1, y: 0 }}
-              style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 10 }}
+              initial={{ opacity: 0, y: 6, scale: 0.94 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+              style={{ display: "flex", justifyContent: "center", marginTop: 12 }}
             >
-              <div style={{
-                display: "flex", alignItems: "center", gap: 5,
-                background: "rgba(201,165,90,0.12)",
-                border: "1px solid rgba(201,165,90,0.30)",
-                borderRadius: 20, padding: "3px 10px 3px 8px",
-              }}>
-                <div style={{ width: 5, height: 5, borderRadius: "50%", background: "#c9a55a" }} />
-                <span style={{ fontSize: 9.5, color: "#c9a55a", fontWeight: 700, letterSpacing: "0.06em" }}>
-                  {storeName}
-                </span>
-              </div>
-              <button
+              <motion.button
                 onClick={() => { setStoreId(null as unknown as string); router.push("/store-select"); }}
+                whileHover={{ scale: 1.04, backgroundColor: "rgba(201,165,90,0.18)" }}
+                whileTap={{ scale: 0.97 }}
                 style={{
-                  background: "none", border: "none", cursor: "pointer",
-                  fontSize: 8.5, color: "rgba(148,163,184,0.45)",
-                  letterSpacing: "0.06em", padding: "2px 4px",
-                  textDecoration: "underline", textUnderlineOffset: 2,
+                  display: "flex", alignItems: "center", gap: 7,
+                  background: "rgba(201,165,90,0.10)",
+                  border: "1px solid rgba(201,165,90,0.28)",
+                  borderRadius: 24, padding: "5px 12px 5px 9px",
+                  cursor: "pointer", outline: "none",
+                  transition: "background 0.2s, border-color 0.2s",
+                  boxShadow: "0 2px 12px rgba(201,165,90,0.10)",
                 }}
               >
-                đổi
-              </button>
+                <div style={{
+                  width: 18, height: 18, borderRadius: "50%",
+                  background: "rgba(201,165,90,0.20)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  flexShrink: 0,
+                }}>
+                  <Store size={9} style={{ color: "#c9a55a" }} />
+                </div>
+                <span style={{ fontSize: 9.5, color: "#c9a55a", fontWeight: 700, letterSpacing: "0.08em", maxWidth: 140, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {storeName}
+                </span>
+                <div style={{
+                  display: "flex", alignItems: "center", gap: 2,
+                  paddingLeft: 4, borderLeft: "1px solid rgba(201,165,90,0.20)",
+                  marginLeft: 1,
+                }}>
+                  <span style={{ fontSize: 8, color: "rgba(201,165,90,0.55)", letterSpacing: "0.06em" }}>đổi</span>
+                  <ChevronRight size={8} style={{ color: "rgba(201,165,90,0.45)" }} />
+                </div>
+              </motion.button>
             </motion.div>
           )}
 
@@ -886,40 +1117,59 @@ function LoginInner() {
             </motion.button>
           </form>
 
-          {/* Bottom divider + info */}
+          {/* Bottom security bar */}
           <div style={{
-            marginTop: 20, paddingTop: 18,
+            marginTop: 20, paddingTop: 16,
             borderTop: "1px solid rgba(255,255,255,0.05)",
-            display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+            display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8,
           }}>
-            <motion.div
-              animate={{ opacity: [0.3, 0.6, 0.3] }}
-              transition={{ duration: 3, repeat: Infinity }}
-            >
-              <Shield size={10} style={{ color: "rgba(148,163,184,0.40)" }} />
-            </motion.div>
-            <span style={{ fontSize: 9, color: "rgba(148,163,184,0.35)", letterSpacing: "0.08em" }}>
-              Kết nối được mã hóa · Dữ liệu bảo mật
-            </span>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <motion.div
+                animate={{ opacity: [0.5, 1, 0.5] }}
+                transition={{ duration: 2.5, repeat: Infinity }}
+                style={{
+                  width: 20, height: 20, borderRadius: 6,
+                  background: "rgba(16,185,129,0.10)",
+                  border: "1px solid rgba(16,185,129,0.20)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                }}
+              >
+                <ShieldCheck size={10} style={{ color: "#10b981" }} />
+              </motion.div>
+              <div>
+                <p style={{ fontSize: 8.5, color: "rgba(148,163,184,0.55)", letterSpacing: "0.04em", fontWeight: 600 }}>
+                  Kết nối TLS 1.3
+                </p>
+                <p style={{ fontSize: 7.5, color: "rgba(148,163,184,0.28)", letterSpacing: "0.03em" }}>
+                  Dữ liệu mã hóa đầu cuối
+                </p>
+              </div>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+              {[
+                { label: "AES-256" },
+                { label: "HTTPS" },
+              ].map(tag => (
+                <span key={tag.label} style={{
+                  fontSize: 7.5, color: "rgba(148,163,184,0.35)",
+                  background: "rgba(255,255,255,0.04)",
+                  border: "1px solid rgba(255,255,255,0.07)",
+                  borderRadius: 6, padding: "2px 6px",
+                  letterSpacing: "0.06em", fontWeight: 600,
+                }}>
+                  {tag.label}
+                </span>
+              ))}
+            </div>
           </div>
         </div>
 
         {/* ── Footer ── */}
-        <div style={{ textAlign: "center", marginTop: 22 }}>
-          <p style={{ fontSize: 8.5, color: "rgba(148,163,184,0.22)", letterSpacing: "0.12em", textTransform: "uppercase" }}>
-            POSTLAIN Store Manager · 2025
+        <div style={{ textAlign: "center", marginTop: 20 }}>
+          <p style={{ fontSize: 8, color: "rgba(148,163,184,0.18)", letterSpacing: "0.14em", textTransform: "uppercase", marginBottom: 12 }}>
+            © {new Date().getFullYear()} POSTLAIN Store Manager
           </p>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 8 }}>
-            {["Hỗ trợ", "Điều khoản", "Bảo mật"].map((label, i) => (
-              <span key={i} style={{
-                fontSize: 8, color: "rgba(148,163,184,0.20)", letterSpacing: "0.06em",
-                display: "flex", alignItems: "center", gap: 8,
-              }}>
-                {i > 0 && <span style={{ width: 2, height: 2, borderRadius: "50%", background: "rgba(148,163,184,0.18)", display: "block" }} />}
-                {label}
-              </span>
-            ))}
-          </div>
+          <FooterLinks />
         </div>
       </motion.div>
     </div>
