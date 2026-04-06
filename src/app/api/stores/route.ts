@@ -42,13 +42,8 @@ function readStores(): StoreConfig[] {
   if (process.env.STORES_JSON) {
     try { return JSON.parse(process.env.STORES_JSON); } catch {}
   }
-  // 2. File trên disk
-  try {
-    return JSON.parse(fs.readFileSync(STORES_PATH, "utf-8"));
-  } catch {
-    // 3. Hardcoded fallback
-    return DEFAULT_STORES;
-  }
+  // 2. Hardcoded default (file on disk may be stale from volume mount)
+  return DEFAULT_STORES;
 }
 
 function writeStores(stores: StoreConfig[]) {
