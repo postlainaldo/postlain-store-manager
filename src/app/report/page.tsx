@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { motion } from "framer-motion";
 import {
   ClipboardList, Sun, Moon, BarChart2, RefreshCw,
   ChevronDown, ChevronUp,
@@ -552,47 +553,56 @@ export default function ReportPage() {
   ];
 
   return (
-    <div style={{ minHeight: "100vh", padding: "16px 16px 90px" }}>
+    <div style={{ minHeight: "100vh", padding: "16px 16px 90px", position: "relative" }}>
       <div style={{ maxWidth: 720, margin: "0 auto" }}>
 
         {/* Header */}
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
+        <motion.div
+          initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.28 }}
+          style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}
+        >
           <div style={{
-            width: 36, height: 36, borderRadius: 10,
-            background: "linear-gradient(135deg, rgba(201,165,90,0.15), rgba(201,165,90,0.06))",
-            border: "1px solid rgba(201,165,90,0.28)",
+            width: 42, height: 42, borderRadius: 13,
+            background: "linear-gradient(135deg, rgba(201,165,90,0.18) 0%, rgba(201,165,90,0.06) 100%)",
+            border: "1px solid rgba(201,165,90,0.35)",
             display: "flex", alignItems: "center", justifyContent: "center",
+            boxShadow: "0 4px 16px rgba(201,165,90,0.16)",
           }}>
-            <ClipboardList size={17} color="var(--gold)" />
+            <ClipboardList size={18} color="var(--gold)" />
           </div>
           <div>
-            <h1 style={{ fontSize: 18, fontWeight: 700, color: "var(--text-primary)", margin: 0, letterSpacing: "-0.01em" }}>Báo Cáo</h1>
-            <p style={{ fontSize: 11, color: "var(--text-muted)", margin: 0, marginTop: 1 }}>
-              Dữ liệu live từ Odoo POS + Palexy
+            <p style={{ fontSize: 8.5, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.32em", margin: 0 }}>
+              POSTLAIN
             </p>
+            <h1 style={{ fontSize: 22, fontWeight: 300, color: "var(--text-primary)", margin: 0, letterSpacing: "0.01em", lineHeight: 1.2 }}>Báo Cáo</h1>
           </div>
-        </div>
+        </motion.div>
 
         {/* Tab bar */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6, marginBottom: 16 }}>
-          {tabs.map(t => (
-            <button key={t.key} onClick={() => setTab(t.key)}
-              className="card-float"
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 20 }}>
+          {tabs.map((t, i) => (
+            <motion.button
+              key={t.key} onClick={() => setTab(t.key)}
+              initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}
+              whileHover={{ y: -2 }} whileTap={{ scale: 0.97 }}
               style={{
-                display: "flex", flexDirection: "column", alignItems: "center", gap: 3,
-                padding: "10px 8px", cursor: "pointer",
+                display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
+                padding: "12px 8px", cursor: "pointer", borderRadius: 14,
                 background: tab === t.key
-                  ? "linear-gradient(135deg, rgba(201,165,90,0.14), rgba(201,165,90,0.06))"
-                  : "rgba(255,255,255,0.75)",
-                border: tab === t.key ? "1px solid rgba(201,165,90,0.38)" : "1px solid rgba(186,230,253,0.5)",
+                  ? "linear-gradient(135deg, rgba(201,165,90,0.16) 0%, rgba(201,165,90,0.06) 100%)"
+                  : "rgba(255,255,255,0.82)",
+                backdropFilter: "blur(12px)",
+                WebkitBackdropFilter: "blur(12px)",
+                border: tab === t.key ? "1px solid rgba(201,165,90,0.42)" : "1px solid rgba(186,230,253,0.65)",
                 color: tab === t.key ? "var(--gold)" : "var(--text-secondary)",
-                boxShadow: tab === t.key ? "0 2px 12px rgba(201,165,90,0.12)" : undefined,
+                boxShadow: tab === t.key ? "0 4px 20px rgba(201,165,90,0.16), inset 0 1px 0 rgba(255,255,255,0.8)" : "0 2px 8px rgba(12,26,46,0.05), inset 0 1px 0 rgba(255,255,255,0.7)",
+                fontFamily: "inherit",
               }}>
               <div style={{ display: "flex", alignItems: "center", gap: 5, fontWeight: 700, fontSize: 12 }}>
                 {t.icon} {t.label}
               </div>
               <div style={{ fontSize: 8.5, opacity: 0.65, textAlign: "center", letterSpacing: "0.02em" }}>{t.sub}</div>
-            </button>
+            </motion.button>
           ))}
         </div>
 

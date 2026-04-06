@@ -1307,9 +1307,9 @@ export default function SchedulePage() {
   })();
 
   return (
-    <div style={{ display:"flex", flexDirection:"column", height:"100%", minHeight:0, background:"#f8fafc" }}>
+    <div style={{ display:"flex", flexDirection:"column", height:"100%", minHeight:0, background:"var(--bg-base)" }}>
       {/* ── Header ── */}
-      <div style={{ padding: isMobile ? "12px 14px 10px" : "16px 20px 12px", background:"#fff", borderBottom:"1px solid #e0f2fe", flexShrink:0 }}>
+      <div style={{ padding: isMobile ? "12px 14px 10px" : "16px 20px 12px", background:"rgba(255,255,255,0.92)", backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)", borderBottom:"1px solid rgba(186,230,253,0.7)", flexShrink:0 }}>
         <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:8 }}>
           <div>
             <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:2 }}>
@@ -1415,7 +1415,7 @@ export default function SchedulePage() {
           <AnimatePresence>
             {showTemplates && isAdmin && (
               <motion.div initial={{ height:0, opacity:0 }} animate={{ height:"auto", opacity:1 }} exit={{ height:0, opacity:0 }} style={{ overflow:"hidden" }}>
-                <div style={{ marginTop:12, padding:14, background:"#f8fafc", borderRadius:12, border:"1px solid #e0f2fe" }}>
+                <div style={{ marginTop:12, padding:14, background:"rgba(255,255,255,0.82)", backdropFilter:"blur(12px)", WebkitBackdropFilter:"blur(12px)", borderRadius:12, border:"1px solid rgba(186,230,253,0.65)" }}>
                   <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:10 }}>
                     <p style={{ fontSize:10, fontWeight:700, color:"#64748b", letterSpacing:"0.12em" }}>MẪU CA LÀM VIỆC</p>
                     <button onClick={()=>{ setAddTemplate(v=>!v); setEditTemplate(null); }}
@@ -1425,7 +1425,7 @@ export default function SchedulePage() {
                   </div>
 
                   {addTemplate && !editTemplate && (
-                    <div style={{ marginBottom:12, padding:14, background:"#fff", borderRadius:10, border:"1px solid #bae6fd" }}>
+                    <div style={{ marginBottom:12, padding:14, background:"rgba(255,255,255,0.95)", borderRadius:10, border:"1px solid rgba(186,230,253,0.7)" }}>
                       <p style={{ fontSize:10, fontWeight:700, color:"#0ea5e9", marginBottom:10 }}>Tạo mẫu mới</p>
                       <TemplateForm onSave={handleSaveTemplate} onClose={()=>setAddTemplate(false)} />
                     </div>
@@ -1472,19 +1472,19 @@ export default function SchedulePage() {
         {/* Week nav + view toggle */}
         <div style={{ display:"flex", alignItems:"center", gap:isMobile?6:8, marginTop:12 }}>
           <button onClick={()=>setWeekOffset(v=>v-1)}
-            style={{ width:30,height:30,borderRadius:9,border:"1px solid #e0f2fe",background:"#fff",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}>
-            <ChevronLeft size={14} style={{ color:"#64748b" }} />
+            style={{ width:30,height:30,borderRadius:9,border:"1px solid var(--border)",background:"rgba(255,255,255,0.88)",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}>
+            <ChevronLeft size={14} style={{ color:"var(--text-muted)" }} />
           </button>
           <button onClick={()=>setWeekOffset(0)}
-            style={{ padding:"5px 10px",borderRadius:9,border:"1px solid #e0f2fe",background:weekOffset===0?"#0c1a2e":"#fff",cursor:"pointer",fontSize:10,fontWeight:700,color:weekOffset===0?"#fff":"#64748b",fontFamily:"inherit",flexShrink:0 }}>
+            style={{ padding:"5px 10px",borderRadius:9,border:"1px solid var(--border)",background:weekOffset===0?"var(--text-primary)":"rgba(255,255,255,0.88)",cursor:"pointer",fontSize:10,fontWeight:700,color:weekOffset===0?"#fff":"var(--text-muted)",fontFamily:"inherit",flexShrink:0 }}>
             Tuần này
           </button>
           <span style={{ fontSize:isMobile?10:11, fontWeight:700, color:"#0c1a2e", flex:1, textAlign:"center" }}>{weekLabel}</span>
           <button onClick={()=>setWeekOffset(v=>v+1)}
-            style={{ width:30,height:30,borderRadius:9,border:"1px solid #e0f2fe",background:"#fff",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}>
-            <ChevronRight size={14} style={{ color:"#64748b" }} />
+            style={{ width:30,height:30,borderRadius:9,border:"1px solid var(--border)",background:"rgba(255,255,255,0.88)",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}>
+            <ChevronRight size={14} style={{ color:"var(--text-muted)" }} />
           </button>
-          <div style={{ display:"flex", gap:2, padding:3, background:"#f0f9ff", borderRadius:10, border:"1px solid #e0f2fe", flexShrink:0 }}>
+          <div style={{ display:"flex", gap:2, padding:3, background:"rgba(14,165,233,0.06)", borderRadius:10, border:"1px solid var(--border)", flexShrink:0 }}>
             {([["week","Tuần"],["staff","NV"]] as const).map(([v,l]) => (
               <button key={v} onClick={()=>setViewMode(v)}
                 style={{ padding:"4px 8px", borderRadius:7, border:"none", background:viewMode===v?"#0ea5e9":"transparent", cursor:"pointer", fontSize:9, fontWeight:700, color:viewMode===v?"#fff":"#64748b", fontFamily:"inherit" }}>
@@ -1555,10 +1555,10 @@ export default function SchedulePage() {
                 const hasSlots = daySlots.length > 0;
 
                 return (
-                  <div key={ds} style={{ borderBottom:"1px solid #f1f5f9" }}>
+                  <div key={ds} style={{ borderBottom:"1px solid var(--border-subtle)" }}>
                     {/* Day header */}
-                    <div style={{ display:"flex", alignItems:"center", gap:10, padding:"10px 16px 8px", background:isToday?"#f0f9ff":"transparent" }}>
-                      <div style={{ width:36, height:36, borderRadius:"50%", background:isToday?"#0ea5e9":"#f1f5f9", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+                    <div style={{ display:"flex", alignItems:"center", gap:10, padding:"10px 16px 8px", background:isToday?"rgba(14,165,233,0.06)":"transparent" }}>
+                      <div style={{ width:36, height:36, borderRadius:"50%", background:isToday?"#0ea5e9":"rgba(186,230,253,0.4)", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
                         <div style={{ textAlign:"center" }}>
                           <p style={{ fontSize:8, fontWeight:700, color:isToday?"#fff":"#94a3b8", lineHeight:1 }}>{DAYS_VI[date.getUTCDay()]}</p>
                           <p style={{ fontSize:13, fontWeight:800, color:isToday?"#fff":isPast?"#cbd5e1":"#0c1a2e", lineHeight:1.2 }}>{date.getUTCDate()}</p>
@@ -1908,9 +1908,9 @@ export default function SchedulePage() {
           <motion.div
             initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
             transition={{ type:"spring", damping:30, stiffness:300 }}
-            style={{ position:"fixed", bottom:0, left:0, right:0, background:"#fff", borderRadius:"16px 16px 0 0",
-                     boxShadow:"0 -4px 32px rgba(0,0,0,0.15)", zIndex:200, maxHeight:"80vh", display:"flex", flexDirection:"column" }}>
-            <div style={{ padding:"12px 16px", borderBottom:"1px solid #f1f5f9", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+            style={{ position:"fixed", bottom:0, left:0, right:0, background:"rgba(255,255,255,0.96)", backdropFilter:"blur(20px)", WebkitBackdropFilter:"blur(20px)", borderRadius:"20px 20px 0 0",
+                     boxShadow:"0 -8px 40px rgba(12,26,46,0.14), inset 0 1px 0 rgba(255,255,255,0.8)", zIndex:200, maxHeight:"80vh", display:"flex", flexDirection:"column" }}>
+            <div style={{ padding:"14px 16px 12px", borderBottom:"1px solid var(--border-subtle)", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
               <p style={{ fontSize:13, fontWeight:700, color:"#0c1a2e" }}>Mẫu Ca Làm Việc</p>
               <button onClick={() => setShowTemplates(false)} style={{ background:"none", border:"none", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" }}>
                 <X size={16} style={{ color:"#94a3b8" }} />
@@ -1919,7 +1919,7 @@ export default function SchedulePage() {
             <div style={{ flex:1, overflowY:"auto", padding:"12px 16px 32px" }}>
               {/* Add new template button */}
               <button onClick={()=>{ setAddTemplate(v=>!v); setEditTemplate(null); }}
-                style={{ display:"flex", alignItems:"center", gap:6, width:"100%", padding:"10px 12px", borderRadius:10, border:`1px solid ${addTemplate?"#0ea5e9":"#bae6fd"}`, background:addTemplate?"#f0f9ff":"#fff", cursor:"pointer", fontSize:11, fontWeight:600, color:"#0ea5e9", fontFamily:"inherit", marginBottom:12 }}>
+                style={{ display:"flex", alignItems:"center", gap:6, width:"100%", padding:"10px 12px", borderRadius:10, border:`1px solid ${addTemplate?"var(--blue)":"var(--border)"}`, background:addTemplate?"rgba(14,165,233,0.06)":"rgba(255,255,255,0.8)", cursor:"pointer", fontSize:11, fontWeight:600, color:"var(--blue)", fontFamily:"inherit", marginBottom:12 }}>
                 <Plus size={12} /> Thêm mẫu mới
               </button>
 
