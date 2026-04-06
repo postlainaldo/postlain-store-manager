@@ -25,9 +25,9 @@ export async function GET(req: NextRequest) {
   const svcKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   const usedKey = svcKey ? "service_role" : anonKey ? "anon" : "none";
-  console.log("[auth/GET] url=", url?.slice(0, 30), "key=", usedKey);
+  console.error("[auth/GET] url=", url?.slice(0, 30), "key=", usedKey);
   const users = await dbGetUsers();
-  console.log("[auth/GET] users count=", users.length);
+  console.error("[auth/GET] users count=", users.length);
   return NextResponse.json(users);
 }
 
