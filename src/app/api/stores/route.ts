@@ -27,6 +27,14 @@ const DEFAULT_STORES: StoreConfig[] = [
     accentColor: "#c9a55a",
     active: true,
   },
+  {
+    id: "royvilla",
+    name: "ROY VILLA COFFEE",
+    description: "Roy Villa Coffee",
+    color: "#1a0e05",
+    accentColor: "#c8703a",
+    active: true,
+  },
 ];
 
 function readStores(): StoreConfig[] {
