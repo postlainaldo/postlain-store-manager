@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence, useMotionValue, useSpring } from "framer-motion";
 import {
@@ -407,9 +408,9 @@ function FooterLinks() {
         })}
       </div>
 
-      {/* Modal overlay */}
+      {/* Modal overlay — rendered via portal to escape perspective/transform ancestors */}
       <AnimatePresence>
-        {active && (
+        {active && typeof document !== "undefined" && createPortal(
           <>
             <motion.div
               key="overlay"
@@ -509,7 +510,8 @@ function FooterLinks() {
                 ))}
               </div>
             </motion.div>
-          </>
+          </>,
+          document.body
         )}
       </AnimatePresence>
     </>
