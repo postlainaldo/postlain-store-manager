@@ -16,6 +16,35 @@ function urlB64ToUint8Array(base64String: string) {
   return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
 }
 
+// ─── Profile Field (module-level to avoid remount on re-render) ───────────────
+function ProfileField({ label, value, onChange, placeholder, type = "text" }: {
+  label: string; value: string; onChange: (v: string) => void; placeholder: string; type?: string;
+}) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+      <label style={{ fontSize: 10, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.08em" }}>{label}</label>
+      <input
+        type={type}
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        placeholder={placeholder}
+        style={{
+          padding: "10px 12px", borderRadius: 10, fontSize: 14,
+          border: `1.5px solid ${value.trim() ? "#e2e8f0" : "#fca5a5"}`,
+          background: value.trim() ? "#f8fafc" : "#fff5f5",
+          outline: "none", fontFamily: "inherit", color: "#0f172a",
+          transition: "border-color 0.15s, background 0.15s",
+        }}
+        onFocus={e => { e.currentTarget.style.borderColor = "#C9A55A"; e.currentTarget.style.background = "#fff"; }}
+        onBlur={e => {
+          e.currentTarget.style.borderColor = e.currentTarget.value.trim() ? "#e2e8f0" : "#fca5a5";
+          e.currentTarget.style.background = e.currentTarget.value.trim() ? "#f8fafc" : "#fff5f5";
+        }}
+      />
+    </div>
+  );
+}
+
 // ─── Step 0: Complete Profile ─────────────────────────────────────────────────
 function StepProfile({ user, onDone }: { user: AppUser; onDone: (updated: Partial<AppUser>) => void }) {
   const [form, setForm] = useState({
@@ -55,32 +84,6 @@ function StepProfile({ user, onDone }: { user: AppUser; onDone: (updated: Partia
     } catch { setError("Lỗi kết nối."); setSaving(false); }
   };
 
-  const Field = ({ label, value, onChange, placeholder, type = "text" }: {
-    label: string; value: string; onChange: (v: string) => void; placeholder: string; type?: string;
-  }) => (
-    <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-      <label style={{ fontSize: 10, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.08em" }}>{label}</label>
-      <input
-        type={type}
-        value={value}
-        onChange={e => onChange(e.target.value)}
-        placeholder={placeholder}
-        style={{
-          padding: "10px 12px", borderRadius: 10, fontSize: 14,
-          border: `1.5px solid ${value.trim() ? "#e2e8f0" : "#fca5a5"}`,
-          background: value.trim() ? "#f8fafc" : "#fff5f5",
-          outline: "none", fontFamily: "inherit", color: "#0f172a",
-          transition: "border-color 0.15s, background 0.15s",
-        }}
-        onFocus={e => { e.currentTarget.style.borderColor = "#C9A55A"; e.currentTarget.style.background = "#fff"; }}
-        onBlur={e => {
-          e.currentTarget.style.borderColor = e.currentTarget.value.trim() ? "#e2e8f0" : "#fca5a5";
-          e.currentTarget.style.background = e.currentTarget.value.trim() ? "#f8fafc" : "#fff5f5";
-        }}
-      />
-    </div>
-  );
-
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
       <p style={{ fontSize: 11, color: "#64748b", margin: 0, lineHeight: 1.7 }}>
@@ -88,10 +91,10 @@ function StepProfile({ user, onDone }: { user: AppUser; onDone: (updated: Partia
         Thông tin này được dùng để xếp ca, liên lạc và quản lý nhân sự.
       </p>
 
-      <Field label="Họ và tên *" value={form.name} onChange={v => setForm(f => ({ ...f, name: v }))} placeholder="Nguyễn Văn A" />
-      <Field label="Email *" value={form.email} onChange={v => setForm(f => ({ ...f, email: v }))} placeholder="email@postlain.com" type="email" />
-      <Field label="Số điện thoại *" value={form.phone} onChange={v => setForm(f => ({ ...f, phone: v }))} placeholder="0901 234 567" type="tel" />
-      <Field label="Mã nhân viên *" value={form.employeeCode} onChange={v => setForm(f => ({ ...f, employeeCode: v }))} placeholder="NV001" />
+      <ProfileField label="Họ và tên *" value={form.name} onChange={v => setForm(f => ({ ...f, name: v }))} placeholder="Nguyễn Văn A" />
+      <ProfileField label="Email *" value={form.email} onChange={v => setForm(f => ({ ...f, email: v }))} placeholder="email@postlain.com" type="email" />
+      <ProfileField label="Số điện thoại *" value={form.phone} onChange={v => setForm(f => ({ ...f, phone: v }))} placeholder="0901 234 567" type="tel" />
+      <ProfileField label="Mã nhân viên *" value={form.employeeCode} onChange={v => setForm(f => ({ ...f, employeeCode: v }))} placeholder="NV001" />
 
       {hasAnyMissing && (
         <p style={{ fontSize: 10, color: "#dc2626", margin: 0 }}>* Tất cả các trường đều bắt buộc</p>
@@ -484,7 +487,7 @@ export default function OnboardingGate({ children }: { children: React.ReactNode
       setStep(null);
     }
     setChecked(true);
-  }, [currentUser?.id, currentUser?.phone, currentUser?.employeeCode]);
+  }, [currentUser?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const completeProfile = (updated: Partial<AppUser>) => {
     if (!currentUser) return;
