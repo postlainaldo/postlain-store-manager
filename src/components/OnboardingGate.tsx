@@ -49,7 +49,6 @@ function ProfileField({ label, value, onChange, placeholder, type = "text" }: {
 function StepProfile({ user, onDone }: { user: AppUser; onDone: (updated: Partial<AppUser>) => void }) {
   const [form, setForm] = useState({
     name: user.name ?? "",
-    email: user.email ?? "",
     phone: user.phone ?? "",
     employeeCode: user.employeeCode ?? "",
   });
@@ -58,7 +57,6 @@ function StepProfile({ user, onDone }: { user: AppUser; onDone: (updated: Partia
 
   const missing = {
     name: !form.name.trim(),
-    email: !form.email.trim(),
     phone: !form.phone.trim(),
     employeeCode: !form.employeeCode.trim(),
   };
@@ -92,7 +90,6 @@ function StepProfile({ user, onDone }: { user: AppUser; onDone: (updated: Partia
       </p>
 
       <ProfileField label="Họ và tên *" value={form.name} onChange={v => setForm(f => ({ ...f, name: v }))} placeholder="Nguyễn Văn A" />
-      <ProfileField label="Email *" value={form.email} onChange={v => setForm(f => ({ ...f, email: v }))} placeholder="email@postlain.com" type="email" />
       <ProfileField label="Số điện thoại *" value={form.phone} onChange={v => setForm(f => ({ ...f, phone: v }))} placeholder="0901 234 567" type="tel" />
       <ProfileField label="Mã nhân viên *" value={form.employeeCode} onChange={v => setForm(f => ({ ...f, employeeCode: v }))} placeholder="NV001" />
 
@@ -453,7 +450,7 @@ function StepNotify({ userId, onDone }: { userId: string; onDone: () => void }) 
 type GateStep = "profile" | "install" | "notify" | null;
 
 function needsProfileFill(u: AppUser): boolean {
-  return !u.phone?.trim() || !u.employeeCode?.trim() || !u.name?.trim() || !u.email?.trim();
+  return !u.phone?.trim() || !u.employeeCode?.trim() || !u.name?.trim();
 }
 
 export default function OnboardingGate({ children }: { children: React.ReactNode }) {
