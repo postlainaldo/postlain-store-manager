@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState, createContext, useContext } from "react";
+import { useEffect, useState, useRef, createContext, useContext } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Check } from "lucide-react";
 import { useStore } from "@/store/useStore";
 import SplashScreen from "@/components/SplashScreen";
 import OnboardingGate from "@/components/OnboardingGate";
@@ -19,9 +20,14 @@ function urlB64ToUint8Array(base64String: string) {
   return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
 }
 
+const APP_VERSION = process.env.NEXT_PUBLIC_APP_VERSION ?? "2.1.0";
+
 export default function Providers({ children }: { children: React.ReactNode }) {
   const [hydrated, setHydrated] = useState(false);
   const [updateReady, setUpdateReady] = useState(false);
+  // "justUpdated" = true khi vừa reload sau auto-update → hiện toast "Đã cập nhật"
+  const [justUpdated, setJustUpdated] = useState(false);
+  const dismissTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     // ── Store hydration ──────────────────────────────────────────
@@ -97,28 +103,33 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     };
     registerPush();
 
-    // ── PWA Service Worker update detection ──────────────────────
+    // ── PWA Service Worker — auto-update silently ─────────────────
     if ("serviceWorker" in navigator) {
-      const applyUpdate = (reg: ServiceWorkerRegistration) => {
-        if (reg.waiting) reg.waiting.postMessage({ type: "SKIP_WAITING" });
+      const applyNow = (reg: ServiceWorkerRegistration) => {
+        if (reg.waiting) {
+          // Đánh dấu "vừa update" vào sessionStorage để sau khi reload hiện toast
+          try { sessionStorage.setItem("plsm_just_updated", APP_VERSION); } catch {}
+          reg.waiting.postMessage({ type: "SKIP_WAITING" });
+        }
       };
 
       navigator.serviceWorker.ready.then(reg => {
-        if (reg.waiting) setUpdateReady(true);
+        // Nếu có waiting SW ngay khi load → apply luôn
+        if (reg.waiting) applyNow(reg);
 
         reg.addEventListener("updatefound", () => {
           const nw = reg.installing;
           if (!nw) return;
           nw.addEventListener("statechange", () => {
             if (nw.state === "installed" && navigator.serviceWorker.controller) {
-              setUpdateReady(true);
+              // SW mới sẵn sàng → apply ngay, không hỏi user
+              applyNow(reg);
             }
           });
         });
 
-        // Check for updates every 60s (catches deploys while app is open)
+        // Kiểm tra update mỗi 60s khi app đang mở
         const checkInterval = setInterval(() => reg.update(), 60_000);
-        // Cleanup on unload
         window.addEventListener("beforeunload", () => clearInterval(checkInterval), { once: true });
       });
 
@@ -127,7 +138,6 @@ export default function Providers({ children }: { children: React.ReactNode }) {
         if (!refreshing) { refreshing = true; window.location.reload(); }
       });
 
-      // Register periodic background sync if supported (keeps app shell fresh)
       navigator.serviceWorker.ready.then(reg => {
         if ("periodicSync" in reg) {
           (reg as unknown as { periodicSync: { register: (tag: string, opts: object) => Promise<void> } })
@@ -135,58 +145,77 @@ export default function Providers({ children }: { children: React.ReactNode }) {
             .catch(() => {});
         }
       });
-
-      // Store applyUpdate so handleUpdate can use it
-      (window as unknown as { __pwa_apply_update?: (r: ServiceWorkerRegistration) => void }).__pwa_apply_update = applyUpdate;
     }
+
+    // ── Hiện toast "Đã cập nhật" nếu vừa reload sau auto-update ──
+    try {
+      const justUpdatedVersion = sessionStorage.getItem("plsm_just_updated");
+      if (justUpdatedVersion) {
+        sessionStorage.removeItem("plsm_just_updated");
+        setJustUpdated(true);
+        dismissTimer.current = setTimeout(() => setJustUpdated(false), 4000);
+      }
+    } catch {}
   }, []);
 
-  const handleUpdate = () => {
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.ready.then(reg => {
-        const apply = (window as unknown as { __pwa_apply_update?: (r: ServiceWorkerRegistration) => void }).__pwa_apply_update;
-        if (apply) apply(reg);
-        else if (reg.waiting) reg.waiting.postMessage({ type: "SKIP_WAITING" });
-      });
-    }
-    setUpdateReady(false);
-  };
+  // Cleanup timer khi unmount
+  useEffect(() => () => { if (dismissTimer.current) clearTimeout(dismissTimer.current); }, []);
+
+  // handleUpdate vẫn giữ để UpdateContext không break (profile page dùng)
+  const handleUpdate = () => setUpdateReady(false);
 
   if (!hydrated) return null;
 
   return (
     <UpdateContext.Provider value={{ updateReady, onUpdate: handleUpdate }}>
       <SplashScreen />
-      {/* Global update toast — visible anywhere in the app */}
+      {/* Toast "Đã cập nhật" — hiện sau khi auto-reload, tự tắt sau 4s */}
       <AnimatePresence>
-        {updateReady && (
+        {justUpdated && (
           <motion.div
-            initial={{ opacity: 0, y: -48 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -48 }}
-            transition={{ duration: 0.25, ease: "easeOut" }}
+            initial={{ opacity: 0, y: 32, scale: 0.92 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.95 }}
+            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
             style={{
-              position: "fixed", top: 12, left: "50%", transform: "translateX(-50%)",
-              zIndex: 9999, width: "min(360px, calc(100vw - 24px))",
-              background: "linear-gradient(135deg, #0c1a2e, #162336)",
-              border: "1px solid rgba(201,165,90,0.4)",
-              borderRadius: 14, padding: "11px 16px",
+              position: "fixed",
+              bottom: "calc(80px + env(safe-area-inset-bottom, 0px))",
+              left: "50%", transform: "translateX(-50%)",
+              zIndex: 9999,
+              width: "min(320px, calc(100vw - 32px))",
+              background: "linear-gradient(135deg, #0c1a2e, #0f2540)",
+              border: "1px solid rgba(16,185,129,0.40)",
+              borderRadius: 16,
+              padding: "12px 16px",
               display: "flex", alignItems: "center", gap: 12,
-              boxShadow: "0 8px 32px rgba(0,0,0,0.35)",
+              boxShadow: "0 8px 32px rgba(0,0,0,0.40), 0 0 0 1px rgba(16,185,129,0.10)",
             }}
           >
-            <div style={{ flex: 1 }}>
-              <p style={{ fontSize: 11, fontWeight: 700, color: "#C9A55A", margin: 0 }}>Có phiên bản mới</p>
-              <p style={{ fontSize: 10, color: "#94a3b8", margin: 0, marginTop: 1 }}>Cập nhật để dùng tính năng mới nhất</p>
+            <div style={{
+              width: 34, height: 34, borderRadius: 10, flexShrink: 0,
+              background: "rgba(16,185,129,0.12)",
+              border: "1px solid rgba(16,185,129,0.30)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}>
+              <Check size={16} style={{ color: "#10b981" }} strokeWidth={2.5} />
             </div>
-            <button onClick={handleUpdate}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ fontSize: 13, fontWeight: 700, color: "#e2e8f0", margin: 0 }}>Đã cập nhật</p>
+              <p style={{ fontSize: 11, color: "rgba(148,163,184,0.65)", margin: 0, marginTop: 2 }}>
+                Phiên bản mới nhất v{APP_VERSION}
+              </p>
+            </div>
+            {/* Progress bar tự thu */}
+            <motion.div
+              initial={{ width: "100%" }}
+              animate={{ width: "0%" }}
+              transition={{ duration: 4, ease: "linear" }}
               style={{
-                padding: "7px 14px", borderRadius: 8, border: "none", flexShrink: 0,
-                background: "linear-gradient(135deg, #C9A55A, #a07c3a)",
-                color: "#0c1a2e", fontSize: 10, fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
-              }}>
-              Cập nhật
-            </button>
+                position: "absolute", bottom: 0, left: 0,
+                height: 2, borderRadius: "0 0 16px 16px",
+                background: "linear-gradient(90deg, #10b981, #34d399)",
+              }}
+            />
           </motion.div>
         )}
       </AnimatePresence>

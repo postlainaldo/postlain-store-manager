@@ -1,6 +1,6 @@
 {
   "name": "postlain-store-manager",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "private": true,
   "scripts": {
     "dev": "next dev --port 3000",
@@ -8,6 +8,9 @@
     "start": "next start",
     "lint": "next lint",
     "seed": "node scripts/seed.js",
+    "patch": "npm version patch --no-git-tag-version && git add package.json && git commit -m \"chore: bump patch version\" && git push",
+    "minor": "npm version minor --no-git-tag-version && git add package.json && git commit -m \"chore: bump minor version\" && git push",
+    "major": "npm version major --no-git-tag-version && git add package.json && git commit -m \"chore: bump major version\" && git push",
     "docker:build": "docker compose build",
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down",
