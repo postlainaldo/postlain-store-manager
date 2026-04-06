@@ -375,6 +375,8 @@ const FOOTER_CONTENT = {
 
 function FooterLinks() {
   const [open, setOpen] = useState<keyof typeof FOOTER_CONTENT | null>(null);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
   const active = open ? FOOTER_CONTENT[open] : null;
 
   return (
@@ -409,9 +411,9 @@ function FooterLinks() {
       </div>
 
       {/* Modal overlay — rendered via portal to escape perspective/transform ancestors */}
-      <AnimatePresence>
-        {active && typeof document !== "undefined" && createPortal(
-          <>
+      {mounted && createPortal(
+        <AnimatePresence>
+          {active && <>
             <motion.div
               key="overlay"
               initial={{ opacity: 0 }}
@@ -510,10 +512,10 @@ function FooterLinks() {
                 ))}
               </div>
             </motion.div>
-          </>,
-          document.body
-        )}
-      </AnimatePresence>
+          </>}
+        </AnimatePresence>,
+        document.body
+      )}
     </>
   );
 }
