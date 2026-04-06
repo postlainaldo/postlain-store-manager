@@ -416,7 +416,7 @@ function ListView() {
             display: "flex", alignItems: "center", gap: 6,
             height: isMobile ? 44 : 38, padding: "0 14px", borderRadius: 12, border: "1px solid",
             fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
-            background: hasActiveFilter ? "rgba(14,165,233,0.08)" : "#fff",
+            background: hasActiveFilter ? "rgba(14,165,233,0.08)" : "rgba(255,255,255,0.85)",
             borderColor: hasActiveFilter ? "rgba(14,165,233,0.4)" : "var(--border)",
             color: hasActiveFilter ? "var(--blue)" : "var(--text-secondary)",
           }}
@@ -435,7 +435,8 @@ function ListView() {
         <button onClick={() => setShowScanner(true)} style={{
           display: "flex", alignItems: "center", gap: 6,
           height: isMobile ? 44 : 38, padding: "0 14px", borderRadius: 12,
-          background: "#fff", border: "1px solid var(--border)",
+          background: "rgba(255,255,255,0.85)", border: "1px solid var(--border)",
+          backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)",
           fontSize: 12, color: "var(--blue)", cursor: "pointer", fontFamily: "inherit", fontWeight: 600,
           letterSpacing: "0.06em",
         }}>
@@ -1055,7 +1056,7 @@ function ListView() {
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             style={{ position: "fixed", inset: 0, background: "rgba(12,26,46,0.3)", backdropFilter: "blur(6px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: 16 }}>
             <motion.div initial={{ scale: 0.93, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.93, opacity: 0 }}
-              style={{ background: "#fff", borderRadius: 20, padding: 28, maxWidth: 360, width: "100%", border: "1px solid var(--border)", boxShadow: "0 24px 64px rgba(12,26,46,0.18)" }}>
+              style={{ background: "rgba(255,255,255,0.96)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", borderRadius: 20, padding: 28, maxWidth: 360, width: "100%", border: "1px solid rgba(220,38,38,0.2)", boxShadow: "0 24px 64px rgba(12,26,46,0.18), inset 0 1px 0 rgba(255,255,255,0.9)" }}>
               <p style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)", marginBottom: 6 }}>Xác nhận xoá?</p>
               <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 24 }}>Thao tác này không thể hoàn tác.</p>
               <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
@@ -1073,7 +1074,7 @@ function ListView() {
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             style={{ position: "fixed", inset: 0, background: "rgba(12,26,46,0.3)", backdropFilter: "blur(6px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: 16 }}>
             <motion.div initial={{ scale: 0.93, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.93, opacity: 0 }}
-              style={{ background: "#fff", borderRadius: 20, padding: 28, maxWidth: 380, width: "100%", border: "1px solid rgba(220,38,38,0.2)", boxShadow: "0 24px 64px rgba(12,26,46,0.18)" }}>
+              style={{ background: "rgba(255,255,255,0.96)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", borderRadius: 20, padding: 28, maxWidth: 380, width: "100%", border: "1px solid rgba(220,38,38,0.2)", boxShadow: "0 24px 64px rgba(12,26,46,0.18), inset 0 1px 0 rgba(255,255,255,0.9)" }}>
               <p style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)", marginBottom: 6 }}>Xoá {selected.size} sản phẩm?</p>
               <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 24 }}>Tất cả sản phẩm đã chọn sẽ bị xoá vĩnh viễn. Không thể hoàn tác.</p>
               <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
@@ -1121,8 +1122,10 @@ function StatChips({ initial }: { initial: StatChip[] }) {
           style={{
             display: "flex", alignItems: "center", gap: 7,
             padding: "6px 12px", borderRadius: 10,
-            background: "#fff", border: "1px solid var(--border)",
-            boxShadow: "0 1px 4px rgba(14,165,233,0.05)",
+            background: "rgba(255,255,255,0.85)",
+            backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)",
+            border: "1px solid rgba(186,230,253,0.65)",
+            boxShadow: "0 2px 8px rgba(12,26,46,0.06), inset 0 1px 0 rgba(255,255,255,0.8)",
           }}
         >
           <div style={{ width: 6, height: 6, borderRadius: "50%", background: s.color, boxShadow: `0 0 4px ${s.color}80` }} />
