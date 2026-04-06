@@ -53,9 +53,9 @@ export default function AdminNotifyPanel() {
   const SelectedIcon = selectedType.icon;
 
   return (
-    <div style={{ borderRadius: 18, border: "1px solid rgba(186,230,253,0.65)", background: "rgba(255,255,255,0.88)", backdropFilter: "blur(16px) saturate(1.5)", WebkitBackdropFilter: "blur(16px) saturate(1.5)", overflow: "hidden", maxHeight: "85vh", overflowY: "auto", boxShadow: "0 4px 24px rgba(12,26,46,0.08), inset 0 1px 0 rgba(255,255,255,0.8)" }}>
+    <div style={{ borderRadius: 18, border: "1px solid rgba(255,255,255,0.08)", background: "rgba(15,23,42,0.88)", backdropFilter: "blur(20px) saturate(1.5)", WebkitBackdropFilter: "blur(20px) saturate(1.5)", overflow: "hidden", maxHeight: "85vh", overflowY: "auto", boxShadow: "0 4px 32px rgba(0,0,0,0.40), inset 0 1px 0 rgba(255,255,255,0.06)" }}>
       {/* Header */}
-      <div style={{ padding: "12px 20px", borderBottom: "1px solid rgba(186,230,253,0.45)", background: "linear-gradient(90deg, rgba(14,165,233,0.05), rgba(255,255,255,0.4))", display: "flex", alignItems: "center", gap: 8 }}>
+      <div style={{ padding: "12px 20px", borderBottom: "1px solid rgba(255,255,255,0.06)", background: "linear-gradient(90deg, rgba(14,165,233,0.10), rgba(255,255,255,0.03))", display: "flex", alignItems: "center", gap: 8 }}>
         <div style={{ width: 24, height: 24, borderRadius: 7, background: "rgba(14,165,233,0.10)", border: "1px solid rgba(14,165,233,0.20)", display: "flex", alignItems: "center", justifyContent: "center" }}>
           <Bell size={11} style={{ color: "#0ea5e9" }} />
         </div>
@@ -130,14 +130,14 @@ export default function AdminNotifyPanel() {
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <p style={{ fontSize: 11, fontWeight: 700, color: "#0c1a2e" }}>{n.title}</p>
+                  <p style={{ fontSize: 11, fontWeight: 700, color: "var(--text-primary)" }}>{n.title}</p>
                   {n.pinned === 1 && <Pin size={8} style={{ color: "#C9A55A" }} />}
                 </div>
                 <p style={{ fontSize: 11, color: "#64748b", marginTop: 2, lineHeight: 1.4 }}>{n.body}</p>
               </div>
               <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
                 <button onClick={() => handlePin(n.id, n.pinned)}
-                  style={{ width: 36, height: 36, borderRadius: 8, border: `1px solid ${n.pinned ? "rgba(201,165,90,0.45)" : "var(--border)"}`, background: n.pinned ? "rgba(201,165,90,0.08)" : "rgba(255,255,255,0.7)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+                  style={{ width: 36, height: 36, borderRadius: 8, border: `1px solid ${n.pinned ? "rgba(201,165,90,0.45)" : "var(--border)"}`, background: n.pinned ? "rgba(201,165,90,0.10)" : "rgba(255,255,255,0.06)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
                   <Pin size={12} style={{ color: n.pinned ? "#C9A55A" : "var(--text-muted)" }} />
                 </button>
                 <button onClick={() => handleDelete(n.id)}

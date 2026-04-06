@@ -476,7 +476,7 @@ export default function BottomNav() {
                       display: "flex", alignItems: "center", justifyContent: "center",
                       boxShadow: "0 0 10px rgba(201,165,90,0.55)",
                     }}>
-                      <span style={{ fontSize: 11, fontWeight: 800, color: "#0c1a2e" }}>
+                      <span style={{ fontSize: 11, fontWeight: 800, color: "var(--text-primary)" }}>
                         {currentUser.name.slice(0, 1).toUpperCase()}
                       </span>
                     </div>

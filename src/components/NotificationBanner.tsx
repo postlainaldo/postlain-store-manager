@@ -112,7 +112,7 @@ export default function NotificationBanner() {
               style={{
                 position: "absolute", right: 0, top: "calc(100% + 8px)",
                 width: 340, maxHeight: 480,
-                background: "#fff", border: "1px solid #bae6fd",
+                background: "rgba(15,23,42,0.85)", border: "1px solid #bae6fd",
                 borderRadius: 16, boxShadow: "0 12px 40px rgba(12,26,46,0.12)",
                 zIndex: 200, overflow: "hidden", display: "flex", flexDirection: "column",
               }}
@@ -120,7 +120,7 @@ export default function NotificationBanner() {
               <div style={{ padding: "12px 16px", borderBottom: "1px solid #e0f2fe", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <Bell size={13} style={{ color: "#0ea5e9" }} />
-                  <p style={{ fontSize: 11, fontWeight: 700, color: "#0c1a2e" }}>Thông Báo</p>
+                  <p style={{ fontSize: 11, fontWeight: 700, color: "var(--text-primary)" }}>Thông Báo</p>
                   {unread > 0 && <span style={{ fontSize: 8, padding: "1px 6px", borderRadius: 20, background: "#dc2626", color: "#fff", fontWeight: 700 }}>{unread}</span>}
                 </div>
                 <div style={{ display: "flex", gap: 6 }}>
@@ -131,7 +131,7 @@ export default function NotificationBanner() {
                     </button>
                   )}
                   <button onClick={() => setOpen(false)}
-                    style={{ width: 22, height: 22, borderRadius: 6, border: "1px solid #e0f2fe", background: "#f8fafc", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+                    style={{ width: 22, height: 22, borderRadius: 6, border: "1px solid #e0f2fe", background: "rgba(15,23,42,0.85)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
                     <X size={10} style={{ color: "#94a3b8" }} />
                   </button>
                 </div>
@@ -162,7 +162,7 @@ export default function NotificationBanner() {
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                            <p style={{ fontSize: 11, fontWeight: 700, color: "#0c1a2e" }}>{n.title}</p>
+                            <p style={{ fontSize: 11, fontWeight: 700, color: "var(--text-primary)" }}>{n.title}</p>
                             {n.pinned === 1 && <Pin size={9} style={{ color: "#C9A55A" }} />}
                             {!isRead && <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#0ea5e9", marginLeft: "auto", flexShrink: 0 }} />}
                           </div>
@@ -189,7 +189,7 @@ export default function NotificationBanner() {
             style={{
               position: "fixed", top: 64, left: "50%",
               width: "min(420px, calc(100vw - 32px))",
-              background: "#fff", border: "1px solid #bae6fd",
+              background: "rgba(15,23,42,0.85)", border: "1px solid #bae6fd",
               borderRadius: 14, padding: "14px 16px",
               boxShadow: "0 8px 32px rgba(12,26,46,0.15)",
               zIndex: 300, display: "flex", gap: 12, alignItems: "flex-start",
@@ -204,11 +204,11 @@ export default function NotificationBanner() {
                     <Icon size={16} style={{ color: tcfg.color }} />
                   </div>
                   <div style={{ flex: 1 }}>
-                    <p style={{ fontSize: 12, fontWeight: 700, color: "#0c1a2e" }}>{banner.title}</p>
+                    <p style={{ fontSize: 12, fontWeight: 700, color: "var(--text-primary)" }}>{banner.title}</p>
                     <p style={{ fontSize: 10, color: "#64748b", marginTop: 3, lineHeight: 1.5 }}>{banner.body}</p>
                   </div>
                   <button onClick={() => { setBanner(null); setDismissed(prev => new Set([...prev, banner.id])); }}
-                    style={{ width: 22, height: 22, borderRadius: 6, border: "1px solid #e0f2fe", background: "#f8fafc", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}>
+                    style={{ width: 22, height: 22, borderRadius: 6, border: "1px solid #e0f2fe", background: "rgba(15,23,42,0.85)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}>
                     <X size={10} style={{ color: "#94a3b8" }} />
                   </button>
                 </>

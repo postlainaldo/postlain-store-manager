@@ -192,7 +192,7 @@ export default function GlobalSearch() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.96, y: -12 }}
               transition={{ duration: 0.15, ease: [0.16, 1, 0.3, 1] }}
-              style={{ background: "#fff", borderRadius: 16, border: "1px solid #bae6fd", boxShadow: "0 32px 80px rgba(12,26,46,0.2)", width: "100%", maxWidth: 560, margin: "0 auto", overflow: "hidden" }}
+              style={{ background: "rgba(15,23,42,0.85)", borderRadius: 16, border: "1px solid #bae6fd", boxShadow: "0 32px 80px rgba(12,26,46,0.2)", width: "100%", maxWidth: 560, margin: "0 auto", overflow: "hidden" }}
             >
               {/* Search input */}
               <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 16px", borderBottom: "1px solid #e0f2fe" }}>
@@ -203,7 +203,7 @@ export default function GlobalSearch() {
                   onChange={e => setQuery(e.target.value)}
                   onKeyDown={handleKey}
                   placeholder="Tìm sản phẩm, người dùng, trang..."
-                  style={{ flex: 1, border: "none", outline: "none", fontSize: 13, color: "#0c1a2e", fontFamily: "inherit", background: "transparent" }}
+                  style={{ flex: 1, border: "none", outline: "none", fontSize: 13, color: "var(--text-primary)", fontFamily: "inherit", background: "transparent" }}
                 />
                 {query && (
                   <button onClick={() => setQuery("")} style={{ background: "none", border: "none", cursor: "pointer" }}>
@@ -249,7 +249,7 @@ export default function GlobalSearch() {
                           }
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <p style={{ fontSize: 11, fontWeight: 600, color: "#0c1a2e" }}>
+                          <p style={{ fontSize: 11, fontWeight: 600, color: "var(--text-primary)" }}>
                             {highlight(r.title, query)}
                           </p>
                           {r.subtitle && (
@@ -269,7 +269,7 @@ export default function GlobalSearch() {
               <div style={{ borderTop: "1px solid #e0f2fe", padding: "7px 16px", display: "flex", gap: 12, alignItems: "center" }}>
                 {[["↑↓", "Di chuyển"], ["↵", "Chọn"], ["Esc", "Đóng"]].map(([k, v]) => (
                   <span key={k} style={{ fontSize: 9, color: "#94a3b8", display: "flex", gap: 4, alignItems: "center" }}>
-                    <span style={{ background: "#f0f9ff", border: "1px solid #e0f2fe", borderRadius: 4, padding: "1px 5px", fontSize: 8.5, fontWeight: 600, color: "#64748b" }}>{k}</span>
+                    <span style={{ background: "rgba(14,165,233,0.08)", border: "1px solid #e0f2fe", borderRadius: 4, padding: "1px 5px", fontSize: 8.5, fontWeight: 600, color: "#64748b" }}>{k}</span>
                     {v}
                   </span>
                 ))}

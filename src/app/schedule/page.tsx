@@ -147,7 +147,7 @@ function StaffTypeSelect({ value, onChange }: { value: StaffType; onChange: (v: 
           <button key={t} onClick={() => onChange(t)}
             style={{
               flex: 1, height: 30, borderRadius: 8,
-              border: `1.5px solid ${active ? cfg.border : "#e2e8f0"}`,
+              border: `1.5px solid ${active ? cfg.border : "rgba(255,255,255,0.10)"}`,
               background: active ? cfg.bg : "#fff",
               cursor: "pointer", fontFamily: "inherit",
               fontSize: 9, fontWeight: 800,
@@ -213,10 +213,10 @@ function TemplateForm({ initial, onSave, onClose }: {
           <label style={{ fontSize:9, fontWeight:700, color:"#64748b", letterSpacing:"0.1em" }}>TỐI ĐA</label>
           <div style={{ display:"flex", alignItems:"center", gap:4 }}>
             <button onClick={()=>setMax(m=>Math.max(1,m-1))}
-              style={{ width:28, height:28, borderRadius:7, border:"1px solid #e2e8f0", background:"#fff", cursor:"pointer", fontSize:14, color:"#0c1a2e" }}>−</button>
-            <span style={{ minWidth:24, textAlign:"center", fontSize:13, fontWeight:700, color:"#0c1a2e" }}>{max}</span>
+              style={{ width:28, height:28, borderRadius:7, border:"1px solid #e2e8f0", background: "rgba(15,23,42,0.85)", cursor:"pointer", fontSize:14, color: "var(--text-primary)" }}>−</button>
+            <span style={{ minWidth:24, textAlign:"center", fontSize:13, fontWeight:700, color: "var(--text-primary)" }}>{max}</span>
             <button onClick={()=>setMax(m=>Math.min(20,m+1))}
-              style={{ width:28, height:28, borderRadius:7, border:"1px solid #e2e8f0", background:"#fff", cursor:"pointer", fontSize:14, color:"#0c1a2e" }}>+</button>
+              style={{ width:28, height:28, borderRadius:7, border:"1px solid #e2e8f0", background: "rgba(15,23,42,0.85)", cursor:"pointer", fontSize:14, color: "var(--text-primary)" }}>+</button>
           </div>
         </div>
       </div>
@@ -268,7 +268,7 @@ function SlotCard({ slot, regs, isAdmin, currentUserId, allStaff, canRegister, o
       style={{
         borderRadius:12,
         border: bulkMode && isSelected ? `2px solid ${slot.color}` : `1.5px solid ${slot.color}28`,
-        background: bulkMode && isSelected ? `${slot.color}10` : "rgba(255,255,255,0.88)",
+        background: bulkMode && isSelected ? `${slot.color}10` : "rgba(15,23,42,0.85)",
         backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)",
         boxShadow: "0 2px 12px rgba(12,26,46,0.06), 0 1px 3px rgba(12,26,46,0.04)",
         overflow:"hidden", marginBottom:0,
@@ -303,7 +303,7 @@ function SlotCard({ slot, regs, isAdmin, currentUserId, allStaff, canRegister, o
       <div style={{ padding:"8px 10px 6px", display:"flex", alignItems:"flex-start", justifyContent:"space-between", gap:4 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display:"flex", alignItems:"center", gap:5, flexWrap:"wrap" }}>
-            <p style={{ fontSize:12, fontWeight:700, color:"#0c1a2e" }}>{slot.name}</p>
+            <p style={{ fontSize:12, fontWeight:700, color: "var(--text-primary)" }}>{slot.name}</p>
             <StaffTypeBadge type={inferStaffType(slot)} size="xs" />
           </div>
           <p style={{ fontSize:10, color:"#64748b", marginTop:1 }}>
@@ -312,7 +312,7 @@ function SlotCard({ slot, regs, isAdmin, currentUserId, allStaff, canRegister, o
         </div>
         {isAdmin && (
           <button onClick={() => onDelete(slot.id)}
-            style={{ width:22, height:22, borderRadius:6, border:"1px solid #fee2e2", background:"#fff5f5", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+            style={{ width:22, height:22, borderRadius:6, border:"1px solid #fee2e2", background: "rgba(239,68,68,0.08)", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
             <Trash2 size={9} style={{ color:"#ef4444" }} />
           </button>
         )}
@@ -327,12 +327,12 @@ function SlotCard({ slot, regs, isAdmin, currentUserId, allStaff, canRegister, o
               <p style={{ fontSize:8, fontWeight:700, color:"#10b981", letterSpacing:"0.1em", marginBottom:4 }}>ĐÃ XẾP</p>
               {approved.map(reg => (
                 <div key={reg.id} style={{ display:"flex", alignItems:"center", gap:6, marginBottom:3 }}>
-                  <div style={{ width:18, height:18, borderRadius:"50%", background:"#dcfce7", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+                  <div style={{ width:18, height:18, borderRadius:"50%", background: "rgba(16,185,129,0.12)", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
                     <span style={{ fontSize:7, fontWeight:700, color:"#10b981" }}>{reg.userName[0]?.toUpperCase()}</span>
                   </div>
-                  <span style={{ fontSize:10, color:"#0c1a2e", flex:1 }}>{reg.userName}</span>
+                  <span style={{ fontSize:10, color: "var(--text-primary)", flex:1 }}>{reg.userName}</span>
                   <button onClick={() => onUnassign(slot.id, reg.userId)}
-                    style={{ width:18, height:18, borderRadius:4, border:"1px solid #fca5a5", background:"#fff", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" }}>
+                    style={{ width:18, height:18, borderRadius:4, border:"1px solid #fca5a5", background: "rgba(15,23,42,0.85)", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" }}>
                     <UserMinus size={8} style={{ color:"#ef4444" }} />
                   </button>
                 </div>
@@ -346,13 +346,13 @@ function SlotCard({ slot, regs, isAdmin, currentUserId, allStaff, canRegister, o
               <p style={{ fontSize:8, fontWeight:700, color:"#f59e0b", letterSpacing:"0.1em", marginBottom:4 }}>CHỜ DUYỆT ({pending.length})</p>
               {pending.map(reg => (
                 <div key={reg.id} style={{ display:"flex", alignItems:"center", gap:4, marginBottom:3, background:"rgba(245,158,11,0.05)", borderRadius:6, padding:"3px 6px" }}>
-                  <span style={{ fontSize:10, color:"#0c1a2e", flex:1 }}>{reg.userName}</span>
+                  <span style={{ fontSize:10, color: "var(--text-primary)", flex:1 }}>{reg.userName}</span>
                   <button onClick={() => onApprove(reg)}
-                    style={{ minHeight:32, padding:"0 7px", borderRadius:5, border:"1px solid #bbf7d0", background:"#f0fdf4", cursor:"pointer", fontSize:9, fontWeight:700, color:"#10b981", fontFamily:"inherit" }}>
+                    style={{ minHeight:32, padding:"0 7px", borderRadius:5, border:"1px solid #bbf7d0", background: "rgba(16,185,129,0.08)", cursor:"pointer", fontSize:9, fontWeight:700, color:"#10b981", fontFamily:"inherit" }}>
                     ✓
                   </button>
                   <button onClick={() => onReject(reg)}
-                    style={{ minHeight:32, padding:"0 7px", borderRadius:5, border:"1px solid #fca5a5", background:"#fff5f5", cursor:"pointer", fontSize:9, fontWeight:700, color:"#ef4444", fontFamily:"inherit" }}>
+                    style={{ minHeight:32, padding:"0 7px", borderRadius:5, border:"1px solid #fca5a5", background: "rgba(239,68,68,0.08)", cursor:"pointer", fontSize:9, fontWeight:700, color:"#ef4444", fontFamily:"inherit" }}>
                     ✗
                   </button>
                 </div>
@@ -373,7 +373,7 @@ function SlotCard({ slot, regs, isAdmin, currentUserId, allStaff, canRegister, o
                     <div style={{ marginTop:6, display:"flex", flexWrap:"wrap", gap:4 }}>
                       {unassigned.map(u => (
                         <button key={u.id} onClick={() => { onAssign(slot.id, u); setShowAdd(false); }}
-                          style={{ padding:"3px 8px", borderRadius:20, border:`1px solid ${slot.color}40`, background:"#fff", cursor:"pointer", fontSize:9, fontWeight:600, color:slot.color, fontFamily:"inherit" }}>
+                          style={{ padding:"3px 8px", borderRadius:20, border:`1px solid ${slot.color}40`, background: "rgba(15,23,42,0.85)", cursor:"pointer", fontSize:9, fontWeight:600, color:slot.color, fontFamily:"inherit" }}>
                           {u.name}
                         </button>
                       ))}
@@ -392,7 +392,7 @@ function SlotCard({ slot, regs, isAdmin, currentUserId, allStaff, canRegister, o
           {approved.length > 0 && (
             <div style={{ display:"flex", flexWrap:"wrap", gap:3, marginBottom:8 }}>
               {approved.map(reg => (
-                <span key={reg.id} style={{ fontSize:9, color:"#64748b", background:"#f1f5f9", padding:"2px 7px", borderRadius:20 }}>{reg.userName}</span>
+                <span key={reg.id} style={{ fontSize:9, color:"#64748b", background: "rgba(255,255,255,0.06)", padding:"2px 7px", borderRadius:20 }}>{reg.userName}</span>
               ))}
             </div>
           )}
@@ -405,7 +405,7 @@ function SlotCard({ slot, regs, isAdmin, currentUserId, allStaff, canRegister, o
                 {full ? "Đầy ca" : "Đăng ký ca này"}
               </button>
             ) : (
-              <div style={{ width:"100%", height:40, borderRadius:8, background:"#f8fafc", border:"1px solid #e2e8f0", display:"flex", alignItems:"center", justifyContent:"center", gap:5 }}>
+              <div style={{ width:"100%", height:40, borderRadius:8, background: "rgba(15,23,42,0.85)", border:"1px solid #e2e8f0", display:"flex", alignItems:"center", justifyContent:"center", gap:5 }}>
                 <span style={{ fontSize:9, color:"#94a3b8", fontWeight:600 }}>
                   {full ? "Đầy ca" : "Đăng ký mở T5–CN"}
                 </span>
@@ -469,7 +469,7 @@ function AddSlotModal({ templates, date, onSave, onClose }: {
       onClick={e=>{ if(e.target===e.currentTarget) onClose(); }}>
       <motion.div initial={{ opacity:0, scale:0.95, y:10 }} animate={{ opacity:1, scale:1, y:0 }}
         style={{
-          background: "rgba(255,255,255,0.96)",
+          background: "rgba(15,23,42,0.85)",
           backdropFilter:"blur(20px)", WebkitBackdropFilter:"blur(20px)",
           borderRadius:20, padding:20, width:"100%", maxWidth:360,
           boxShadow: "0 24px 80px rgba(12,26,46,0.18), 0 4px 16px rgba(12,26,46,0.08)",
@@ -477,10 +477,10 @@ function AddSlotModal({ templates, date, onSave, onClose }: {
         }}>
         <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:14 }}>
           <div>
-            <p style={{ fontSize:13, fontWeight:700, color:"#0c1a2e" }}>Thêm ca làm</p>
+            <p style={{ fontSize:13, fontWeight:700, color: "var(--text-primary)" }}>Thêm ca làm</p>
             <p style={{ fontSize:10, color:"#64748b" }}>{dayLabel}</p>
           </div>
-          <button onClick={onClose} style={{ width:28, height:28, borderRadius:8, border:"1px solid #e2e8f0", background:"#f8fafc", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" }}>
+          <button onClick={onClose} style={{ width:28, height:28, borderRadius:8, border:"1px solid #e2e8f0", background: "rgba(15,23,42,0.85)", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" }}>
             <X size={12} style={{ color:"#64748b" }} />
           </button>
         </div>
@@ -500,11 +500,11 @@ function AddSlotModal({ templates, date, onSave, onClose }: {
           <div style={{ display:"flex", flexDirection:"column", gap:6, marginBottom:12 }}>
             {templates.map(t => (
               <button key={t.id} onClick={()=>setSelectedTmpl(t)}
-                style={{ display:"flex", alignItems:"center", gap:10, padding:"8px 12px", borderRadius:10, border:`1.5px solid ${selectedTmpl?.id===t.id?t.color:t.color+"30"}`, background:selectedTmpl?.id===t.id?`${t.color}10`:"#fff", cursor:"pointer", textAlign:"left" }}>
+                style={{ display:"flex", alignItems:"center", gap:10, padding:"8px 12px", borderRadius:10, border:`1.5px solid ${selectedTmpl?.id===t.id?t.color:t.color+"30"}`, background:selectedTmpl?.id===t.id?`${t.color}10`:"rgba(255,255,255,0.06)", cursor:"pointer", textAlign:"left" }}>
                 <div style={{ width:10, height:10, borderRadius:3, background:t.color, flexShrink:0 }} />
                 <div style={{ flex:1 }}>
                   <div style={{ display:"flex", alignItems:"center", gap:5 }}>
-                    <p style={{ fontSize:11, fontWeight:700, color:"#0c1a2e" }}>{t.name}</p>
+                    <p style={{ fontSize:11, fontWeight:700, color: "var(--text-primary)" }}>{t.name}</p>
                     <StaffTypeBadge type={t.staffType} size="xs" />
                   </div>
                   <p style={{ fontSize:9, color:"#64748b" }}>{fmt(t.startTime)} – {fmt(t.endTime)} · tối đa {t.maxStaff} người</p>
@@ -531,9 +531,9 @@ function AddSlotModal({ templates, date, onSave, onClose }: {
             </div>
             <div style={{ display:"flex", alignItems:"center", gap:6 }}>
               <span style={{ fontSize:10, color:"#64748b" }}>Tối đa:</span>
-              <button onClick={()=>setMax(m=>Math.max(1,m-1))} style={{ width:26,height:26,borderRadius:7,border:"1px solid #e2e8f0",background:"#fff",cursor:"pointer",fontSize:14 }}>−</button>
-              <span style={{ minWidth:20,textAlign:"center",fontSize:13,fontWeight:700,color:"#0c1a2e" }}>{max}</span>
-              <button onClick={()=>setMax(m=>Math.min(20,m+1))} style={{ width:26,height:26,borderRadius:7,border:"1px solid #e2e8f0",background:"#fff",cursor:"pointer",fontSize:14 }}>+</button>
+              <button onClick={()=>setMax(m=>Math.max(1,m-1))} style={{ width:26,height:26,borderRadius:7,border:"1px solid #e2e8f0",background: "rgba(15,23,42,0.85)",cursor:"pointer",fontSize:14 }}>−</button>
+              <span style={{ minWidth:20,textAlign:"center",fontSize:13,fontWeight:700,color: "var(--text-primary)" }}>{max}</span>
+              <button onClick={()=>setMax(m=>Math.min(20,m+1))} style={{ width:26,height:26,borderRadius:7,border:"1px solid #e2e8f0",background: "rgba(15,23,42,0.85)",cursor:"pointer",fontSize:14 }}>+</button>
             </div>
             <div style={{ display:"flex", flexDirection:"column", gap:4 }}>
               <span style={{ fontSize:9, fontWeight:700, color:"#64748b", letterSpacing:"0.1em" }}>LOẠI NHÂN VIÊN</span>
@@ -544,11 +544,11 @@ function AddSlotModal({ templates, date, onSave, onClose }: {
 
         <textarea value={note} onChange={e=>setNote(e.target.value)} placeholder="Ghi chú (tuỳ chọn)..."
           rows={2}
-          style={{ width:"100%", borderRadius:8, border:"1px solid #e2e8f0", padding:"8px 10px", fontSize:16, fontFamily:"inherit", outline:"none", resize:"none", color:"#0c1a2e", boxSizing:"border-box", marginBottom:12 }} />
+          style={{ width:"100%", borderRadius:8, border:"1px solid #e2e8f0", padding:"8px 10px", fontSize:16, fontFamily:"inherit", outline:"none", resize:"none", color: "var(--text-primary)", boxSizing:"border-box", marginBottom:12 }} />
 
         <div style={{ display:"flex", gap:8 }}>
           <button onClick={onClose}
-            style={{ flex:1, height:36, borderRadius:9, border:"1px solid #e2e8f0", background:"#fff", cursor:"pointer", fontSize:11, fontWeight:600, color:"#64748b", fontFamily:"inherit" }}>Huỷ</button>
+            style={{ flex:1, height:36, borderRadius:9, border:"1px solid #e2e8f0", background: "rgba(15,23,42,0.85)", cursor:"pointer", fontSize:11, fontWeight:600, color:"#64748b", fontFamily:"inherit" }}>Huỷ</button>
           <button onClick={handleSave}
             style={{ flex:2, height:36, borderRadius:9, border:"none", background:"#0ea5e9", cursor:"pointer", fontSize:11, fontWeight:700, color:"#fff", fontFamily:"inherit" }}>
             Thêm ca
@@ -786,7 +786,7 @@ function ShiftNoteWidget({ currentUser, isAdmin }: { currentUser: AppUser | null
               width: "min(340px, calc(100vw - 32px))",
               height: 460,
               borderRadius: 18,
-              background: "rgba(255,255,255,0.98)",
+              background: "rgba(15,23,42,0.85)",
               boxShadow: "0 16px 48px rgba(12,26,46,0.22), 0 2px 8px rgba(12,26,46,0.08)",
               border: "1px solid rgba(201,165,90,0.3)",
               display: "flex", flexDirection: "column",
@@ -857,7 +857,7 @@ function ShiftNoteWidget({ currentUser, isAdmin }: { currentUser: AppUser | null
                           maxWidth: "85%", padding: "7px 11px",
                           borderRadius: isMine ? "12px 12px 4px 12px" : "12px 12px 12px 4px",
                           background: isMine ? "linear-gradient(135deg,#0c1a2e,#1e3a5f)" : "#f1f5f9",
-                          color: isMine ? "#fff" : "#0c1a2e", fontSize: 11, lineHeight: 1.4, wordBreak: "break-word",
+                          color: isMine ? "#fff" : "var(--text-primary)", fontSize: 11, lineHeight: 1.4, wordBreak: "break-word",
                         }}>{m.content}</div>
                         <span style={{ fontSize: 8, color: "#cbd5e1", marginTop: 2 }}>{formatTime(m.createdAt)}</span>
                       </div>
@@ -869,7 +869,7 @@ function ShiftNoteWidget({ currentUser, isAdmin }: { currentUser: AppUser | null
                   <textarea value={text} onChange={e => setText(e.target.value)}
                     onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
                     placeholder={isAdmin ? "Phản hồi nhân viên..." : "Trao đổi nhanh với admin..."}
-                    rows={2} style={{ flex: 1, borderRadius: 10, border: "1px solid #e2e8f0", padding: "8px 10px", fontSize: 16, fontFamily: "inherit", outline: "none", resize: "none", color: "#0c1a2e", background: "#f8fafc", lineHeight: 1.4 }} />
+                    rows={2} style={{ flex: 1, borderRadius: 10, border: "1px solid #e2e8f0", padding: "8px 10px", fontSize: 16, fontFamily: "inherit", outline: "none", resize: "none", color: "var(--text-primary)", background: "rgba(15,23,42,0.85)", lineHeight: 1.4 }} />
                   <button onClick={handleSend} disabled={!text.trim() || sending}
                     style={{ width: 36, height: 36, borderRadius: 10, border: "none", flexShrink: 0, background: text.trim() ? "linear-gradient(135deg,#0c1a2e,#1e3a5f)" : "#f1f5f9", cursor: text.trim() ? "pointer" : "default", display: "flex", alignItems: "center", justifyContent: "center" }}>
                     <Send size={14} style={{ color: text.trim() ? "#C9A55A" : "#cbd5e1" }} />
@@ -884,21 +884,21 @@ function ShiftNoteWidget({ currentUser, isAdmin }: { currentUser: AppUser | null
 
                 {/* Staff: form gửi yêu cầu */}
                 {!isAdmin && (
-                  <div style={{ padding: "12px", borderRadius: 12, border: "1px solid #e0f2fe", background: "#f0f9ff", display: "flex", flexDirection: "column", gap: 8 }}>
-                    <p style={{ fontSize: 10, fontWeight: 700, color: "#0c1a2e", margin: 0 }}>Gửi yêu cầu mới</p>
+                  <div style={{ padding: "12px", borderRadius: 12, border: "1px solid #e0f2fe", background: "rgba(14,165,233,0.08)", display: "flex", flexDirection: "column", gap: 8 }}>
+                    <p style={{ fontSize: 10, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>Gửi yêu cầu mới</p>
                     <select value={reqType} onChange={e => setReqType(e.target.value)}
-                      style={{ borderRadius: 8, border: "1px solid #bae6fd", padding: "6px 8px", fontSize: 16, fontFamily: "inherit", color: "#0c1a2e", background: "#fff", outline: "none" }}>
+                      style={{ borderRadius: 8, border: "1px solid #bae6fd", padding: "6px 8px", fontSize: 16, fontFamily: "inherit", color: "var(--text-primary)", background: "rgba(15,23,42,0.85)", outline: "none" }}>
                       {Object.entries(REQ_TYPE_LABEL).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
                     </select>
                     {(reqType === "swap_shift" || reqType === "day_off") && (
                       <input type="date" value={reqDate} onChange={e => setReqDate(e.target.value)}
-                        style={{ borderRadius: 8, border: "1px solid #bae6fd", padding: "6px 8px", fontSize: 16, fontFamily: "inherit", color: "#0c1a2e", background: "#fff", outline: "none" }} />
+                        style={{ borderRadius: 8, border: "1px solid #bae6fd", padding: "6px 8px", fontSize: 16, fontFamily: "inherit", color: "var(--text-primary)", background: "rgba(15,23,42,0.85)", outline: "none" }} />
                     )}
                     <textarea value={reqContent} onChange={e => setReqContent(e.target.value)}
                       placeholder="Mô tả yêu cầu của bạn..." rows={2}
-                      style={{ borderRadius: 8, border: "1px solid #bae6fd", padding: "7px 9px", fontSize: 16, fontFamily: "inherit", resize: "none", color: "#0c1a2e", background: "#fff", outline: "none", lineHeight: 1.4 }} />
+                      style={{ borderRadius: 8, border: "1px solid #bae6fd", padding: "7px 9px", fontSize: 16, fontFamily: "inherit", resize: "none", color: "var(--text-primary)", background: "rgba(15,23,42,0.85)", outline: "none", lineHeight: 1.4 }} />
                     <button onClick={handleSubmitRequest} disabled={!reqContent.trim() || submitting}
-                      style={{ height: 32, borderRadius: 8, border: "none", background: reqContent.trim() ? "linear-gradient(135deg,#0c1a2e,#1e3a5f)" : "#e2e8f0", color: reqContent.trim() ? "#C9A55A" : "#94a3b8", fontSize: 11, fontWeight: 700, cursor: reqContent.trim() ? "pointer" : "default", fontFamily: "inherit" }}>
+                      style={{ height: 32, borderRadius: 8, border: "none", background: reqContent.trim() ? "linear-gradient(135deg,#0c1a2e,#1e3a5f)" : "rgba(255,255,255,0.10)", color: reqContent.trim() ? "#C9A55A" : "#94a3b8", fontSize: 11, fontWeight: 700, cursor: reqContent.trim() ? "pointer" : "default", fontFamily: "inherit" }}>
                       {submitting ? "Đang gửi..." : "Gửi yêu cầu"}
                     </button>
                   </div>
@@ -922,7 +922,7 @@ function ShiftNoteWidget({ currentUser, isAdmin }: { currentUser: AppUser | null
                   const cardBorder = isPending && isAdmin ? "#fde68a"
                     : isNewlyResolved && isApproved ? "#86efac"
                     : isNewlyResolved && isRejected ? "#fca5a5"
-                    : "#e2e8f0";
+                    : "rgba(255,255,255,0.10)";
                   const cardBg = isPending && isAdmin ? "#fffbeb"
                     : isNewlyResolved && isApproved ? "#f0fdf4"
                     : isNewlyResolved && isRejected ? "#fff1f2"
@@ -934,11 +934,11 @@ function ShiftNoteWidget({ currentUser, isAdmin }: { currentUser: AppUser | null
                     <div key={r.id} style={{ borderRadius: 12, border: `1px solid ${cardBorder}`, background: cardBg, padding: "10px 12px", display: "flex", flexDirection: "column", gap: 6 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                         <span style={{ fontSize: 9, fontWeight: 700, padding: "2px 7px", borderRadius: 20, background: scfg.bg, color: scfg.color }}>{scfg.label}</span>
-                        <span style={{ fontSize: 9, fontWeight: 600, color: "#64748b", background: "#f1f5f9", padding: "2px 7px", borderRadius: 20 }}>{REQ_TYPE_LABEL[r.type] ?? r.type}</span>
+                        <span style={{ fontSize: 9, fontWeight: 600, color: "#64748b", background: "rgba(255,255,255,0.06)", padding: "2px 7px", borderRadius: 20 }}>{REQ_TYPE_LABEL[r.type] ?? r.type}</span>
                         {isAdmin && <span style={{ fontSize: 9, color: "#94a3b8", marginLeft: "auto" }}>{r.userName}</span>}
                         {isNewlyResolved && <span style={{ fontSize: 8, fontWeight: 800, color: isApproved ? "#16a34a" : "#dc2626", marginLeft: "auto" }}>● Mới</span>}
                       </div>
-                      <p style={{ fontSize: 11, color: "#0c1a2e", margin: 0, lineHeight: 1.4 }}>{r.content}</p>
+                      <p style={{ fontSize: 11, color: "var(--text-primary)", margin: 0, lineHeight: 1.4 }}>{r.content}</p>
                       {r.targetDate && <p style={{ fontSize: 9, color: "#64748b", margin: 0 }}>📅 {r.targetDate}</p>}
                       {!isPending && r.adminNote && r.adminNote.trim() !== "" && (
                         <div style={{ padding: "6px 9px", borderRadius: 8, background: noteStyle.bg, border: `1px solid ${noteStyle.border}` }}>
@@ -955,7 +955,7 @@ function ShiftNoteWidget({ currentUser, isAdmin }: { currentUser: AppUser | null
                         <div style={{ display: "flex", flexDirection: "column", gap: 5, marginTop: 2 }}>
                           <input value={replyNote[r.id] ?? ""} onChange={e => setReplyNote(prev => ({ ...prev, [r.id]: e.target.value }))}
                             placeholder="Lý do / ghi chú phản hồi (tuỳ chọn)..."
-                            style={{ borderRadius: 7, border: "1px solid #e2e8f0", padding: "5px 8px", fontSize: 16, fontFamily: "inherit", outline: "none", color: "#0c1a2e" }} />
+                            style={{ borderRadius: 7, border: "1px solid #e2e8f0", padding: "5px 8px", fontSize: 16, fontFamily: "inherit", outline: "none", color: "var(--text-primary)" }} />
                           <div style={{ display: "flex", gap: 6 }}>
                             <button onClick={() => handleAdminAction(r.id, "approved")}
                               style={{ flex: 1, height: 40, borderRadius: 7, border: "none", background: "#16a34a", color: "#fff", fontSize: 10, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
@@ -970,28 +970,28 @@ function ShiftNoteWidget({ currentUser, isAdmin }: { currentUser: AppUser | null
                       )}
                       {/* Admin: sửa yêu cầu đã xử lý */}
                       {isAdmin && !isPending && editingReqId === r.id && (
-                        <div style={{ display: "flex", flexDirection: "column", gap: 5, marginTop: 2, padding: "8px 10px", borderRadius: 8, background: "#f8fafc", border: "1px solid #e2e8f0" }}>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 5, marginTop: 2, padding: "8px 10px", borderRadius: 8, background: "rgba(15,23,42,0.85)", border: "1px solid #e2e8f0" }}>
                           <p style={{ fontSize: 9, fontWeight: 700, color: "#64748b", margin: 0, textTransform: "uppercase", letterSpacing: "0.08em" }}>Chỉnh sửa quyết định</p>
                           <div style={{ display: "flex", gap: 5 }}>
                             <button onClick={() => setEditReqStatus("approved")}
-                              style={{ flex: 1, height: 40, borderRadius: 6, border: `1.5px solid ${editReqStatus === "approved" ? "#16a34a" : "#e2e8f0"}`, background: editReqStatus === "approved" ? "#f0fdf4" : "#fff", color: editReqStatus === "approved" ? "#16a34a" : "#94a3b8", fontSize: 10, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                              style={{ flex: 1, height: 40, borderRadius: 6, border: `1.5px solid ${editReqStatus === "approved" ? "#16a34a" : "rgba(255,255,255,0.10)"}`, background: editReqStatus === "approved" ? "#f0fdf4" : "#fff", color: editReqStatus === "approved" ? "#16a34a" : "#94a3b8", fontSize: 10, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
                               ✓ Duyệt
                             </button>
                             <button onClick={() => setEditReqStatus("rejected")}
-                              style={{ flex: 1, height: 40, borderRadius: 6, border: `1.5px solid ${editReqStatus === "rejected" ? "#dc2626" : "#e2e8f0"}`, background: editReqStatus === "rejected" ? "#fff1f2" : "#fff", color: editReqStatus === "rejected" ? "#dc2626" : "#94a3b8", fontSize: 10, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                              style={{ flex: 1, height: 40, borderRadius: 6, border: `1.5px solid ${editReqStatus === "rejected" ? "#dc2626" : "rgba(255,255,255,0.10)"}`, background: editReqStatus === "rejected" ? "#fff1f2" : "#fff", color: editReqStatus === "rejected" ? "#dc2626" : "#94a3b8", fontSize: 10, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
                               ✕ Từ chối
                             </button>
                           </div>
                           <input value={editReqNote} onChange={e => setEditReqNote(e.target.value)}
                             placeholder="Ghi chú phản hồi..."
-                            style={{ borderRadius: 6, border: "1px solid #e2e8f0", padding: "5px 8px", fontSize: 16, fontFamily: "inherit", outline: "none", color: "#0c1a2e" }} />
+                            style={{ borderRadius: 6, border: "1px solid #e2e8f0", padding: "5px 8px", fontSize: 16, fontFamily: "inherit", outline: "none", color: "var(--text-primary)" }} />
                           <div style={{ display: "flex", gap: 5 }}>
                             <button onClick={saveEditReq}
                               style={{ flex: 1, height: 40, borderRadius: 6, border: "none", background: "linear-gradient(135deg,#0c1a2e,#1e3a5f)", color: "#C9A55A", fontSize: 10, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
                               Lưu
                             </button>
                             <button onClick={() => setEditingReqId(null)}
-                              style={{ height: 40, padding: "0 12px", borderRadius: 6, border: "1px solid #e2e8f0", background: "#fff", color: "#64748b", fontSize: 10, cursor: "pointer", fontFamily: "inherit" }}>
+                              style={{ height: 40, padding: "0 12px", borderRadius: 6, border: "1px solid #e2e8f0", background: "rgba(15,23,42,0.85)", color: "#64748b", fontSize: 10, cursor: "pointer", fontFamily: "inherit" }}>
                               Huỷ
                             </button>
                           </div>
@@ -1309,7 +1309,7 @@ export default function SchedulePage() {
   return (
     <div style={{ display:"flex", flexDirection:"column", height:"100%", minHeight:0, background:"var(--bg-base)" }}>
       {/* ── Header ── */}
-      <div style={{ padding: isMobile ? "12px 14px 10px" : "16px 20px 12px", background:"rgba(255,255,255,0.92)", backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)", borderBottom:"1px solid rgba(186,230,253,0.7)", flexShrink:0 }}>
+      <div style={{ padding: isMobile ? "12px 14px 10px" : "16px 20px 12px", background: "rgba(15,23,42,0.85)", backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)", borderBottom:"1px solid rgba(186,230,253,0.7)", flexShrink:0 }}>
         <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:8 }}>
           <div>
             <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:2 }}>
@@ -1318,7 +1318,7 @@ export default function SchedulePage() {
                 W{String(weekNum).padStart(3,"0")}
               </span>
             </div>
-            <h1 style={{ fontSize: isMobile ? 17 : 20, fontWeight:800, color:"#0c1a2e", margin:0 }}>Lịch Làm Việc</h1>
+            <h1 style={{ fontSize: isMobile ? 17 : 20, fontWeight:800, color: "var(--text-primary)", margin:0 }}>Lịch Làm Việc</h1>
           </div>
           <div style={{ display:"flex", alignItems:"center", gap:6 }}>
             {isAdmin && pendingCount > 0 && (
@@ -1339,7 +1339,7 @@ export default function SchedulePage() {
             )}
             {isAdmin && (
               <button onClick={()=>{ setShowTemplates(v=>!v); setAddTemplate(false); setEditTemplate(null); }}
-                style={{ display:"flex", alignItems:"center", gap:5, padding:"7px 12px", borderRadius:10, border:`1px solid ${showTemplates?"#0ea5e9":"#bae6fd"}`, background:showTemplates?"#f0f9ff":"#fff", cursor:"pointer", fontFamily:"inherit" }}>
+                style={{ display:"flex", alignItems:"center", gap:5, padding:"7px 12px", borderRadius:10, border:`1px solid ${showTemplates?"#0ea5e9":"#bae6fd"}`, background:showTemplates?"rgba(14,165,233,0.08)":"rgba(255,255,255,0.06)", cursor:"pointer", fontFamily:"inherit" }}>
                 <Settings2 size={12} style={{ color:"#0ea5e9" }} />
                 <span style={{ fontSize:10, fontWeight:600, color:"#0ea5e9" }}>{isMobile ? "Mẫu" : "Mẫu Ca"}</span>
                 {templates.length > 0 && (
@@ -1349,7 +1349,7 @@ export default function SchedulePage() {
             )}
             {isAdmin && (
               <button onClick={() => { setBulkMode(v => !v); setSelectedSlotIds(new Set()); playSound("tap"); }}
-                style={{ display:"flex", alignItems:"center", gap:5, padding:"7px 12px", borderRadius:10, border:`1px solid ${bulkMode?"#ef4444":"#fca5a5"}`, background:bulkMode?"#fff5f5":"#fff", cursor:"pointer", fontFamily:"inherit" }}>
+                style={{ display:"flex", alignItems:"center", gap:5, padding:"7px 12px", borderRadius:10, border:`1px solid ${bulkMode?"#ef4444":"#fca5a5"}`, background:bulkMode?"rgba(239,68,68,0.08)":"rgba(255,255,255,0.06)", cursor:"pointer", fontFamily:"inherit" }}>
                 <CheckSquare size={12} style={{ color: bulkMode ? "#ef4444" : "#f87171" }} />
                 <span style={{ fontSize:10, fontWeight:600, color: bulkMode ? "#ef4444" : "#f87171" }}>{bulkMode ? "Huỷ chọn" : "Chọn"}</span>
                 {bulkMode && selectedSlotIds.size > 0 && (
@@ -1382,7 +1382,7 @@ export default function SchedulePage() {
                 href={`/api/shifts/export?dateFrom=${dateFrom}&dateTo=${dateTo}`}
                 download
                 onClick={() => playSound("save")}
-                style={{ display:"flex", alignItems:"center", gap:5, padding:"7px 12px", borderRadius:10, border:"1px solid #bbf7d0", background:"#f0fdf4", cursor:"pointer", textDecoration:"none" }}>
+                style={{ display:"flex", alignItems:"center", gap:5, padding:"7px 12px", borderRadius:10, border:"1px solid #bbf7d0", background: "rgba(16,185,129,0.08)", cursor:"pointer", textDecoration:"none" }}>
                 <Download size={12} style={{ color:"#10b981" }} />
                 <span style={{ fontSize:10, fontWeight:600, color:"#10b981" }}>Excel</span>
               </a>
@@ -1415,7 +1415,7 @@ export default function SchedulePage() {
           <AnimatePresence>
             {showTemplates && isAdmin && (
               <motion.div initial={{ height:0, opacity:0 }} animate={{ height:"auto", opacity:1 }} exit={{ height:0, opacity:0 }} style={{ overflow:"hidden" }}>
-                <div style={{ marginTop:12, padding:14, background:"rgba(255,255,255,0.82)", backdropFilter:"blur(12px)", WebkitBackdropFilter:"blur(12px)", borderRadius:12, border:"1px solid rgba(186,230,253,0.65)" }}>
+                <div style={{ marginTop:12, padding:14, background: "rgba(15,23,42,0.85)", backdropFilter:"blur(12px)", WebkitBackdropFilter:"blur(12px)", borderRadius:12, border:"1px solid rgba(186,230,253,0.65)" }}>
                   <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:10 }}>
                     <p style={{ fontSize:10, fontWeight:700, color:"#64748b", letterSpacing:"0.12em" }}>MẪU CA LÀM VIỆC</p>
                     <button onClick={()=>{ setAddTemplate(v=>!v); setEditTemplate(null); }}
@@ -1425,14 +1425,14 @@ export default function SchedulePage() {
                   </div>
 
                   {addTemplate && !editTemplate && (
-                    <div style={{ marginBottom:12, padding:14, background:"rgba(255,255,255,0.95)", borderRadius:10, border:"1px solid rgba(186,230,253,0.7)" }}>
+                    <div style={{ marginBottom:12, padding:14, background: "rgba(15,23,42,0.85)", borderRadius:10, border:"1px solid rgba(186,230,253,0.7)" }}>
                       <p style={{ fontSize:10, fontWeight:700, color:"#0ea5e9", marginBottom:10 }}>Tạo mẫu mới</p>
                       <TemplateForm onSave={handleSaveTemplate} onClose={()=>setAddTemplate(false)} />
                     </div>
                   )}
 
                   {editTemplate && (
-                    <div style={{ marginBottom:12, padding:14, background:"#fff", borderRadius:10, border:`1.5px solid ${editTemplate.color}60` }}>
+                    <div style={{ marginBottom:12, padding:14, background: "rgba(15,23,42,0.85)", borderRadius:10, border:`1.5px solid ${editTemplate.color}60` }}>
                       <p style={{ fontSize:10, fontWeight:700, color:editTemplate.color, marginBottom:10 }}>Chỉnh sửa: {editTemplate.name}</p>
                       <TemplateForm initial={editTemplate} onSave={handleSaveTemplate} onClose={()=>setEditTemplate(null)} />
                     </div>
@@ -1440,21 +1440,21 @@ export default function SchedulePage() {
 
                   <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
                     {templates.map(t => (
-                      <div key={t.id} style={{ display:"flex", alignItems:"center", gap:8, padding:"8px 12px", borderRadius:10, background:"#fff", border:`1.5px solid ${t.color}40`, minWidth:160 }}>
+                      <div key={t.id} style={{ display:"flex", alignItems:"center", gap:8, padding:"8px 12px", borderRadius:10, background: "rgba(15,23,42,0.85)", border:`1.5px solid ${t.color}40`, minWidth:160 }}>
                         <div style={{ width:4, height:32, borderRadius:2, background:t.color, flexShrink:0 }} />
                         <div style={{ flex:1, minWidth:0 }}>
                           <div style={{ display:"flex", alignItems:"center", gap:5 }}>
-                            <p style={{ fontSize:11, fontWeight:700, color:"#0c1a2e" }}>{t.name}</p>
+                            <p style={{ fontSize:11, fontWeight:700, color: "var(--text-primary)" }}>{t.name}</p>
                             <StaffTypeBadge type={t.staffType} size="xs" />
                           </div>
                           <p style={{ fontSize:9, color:"#64748b" }}>{fmt(t.startTime)}–{fmt(t.endTime)} · {t.maxStaff} người</p>
                         </div>
                         <button onClick={()=>{ setEditTemplate(t); setAddTemplate(false); }}
-                          style={{ width:24,height:24,borderRadius:6,border:`1px solid ${editTemplate?.id===t.id?"#0ea5e9":"#e2e8f0"}`,background:editTemplate?.id===t.id?"#f0f9ff":"#fff",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center" }}>
+                          style={{ width:24,height:24,borderRadius:6,border:`1px solid ${editTemplate?.id===t.id?"#0ea5e9":"rgba(255,255,255,0.10)"}`,background:editTemplate?.id===t.id?"#f0f9ff":"#fff",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center" }}>
                           <Edit3 size={10} style={{ color:editTemplate?.id===t.id?"#0ea5e9":"#64748b" }} />
                         </button>
                         <button onClick={()=>handleDeleteTemplate(t.id)}
-                          style={{ width:24,height:24,borderRadius:6,border:"1px solid #fee2e2",background:"#fff5f5",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center" }}>
+                          style={{ width:24,height:24,borderRadius:6,border:"1px solid #fee2e2",background: "rgba(239,68,68,0.08)",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center" }}>
                           <Trash2 size={10} style={{ color:"#ef4444" }} />
                         </button>
                       </div>
@@ -1472,16 +1472,16 @@ export default function SchedulePage() {
         {/* Week nav + view toggle */}
         <div style={{ display:"flex", alignItems:"center", gap:isMobile?6:8, marginTop:12 }}>
           <button onClick={()=>setWeekOffset(v=>v-1)}
-            style={{ width:30,height:30,borderRadius:9,border:"1px solid var(--border)",background:"rgba(255,255,255,0.88)",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}>
+            style={{ width:30,height:30,borderRadius:9,border:"1px solid var(--border)",background: "rgba(15,23,42,0.85)",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}>
             <ChevronLeft size={14} style={{ color:"var(--text-muted)" }} />
           </button>
           <button onClick={()=>setWeekOffset(0)}
-            style={{ padding:"5px 10px",borderRadius:9,border:"1px solid var(--border)",background:weekOffset===0?"var(--text-primary)":"rgba(255,255,255,0.88)",cursor:"pointer",fontSize:10,fontWeight:700,color:weekOffset===0?"#fff":"var(--text-muted)",fontFamily:"inherit",flexShrink:0 }}>
+            style={{ padding:"5px 10px",borderRadius:9,border:"1px solid var(--border)",background:weekOffset===0?"var(--text-primary)":"rgba(15,23,42,0.85)",cursor:"pointer",fontSize:10,fontWeight:700,color:weekOffset===0?"#fff":"var(--text-muted)",fontFamily:"inherit",flexShrink:0 }}>
             Tuần này
           </button>
-          <span style={{ fontSize:isMobile?10:11, fontWeight:700, color:"#0c1a2e", flex:1, textAlign:"center" }}>{weekLabel}</span>
+          <span style={{ fontSize:isMobile?10:11, fontWeight:700, color: "var(--text-primary)", flex:1, textAlign:"center" }}>{weekLabel}</span>
           <button onClick={()=>setWeekOffset(v=>v+1)}
-            style={{ width:30,height:30,borderRadius:9,border:"1px solid var(--border)",background:"rgba(255,255,255,0.88)",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}>
+            style={{ width:30,height:30,borderRadius:9,border:"1px solid var(--border)",background: "rgba(15,23,42,0.85)",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}>
             <ChevronRight size={14} style={{ color:"var(--text-muted)" }} />
           </button>
           <div style={{ display:"flex", gap:2, padding:3, background:"rgba(14,165,233,0.06)", borderRadius:10, border:"1px solid var(--border)", flexShrink:0 }}>
@@ -1523,7 +1523,7 @@ export default function SchedulePage() {
                 style={{
                   height: 26, padding: "0 11px", borderRadius: 20,
                   border: `1.5px solid ${active ? cfg.border : "rgba(186,230,253,0.60)"}`,
-                  background: active ? cfg.bg : "rgba(255,255,255,0.72)",
+                  background: active ? cfg.bg : "rgba(255,255,255,0.06)",
                   cursor: "pointer", fontFamily: "inherit",
                   fontSize: 9, fontWeight: 800,
                   color: active ? cfg.color : "#94a3b8",
@@ -1561,16 +1561,16 @@ export default function SchedulePage() {
                       <div style={{ width:36, height:36, borderRadius:"50%", background:isToday?"#0ea5e9":"rgba(186,230,253,0.4)", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
                         <div style={{ textAlign:"center" }}>
                           <p style={{ fontSize:8, fontWeight:700, color:isToday?"#fff":"#94a3b8", lineHeight:1 }}>{DAYS_VI[date.getUTCDay()]}</p>
-                          <p style={{ fontSize:13, fontWeight:800, color:isToday?"#fff":isPast?"#cbd5e1":"#0c1a2e", lineHeight:1.2 }}>{date.getUTCDate()}</p>
+                          <p style={{ fontSize:13, fontWeight:800, color:isToday?"#fff":isPast?"#475569":"var(--text-primary)", lineHeight:1.2 }}>{date.getUTCDate()}</p>
                         </div>
                       </div>
                       <div style={{ flex:1 }}>
-                        <p style={{ fontSize:11, fontWeight:600, color:isToday?"#0ea5e9":"#0c1a2e" }}>{DAYS_FULL[date.getUTCDay()]}</p>
+                        <p style={{ fontSize:11, fontWeight:600, color:isToday?"#0ea5e9":"var(--text-primary)" }}>{DAYS_FULL[date.getUTCDay()]}</p>
                         <p style={{ fontSize:9, color:"#94a3b8" }}>{hasSlots ? `${daySlots.length} ca` : "Không có ca"}</p>
                       </div>
                       {isAdmin && (
                         <button onClick={() => setAddingSlot(ds)}
-                          style={{ width:30, height:30, borderRadius:9, border:"1px solid #e0f2fe", background:"#fff", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" }}>
+                          style={{ width:30, height:30, borderRadius:9, border:"1px solid #e0f2fe", background: "rgba(15,23,42,0.85)", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" }}>
                           <Plus size={13} style={{ color:"#0ea5e9" }} />
                         </button>
                       )}
@@ -1628,7 +1628,7 @@ export default function SchedulePage() {
                     <div style={{ textAlign:"center" }}>
                       <p style={{ fontSize:9, fontWeight:700, color:isToday?"#0ea5e9":"#94a3b8", letterSpacing:"0.1em" }}>{DAYS_VI[date.getUTCDay()]}</p>
                       <div style={{ width:28, height:28, borderRadius:"50%", background:isToday?"#0ea5e9":"transparent", display:"flex", alignItems:"center", justifyContent:"center", margin:"2px auto" }}>
-                        <span style={{ fontSize:13, fontWeight:800, color:isToday?"#fff":isPast?"#cbd5e1":"#0c1a2e" }}>{date.getUTCDate()}</span>
+                        <span style={{ fontSize:13, fontWeight:800, color:isToday?"#fff":isPast?"#475569":"var(--text-primary)" }}>{date.getUTCDate()}</span>
                       </div>
                     </div>
                     {(["FT","PT","ALL"] as StaffType[]).map(group => {
@@ -1693,13 +1693,13 @@ export default function SchedulePage() {
                 <p style={{ fontSize:11, color:"#94a3b8", textAlign:"center", padding:"40px 0" }}>Không có nhân viên nào đang hoạt động.</p>
               )}
               {staffSchedule.map(({ uid, name, role, slots: mySlots }) => (
-                <div key={uid} style={{ background:"#fff", borderRadius:12, border:"1px solid #e0f2fe", padding:"10px 14px" }}>
+                <div key={uid} style={{ background: "rgba(15,23,42,0.85)", borderRadius:12, border:"1px solid #e0f2fe", padding:"10px 14px" }}>
                   <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom: mySlots.length > 0 ? 8 : 0 }}>
                     <div style={{ width:32, height:32, borderRadius:"50%", background:"linear-gradient(135deg,#0c1a2e,#1e3a5f)", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
                       <span style={{ fontSize:11, fontWeight:700, color:"#C9A55A" }}>{name[0]?.toUpperCase()}</span>
                     </div>
                     <div style={{ flex:1 }}>
-                      <p style={{ fontSize:12, fontWeight:600, color:"#0c1a2e" }}>{name}</p>
+                      <p style={{ fontSize:12, fontWeight:600, color: "var(--text-primary)" }}>{name}</p>
                       <p style={{ fontSize:9, color:"#94a3b8" }}>{roleLabel(role)} · {mySlots.length} ca tuần này</p>
                     </div>
                   </div>
@@ -1757,7 +1757,7 @@ export default function SchedulePage() {
                         )}
                       </div>
                       <div style={{ minWidth:0 }}>
-                        <p style={{ fontSize:10,fontWeight:600,color:"#0c1a2e",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{name}</p>
+                        <p style={{ fontSize:10,fontWeight:600,color: "var(--text-primary)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{name}</p>
                         <p style={{ fontSize:7.5,color:"#94a3b8",letterSpacing:"0.08em" }}>{roleLabel(role).toUpperCase()}</p>
                       </div>
                     </div>
@@ -1773,8 +1773,8 @@ export default function SchedulePage() {
                             </div>
                           ))}
                           {dayShifts.length === 0 && (
-                            <div style={{ height:34, borderRadius:7, background:"#f8fafc", border:"1px dashed #e2e8f0", display:"flex", alignItems:"center", justifyContent:"center" }}>
-                              <span style={{ fontSize:8, color:"#e2e8f0" }}>—</span>
+                            <div style={{ height:34, borderRadius:7, background: "rgba(15,23,42,0.85)", border:"1px dashed #e2e8f0", display:"flex", alignItems:"center", justifyContent:"center" }}>
+                              <span style={{ fontSize:8, color:"rgba(255,255,255,0.10)" }}>—</span>
                             </div>
                           )}
                         </div>
@@ -1789,7 +1789,7 @@ export default function SchedulePage() {
       </div>
 
       {/* Leave Type Legend */}
-      <div style={{ padding:"12px 20px 16px", background:"#fff", borderTop:"1px solid #e0f2fe", flexShrink:0 }}>
+      <div style={{ padding:"12px 20px 16px", background: "rgba(15,23,42,0.85)", borderTop:"1px solid #e0f2fe", flexShrink:0 }}>
         <p style={{ fontSize:8.5, fontWeight:700, color:"#94a3b8", letterSpacing:"0.12em", marginBottom:8 }}>LOẠI NGÀY VẮNG / PHÉP</p>
         <div style={{ display:"flex", flexWrap:"wrap", gap:"5px 10px" }}>
           {[
@@ -1908,10 +1908,10 @@ export default function SchedulePage() {
           <motion.div
             initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
             transition={{ type:"spring", damping:30, stiffness:300 }}
-            style={{ position:"fixed", bottom:0, left:0, right:0, background:"rgba(255,255,255,0.96)", backdropFilter:"blur(20px)", WebkitBackdropFilter:"blur(20px)", borderRadius:"20px 20px 0 0",
+            style={{ position:"fixed", bottom:0, left:0, right:0, background: "rgba(15,23,42,0.85)", backdropFilter:"blur(20px)", WebkitBackdropFilter:"blur(20px)", borderRadius:"20px 20px 0 0",
                      boxShadow:"0 -8px 40px rgba(12,26,46,0.14), inset 0 1px 0 rgba(255,255,255,0.8)", zIndex:200, maxHeight:"80vh", display:"flex", flexDirection:"column" }}>
             <div style={{ padding:"14px 16px 12px", borderBottom:"1px solid var(--border-subtle)", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-              <p style={{ fontSize:13, fontWeight:700, color:"#0c1a2e" }}>Mẫu Ca Làm Việc</p>
+              <p style={{ fontSize:13, fontWeight:700, color: "var(--text-primary)" }}>Mẫu Ca Làm Việc</p>
               <button onClick={() => setShowTemplates(false)} style={{ background:"none", border:"none", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" }}>
                 <X size={16} style={{ color:"#94a3b8" }} />
               </button>
@@ -1919,19 +1919,19 @@ export default function SchedulePage() {
             <div style={{ flex:1, overflowY:"auto", padding:"12px 16px 32px" }}>
               {/* Add new template button */}
               <button onClick={()=>{ setAddTemplate(v=>!v); setEditTemplate(null); }}
-                style={{ display:"flex", alignItems:"center", gap:6, width:"100%", padding:"10px 12px", borderRadius:10, border:`1px solid ${addTemplate?"var(--blue)":"var(--border)"}`, background:addTemplate?"rgba(14,165,233,0.06)":"rgba(255,255,255,0.8)", cursor:"pointer", fontSize:11, fontWeight:600, color:"var(--blue)", fontFamily:"inherit", marginBottom:12 }}>
+                style={{ display:"flex", alignItems:"center", gap:6, width:"100%", padding:"10px 12px", borderRadius:10, border:`1px solid ${addTemplate?"var(--blue)":"var(--border)"}`, background:addTemplate?"rgba(14,165,233,0.06)":"rgba(255,255,255,0.06)", cursor:"pointer", fontSize:11, fontWeight:600, color:"var(--blue)", fontFamily:"inherit", marginBottom:12 }}>
                 <Plus size={12} /> Thêm mẫu mới
               </button>
 
               {addTemplate && !editTemplate && (
-                <div style={{ marginBottom:16, padding:14, background:"#f8fafc", borderRadius:12, border:"1px solid #bae6fd" }}>
+                <div style={{ marginBottom:16, padding:14, background: "rgba(15,23,42,0.85)", borderRadius:12, border:"1px solid #bae6fd" }}>
                   <p style={{ fontSize:10, fontWeight:700, color:"#0ea5e9", marginBottom:10 }}>Tạo mẫu mới</p>
                   <TemplateForm onSave={handleSaveTemplate} onClose={()=>setAddTemplate(false)} />
                 </div>
               )}
 
               {editTemplate && (
-                <div style={{ marginBottom:16, padding:14, background:"#f8fafc", borderRadius:12, border:`1.5px solid ${editTemplate.color}60` }}>
+                <div style={{ marginBottom:16, padding:14, background: "rgba(15,23,42,0.85)", borderRadius:12, border:`1.5px solid ${editTemplate.color}60` }}>
                   <p style={{ fontSize:10, fontWeight:700, color:editTemplate.color, marginBottom:10 }}>Chỉnh sửa: {editTemplate.name}</p>
                   <TemplateForm initial={editTemplate} onSave={handleSaveTemplate} onClose={()=>setEditTemplate(null)} />
                 </div>
@@ -1939,18 +1939,18 @@ export default function SchedulePage() {
 
               <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
                 {templates.map(t => (
-                  <div key={t.id} style={{ display:"flex", alignItems:"center", gap:10, padding:"10px 12px", borderRadius:12, background:"#fff", border:`1.5px solid ${t.color}40` }}>
+                  <div key={t.id} style={{ display:"flex", alignItems:"center", gap:10, padding:"10px 12px", borderRadius:12, background: "rgba(15,23,42,0.85)", border:`1.5px solid ${t.color}40` }}>
                     <div style={{ width:4, height:36, borderRadius:2, background:t.color, flexShrink:0 }} />
                     <div style={{ flex:1, minWidth:0 }}>
-                      <p style={{ fontSize:12, fontWeight:700, color:"#0c1a2e" }}>{t.name}</p>
+                      <p style={{ fontSize:12, fontWeight:700, color: "var(--text-primary)" }}>{t.name}</p>
                       <p style={{ fontSize:10, color:"#64748b" }}>{fmt(t.startTime)}–{fmt(t.endTime)} · {t.maxStaff} người</p>
                     </div>
                     <button onClick={()=>{ setEditTemplate(t); setAddTemplate(false); }}
-                      style={{ width:28,height:28,borderRadius:8,border:`1px solid ${editTemplate?.id===t.id?"#0ea5e9":"#e2e8f0"}`,background:editTemplate?.id===t.id?"#f0f9ff":"#fff",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center" }}>
+                      style={{ width:28,height:28,borderRadius:8,border:`1px solid ${editTemplate?.id===t.id?"#0ea5e9":"rgba(255,255,255,0.10)"}`,background:editTemplate?.id===t.id?"#f0f9ff":"#fff",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center" }}>
                       <Edit3 size={11} style={{ color:editTemplate?.id===t.id?"#0ea5e9":"#64748b" }} />
                     </button>
                     <button onClick={()=>handleDeleteTemplate(t.id)}
-                      style={{ width:28,height:28,borderRadius:8,border:"1px solid #fee2e2",background:"#fff5f5",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center" }}>
+                      style={{ width:28,height:28,borderRadius:8,border:"1px solid #fee2e2",background: "rgba(239,68,68,0.08)",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center" }}>
                       <Trash2 size={11} style={{ color:"#ef4444" }} />
                     </button>
                   </div>

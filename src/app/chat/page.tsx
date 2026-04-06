@@ -52,7 +52,7 @@ const ROLE_CFG: Record<string, { color: string; icon: typeof User }> = {
 };
 const STATUS_COLOR: Record<string, string> = {
   online: "#10b981", busy: "#f59e0b", away: "#94a3b8", offline: "#cbd5e1",
-  working: "#10b981", off_shift: "#94a3b8", day_off: "#e2e8f0",
+  working: "#10b981", off_shift: "#94a3b8", day_off: "rgba(255,255,255,0.10)",
 };
 const QUICK_REACTIONS = ["👍", "❤️", "😂", "😮", "👏", "🔥", "😢", "🎉"];
 
@@ -115,7 +115,7 @@ function Avatar({ src, name, size = 32, status }: { src?: string | null; name: s
           position: "absolute", bottom: -1, right: -1,
           width: Math.max(8, size * 0.28), height: Math.max(8, size * 0.28),
           borderRadius: "50%", background: STATUS_COLOR[status] ?? "#cbd5e1",
-          border: "1.5px solid rgba(255,255,255,0.9)",
+          border: "1.5px solid rgba(8,14,26,0.8)",
         }} />
       )}
     </div>
@@ -124,7 +124,7 @@ function Avatar({ src, name, size = 32, status }: { src?: string | null; name: s
 
 const iconBtn: React.CSSProperties = {
   width: 26, height: 26, borderRadius: 7, border: "1px solid rgba(186,230,253,0.55)",
-  background: "rgba(255,255,255,0.72)", display: "flex", alignItems: "center",
+  background: "rgba(15,23,42,0.85)", display: "flex", alignItems: "center",
   justifyContent: "center", cursor: "pointer",
 };
 
@@ -147,8 +147,8 @@ function ImageLightbox({ src, onClose }: { src: string; onClose: () => void }) {
     >
       <div onClick={e => e.stopPropagation()} style={{ position: "relative", maxWidth: "90vw", maxHeight: "90vh" }}>
         <img src={src} alt="" style={{ maxWidth: "90vw", maxHeight: "90vh", objectFit: "contain", borderRadius: 12, boxShadow: "0 8px 48px rgba(0,0,0,0.6)", display: "block" }} />
-        <button onClick={onClose} style={{ position: "absolute", top: -14, right: -14, width: 32, height: 32, borderRadius: "50%", background: "rgba(255,255,255,0.92)", backdropFilter: "blur(8px)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 2px 8px rgba(0,0,0,0.3)" }}>
-          <X size={16} style={{ color: "#0c1a2e" }} />
+        <button onClick={onClose} style={{ position: "absolute", top: -14, right: -14, width: 32, height: 32, borderRadius: "50%", background: "rgba(15,23,42,0.85)", backdropFilter: "blur(8px)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 2px 8px rgba(0,0,0,0.3)" }}>
+          <X size={16} style={{ color: "var(--text-primary)" }} />
         </button>
         <a href={src} download target="_blank" rel="noreferrer"
           onClick={e => e.stopPropagation()}
@@ -191,13 +191,13 @@ function MediaContent({ msg, isMe, onOpenLightbox }: { msg: Message; isMe: boole
         marginTop: msg.content ? 6 : 0,
         display: "flex", alignItems: "center", gap: 8,
         padding: "8px 10px", borderRadius: 10,
-        background: "rgba(238,246,253,0.9)",
+        background: "rgba(15,23,42,0.85)",
         border: "1px solid rgba(186,230,253,0.6)",
         textDecoration: "none", cursor: "pointer",
       }}
     >
       <FileIcon size={14} style={{ color: "#6366f1", flexShrink: 0 }} />
-      <span style={{ fontSize: 10, color: "#0c1a2e", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+      <span style={{ fontSize: 10, color: "var(--text-primary)", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
         {filename.replace(/^chat_\d+_[a-z0-9]+/, "").replace(/^_/, "") || filename}
       </span>
       <Download size={11} style={{ color: "#94a3b8", flexShrink: 0 }} />
@@ -307,7 +307,7 @@ function MsgBubble({ msg, isMe, showHeader, members, onDelete, onRevoke, onReply
                   <button onClick={() => onReact(msg.id, emoji)}
                     onMouseEnter={() => setHoveredReaction(emoji)}
                     onMouseLeave={() => setHoveredReaction(null)}
-                    style={{ display: "flex", alignItems: "center", gap: 3, background: "rgba(255,255,255,0.82)", border: "1px solid rgba(186,230,253,0.55)", borderRadius: 12, padding: "2px 7px", cursor: "pointer", fontSize: 12, lineHeight: 1.4 }}>
+                    style={{ display: "flex", alignItems: "center", gap: 3, background: "rgba(15,23,42,0.85)", border: "1px solid rgba(186,230,253,0.55)", borderRadius: 12, padding: "2px 7px", cursor: "pointer", fontSize: 12, lineHeight: 1.4 }}>
                     {emoji} <span style={{ fontSize: 9.5, color: "#64748b" }}>{userIds.length}</span>
                   </button>
                   {hoveredReaction === emoji && (
@@ -355,7 +355,7 @@ function MsgBubble({ msg, isMe, showHeader, members, onDelete, onRevoke, onReply
             style={{
               position: "absolute", top: -14, right: 16,
               display: "flex", alignItems: "center", gap: 2,
-              background: "rgba(255,255,255,0.94)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", border: "1px solid rgba(186,230,253,0.55)", borderRadius: 10,
+              background: "rgba(15,23,42,0.85)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", border: "1px solid rgba(186,230,253,0.55)", borderRadius: 10,
               padding: "3px 5px",
               boxShadow: "0 4px 20px rgba(12,26,46,0.12), inset 0 1px 0 rgba(255,255,255,0.8)",
               zIndex: 10,
@@ -373,7 +373,7 @@ function MsgBubble({ msg, isMe, showHeader, members, onDelete, onRevoke, onReply
                     initial={{ opacity: 0, scale: 0.9, y: 4 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0 }}
                     style={{
                       position: "absolute", right: 0, bottom: "calc(100% + 4px)",
-                      background: "rgba(255,255,255,0.96)", backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)", border: "1px solid rgba(186,230,253,0.55)", borderRadius: 20, padding: "6px 10px",
+                      background: "rgba(15,23,42,0.85)", backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)", border: "1px solid rgba(186,230,253,0.55)", borderRadius: 20, padding: "6px 10px",
                       display: "flex", flexWrap: "wrap", gap: 2, width: 200,
                       boxShadow: "0 4px 24px rgba(12,26,46,0.14), inset 0 1px 0 rgba(255,255,255,0.8)", zIndex: 30,
                     }}
@@ -449,13 +449,13 @@ function UploadPreview({ file, onCancel }: { file: File; onCancel: () => void })
   const isImage = file.type.startsWith("image/");
   const url = isImage ? URL.createObjectURL(file) : null;
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", borderRadius: 10, background: "rgba(238,246,253,0.9)", border: "1px solid rgba(186,230,253,0.6)", marginBottom: 6 }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", borderRadius: 10, background: "rgba(15,23,42,0.85)", border: "1px solid rgba(186,230,253,0.6)", marginBottom: 6 }}>
       {url
         ? <img src={url} alt="" style={{ width: 40, height: 40, objectFit: "cover", borderRadius: 6 }} />
         : <FileIcon size={18} style={{ color: "#6366f1", flexShrink: 0 }} />
       }
       <div style={{ flex: 1, minWidth: 0 }}>
-        <p style={{ fontSize: 10, color: "#0c1a2e", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{file.name}</p>
+        <p style={{ fontSize: 10, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{file.name}</p>
         <p style={{ fontSize: 8.5, color: "#94a3b8" }}>{fmtSize(file.size)}</p>
       </div>
       <button onClick={onCancel} style={{ background: "none", border: "none", cursor: "pointer" }}>
@@ -470,8 +470,8 @@ function UploadPreview({ file, onCancel }: { file: File; onCancel: () => void })
 export default function ChatPage() {
   const currentUser = useStore(sel.currentUser);
   const isAdmin = currentUser?.role === "admin" || currentUser?.role === "manager";
-  const cardBg = "rgba(255,255,255,0.88)";
-  const cardBorder = "rgba(186,230,253,0.55)";
+  const cardBg = "rgba(15,23,42,0.85)";
+  const cardBorder = "rgba(255,255,255,0.07)";
 
   const [rooms, setRooms] = useState<Room[]>([]);
   const [activeRoom, setActiveRoom] = useState<Room | null>(null);
@@ -1037,8 +1037,8 @@ export default function ChatPage() {
     <div style={{
       display: "flex", flexDirection: "column", height: "100%",
       ...(isMobile
-        ? { flex: 1, background: "rgba(255,255,255,0.82)", backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)" }
-        : { width: 232, flexShrink: 0, borderRight: "1px solid rgba(186,230,253,0.6)", background: "rgba(255,255,255,0.82)", backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)" }),
+        ? { flex: 1, background: "rgba(15,23,42,0.85)", backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)" }
+        : { width: 232, flexShrink: 0, borderRight: "1px solid rgba(186,230,253,0.6)", background: "rgba(15,23,42,0.85)", backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)" }),
     }}>
       {/* Server header */}
       <div style={{
@@ -1094,7 +1094,7 @@ export default function ChatPage() {
                   <input value={newRoomName} onChange={e => setNewRoomName(e.target.value)} autoFocus
                     onKeyDown={e => { if (e.key === "Enter") handleCreateRoom(); if (e.key === "Escape") { setNewRoom(false); setNewRoomName(""); } }}
                     placeholder="tên-kênh..."
-                    style={{ flex: 1, fontSize: 11, background: "rgba(255,255,255,0.88)", border: "1px solid rgba(186,230,253,0.6)", borderRadius: 4, padding: "5px 8px", outline: "none", fontFamily: "inherit", color: "#0c1a2e" }}
+                    style={{ flex: 1, fontSize: 11, background: "rgba(15,23,42,0.85)", border: "1px solid rgba(186,230,253,0.6)", borderRadius: 4, padding: "5px 8px", outline: "none", fontFamily: "inherit", color: "var(--text-primary)" }}
                   />
                   <button onClick={handleCreateRoom} style={{ background: "linear-gradient(135deg,#6366f1,#818cf8)", border: "none", borderRadius: 4, padding: "4px 8px", cursor: "pointer" }}>
                     <Check size={11} style={{ color: "#fff" }} />
@@ -1124,7 +1124,7 @@ export default function ChatPage() {
                     onMouseLeave={e => { e.currentTarget.style.background = isActive ? "rgba(201,165,90,0.08)" : "transparent"; }}
                   >
                     {isMobile
-                      ? <div style={{ width: 38, height: 38, borderRadius: "50%", background: isDM ? "linear-gradient(135deg,#6366f1,#818cf8)" : "#e0e7ff", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                      ? <div style={{ width: 38, height: 38, borderRadius: "50%", background: isDM ? "linear-gradient(135deg,#6366f1,#818cf8)" : "rgba(99,102,241,0.25)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                           {room.icon ? <span style={{ fontSize: 18 }}>{room.icon}</span> : <Icon size={17} style={{ color: isDM ? "#fff" : "#6366f1" }} />}
                         </div>
                       : <>
@@ -1167,12 +1167,12 @@ export default function ChatPage() {
         <div style={{
           height: 52, borderTop: "1px solid rgba(186,230,253,0.6)",
           display: "flex", alignItems: "center", padding: "0 8px", gap: 8, flexShrink: 0,
-          background: "rgba(255,255,255,0.82)",
+          background: "rgba(15,23,42,0.85)",
           backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)",
         }}>
           <Avatar src={null} name={currentUser.name} size={32} status="online" />
           <div style={{ flex: 1, minWidth: 0 }}>
-            <p style={{ fontSize: 12, fontWeight: 600, color: "#0c1a2e", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{currentUser.name}</p>
+            <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{currentUser.name}</p>
             <p style={{ fontSize: 10, color: "#64748b" }}>{currentUser.role === "admin" ? "Admin" : currentUser.role === "manager" ? "Quản Lý" : "Nhân viên"}</p>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
@@ -1190,7 +1190,7 @@ export default function ChatPage() {
       <div style={{
         height: 48, padding: "0 16px 0 12px", borderBottom: `1px solid ${cardBorder}`,
         display: "flex", alignItems: "center", gap: 10, flexShrink: 0,
-        background: "rgba(255,255,255,0.92)",
+        background: "rgba(15,23,42,0.85)",
         backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)",
         boxShadow: "0 1px 0 rgba(186,230,253,0.4), inset 0 1px 0 rgba(255,255,255,0.8)",
       }}>
@@ -1215,7 +1215,7 @@ export default function ChatPage() {
                     ? <MessageCircle size={16} style={{ color: "#6366f1" }} />
                     : <Hash size={16} style={{ color: "#6366f1" }} />
               }
-              <p style={{ fontSize: 15, fontWeight: 700, color: "#0c1a2e", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{activeRoom.name}</p>
+              <p style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{activeRoom.name}</p>
               {activeRoom.type === "announce" && (
                 <span style={{ fontSize: 9, color: "#fff", background: "#f59e0b", padding: "1px 7px", borderRadius: 10, fontWeight: 700, whiteSpace: "nowrap", flexShrink: 0 }}>THÔNG BÁO</span>
               )}
@@ -1231,7 +1231,7 @@ export default function ChatPage() {
                 style={{ ...iconBtn, background: showInfoPanel ? "#eef0fd" : "transparent", border: showInfoPanel ? "1px solid #c7d2fe" : "1px solid transparent", width: 32, height: 32 }}>
                 <Users size={14} style={{ color: showInfoPanel ? "#6366f1" : "#64748b" }} />
               </button>
-              <div style={{ width: 1, height: 20, background: "#e0e7ff", margin: "0 2px" }} />
+              <div style={{ width: 1, height: 20, background: "rgba(99,102,241,0.25)", margin: "0 2px" }} />
               <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
                 <Circle size={7} style={{ color: "#23a55a", fill: "#23a55a" }} />
                 <span style={{ fontSize: 10, color: "#64748b", whiteSpace: "nowrap" }}>{onlineMembers.length} online</span>
@@ -1249,7 +1249,7 @@ export default function ChatPage() {
           <motion.div
             initial={{ height: 0, opacity: 0 }} animate={{ height: 44, opacity: 1 }} exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.15 }}
-            style={{ overflow: "hidden", borderBottom: "1px solid rgba(186,230,253,0.5)", background: "rgba(255,255,255,0.88)", flexShrink: 0 }}
+            style={{ overflow: "hidden", borderBottom: "1px solid rgba(186,230,253,0.5)", background: "rgba(15,23,42,0.85)", flexShrink: 0 }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 14px", height: 44 }}>
               <Search size={12} style={{ color: "#94a3b8", flexShrink: 0 }} />
@@ -1259,7 +1259,7 @@ export default function ChatPage() {
                 onChange={e => setSearchQuery(e.target.value)}
                 onKeyDown={e => { if (e.key === "Escape") { setShowSearch(false); } }}
                 placeholder="Tìm kiếm trong kênh..."
-                style={{ flex: 1, fontSize: 12, color: "#0c1a2e", fontFamily: "inherit", background: "transparent", border: "none", outline: "none" }}
+                style={{ flex: 1, fontSize: 12, color: "var(--text-primary)", fontFamily: "inherit", background: "transparent", border: "none", outline: "none" }}
               />
               {searchLoading && <div style={{ width: 12, height: 12, borderRadius: "50%", border: "2px solid #6366f1", borderTopColor: "transparent", animation: "spin 0.6s linear infinite", flexShrink: 0 }} />}
               {searchQuery && (
@@ -1299,7 +1299,7 @@ export default function ChatPage() {
             <div style={{ width: 68, height: 68, borderRadius: "50%", background: "#eef0fd", display: "flex", alignItems: "center", justifyContent: "center" }}>
               {activeRoom.icon ? <span style={{ fontSize: 32 }}>{activeRoom.icon}</span> : <Hash size={32} style={{ color: "#6366f1" }} strokeWidth={1.5} />}
             </div>
-            <p style={{ fontSize: 20, fontWeight: 800, color: "#0c1a2e" }}>Chào mừng đến #{activeRoom.name}!</p>
+            <p style={{ fontSize: 20, fontWeight: 800, color: "var(--text-primary)" }}>Chào mừng đến #{activeRoom.name}!</p>
             <p style={{ fontSize: 13, color: "#64748b", textAlign: "center" }}>Đây là phần đầu của kênh <strong>#{activeRoom.name}</strong>. Gửi tin nhắn để bắt đầu cuộc trò chuyện.</p>
           </div>
         )}
@@ -1308,9 +1308,9 @@ export default function ChatPage() {
           if (item.type === "date") {
             return (
               <div key={`date-${item.date}-${i}`} style={{ display: "flex", alignItems: "center", gap: 10, margin: "16px 16px 8px" }}>
-                <div style={{ flex: 1, height: 1, background: "#e0e7ff" }} />
-                <span style={{ fontSize: 10, color: "var(--text-muted)", fontWeight: 700, whiteSpace: "nowrap", padding: "0 8px", background: "rgba(255,255,255,0.88)", borderRadius: 20, border: "1px solid rgba(186,230,253,0.55)" }}>{item.date}</span>
-                <div style={{ flex: 1, height: 1, background: "#e0e7ff" }} />
+                <div style={{ flex: 1, height: 1, background: "rgba(99,102,241,0.25)" }} />
+                <span style={{ fontSize: 10, color: "var(--text-muted)", fontWeight: 700, whiteSpace: "nowrap", padding: "0 8px", background: "rgba(15,23,42,0.85)", borderRadius: 20, border: "1px solid rgba(186,230,253,0.55)" }}>{item.date}</span>
+                <div style={{ flex: 1, height: 1, background: "rgba(99,102,241,0.25)" }} />
               </div>
             );
           }
@@ -1350,7 +1350,7 @@ export default function ChatPage() {
 
       {/* Edit message bar */}
       {editingMsg && (
-        <div style={{ padding: "8px 16px", borderTop: "1px solid rgba(186,230,253,0.5)", background: "rgba(255,255,255,0.88)", flexShrink: 0 }}>
+        <div style={{ padding: "8px 16px", borderTop: "1px solid rgba(186,230,253,0.5)", background: "rgba(15,23,42,0.85)", flexShrink: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
             <Pencil size={11} style={{ color: "#6366f1" }} />
             <span style={{ fontSize: 10, color: "#6366f1", fontWeight: 600 }}>Đang chỉnh sửa tin nhắn</span>
@@ -1368,7 +1368,7 @@ export default function ChatPage() {
                 if (e.key === "Escape") { setEditingMsg(null); setEditContent(""); }
               }}
               rows={1}
-              style={{ flex: 1, fontSize: 13, color: "#0c1a2e", fontFamily: "inherit", background: "rgba(255,255,255,0.9)", border: "1px solid rgba(186,230,253,0.6)", borderRadius: 8, padding: "8px 12px", outline: "none", resize: "none", lineHeight: 1.5, maxHeight: 100, overflowY: "auto" }}
+              style={{ flex: 1, fontSize: 13, color: "var(--text-primary)", fontFamily: "inherit", background: "var(--bg-input)", border: "1px solid var(--border)", borderRadius: 8, padding: "8px 12px", outline: "none", resize: "none", lineHeight: 1.5, maxHeight: 100, overflowY: "auto" }}
               onInput={e => { const t = e.currentTarget; t.style.height = "auto"; t.style.height = Math.min(t.scrollHeight, 100) + "px"; }}
             />
             <button onClick={handleSaveEdit} style={{ width: 36, height: 36, borderRadius: 8, border: "none", background: "linear-gradient(135deg,#6366f1,#818cf8)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}>
@@ -1387,7 +1387,7 @@ export default function ChatPage() {
           </div>
         ) : (
           <div style={{
-            background: "rgba(255,255,255,0.92)",
+            background: "rgba(15,23,42,0.85)",
             backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)",
             borderRadius: 12, overflow: "hidden",
             border: "1px solid rgba(186,230,253,0.6)",
@@ -1397,7 +1397,7 @@ export default function ChatPage() {
               <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: "rgba(201,165,90,0.06)", borderBottom: "1px solid rgba(201,165,90,0.2)" }}>
                 <Reply size={11} style={{ color: "#C9A55A", flexShrink: 0 }} />
                 <span style={{ fontSize: 10, fontWeight: 700, color: "#C9A55A" }}>Trả lời</span>
-                <span style={{ fontSize: 10, fontWeight: 600, color: "#0c1a2e" }}>{replyTo.userName}</span>
+                <span style={{ fontSize: 10, fontWeight: 600, color: "var(--text-primary)" }}>{replyTo.userName}</span>
                 <span style={{ fontSize: 10, color: "#64748b", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {replyTo.mediaType === "image" ? "📷 Ảnh" : replyTo.mediaType === "file" ? "📎 File" : replyTo.content}
                 </span>
@@ -1427,7 +1427,7 @@ export default function ChatPage() {
                 placeholder={activeRoom ? `Nhắn vào #${activeRoom.name}` : "Chọn kênh..."}
                 disabled={!activeRoom}
                 rows={1}
-                style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: 13, color: "#0c1a2e", fontFamily: "inherit", resize: "none", lineHeight: 1.5, maxHeight: 140, overflowY: "auto", padding: "8px 4px" }}
+                style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: 13, color: "var(--text-primary)", fontFamily: "inherit", resize: "none", lineHeight: 1.5, maxHeight: 140, overflowY: "auto", padding: "8px 4px" }}
                 onInput={e => { const t = e.currentTarget; t.style.height = "auto"; t.style.height = Math.min(t.scrollHeight, 140) + "px"; }}
               />
               <button
@@ -1454,14 +1454,14 @@ export default function ChatPage() {
             transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
             style={{
               position: "absolute", top: 0, right: 0, bottom: 0, width: Math.min(300, typeof window !== "undefined" ? window.innerWidth : 300),
-              background: "rgba(255,255,255,0.96)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", borderLeft: "1px solid rgba(186,230,253,0.6)", zIndex: 30,
+              background: "rgba(15,23,42,0.85)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", borderLeft: "1px solid rgba(186,230,253,0.6)", zIndex: 30,
               display: "flex", flexDirection: "column", overflow: "hidden",
             }}
           >
             {/* Panel header */}
             <div style={{ padding: "14px 16px", borderBottom: "1px solid rgba(186,230,253,0.5)", display: "flex", alignItems: "center", gap: 10 }}>
               <div style={{ flex: 1 }}>
-                <p style={{ fontSize: 13, fontWeight: 700, color: "#0c1a2e" }}>Thông Tin Nhóm</p>
+                <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>Thông Tin Nhóm</p>
               </div>
               <button onClick={() => setShowInfoPanel(false)} style={{ background: "none", border: "none", cursor: "pointer" }}>
                 <X size={14} style={{ color: "#94a3b8" }} />
@@ -1479,23 +1479,23 @@ export default function ChatPage() {
                       : <Hash size={26} style={{ color: "#6366f1" }} />
                   }
                 </div>
-                <p style={{ fontSize: 15, fontWeight: 700, color: "#0c1a2e" }}>{activeRoom.name}</p>
+                <p style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)" }}>{activeRoom.name}</p>
                 <p style={{ fontSize: 9.5, color: "#94a3b8", marginTop: 2 }}>{members.length} thành viên · {onlineMembers.length} online</p>
               </div>
 
               {/* Room settings (admin only) */}
               {isAdmin && (
-                <div style={{ padding: "14px 16px", borderBottom: "1px solid rgba(186,230,253,0.5)", background: "rgba(238,246,253,0.7)" }}>
+                <div style={{ padding: "14px 16px", borderBottom: "1px solid rgba(186,230,253,0.5)", background: "rgba(15,23,42,0.85)" }}>
                   <p style={{ fontSize: 8.5, fontWeight: 700, color: "#6366f1", letterSpacing: "0.12em", marginBottom: 10 }}>CÀI ĐẶT KÊNH</p>
                   <div style={{ marginBottom: 10 }}>
                     <p style={{ fontSize: 9, color: "#94a3b8", marginBottom: 4 }}>Tên kênh</p>
                     <input value={roomSettingsName} onChange={e => setRoomSettingsName(e.target.value)}
-                      style={{ width: "100%", fontSize: 11, color: "#0c1a2e", fontFamily: "inherit", background: "rgba(255,255,255,0.88)", border: "1px solid rgba(186,230,253,0.6)", borderRadius: 7, padding: "6px 10px", outline: "none", boxSizing: "border-box" }} />
+                      style={{ width: "100%", fontSize: 11, color: "var(--text-primary)", fontFamily: "inherit", background: "rgba(15,23,42,0.85)", border: "1px solid rgba(186,230,253,0.6)", borderRadius: 7, padding: "6px 10px", outline: "none", boxSizing: "border-box" }} />
                   </div>
                   <div style={{ marginBottom: 10 }}>
                     <p style={{ fontSize: 9, color: "#94a3b8", marginBottom: 4 }}>Icon (emoji)</p>
                     <input value={roomSettingsIcon} onChange={e => setRoomSettingsIcon(e.target.value)} maxLength={4}
-                      placeholder="💬" style={{ width: "100%", fontSize: 16, fontFamily: "inherit", background: "rgba(255,255,255,0.88)", border: "1px solid rgba(186,230,253,0.6)", borderRadius: 7, padding: "6px 10px", outline: "none", boxSizing: "border-box" }} />
+                      placeholder="💬" style={{ width: "100%", fontSize: 16, fontFamily: "inherit", background: "rgba(15,23,42,0.85)", border: "1px solid rgba(186,230,253,0.6)", borderRadius: 7, padding: "6px 10px", outline: "none", boxSizing: "border-box" }} />
                   </div>
                   <div style={{ marginBottom: 10 }}>
                     <p style={{ fontSize: 9, color: "#94a3b8", marginBottom: 6 }}>Màu nền (tin nhắn admin)</p>
@@ -1541,7 +1541,7 @@ export default function ChatPage() {
 
                     {/* Admin member management: checkboxes */}
                     {isAdmin && showMemberMgmt && activeRoom.type !== "direct" && (
-                      <div style={{ marginBottom: 10, padding: "8px 10px", background: "rgba(238,246,253,0.8)", borderRadius: 8, border: "1px solid rgba(186,230,253,0.5)" }}>
+                      <div style={{ marginBottom: 10, padding: "8px 10px", background: "rgba(15,23,42,0.85)", borderRadius: 8, border: "1px solid rgba(186,230,253,0.5)" }}>
                         <p style={{ fontSize: 9, color: "#64748b", marginBottom: 8 }}>Bỏ chọn để hạn chế truy cập. Để trống = mọi người đều thấy kênh này.</p>
                         <div style={{ display: "flex", flexDirection: "column", gap: 4, maxHeight: 180, overflowY: "auto" }}>
                           {members.map(m => {
@@ -1566,7 +1566,7 @@ export default function ChatPage() {
                                   style={{ width: 13, height: 13, cursor: "pointer", accentColor: "#6366f1" }}
                                 />
                                 <Avatar src={m.avatar} name={m.name} size={20} />
-                                <span style={{ fontSize: 11, color: "#0c1a2e", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.name}</span>
+                                <span style={{ fontSize: 11, color: "var(--text-primary)", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.name}</span>
                                 <span style={{ fontSize: 8.5, color: "#94a3b8" }}>{m.role}</span>
                               </label>
                             );
@@ -1588,7 +1588,7 @@ export default function ChatPage() {
                         <div key={m.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 0" }}>
                           <Avatar src={m.avatar} name={m.name} size={28} status={m.status} />
                           <div style={{ flex: 1, minWidth: 0 }}>
-                            <p style={{ fontSize: 11, color: "#0c1a2e", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.name}</p>
+                            <p style={{ fontSize: 11, color: "var(--text-primary)", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.name}</p>
                             <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
                               <RoleIcon size={8} style={{ color: rcfg.color }} />
                               <span style={{ fontSize: 8.5, color: "#94a3b8" }}>{m.role}</span>
@@ -1629,7 +1629,7 @@ export default function ChatPage() {
                   {pinnedMessages.map(m => (
                     <div key={m.id} style={{ padding: "7px 10px", borderRadius: 8, background: "rgba(99,102,241,0.05)", border: "1px solid rgba(99,102,241,0.12)", marginBottom: 6 }}>
                       <p style={{ fontSize: 9.5, fontWeight: 600, color: "#6366f1", marginBottom: 2 }}>{m.userName}</p>
-                      <p style={{ fontSize: 10.5, color: "#0c1a2e", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      <p style={{ fontSize: 10.5, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                         {m.mediaType === "image" ? "📷 Ảnh" : m.mediaType === "file" ? "📎 File" : m.content}
                       </p>
                     </div>
@@ -1666,7 +1666,7 @@ export default function ChatPage() {
               initial={{ opacity: 0, y: 12, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -8, scale: 0.95 }}
               transition={{ duration: 0.22 }}
               style={{
-                background: "rgba(255,255,255,0.94)",
+                background: "rgba(15,23,42,0.85)",
                 backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)",
                 border: `1px solid ${cardBorder}`, borderRadius: 14,
                 padding: "10px 14px", maxWidth: 260,

@@ -421,7 +421,7 @@ export default function QRScannerModal({ open, onClose }: Props) {
           exit={{ opacity: 0, scale: 0.95 }}
           transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
           style={{
-            background: "#fff", borderRadius: 20, border: "1px solid #bae6fd",
+            background: "rgba(15,23,42,0.85)", borderRadius: 20, border: "1px solid #bae6fd",
             boxShadow: "0 24px 64px rgba(12,26,46,0.22)",
             width: "100%", maxWidth: 420, overflow: "hidden",
           }}
@@ -429,7 +429,7 @@ export default function QRScannerModal({ open, onClose }: Props) {
           {/* Header */}
           <div style={{ padding: "14px 20px", borderBottom: "1px solid #e0f2fe", display: "flex", alignItems: "center", gap: 10 }}>
             <ScanLine size={14} style={{ color: "#0ea5e9" }} />
-            <p style={{ fontSize: 11, fontWeight: 700, color: "#0c1a2e", flex: 1 }}>Quét Mã / Tìm Sản Phẩm</p>
+            <p style={{ fontSize: 11, fontWeight: 700, color: "var(--text-primary)", flex: 1 }}>Quét Mã / Tìm Sản Phẩm</p>
             <div style={{ display: "flex", gap: 4 }}>
               {(["scan", "manual"] as const).map(m => (
                 <button
@@ -448,7 +448,7 @@ export default function QRScannerModal({ open, onClose }: Props) {
             </div>
             <button
               onClick={onClose}
-              style={{ width: 26, height: 26, borderRadius: 7, border: "1px solid #e0f2fe", background: "#f8fafc", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
+              style={{ width: 26, height: 26, borderRadius: 7, border: "1px solid #e0f2fe", background: "rgba(15,23,42,0.85)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
             >
               <X size={12} style={{ color: "#64748b" }} />
             </button>
@@ -533,9 +533,9 @@ export default function QRScannerModal({ open, onClose }: Props) {
                   onKeyDown={e => e.key === "Enter" && handleManualSearch()}
                   placeholder="Nhập SKU hoặc tên sản phẩm..."
                   style={{
-                    flex: 1, background: "#f0f9ff", border: "1px solid #bae6fd",
+                    flex: 1, background: "rgba(14,165,233,0.08)", border: "1px solid #bae6fd",
                     borderRadius: 10, padding: "9px 14px", fontSize: 12,
-                    color: "#0c1a2e", outline: "none", fontFamily: "inherit",
+                    color: "var(--text-primary)", outline: "none", fontFamily: "inherit",
                   }}
                   onFocus={e => (e.target.style.borderColor = "#0ea5e9")}
                   onBlur={e => (e.target.style.borderColor = "#bae6fd")}
@@ -591,7 +591,7 @@ export default function QRScannerModal({ open, onClose }: Props) {
                     onClick={() => { setNotFound(null); startCamera(); }}
                     style={{
                       flexShrink: 0, padding: "4px 10px", borderRadius: 7,
-                      border: "1px solid #bae6fd", background: "#f0f9ff",
+                      border: "1px solid #bae6fd", background: "rgba(14,165,233,0.08)",
                       fontSize: 8.5, color: "#0ea5e9", fontWeight: 600,
                       cursor: "pointer", fontFamily: "inherit",
                     }}
@@ -605,14 +605,14 @@ export default function QRScannerModal({ open, onClose }: Props) {
               <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                 <div style={{
                   padding: "12px 16px", borderRadius: 12,
-                  background: "#f0f9ff", border: "1px solid #bae6fd",
+                  background: "rgba(14,165,233,0.08)", border: "1px solid #bae6fd",
                   display: "flex", gap: 12, alignItems: "center",
                 }}>
                   {found.color && (
                     <div style={{ width: 12, height: 12, borderRadius: "50%", background: found.color, border: "1.5px solid rgba(0,0,0,0.1)", flexShrink: 0 }} />
                   )}
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontSize: 12, fontWeight: 700, color: "#0c1a2e" }}>{found.name}</p>
+                    <p style={{ fontSize: 12, fontWeight: 700, color: "var(--text-primary)" }}>{found.name}</p>
                     <p style={{ fontSize: 9, color: "#64748b", marginTop: 2 }}>
                       {found.category}{found.sku ? ` · SKU: ${found.sku}` : ""}
                     </p>
@@ -637,7 +637,7 @@ export default function QRScannerModal({ open, onClose }: Props) {
                         border: `1.5px solid ${action === a ? (a === "in" ? "#16a34a" : "#dc2626") : "#e0f2fe"}`,
                         background: action === a
                           ? (a === "in" ? "rgba(22,163,74,0.08)" : "rgba(220,38,38,0.06)")
-                          : "#f8fafc",
+                          : "rgba(255,255,255,0.05)",
                         display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
                       }}
                     >
@@ -656,16 +656,16 @@ export default function QRScannerModal({ open, onClose }: Props) {
                 <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                   <button
                     onClick={() => setQty(v => Math.max(1, v - 1))}
-                    style={{ width: 36, height: 36, borderRadius: 9, border: "1px solid #bae6fd", background: "#f0f9ff", fontSize: 18, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+                    style={{ width: 36, height: 36, borderRadius: 9, border: "1px solid #bae6fd", background: "rgba(14,165,233,0.08)", fontSize: 18, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
                   >−</button>
                   <input
                     type="number" min={1} value={qty}
                     onChange={e => setQty(Math.max(1, Number(e.target.value)))}
-                    style={{ flex: 1, textAlign: "center", background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 9, padding: "8px", fontSize: 16, fontWeight: 700, color: "#0c1a2e", outline: "none", fontFamily: "inherit" }}
+                    style={{ flex: 1, textAlign: "center", background: "rgba(14,165,233,0.08)", border: "1px solid #bae6fd", borderRadius: 9, padding: "8px", fontSize: 16, fontWeight: 700, color: "var(--text-primary)", outline: "none", fontFamily: "inherit" }}
                   />
                   <button
                     onClick={() => setQty(v => v + 1)}
-                    style={{ width: 36, height: 36, borderRadius: 9, border: "1px solid #bae6fd", background: "#f0f9ff", fontSize: 18, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+                    style={{ width: 36, height: 36, borderRadius: 9, border: "1px solid #bae6fd", background: "rgba(14,165,233,0.08)", fontSize: 18, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
                   >+</button>
                   <button
                     onClick={handleConfirm}

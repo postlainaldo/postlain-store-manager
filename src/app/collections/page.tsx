@@ -88,7 +88,7 @@ export default function CollectionsPage() {
           const isA   = filter === s;
           return (
             <button key={s} onClick={() => setFilter(prev => prev === s ? "all" : s)}
-              style={{ padding: "16px 14px", background: isA ? "rgba(255,255,255,0.88)" : "rgba(255,255,255,0.44)", border: "none", cursor: "pointer", fontFamily: "inherit", display: "flex", flexDirection: "column", gap: 8, borderBottom: `2px solid ${isA ? cfg.color : "transparent"}`, transition: "all 0.14s" }}
+              style={{ padding: "16px 14px", background: isA ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.03)", border: "none", cursor: "pointer", fontFamily: "inherit", display: "flex", flexDirection: "column", gap: 8, borderBottom: `2px solid ${isA ? cfg.color : "transparent"}`, transition: "all 0.14s" }}
             >
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                 <Icon size={12} color={cfg.color} strokeWidth={1.5} />
@@ -120,7 +120,7 @@ export default function CollectionsPage() {
           const open = expanded === col.id;
           return (
             <motion.div key={col.id} custom={i} initial="hidden" animate="visible" variants={fadeUp}
-              style={{ background: "rgba(255,255,255,0.88)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", border: "1px solid rgba(186,230,253,0.55)", borderRadius: 12, overflow: "hidden", boxShadow: "0 2px 12px rgba(12,26,46,0.06)" }}
+              style={{ background: "rgba(15,23,42,0.85)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", border: "1px solid rgba(186,230,253,0.55)", borderRadius: 12, overflow: "hidden", boxShadow: "0 2px 12px rgba(12,26,46,0.06)" }}
             >
               <button onClick={() => setExpanded(open ? null : col.id)}
                 style={{ width: "100%", padding: "14px 20px", background: "transparent", border: "none", cursor: "pointer", fontFamily: "inherit", display: "grid", gridTemplateColumns: "1fr auto auto auto auto", gap: 16, alignItems: "center" }}

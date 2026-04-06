@@ -110,7 +110,7 @@ const ProductCard = memo(function ProductCard({
         <div style={{ padding: "5px 6px 5px", display: "flex", flexDirection: "column", gap: 2, flex: 1 }}>
           {/* TÊN */}
           <span style={{
-            fontSize: 9.5, fontWeight: 700, color: "#0c1a2e", lineHeight: 1.2,
+            fontSize: 9.5, fontWeight: 700, color: "var(--text-primary)", lineHeight: 1.2,
             overflow: "hidden", display: "-webkit-box",
             WebkitLineClamp: 2, WebkitBoxOrient: "vertical",
             wordBreak: "break-word",
@@ -648,7 +648,7 @@ function ProductPicker({
               transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
               style={{
                 position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 199,
-                background: "rgba(255,255,255,0.95)", backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)",
+                background: "rgba(15,23,42,0.85)", backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)",
                 borderTopLeftRadius: 24, borderTopRightRadius: 24,
                 height: "80vh", display: "flex", flexDirection: "column",
                 boxShadow: "0 -8px 40px rgba(12,26,46,0.2)",
@@ -670,7 +670,7 @@ function ProductPicker({
       <div className="hidden md:flex" style={{ width: 248, flexShrink: 0 }}>
         <div style={{
           width: "100%", display: "flex", flexDirection: "column", gap: 8,
-          background: "rgba(255,255,255,0.88)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)",
+          background: "rgba(15,23,42,0.85)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)",
           border: "1px solid rgba(186,230,253,0.55)",
           borderRadius: 16, padding: 12, height: "100%", overflow: "hidden",
           boxShadow: "0 2px 16px rgba(14,165,233,0.06)",
@@ -702,23 +702,23 @@ function PickerContent({
     <>
       {onClose && (
         <div style={{ display: "flex", justifyContent: "center", paddingTop: 8, paddingBottom: 4 }}>
-          <div style={{ width: 36, height: 4, borderRadius: 2, background: "#e0f2fe" }} />
+          <div style={{ width: 36, height: 4, borderRadius: 2, background: "rgba(14,165,233,0.10)" }} />
         </div>
       )}
       <div style={{ flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "space-between", padding: onClose ? "0 16px 8px" : "0 0 4px" }}>
         <div>
           <p style={{ fontSize: 9, fontWeight: 700, color: "#64748b", letterSpacing: "0.15em" }}>KHO SẢN PHẨM</p>
-          <p style={{ fontSize: 10, color: "#0c1a2e", marginTop: 1 }}>
+          <p style={{ fontSize: 10, color: "var(--text-primary)", marginTop: 1 }}>
             <span style={{ color: accentColor, fontWeight: 700 }}>{placed}</span>
             <span style={{ color: "#94a3b8" }}> / {total} đã xếp</span>
           </p>
         </div>
-        {onClose && <button onClick={onClose} style={{ width: 28, height: 28, borderRadius: 8, border: "1px solid #bae6fd", background: "#f0f9ff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><X size={12} style={{ color: "#64748b" }} /></button>}
+        {onClose && <button onClick={onClose} style={{ width: 28, height: 28, borderRadius: 8, border: "1px solid #bae6fd", background: "rgba(14,165,233,0.08)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><X size={12} style={{ color: "#64748b" }} /></button>}
       </div>
-      <div style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 8, background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 10, padding: "0 10px", height: 36, margin: onClose ? "0 16px" : 0 }}>
+      <div style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 8, background: "rgba(14,165,233,0.08)", border: "1px solid #bae6fd", borderRadius: 10, padding: "0 10px", height: 36, margin: onClose ? "0 16px" : 0 }}>
         <Search size={12} style={{ color: "#94a3b8" }} strokeWidth={1.5} />
         <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Tên, SKU..."
-          style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: 11, fontFamily: "inherit", color: "#0c1a2e" }} />
+          style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: 11, fontFamily: "inherit", color: "var(--text-primary)" }} />
         {search && <button onClick={() => setSearch("")} style={{ background: "none", border: "none", cursor: "pointer" }}><X size={10} style={{ color: "#94a3b8" }} /></button>}
       </div>
       <div style={{ flexShrink: 0, padding: onClose ? "0 16px" : undefined }}>
@@ -777,7 +777,7 @@ function PickerContent({
                 display: "flex", alignItems: "center", gap: 8, padding: "8px 10px",
                 borderRadius: 12, cursor: "pointer",
                 border: isSelected ? `2px solid #C9A55A` : `1px solid ${isPlaced ? "rgba(22,163,74,0.2)" : "var(--border)"}`,
-                background: isSelected ? "rgba(201,165,90,0.10)" : isPlaced ? "rgba(22,163,74,0.04)" : "#fff",
+                background: isSelected ? "rgba(201,165,90,0.10)" : isPlaced ? "rgba(22,163,74,0.04)" : "rgba(15,23,42,0.85)",
                 fontFamily: "inherit", textAlign: "left",
                 boxShadow: isSelected ? "0 0 0 3px rgba(201,165,90,0.15), 0 2px 8px rgba(201,165,90,0.12)" : "0 1px 3px rgba(0,0,0,0.04)",
                 transition: "all 0.12s", flexShrink: 0,
@@ -904,7 +904,7 @@ function DisplayTab({ products, storeSections, placeInSection, highlightPid, can
           ].map((c, i) => {
             const Icon = c.icon;
             return (
-              <motion.div key={i} whileHover={{ y: -1 }} style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", borderRadius: 12, background: "rgba(255,255,255,0.88)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", border: "1px solid rgba(186,230,253,0.55)", boxShadow: "0 1px 4px rgba(14,165,233,0.05)" }}>
+              <motion.div key={i} whileHover={{ y: -1 }} style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", borderRadius: 12, background: "rgba(15,23,42,0.85)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", border: "1px solid rgba(186,230,253,0.55)", boxShadow: "0 1px 4px rgba(14,165,233,0.05)" }}>
                 <Icon size={11} style={{ color: c.color }} />
                 <span style={{ fontSize: 12, fontWeight: 700, color: c.color }}>{c.val}</span>
                 <span style={{ fontSize: 9, color: "var(--text-muted)" }}>{c.unit}</span>
@@ -1038,7 +1038,7 @@ function ShelfManagePanel({
       <button onClick={() => setOpen(v => !v)}
         style={{
           display: "flex", alignItems: "center", gap: 6, padding: "7px 14px",
-          borderRadius: 12, border: "1px solid #bae6fd", background: open ? "#f0f9ff" : "#fff",
+          borderRadius: 12, border: "1px solid rgba(14,165,233,0.25)", background: open ? "rgba(14,165,233,0.08)" : "rgba(255,255,255,0.06)",
           cursor: "pointer", fontFamily: "inherit", transition: "all 0.12s",
         }}>
         <Settings2 size={13} style={{ color: "#0ea5e9" }} />
@@ -1074,7 +1074,7 @@ function ShelfManagePanel({
                       const filled = shelf.tiers.reduce((s, t) => s + t.filter(Boolean).length, 0);
                       const isEditing = editingId === shelf.id;
                       return (
-                        <div key={shelf.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 10, background: "rgba(255,255,255,0.88)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", border: `1px solid ${group.color}22` }}>
+                        <div key={shelf.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 10, background: "rgba(15,23,42,0.85)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", border: `1px solid ${group.color}22` }}>
                           <div style={{ width: 3, height: 28, borderRadius: 2, background: group.color, flexShrink: 0 }} />
                           <div style={{ flex: 1, minWidth: 0 }}>
                             {isEditing ? (
@@ -1083,21 +1083,21 @@ function ShelfManagePanel({
                                 onChange={e => setEditName(e.target.value)}
                                 onBlur={() => commitEdit(shelf.id)}
                                 onKeyDown={e => { if (e.key === "Enter") commitEdit(shelf.id); if (e.key === "Escape") setEditingId(null); }}
-                                style={{ width: "100%", fontSize: 11, fontWeight: 600, color: "#0c1a2e", border: "none", borderBottom: `1px solid ${group.color}`, outline: "none", background: "transparent", padding: "1px 0", fontFamily: "inherit" }}
+                                style={{ width: "100%", fontSize: 11, fontWeight: 600, color: "var(--text-primary)", border: "none", borderBottom: `1px solid ${group.color}`, outline: "none", background: "transparent", padding: "1px 0", fontFamily: "inherit" }}
                               />
                             ) : (
-                              <p style={{ fontSize: 11, fontWeight: 600, color: "#0c1a2e" }}>{shelf.name}</p>
+                              <p style={{ fontSize: 11, fontWeight: 600, color: "var(--text-primary)" }}>{shelf.name}</p>
                             )}
                             <p style={{ fontSize: 9, color: "#94a3b8", marginTop: 1 }}>{shelf.tiers.length} tầng · {filled} SP</p>
                           </div>
                           {/* Rename */}
                           <button onClick={() => startEdit(shelf)}
-                            style={{ width: 26, height: 26, borderRadius: 7, border: "1px solid #e2e8f0", background: "rgba(255,255,255,0.88)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                            style={{ width: 26, height: 26, borderRadius: 7, border: "1px solid #e2e8f0", background: "rgba(15,23,42,0.85)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
                             <Edit3 size={11} style={{ color: "#64748b" }} />
                           </button>
                           {/* Remove shelf */}
                           <button onClick={() => { if (confirm(`Xoá kệ "${shelf.name}"?`)) onRemove(shelf.id); }}
-                            style={{ width: 26, height: 26, borderRadius: 7, border: "1px solid #fee2e2", background: "rgba(255,255,255,0.88)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                            style={{ width: 26, height: 26, borderRadius: 7, border: "1px solid #fee2e2", background: "rgba(15,23,42,0.85)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
                             <Trash2 size={11} style={{ color: "#dc2626" }} />
                           </button>
                         </div>
@@ -1203,18 +1203,18 @@ function WarehouseTab({ products, warehouseShelves, placeInWarehouse, highlightP
       <div style={{ display: "flex", flexDirection: "column", flex: 1, gap: 8, minWidth: 0, minHeight: 0 }}>
         {/* Search row */}
         <div style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-          <div style={{ flex: 1, minWidth: 160, display: "flex", alignItems: "center", gap: 8, background: "rgba(255,255,255,0.88)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", border: "1px solid rgba(186,230,253,0.55)", borderRadius: 12, padding: "0 12px", height: 38 }}>
+          <div style={{ flex: 1, minWidth: 160, display: "flex", alignItems: "center", gap: 8, background: "rgba(15,23,42,0.85)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", border: "1px solid rgba(186,230,253,0.55)", borderRadius: 12, padding: "0 12px", height: 38 }}>
             <Search size={13} style={{ color: "#94a3b8" }} strokeWidth={1.5} />
             <input value={wSearch} onChange={e => setWSearch(e.target.value)} placeholder="Tìm SKU, tên..."
-              style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: 12, fontFamily: "inherit", color: "#0c1a2e" }} />
+              style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: 12, fontFamily: "inherit", color: "var(--text-primary)" }} />
             {wSearch && <button onClick={() => setWSearch("")} style={{ background: "none", border: "none", cursor: "pointer" }}><X size={11} style={{ color: "#94a3b8" }} /></button>}
           </div>
           <div className="hidden md:flex" style={{ gap: 6 }}>
             {[
-              { label: "SP", val: products.length, color: "#0c1a2e" },
+              { label: "SP", val: products.length, color: "var(--text-primary)" },
               { label: "Kho", val: warehouseIds.size, color: "#0ea5e9" },
             ].map(s => (
-              <div key={s.label} style={{ display: "flex", alignItems: "center", gap: 4, padding: "0 12px", height: 38, borderRadius: 12, background: "rgba(255,255,255,0.88)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", border: "1px solid rgba(186,230,253,0.55)" }}>
+              <div key={s.label} style={{ display: "flex", alignItems: "center", gap: 4, padding: "0 12px", height: 38, borderRadius: 12, background: "rgba(15,23,42,0.85)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", border: "1px solid rgba(186,230,253,0.55)" }}>
                 <span style={{ fontSize: 13, fontWeight: 700, color: s.color }}>{s.val}</span>
                 <span style={{ fontSize: 9, color: "#64748b" }}>{s.label}</span>
               </div>
@@ -1259,7 +1259,7 @@ function WarehouseTab({ products, warehouseShelves, placeInWarehouse, highlightP
               style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 8, padding: "10px 16px", borderRadius: 12, background: highlightShelf ? "rgba(201,165,90,0.08)" : "#f0f9ff", border: `1px solid ${highlightShelf ? "rgba(201,165,90,0.5)" : "#bae6fd"}` }}>
               <Package size={12} style={{ color: highlightShelf ? "#C9A55A" : "#94a3b8" }} />
               {highlightShelf
-                ? <p style={{ fontSize: 11, color: "#0c1a2e" }}>Tìm thấy tại <strong style={{ color: "#C9A55A" }}>{highlightShelf.shelf}</strong> · {highlightShelf.tier}, Ô {highlightShelf.slot}</p>
+                ? <p style={{ fontSize: 11, color: "var(--text-primary)" }}>Tìm thấy tại <strong style={{ color: "#C9A55A" }}>{highlightShelf.shelf}</strong> · {highlightShelf.tier}, Ô {highlightShelf.slot}</p>
                 : <p style={{ fontSize: 11, color: "#94a3b8" }}>Không tìm thấy trong kho</p>
               }
             </motion.div>
@@ -1277,7 +1277,7 @@ function WarehouseTab({ products, warehouseShelves, placeInWarehouse, highlightP
                 width: "100%", height: 38, borderRadius: 12,
                 border: `1px solid ${shelfTypeColor}35`,
                 background: `linear-gradient(to right, ${shelfTypeColor}08, transparent)`,
-                color: "#0c1a2e", fontSize: 11, fontWeight: 600,
+                color: "var(--text-primary)", fontSize: 11, fontWeight: 600,
                 fontFamily: "inherit", paddingLeft: 26, paddingRight: 36,
                 outline: "none", cursor: "pointer",
                 appearance: "none", WebkitAppearance: "none",
@@ -1345,11 +1345,11 @@ function ShelfView({ shelf, products, selectedPid, highlightPid, canEdit, onPlac
   const densityColor = density >= 0.85 ? "#dc2626" : density >= 0.6 ? "#C9A55A" : "#10b981";
 
   return (
-    <div style={{ background: "rgba(255,255,255,0.88)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", borderRadius: 16, border: "1px solid rgba(186,230,253,0.55)", overflow: "hidden", boxShadow: "0 2px 12px rgba(14,165,233,0.06)" }}>
+    <div style={{ background: "rgba(15,23,42,0.85)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", borderRadius: 16, border: "1px solid rgba(186,230,253,0.55)", overflow: "hidden", boxShadow: "0 2px 12px rgba(14,165,233,0.06)" }}>
       <div style={{ padding: "10px 14px", background: "linear-gradient(to bottom, #f8fbff, #f0f9ff)", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 10 }}>
         <Warehouse size={13} style={{ color: "#0ea5e9" }} />
-        <span style={{ fontSize: 11, fontWeight: 700, color: "#0c1a2e", flex: 1 }}>{shelf.name}</span>
-        <div style={{ width: 50, height: 4, background: "#e0f2fe", borderRadius: 4, overflow: "hidden" }}>
+        <span style={{ fontSize: 11, fontWeight: 700, color: "var(--text-primary)", flex: 1 }}>{shelf.name}</span>
+        <div style={{ width: 50, height: 4, background: "rgba(14,165,233,0.10)", borderRadius: 4, overflow: "hidden" }}>
           <div style={{ height: "100%", width: `${density * 100}%`, background: densityColor, borderRadius: 4, transition: "width 0.3s" }} />
         </div>
         <span style={{ fontSize: 9, color: "#64748b" }}>{filled}/{total}</span>
@@ -1446,7 +1446,7 @@ function SectionView({ section, products, selectedPid, highlightPid, canEdit, su
           <button
             onClick={() => onSubsectionChange(Math.max(0, clampedSub - 1))}
             disabled={clampedSub === 0}
-            style={{ width: 28, height: 28, borderRadius: 8, border: `1px solid ${cfg.color}40`, background: clampedSub === 0 ? "#f8fafc" : "#fff", cursor: clampedSub === 0 ? "default" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            style={{ width: 28, height: 28, borderRadius: 8, border: `1px solid ${cfg.color}40`, background: clampedSub === 0 ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.08)", cursor: clampedSub === 0 ? "default" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
             <ChevronLeft size={13} style={{ color: clampedSub === 0 ? "#cbd5e1" : cfg.color }} />
           </button>
           <div style={{ flex: 1, display: "flex", gap: 4, flexWrap: "wrap" }}>
@@ -1460,7 +1460,7 @@ function SectionView({ section, products, selectedPid, highlightPid, canEdit, su
           <button
             onClick={() => onSubsectionChange(Math.min(subs.length - 1, clampedSub + 1))}
             disabled={clampedSub === subs.length - 1}
-            style={{ width: 28, height: 28, borderRadius: 8, border: `1px solid ${cfg.color}40`, background: clampedSub === subs.length - 1 ? "#f8fafc" : "#fff", cursor: clampedSub === subs.length - 1 ? "default" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            style={{ width: 28, height: 28, borderRadius: 8, border: `1px solid ${cfg.color}40`, background: clampedSub === subs.length - 1 ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.08)", cursor: clampedSub === subs.length - 1 ? "default" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
             <ChevronRight size={13} style={{ color: clampedSub === subs.length - 1 ? "#cbd5e1" : cfg.color }} />
           </button>
         </div>
@@ -1469,7 +1469,7 @@ function SectionView({ section, products, selectedPid, highlightPid, canEdit, su
       {/* Single subsection card */}
       <AnimatePresence initial={false}>
         <motion.div key={sub.id} initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -12 }} transition={{ duration: 0.15 }}
-          style={{ background: "rgba(255,255,255,0.88)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", border: `1px solid ${cfg.color}30`, borderRadius: 14, overflow: "visible", boxShadow: `0 2px 10px ${cfg.color}08` }}>
+          style={{ background: "rgba(15,23,42,0.85)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", border: `1px solid ${cfg.color}30`, borderRadius: 14, overflow: "visible", boxShadow: `0 2px 10px ${cfg.color}08` }}>
           <div style={{ padding: "8px 12px", background: `linear-gradient(to right, ${cfg.bg}, transparent)`, borderBottom: `1px solid ${cfg.color}20`, display: "flex", alignItems: "center", gap: 8 }}>
             <p style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.14em", color: cfg.color, flex: 1 }}>{sub.name}</p>
             <span style={{ fontSize: 8, color: cfg.color, opacity: 0.7 }}>{filled}/{total}</span>
@@ -1494,7 +1494,7 @@ function SectionView({ section, products, selectedPid, highlightPid, canEdit, su
                 if (!hasProd && !isNextEmpty) return null;
 
                 if (row.type === "image") return (
-                  <div key={ri} style={{ height: 16, borderRadius: 6, background: "#f0f9ff", display: "flex", alignItems: "center", paddingLeft: 8 }}>
+                  <div key={ri} style={{ height: 16, borderRadius: 6, background: "rgba(14,165,233,0.08)", display: "flex", alignItems: "center", paddingLeft: 8 }}>
                     <span style={{ fontSize: 7, color: "#94a3b8", letterSpacing: "0.2em" }}>TRANH / DECOR</span>
                   </div>
                 );
@@ -1757,7 +1757,7 @@ export default function VisualBoardPage() {
       <div style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
         <div className="hidden md:block">
           <p style={{ fontSize: 9, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.3em" }}>Vị Trí · POSTLAIN</p>
-          <h1 style={{ fontSize: 20, fontWeight: 300, color: "#0c1a2e", letterSpacing: "0.04em", marginTop: 1 }}>Quản Lý Vị Trí</h1>
+          <h1 style={{ fontSize: 20, fontWeight: 300, color: "var(--text-primary)", letterSpacing: "0.04em", marginTop: 1 }}>Quản Lý Vị Trí</h1>
         </div>
         <div style={{ flex: 1 }} />
         {/* Realtime indicator */}
@@ -1770,7 +1770,7 @@ export default function VisualBoardPage() {
         </motion.div>
         <motion.button onClick={handleRefresh} title="Tải lại"
           whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.93 }}
-          style={{ width: 36, height: 36, borderRadius: 11, border: "1px solid rgba(186,230,253,0.55)", background: "rgba(255,255,255,0.88)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", boxShadow: "0 1px 4px rgba(14,165,233,0.08)" }}>
+          style={{ width: 36, height: 36, borderRadius: 11, border: "1px solid rgba(186,230,253,0.55)", background: "rgba(15,23,42,0.85)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", boxShadow: "0 1px 4px rgba(14,165,233,0.08)" }}>
           <RefreshCw size={13} style={{ color: "var(--blue)", animation: refreshing ? "spin 0.6s linear infinite" : "none" }} />
         </motion.button>
         {canEdit && <PlacementsBackupRestore />}
