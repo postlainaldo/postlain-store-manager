@@ -648,7 +648,8 @@ function ProductPicker({
               transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
               style={{
                 position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 199,
-                background: "#fff", borderTopLeftRadius: 24, borderTopRightRadius: 24,
+                background: "rgba(255,255,255,0.95)", backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)",
+                borderTopLeftRadius: 24, borderTopRightRadius: 24,
                 height: "80vh", display: "flex", flexDirection: "column",
                 boxShadow: "0 -8px 40px rgba(12,26,46,0.2)",
               }}
@@ -669,7 +670,8 @@ function ProductPicker({
       <div className="hidden md:flex" style={{ width: 248, flexShrink: 0 }}>
         <div style={{
           width: "100%", display: "flex", flexDirection: "column", gap: 8,
-          background: "#fff", border: "1px solid var(--border)",
+          background: "rgba(255,255,255,0.88)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)",
+          border: "1px solid rgba(186,230,253,0.55)",
           borderRadius: 16, padding: 12, height: "100%", overflow: "hidden",
           boxShadow: "0 2px 16px rgba(14,165,233,0.06)",
         }}>
@@ -902,7 +904,7 @@ function DisplayTab({ products, storeSections, placeInSection, highlightPid, can
           ].map((c, i) => {
             const Icon = c.icon;
             return (
-              <motion.div key={i} whileHover={{ y: -1 }} style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", borderRadius: 12, background: "#fff", border: "1px solid var(--border)", boxShadow: "0 1px 4px rgba(14,165,233,0.05)" }}>
+              <motion.div key={i} whileHover={{ y: -1 }} style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", borderRadius: 12, background: "rgba(255,255,255,0.88)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", border: "1px solid rgba(186,230,253,0.55)", boxShadow: "0 1px 4px rgba(14,165,233,0.05)" }}>
                 <Icon size={11} style={{ color: c.color }} />
                 <span style={{ fontSize: 12, fontWeight: 700, color: c.color }}>{c.val}</span>
                 <span style={{ fontSize: 9, color: "var(--text-muted)" }}>{c.unit}</span>
@@ -1072,7 +1074,7 @@ function ShelfManagePanel({
                       const filled = shelf.tiers.reduce((s, t) => s + t.filter(Boolean).length, 0);
                       const isEditing = editingId === shelf.id;
                       return (
-                        <div key={shelf.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 10, background: "#fff", border: `1px solid ${group.color}22` }}>
+                        <div key={shelf.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 10, background: "rgba(255,255,255,0.88)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", border: `1px solid ${group.color}22` }}>
                           <div style={{ width: 3, height: 28, borderRadius: 2, background: group.color, flexShrink: 0 }} />
                           <div style={{ flex: 1, minWidth: 0 }}>
                             {isEditing ? (
@@ -1090,12 +1092,12 @@ function ShelfManagePanel({
                           </div>
                           {/* Rename */}
                           <button onClick={() => startEdit(shelf)}
-                            style={{ width: 26, height: 26, borderRadius: 7, border: "1px solid #e2e8f0", background: "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                            style={{ width: 26, height: 26, borderRadius: 7, border: "1px solid #e2e8f0", background: "rgba(255,255,255,0.88)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
                             <Edit3 size={11} style={{ color: "#64748b" }} />
                           </button>
                           {/* Remove shelf */}
                           <button onClick={() => { if (confirm(`Xoá kệ "${shelf.name}"?`)) onRemove(shelf.id); }}
-                            style={{ width: 26, height: 26, borderRadius: 7, border: "1px solid #fee2e2", background: "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                            style={{ width: 26, height: 26, borderRadius: 7, border: "1px solid #fee2e2", background: "rgba(255,255,255,0.88)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
                             <Trash2 size={11} style={{ color: "#dc2626" }} />
                           </button>
                         </div>
@@ -1201,7 +1203,7 @@ function WarehouseTab({ products, warehouseShelves, placeInWarehouse, highlightP
       <div style={{ display: "flex", flexDirection: "column", flex: 1, gap: 8, minWidth: 0, minHeight: 0 }}>
         {/* Search row */}
         <div style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-          <div style={{ flex: 1, minWidth: 160, display: "flex", alignItems: "center", gap: 8, background: "#fff", border: "1px solid #bae6fd", borderRadius: 12, padding: "0 12px", height: 38 }}>
+          <div style={{ flex: 1, minWidth: 160, display: "flex", alignItems: "center", gap: 8, background: "rgba(255,255,255,0.88)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", border: "1px solid rgba(186,230,253,0.55)", borderRadius: 12, padding: "0 12px", height: 38 }}>
             <Search size={13} style={{ color: "#94a3b8" }} strokeWidth={1.5} />
             <input value={wSearch} onChange={e => setWSearch(e.target.value)} placeholder="Tìm SKU, tên..."
               style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: 12, fontFamily: "inherit", color: "#0c1a2e" }} />
@@ -1212,7 +1214,7 @@ function WarehouseTab({ products, warehouseShelves, placeInWarehouse, highlightP
               { label: "SP", val: products.length, color: "#0c1a2e" },
               { label: "Kho", val: warehouseIds.size, color: "#0ea5e9" },
             ].map(s => (
-              <div key={s.label} style={{ display: "flex", alignItems: "center", gap: 4, padding: "0 12px", height: 38, borderRadius: 12, background: "#fff", border: "1px solid #bae6fd" }}>
+              <div key={s.label} style={{ display: "flex", alignItems: "center", gap: 4, padding: "0 12px", height: 38, borderRadius: 12, background: "rgba(255,255,255,0.88)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", border: "1px solid rgba(186,230,253,0.55)" }}>
                 <span style={{ fontSize: 13, fontWeight: 700, color: s.color }}>{s.val}</span>
                 <span style={{ fontSize: 9, color: "#64748b" }}>{s.label}</span>
               </div>
@@ -1343,7 +1345,7 @@ function ShelfView({ shelf, products, selectedPid, highlightPid, canEdit, onPlac
   const densityColor = density >= 0.85 ? "#dc2626" : density >= 0.6 ? "#C9A55A" : "#10b981";
 
   return (
-    <div style={{ background: "#fff", borderRadius: 16, border: "1px solid var(--border)", overflow: "hidden", boxShadow: "0 2px 12px rgba(14,165,233,0.06)" }}>
+    <div style={{ background: "rgba(255,255,255,0.88)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", borderRadius: 16, border: "1px solid rgba(186,230,253,0.55)", overflow: "hidden", boxShadow: "0 2px 12px rgba(14,165,233,0.06)" }}>
       <div style={{ padding: "10px 14px", background: "linear-gradient(to bottom, #f8fbff, #f0f9ff)", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 10 }}>
         <Warehouse size={13} style={{ color: "#0ea5e9" }} />
         <span style={{ fontSize: 11, fontWeight: 700, color: "#0c1a2e", flex: 1 }}>{shelf.name}</span>
@@ -1467,7 +1469,7 @@ function SectionView({ section, products, selectedPid, highlightPid, canEdit, su
       {/* Single subsection card */}
       <AnimatePresence initial={false}>
         <motion.div key={sub.id} initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -12 }} transition={{ duration: 0.15 }}
-          style={{ background: "#fff", border: `1px solid ${cfg.color}30`, borderRadius: 14, overflow: "visible", boxShadow: `0 2px 10px ${cfg.color}08` }}>
+          style={{ background: "rgba(255,255,255,0.88)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", border: `1px solid ${cfg.color}30`, borderRadius: 14, overflow: "visible", boxShadow: `0 2px 10px ${cfg.color}08` }}>
           <div style={{ padding: "8px 12px", background: `linear-gradient(to right, ${cfg.bg}, transparent)`, borderBottom: `1px solid ${cfg.color}20`, display: "flex", alignItems: "center", gap: 8 }}>
             <p style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.14em", color: cfg.color, flex: 1 }}>{sub.name}</p>
             <span style={{ fontSize: 8, color: cfg.color, opacity: 0.7 }}>{filled}/{total}</span>
@@ -1768,7 +1770,7 @@ export default function VisualBoardPage() {
         </motion.div>
         <motion.button onClick={handleRefresh} title="Tải lại"
           whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.93 }}
-          style={{ width: 36, height: 36, borderRadius: 11, border: "1px solid var(--border)", background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", boxShadow: "0 1px 4px rgba(14,165,233,0.08)" }}>
+          style={{ width: 36, height: 36, borderRadius: 11, border: "1px solid rgba(186,230,253,0.55)", background: "rgba(255,255,255,0.88)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", boxShadow: "0 1px 4px rgba(14,165,233,0.08)" }}>
           <RefreshCw size={13} style={{ color: "var(--blue)", animation: refreshing ? "spin 0.6s linear infinite" : "none" }} />
         </motion.button>
         {canEdit && <PlacementsBackupRestore />}
