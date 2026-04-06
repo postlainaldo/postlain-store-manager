@@ -160,14 +160,14 @@ function PremiumCard({
 }) {
   return (
     <div style={{
-      borderRadius: 16, border: "1px solid rgba(186,230,253,0.55)",
-      background: "rgba(255,255,255,0.88)",
-      backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)",
+      borderRadius: 16, border: "1px solid rgba(255,255,255,0.07)",
+      background: "rgba(15,23,42,0.85)",
+      backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)",
       overflow: "hidden",
-      boxShadow: "0 2px 16px rgba(12,26,46,0.06), inset 0 1px 0 rgba(255,255,255,0.7)",
+      boxShadow: "0 4px 24px rgba(0,0,0,0.40), inset 0 1px 0 rgba(255,255,255,0.05)",
     }}>
       <div style={{
-        padding: "11px 20px", borderBottom: "1px solid rgba(186,230,253,0.4)",
+        padding: "11px 20px", borderBottom: "1px solid rgba(255,255,255,0.06)",
         background: `linear-gradient(90deg, ${accentColor}08, rgba(255,255,255,0.5))`,
         display: "flex", alignItems: "center", gap: 10,
       }}>
@@ -1298,9 +1298,9 @@ export default function ProfilePage() {
   const setKpiIndividualTarget = useStore(sel.setKpiIndividualTarget);
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
-  const cardBg = "rgba(255,255,255,0.88)";
-  const cardBorder = "rgba(186,230,253,0.55)";
-  const cardShadow = "0 2px 14px rgba(12,26,46,0.07), inset 0 1px 0 rgba(255,255,255,0.7)";
+  const cardBg = "rgba(15,23,42,0.85)";
+  const cardBorder = "rgba(255,255,255,0.07)";
+  const cardShadow = "0 4px 24px rgba(0,0,0,0.40), inset 0 1px 0 rgba(255,255,255,0.05)";
 
   const [profile, setProfile] = useState<TeamMember | null>(null);
   const [team, setTeam] = useState<TeamMember[]>([]);
@@ -1605,7 +1605,7 @@ export default function ProfilePage() {
             ))}
           </div>
 
-          <div style={{ background: "rgba(255,255,255,0.97)", backdropFilter: "blur(20px) saturate(1.8)", WebkitBackdropFilter: "blur(20px) saturate(1.8)", padding: "0 20px 20px" }}>
+          <div style={{ background: "rgba(15,23,42,0.95)", padding: "0 20px 20px" }}>
             {/* Avatar row */}
             <div style={{ display: "flex", alignItems: "flex-end", gap: 16, marginTop: -52 }}>
               <div style={{ position: "relative" }}>
@@ -1649,7 +1649,7 @@ export default function ProfilePage() {
 
               {/* Actions */}
               <div style={{ display: "flex", gap: 8, paddingTop: 52, paddingBottom: 4 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 5, padding: "7px 12px", borderRadius: 10, border: "1px solid rgba(186,230,253,0.6)", background: "rgba(255,255,255,0.88)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", boxShadow: "0 2px 8px rgba(12,26,46,0.06)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 5, padding: "7px 12px", borderRadius: 10, border: "1px solid rgba(255,255,255,0.10)", background: "rgba(15,23,42,0.90)", boxShadow: "0 2px 8px rgba(0,0,0,0.30)" }}>
                   <div style={{ position: "relative", width: 8, height: 8 }}>
                     <div style={{ width: 8, height: 8, borderRadius: "50%", background: scfg.color }} />
                     {form.status === "working" && (
@@ -2039,10 +2039,10 @@ export default function ProfilePage() {
                             initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
                             transition={{ delay: i * 0.04, ease: [0.16, 1, 0.3, 1] }}
                             style={{
-                              background: isMe ? "linear-gradient(135deg, rgba(201,165,90,0.08), rgba(14,165,233,0.05))" : "rgba(255,255,255,0.88)",
-                              border: isMe ? "1.5px solid rgba(201,165,90,0.4)" : "1px solid rgba(186,230,253,0.55)",
+                              background: isMe ? "linear-gradient(135deg, rgba(201,165,90,0.10), rgba(59,130,246,0.06))" : "rgba(15,23,42,0.85)",
+                              border: isMe ? "1.5px solid rgba(201,165,90,0.35)" : "1px solid rgba(255,255,255,0.07)",
                               borderRadius: 14, padding: "14px 16px",
-                              boxShadow: isMe ? "0 6px 24px rgba(201,165,90,0.15), inset 0 1px 0 rgba(255,255,255,0.8)" : "0 2px 8px rgba(12,26,46,0.05)",
+                              boxShadow: isMe ? "0 6px 24px rgba(201,165,90,0.20), inset 0 1px 0 rgba(255,255,255,0.06)" : "0 2px 8px rgba(0,0,0,0.30)",
                               backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)",
                             }}>
                             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>

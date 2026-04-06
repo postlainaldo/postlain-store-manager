@@ -39,19 +39,17 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       <AudioUnlocker />
       <PushPrompt />
       {/* ── Desktop: TopNav + scrollable content ──────────────────── */}
-      <div className="hidden md:flex flex-col bg-bg-base transition-colors duration-500" style={{ height: "100dvh", overflow: "hidden" }}>
+      <div className="hidden md:flex flex-col transition-colors duration-500" style={{ height: "100dvh", overflow: "hidden" }}>
         <TopNav />
         {isFullHeight ? (
           /* Full-height pages (chat, visual-board): flex fill, scroll managed inside */
-          <div className="flex-1 page-bg-aurora" style={{ minHeight: 0, overflow: "hidden", display: "flex", flexDirection: "column", padding: "12px 24px 16px", position: "relative" }}>
-            <div className="page-bg-aurora-mid" />
+          <div className="flex-1 page-canvas" style={{ minHeight: 0, overflow: "hidden", display: "flex", flexDirection: "column", padding: "12px 24px 16px", position: "relative" }}>
             <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", position: "relative", zIndex: 1 }}>
               {children}
             </div>
           </div>
         ) : (
-          <main className="flex-1 overflow-y-auto overflow-x-hidden page-bg-aurora transition-colors duration-500">
-            <div className="page-bg-aurora-mid" />
+          <main className="flex-1 overflow-y-auto overflow-x-hidden page-canvas transition-colors duration-500">
             <div className="max-w-[1440px] mx-auto px-6 py-6" style={{ position: "relative", zIndex: 1 }}>
               {children}
             </div>
@@ -60,17 +58,17 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       </div>
 
       {/* ── Mobile: top bar + scrollable content + bottom nav ─────── */}
-      <div className="md:hidden flex flex-col bg-bg-base transition-colors duration-500" style={{ height: "100dvh" }}>
+      <div className="md:hidden flex flex-col transition-colors duration-500" style={{ height: "100dvh" }}>
         {/* Mobile top bar */}
         <div style={{
           flexShrink: 0,
           display: "flex", alignItems: "center", gap: 8,
           padding: "6px 12px",
-          background: isMobileDevice ? "rgba(255,255,255,0.97)" : "rgba(255,255,255,0.92)",
-          backdropFilter: isMobileDevice ? "none" : "blur(20px) saturate(1.8)",
-          WebkitBackdropFilter: isMobileDevice ? "none" : "blur(20px) saturate(1.8)",
-          borderBottom: "1px solid rgba(12,26,46,0.05)",
-          boxShadow: "0 1px 0 rgba(201,165,90,0.10), 0 2px 12px rgba(12,26,46,0.05), inset 0 1px 0 rgba(255,255,255,0.95)",
+          background: isMobileDevice ? "rgba(8,14,26,0.98)" : "rgba(8,14,26,0.92)",
+          backdropFilter: isMobileDevice ? "none" : "blur(24px) saturate(1.6)",
+          WebkitBackdropFilter: isMobileDevice ? "none" : "blur(24px) saturate(1.6)",
+          borderBottom: "1px solid rgba(201,165,90,0.10)",
+          boxShadow: "0 1px 0 rgba(201,165,90,0.08), 0 2px 12px rgba(0,0,0,0.40)",
           minHeight: 52,
           zIndex: 10,
         }}>
@@ -99,10 +97,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         ) : (
           /* Normal pages: scrollable — FAB floats over content, no reserved padding needed */
           <main
-            className="flex-1 overflow-y-auto overflow-x-hidden page-bg-aurora transition-colors duration-500"
+            className="flex-1 overflow-y-auto overflow-x-hidden page-canvas transition-colors duration-500"
             style={{ paddingBottom: "calc(90px + env(safe-area-inset-bottom, 0px))" }}
           >
-            <div className="page-bg-aurora-mid" />
             <div style={{ padding: "12px 16px 8px", position: "relative", zIndex: 1 }}>
               {children}
             </div>

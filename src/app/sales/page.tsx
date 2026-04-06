@@ -20,8 +20,8 @@ function fmtDate(iso: string) {
 }
 
 export default function SalesPage() {
-  const cardBg = "rgba(255,255,255,0.88)";
-  const cardBorder = "rgba(186,230,253,0.55)";
+  const cardBg = "rgba(15,23,42,0.85)";
+  const cardBorder = "rgba(255,255,255,0.07)";
   const [summary, setSummary] = useState<PeriodSummary | null>(null);
   const [orders, setOrders] = useState<PosOrder[]>([]);
   const [topProducts, setTopProducts] = useState<TopProduct[]>([]);

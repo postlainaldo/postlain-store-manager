@@ -79,9 +79,9 @@ function Card({ children, gold }: { children: React.ReactNode; gold?: boolean })
   return (
     <div className="card-float" style={{
       background: gold
-        ? "linear-gradient(135deg, rgba(201,165,90,0.10) 0%, rgba(255,255,255,0.88) 100%)"
-        : "rgba(255,255,255,0.88)",
-      border: `1px solid ${gold ? "rgba(201,165,90,0.32)" : "rgba(186,230,253,0.55)"}`,
+        ? "linear-gradient(135deg, rgba(201,165,90,0.14) 0%, rgba(15,23,42,0.90) 100%)"
+        : "rgba(15,23,42,0.85)",
+      border: `1px solid ${gold ? "rgba(201,165,90,0.28)" : "rgba(255,255,255,0.07)"}`,
       padding: "14px 16px",
     }}>{children}</div>
   );

@@ -331,10 +331,10 @@ export default function OverviewPage() {
   const currentUser      = useStore(sel.currentUser);
   const storeName        = useStore(sel.storeName);
   const isAdmin = currentUser?.role === "admin" || currentUser?.role === "manager";
-  const cardBg = "rgba(255,255,255,0.88)";
-  const cardBorder = "rgba(186,230,253,0.55)";
-  const cardShadow = "0 2px 12px rgba(12,26,46,0.06), 0 1px 3px rgba(12,26,46,0.04), inset 0 1px 0 rgba(255,255,255,0.7)";
-  const tableHeaderBg = "rgba(240,248,255,0.7)";
+  const cardBg = "rgba(15,23,42,0.85)";
+  const cardBorder = "rgba(255,255,255,0.07)";
+  const cardShadow = "0 4px 24px rgba(0,0,0,0.40), inset 0 1px 0 rgba(255,255,255,0.05)";
+  const tableHeaderBg = "rgba(255,255,255,0.04)";
 
   const [movements, setMovements] = useState<Movement[]>([]);
   const [movLoading, setMovLoading] = useState(true);

@@ -191,9 +191,9 @@ function ListView() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const cardBg = "rgba(255,255,255,0.88)";
-  const cardBorder = "rgba(186,230,253,0.55)";
-  const tableHeaderBg = "linear-gradient(to bottom, rgba(240,248,255,0.85), rgba(224,242,254,0.6))";
+  const cardBg = "rgba(15,23,42,0.85)";
+  const cardBorder = "rgba(255,255,255,0.07)";
+  const tableHeaderBg = "rgba(255,255,255,0.04)";
 
   // ── URL-backed filters (shareable, survive refresh) ───────────────
   const search      = searchParams.get("q")     ?? "";
@@ -993,7 +993,7 @@ function ListView() {
               {/* Action bar — full width, easy tap */}
               <div style={{
                 display: "flex", borderTop: `1px solid ${cardBorder}`,
-                background: "rgba(248,252,255,0.6)",
+                background: "rgba(255,255,255,0.03)",
               }}>
                 {inDisp && (
                   <button onClick={() => navigateToBoard(router, p.id, "display")} style={{

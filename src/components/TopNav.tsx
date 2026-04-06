@@ -57,8 +57,8 @@ export default function TopNav() {
           <span style={{ fontSize: 12, fontWeight: 800, color: "#C9A55A", letterSpacing: "0.06em" }}>P</span>
         </div>
         <div style={{ lineHeight: 1 }}>
-          <p style={{ fontSize: 15, fontWeight: 900, color: "#0c1a2e", letterSpacing: "0.14em" }}>POSTLAIN</p>
-          <p style={{ fontSize: 7, color: "rgba(12,26,46,0.38)", letterSpacing: "0.2em", marginTop: 3 }}>
+          <p style={{ fontSize: 15, fontWeight: 900, color: "#f0f4ff", letterSpacing: "0.14em" }}>POSTLAIN</p>
+          <p style={{ fontSize: 7, color: "rgba(255,255,255,0.30)", letterSpacing: "0.2em", marginTop: 3 }}>
             {storeSubtitle || "QUẢN LÝ CỬA HÀNG"}
           </p>
         </div>
@@ -131,7 +131,7 @@ export default function TopNav() {
                   }} />
                 </div>
                 <div style={{ lineHeight: 1 }}>
-                  <p style={{ fontSize: 10, fontWeight: 600, color: "rgba(12,26,46,0.85)" }}>{currentUser.name}</p>
+                  <p style={{ fontSize: 10, fontWeight: 600, color: "rgba(240,244,255,0.85)" }}>{currentUser.name}</p>
                   <p style={{ fontSize: 7.5, color: "rgba(201,165,90,0.80)", marginTop: 1.5, letterSpacing: "0.08em" }}>
                     {currentUser.role === "admin" ? "ADMIN" : currentUser.role === "manager" ? "QUẢN LÝ" : "NHÂN VIÊN"}
                   </p>
