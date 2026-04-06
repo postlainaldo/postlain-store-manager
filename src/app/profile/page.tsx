@@ -38,7 +38,7 @@ function urlB64ToUint8Array(base64String: string) {
 
 type Status = "working" | "off_shift" | "day_off" | "AL" | "SL" | "MAL" | "PCU" | "UL" | "OIL" | "BT" | "MML" | "CSL" | "CML" | "CL" | "PX" | "NDF" | "PHC" | "Xmas" | "MS";
 type Activity = { id: string; userId: string; userName: string; type: string; content: string; createdAt: string };
-type TeamMember = { id: string; name: string; fullName: string; username: string; role: string; active: number; avatar: string | null; status: string; bio: string; phone: string; createdAt: string };
+type TeamMember = { id: string; name: string; fullName: string; username: string; role: string; active: number; avatar: string | null; status: string; bio: string; phone: string; email: string; employeeCode: string; createdAt: string };
 
 // Grouped status config: schedule-based + leave codes
 const STATUS_CFG: Record<string, { label: string; color: string; group: string }> = {
@@ -367,6 +367,18 @@ function StaffProfileModal({ member, onClose }: { member: TeamMember; onClose: (
                 <span style={{ fontSize: 10, color: "var(--text-primary)" }}>{member.phone}</span>
               </div>
             )}
+            {member.email && (
+              <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 10, background: "var(--bg-base)", border: "1px solid var(--border)" }}>
+                <Mail size={11} style={{ color: "#0ea5e9", flexShrink: 0 }} />
+                <span style={{ fontSize: 10, color: "var(--text-primary)" }}>{member.email}</span>
+              </div>
+            )}
+            {member.employeeCode && (
+              <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 10, background: "var(--bg-base)", border: "1px solid var(--border)" }}>
+                <Hash size={11} style={{ color: "#64748b", flexShrink: 0 }} />
+                <span style={{ fontSize: 10, color: "var(--text-primary)" }}>Mã NV: {member.employeeCode}</span>
+              </div>
+            )}
             {member.createdAt && (
               <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 10, background: "var(--bg-base)", border: "1px solid var(--border)" }}>
                 <Info size={11} style={{ color: "#64748b", flexShrink: 0 }} />
@@ -451,12 +463,26 @@ function TeamCard({ member, isMe, onView, canView, kpiTarget, revenue }: {
           </div>
         </div>
         {member.bio && <p style={{ fontSize: 9.5, color: "var(--text-muted)", marginTop: 5, fontStyle: "italic", lineHeight: 1.5 }}>"{member.bio}"</p>}
-        {member.phone && (
-          <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 4 }}>
-            <Phone size={9} style={{ color: "var(--text-muted)" }} />
-            <span style={{ fontSize: 9, color: "var(--text-muted)" }}>{member.phone}</span>
-          </div>
-        )}
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 4 }}>
+          {member.phone && (
+            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+              <Phone size={9} style={{ color: "var(--text-muted)" }} />
+              <span style={{ fontSize: 9, color: "var(--text-muted)" }}>{member.phone}</span>
+            </div>
+          )}
+          {member.email && (
+            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+              <Mail size={9} style={{ color: "var(--text-muted)" }} />
+              <span style={{ fontSize: 9, color: "var(--text-muted)" }}>{member.email}</span>
+            </div>
+          )}
+          {member.employeeCode && (
+            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+              <Hash size={9} style={{ color: "var(--text-muted)" }} />
+              <span style={{ fontSize: 9, color: "var(--text-muted)" }}>{member.employeeCode}</span>
+            </div>
+          )}
+        </div>
         {/* KPI target mini progress */}
         {pct !== null && (
           <div style={{ marginTop: 8 }}>
