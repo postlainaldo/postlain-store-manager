@@ -403,11 +403,10 @@ export async function ensureSupabaseSchema() {
 export async function dbGetUsers(): Promise<DBUser[]> {
   if (IS_SUPABASE) {
     const sb = getSupabase();
-    const { data, error } = await sb
+    const { data } = await sb
       .from("users")
       .select("id, name, username, role, active, createdAt, avatar, status, bio, phone, fullName, employeeCode")
       .order("createdAt");
-    console.error("[dbGetUsers] data=", data?.length, "error=", error?.message, error?.code);
     return (data ?? []) as DBUser[];
   }
   return getStoreDb().prepare("SELECT id, name, username, role, active, createdAt, avatar, status, bio, phone, fullName, employeeCode FROM users ORDER BY createdAt").all() as DBUser[];

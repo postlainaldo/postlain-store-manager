@@ -21,13 +21,7 @@ export async function POST(req: NextRequest) {
 // GET /api/auth — list users (no passwords)
 export async function GET(req: NextRequest) {
   setActiveStore(getStoreId(req));
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const svcKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  const usedKey = svcKey ? "service_role" : anonKey ? "anon" : "none";
-  console.error("[auth/GET] url=", url?.slice(0, 30), "key=", usedKey);
   const users = await dbGetUsers();
-  console.error("[auth/GET] users count=", users.length);
   return NextResponse.json(users);
 }
 
