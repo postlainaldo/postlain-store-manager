@@ -26,6 +26,17 @@ const nextConfig = {
   serverExternalPackages: ["better-sqlite3", "exceljs"],
   eslint: { ignoreDuringBuilds: true },
   typescript: { ignoreBuildErrors: true },
+  experimental: {
+    outputFileTracingExcludes: {
+      "*": [
+        "node_modules/@swc/**",
+        "node_modules/esbuild/**",
+        "node_modules/webpack/**",
+        "node_modules/rollup/**",
+        "node_modules/terser/**",
+      ],
+    },
+  },
 
   // ── Performance optimizations ──────────────────────────────────────────────
   compress: true,
