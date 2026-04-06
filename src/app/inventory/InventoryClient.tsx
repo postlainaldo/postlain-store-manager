@@ -380,7 +380,7 @@ function ListView() {
           display: "flex", alignItems: "center", gap: 8, flex: "1 1 200px",
           background: cardBg, backdropFilter: isMobile ? "none" : "blur(10px)", WebkitBackdropFilter: isMobile ? "none" : "blur(10px)",
           border: `1px solid ${cardBorder}`, borderRadius: 12,
-          padding: "0 12px", height: 38,
+          padding: "0 12px", height: isMobile ? 46 : 38,
           boxShadow: "0 2px 8px rgba(12,26,46,0.05)",
           transition: "box-shadow 0.18s, border-color 0.18s",
         }}>
@@ -390,7 +390,7 @@ function ListView() {
             placeholder="Tên, SKU, danh mục, màu..."
             style={{
               flex: 1, background: "none", border: "none", outline: "none",
-              fontSize: 12, color: "var(--text-primary)", fontFamily: "inherit",
+              fontSize: 16, color: "var(--text-primary)", fontFamily: "inherit",
             }}
           />
           {search ? (
@@ -414,43 +414,43 @@ function ListView() {
           onClick={() => setShowFilters(s => !s)}
           style={{
             display: "flex", alignItems: "center", gap: 6,
-            height: 38, padding: "0 14px", borderRadius: 12, border: "1px solid",
-            fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
+            height: isMobile ? 44 : 38, padding: "0 14px", borderRadius: 12, border: "1px solid",
+            fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
             background: hasActiveFilter ? "rgba(14,165,233,0.08)" : "#fff",
             borderColor: hasActiveFilter ? "rgba(14,165,233,0.4)" : "var(--border)",
             color: hasActiveFilter ? "var(--blue)" : "var(--text-secondary)",
           }}
         >
-          <Filter size={12} strokeWidth={1.6} />
+          <Filter size={13} strokeWidth={1.6} />
           {hasActiveFilter ? "Đang lọc" : "Lọc"}
           {hasActiveFilter && (
             <span style={{
-              width: 16, height: 16, borderRadius: "50%",
+              width: 18, height: 18, borderRadius: "50%",
               background: "var(--blue)", color: "#fff",
-              fontSize: 9, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 10, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center",
             }}>!</span>
           )}
         </button>
 
         <button onClick={() => setShowScanner(true)} style={{
           display: "flex", alignItems: "center", gap: 6,
-          height: 38, padding: "0 14px", borderRadius: 12,
+          height: isMobile ? 44 : 38, padding: "0 14px", borderRadius: 12,
           background: "#fff", border: "1px solid var(--border)",
-          fontSize: 11, color: "var(--blue)", cursor: "pointer", fontFamily: "inherit", fontWeight: 600,
+          fontSize: 12, color: "var(--blue)", cursor: "pointer", fontFamily: "inherit", fontWeight: 600,
           letterSpacing: "0.06em",
         }}>
-          <ScanLine size={12} strokeWidth={1.5} /> QUÉT MÃ
+          <ScanLine size={13} strokeWidth={1.5} /> QUÉT MÃ
         </button>
 
         <button onClick={handleOdooSync} disabled={odooSyncing} style={{
           display: "flex", alignItems: "center", gap: 6,
-          height: 38, padding: "0 14px", borderRadius: 12,
+          height: isMobile ? 44 : 38, padding: "0 14px", borderRadius: 12,
           background: "rgba(22,163,74,0.06)", border: "1px solid rgba(22,163,74,0.3)",
-          fontSize: 11, color: "#16a34a", cursor: odooSyncing ? "default" : "pointer",
+          fontSize: 12, color: "#16a34a", cursor: odooSyncing ? "default" : "pointer",
           fontFamily: "inherit", fontWeight: 600, letterSpacing: "0.06em",
           opacity: odooSyncing ? 0.7 : 1,
         }}>
-          <RefreshCw size={12} strokeWidth={1.5} className={odooSyncing ? "animate-spin" : ""} />
+          <RefreshCw size={13} strokeWidth={1.5} className={odooSyncing ? "animate-spin" : ""} />
           {odooSyncing ? "ĐỒNG BỘ..." : "SYNC ODOO"}
         </button>
 
@@ -470,13 +470,13 @@ function ListView() {
 
         <button onClick={() => { playSound("modalOpen"); setShowAdd(true); }} style={{
           display: "flex", alignItems: "center", gap: 6,
-          height: 38, padding: "0 16px", borderRadius: 12,
+          height: isMobile ? 44 : 38, padding: "0 16px", borderRadius: 12,
           background: "var(--blue)", border: "1px solid var(--blue-dark)",
-          color: "#fff", fontSize: 11, fontWeight: 700, cursor: "pointer",
+          color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer",
           fontFamily: "inherit", letterSpacing: "0.06em",
           boxShadow: "0 2px 10px rgba(14,165,233,0.25)",
         }}>
-          <Plus size={12} strokeWidth={2.5} /> THÊM SẢN PHẨM
+          <Plus size={13} strokeWidth={2.5} /> THÊM SẢN PHẨM
         </button>
       </div>
 
@@ -892,88 +892,143 @@ function ListView() {
       </div>}
 
       {/* ── Mobile cards ──────────────────────────────────────────── */}
-      {isMobile && <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+      {isMobile && <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {sorted.map(p => {
           const loc      = locationMap.get(p.id) ?? null;
           const mc       = parseMCFromNotes(p.notes);
           const colorHex = colorCodeToHex(p.color);
           const inDisp   = displaySet.has(p.id);
           const inWh     = warehouseSet.has(p.id);
+          const isLow    = p.quantity > 0 && p.quantity <= 3;
+          const isOut    = p.quantity === 0;
           return (
             <div key={p.id} style={{
-              borderRadius: 12,
+              borderRadius: 16,
               background: cardBg,
-              border: `1px solid ${cardBorder}`, padding: "12px 14px",
-              display: "flex", alignItems: "flex-start", gap: 12,
-              boxShadow: "0 2px 10px rgba(12,26,46,0.06), inset 0 1px 0 rgba(255,255,255,0.7)",
-              transition: "transform 0.2s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.2s ease",
-            }}
-            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = "translateY(-1px)"; (e.currentTarget as HTMLElement).style.boxShadow = "0 6px 20px rgba(12,26,46,0.10)"; }}
-            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = "translateY(0)"; (e.currentTarget as HTMLElement).style.boxShadow = "0 2px 10px rgba(12,26,46,0.06)"; }}
-            >
-              {/* Color dot */}
-              {colorHex && (
-                <div style={{
-                  width: 10, height: 10, borderRadius: "50%", flexShrink: 0, marginTop: 4,
-                  background: colorHex, border: "1.5px solid rgba(0,0,0,0.1)",
-                  boxShadow: `0 0 0 2px ${colorHex}25`,
-                }} />
-              )}
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)", marginBottom: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</p>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 10px", marginBottom: 4 }}>
-                  {p.color && <span style={{ fontSize: 9, color: "var(--text-secondary)", fontWeight: 600 }}>{p.color}</span>}
-                  {mc && (
-                    <span style={{ fontSize: 9, fontWeight: 700, color: "var(--blue)", background: "rgba(14,165,233,0.08)", padding: "1px 6px", borderRadius: 4, border: "1px solid rgba(14,165,233,0.2)" }}>
-                      {mc}
+              border: `1px solid ${isOut ? "rgba(220,38,38,0.18)" : isLow ? "rgba(234,88,12,0.18)" : cardBorder}`,
+              boxShadow: "0 2px 12px rgba(12,26,46,0.07), inset 0 1px 0 rgba(255,255,255,0.8)",
+              overflow: "hidden",
+            }}>
+              {/* Top row: name + qty */}
+              <div style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "14px 14px 10px" }}>
+                {/* Color bar on left */}
+                {colorHex && (
+                  <div style={{
+                    width: 4, borderRadius: 4, flexShrink: 0, alignSelf: "stretch",
+                    background: colorHex, opacity: 0.85, minHeight: 40,
+                  }} />
+                )}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", marginBottom: 5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", lineHeight: 1.3 }}>
+                    {p.name}
+                  </p>
+                  {/* Tags row */}
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 6px" }}>
+                    {mc && (
+                      <span style={{ fontSize: 11, fontWeight: 700, color: "var(--blue)", background: "rgba(14,165,233,0.10)", padding: "2px 7px", borderRadius: 6, border: "1px solid rgba(14,165,233,0.20)" }}>
+                        {mc}
+                      </span>
+                    )}
+                    {p.size && (
+                      <span style={{ fontSize: 11, color: "var(--text-secondary)", background: "rgba(0,0,0,0.04)", padding: "2px 7px", borderRadius: 6, border: "1px solid rgba(0,0,0,0.07)" }}>
+                        {p.size}
+                      </span>
+                    )}
+                    {p.color && (
+                      <span style={{ fontSize: 11, color: "var(--text-secondary)", background: "rgba(0,0,0,0.04)", padding: "2px 7px", borderRadius: 6, border: "1px solid rgba(0,0,0,0.07)" }}>
+                        {p.color}
+                      </span>
+                    )}
+                    {p.category && (
+                      <span style={{ fontSize: 11, color: "var(--text-muted)", padding: "2px 0" }}>
+                        {p.category}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                {/* Qty — large, easy to read */}
+                <div style={{ flexShrink: 0, textAlign: "center" }}>
+                  <div style={{
+                    minWidth: 44, height: 44, borderRadius: 12, padding: "0 8px",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    background: isOut ? "rgba(220,38,38,0.08)" : isLow ? "rgba(234,88,12,0.08)" : p.quantity <= 5 ? "rgba(201,165,90,0.10)" : "rgba(22,163,74,0.07)",
+                    border: `1.5px solid ${isOut ? "rgba(220,38,38,0.25)" : isLow ? "rgba(234,88,12,0.25)" : p.quantity <= 5 ? "rgba(201,165,90,0.25)" : "rgba(22,163,74,0.20)"}`,
+                  }}>
+                    <span style={{
+                      fontSize: 18, fontWeight: 800, fontVariantNumeric: "tabular-nums",
+                      color: isOut ? "#dc2626" : isLow ? "#ea580c" : p.quantity <= 5 ? "#c9a55a" : "#16a34a",
+                      lineHeight: 1,
+                    }}>{p.quantity}</span>
+                  </div>
+                  <p style={{ fontSize: 9, color: "var(--text-muted)", marginTop: 3, letterSpacing: "0.02em" }}>SL</p>
+                </div>
+              </div>
+
+              {/* Price + SKU + location row */}
+              <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "0 14px 10px", paddingLeft: colorHex ? 30 : 14 }}>
+                <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                  {p.markdownPrice ? (
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <span style={{ fontSize: 15, fontWeight: 800, color: "#dc2626" }}>{fmtPrice(p.markdownPrice)}</span>
+                      <span style={{ fontSize: 11, color: "var(--text-muted)", textDecoration: "line-through" }}>{fmtPrice(p.price)}</span>
+                    </div>
+                  ) : p.price ? (
+                    <span style={{ fontSize: 15, fontWeight: 700, color: "var(--text-secondary)" }}>{fmtPrice(p.price)}</span>
+                  ) : null}
+                  {p.sku && (
+                    <span style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: "monospace", background: "rgba(0,0,0,0.04)", padding: "1px 6px", borderRadius: 4 }}>
+                      {p.sku}
                     </span>
                   )}
-                  {p.size && <span style={{ fontSize: 9, color: "var(--text-secondary)" }}>Size {p.size}</span>}
-                  <span style={{ fontSize: 9, color: "var(--text-muted)" }}>{p.category}</span>
-                </div>
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-                  {p.sku && <span style={{ fontSize: 8, color: "var(--text-muted)", fontFamily: "monospace" }}>{p.sku}</span>}
-                  {p.price && <span style={{ fontSize: 9, color: p.markdownPrice ? "var(--text-muted)" : "var(--text-secondary)", textDecoration: p.markdownPrice ? "line-through" : "none" }}>{fmtPrice(p.price)}</span>}
-                  {p.markdownPrice && <span style={{ fontSize: 10, fontWeight: 700, color: "#dc2626" }}>{fmtPrice(p.markdownPrice)}</span>}
                 </div>
                 {loc && (
-                  <p style={{ fontSize: 8, color: "var(--blue)", marginTop: 4, display: "flex", alignItems: "center", gap: 3 }}>
-                    <MapPin size={7} /> {loc}
-                  </p>
+                  <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
+                    <MapPin size={10} style={{ color: "var(--blue)", flexShrink: 0 }} />
+                    <span style={{ fontSize: 11, color: "var(--blue)", fontWeight: 600 }}>{loc}</span>
+                  </div>
                 )}
               </div>
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8, flexShrink: 0 }}>
-                <QtyPill qty={p.quantity} />
-                <div style={{ display: "flex", gap: 5 }}>
-                  {inDisp && (
-                    <button onClick={() => navigateToBoard(router, p.id, "display")} title="Vị trí trưng bày" style={{
-                      width: 30, height: 30, borderRadius: 8, border: "1px solid rgba(201,165,90,0.3)",
-                      background: "rgba(201,165,90,0.08)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer",
-                    }}>
-                      <Eye size={11} style={{ color: "#C9A55A" }} />
-                    </button>
-                  )}
-                  {inWh && (
-                    <button onClick={() => navigateToBoard(router, p.id, "warehouse")} title="Vị trí kho" style={{
-                      width: 30, height: 30, borderRadius: 8, border: "1px solid rgba(14,165,233,0.25)",
-                      background: "rgba(14,165,233,0.06)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer",
-                    }}>
-                      <Warehouse size={11} style={{ color: "var(--blue)" }} />
-                    </button>
-                  )}
-                  <button onClick={() => { playSound("modalOpen"); setEditProduct(p); }} style={{
-                    width: 30, height: 30, borderRadius: 8, border: "1px solid var(--border)",
-                    background: "var(--bg-surface)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer",
+
+              {/* Action bar — full width, easy tap */}
+              <div style={{
+                display: "flex", borderTop: `1px solid ${cardBorder}`,
+                background: "rgba(248,252,255,0.6)",
+              }}>
+                {inDisp && (
+                  <button onClick={() => navigateToBoard(router, p.id, "display")} style={{
+                    flex: 1, height: 44, border: "none", borderRight: `1px solid ${cardBorder}`,
+                    background: "transparent", cursor: "pointer",
+                    display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
                   }}>
-                    <Pencil size={11} style={{ color: "var(--blue)" }} />
+                    <Eye size={13} style={{ color: "#C9A55A" }} />
+                    <span style={{ fontSize: 11, color: "#C9A55A", fontWeight: 600 }}>Trưng bày</span>
                   </button>
-                  <button onClick={() => { playSound("tap"); setDeleteId(p.id); }} style={{
-                    width: 30, height: 30, borderRadius: 8, border: "1px solid rgba(220,38,38,0.2)",
-                    background: "rgba(220,38,38,0.05)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer",
+                )}
+                {inWh && (
+                  <button onClick={() => navigateToBoard(router, p.id, "warehouse")} style={{
+                    flex: 1, height: 44, border: "none", borderRight: `1px solid ${cardBorder}`,
+                    background: "transparent", cursor: "pointer",
+                    display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
                   }}>
-                    <Trash2 size={11} style={{ color: "#dc2626" }} />
+                    <Warehouse size={13} style={{ color: "var(--blue)" }} />
+                    <span style={{ fontSize: 11, color: "var(--blue)", fontWeight: 600 }}>Kho</span>
                   </button>
-                </div>
+                )}
+                <button onClick={() => { playSound("modalOpen"); setEditProduct(p); }} style={{
+                  flex: 1, height: 44, border: "none", borderRight: `1px solid ${cardBorder}`,
+                  background: "transparent", cursor: "pointer",
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
+                }}>
+                  <Pencil size={13} style={{ color: "var(--blue)" }} />
+                  <span style={{ fontSize: 11, color: "var(--blue)", fontWeight: 600 }}>Sửa</span>
+                </button>
+                <button onClick={() => { playSound("tap"); setDeleteId(p.id); }} style={{
+                  flex: "0 0 52px", height: 44, border: "none",
+                  background: "transparent", cursor: "pointer",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                }}>
+                  <Trash2 size={14} style={{ color: "#dc2626" }} />
+                </button>
               </div>
             </div>
           );
