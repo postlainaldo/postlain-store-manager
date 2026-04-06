@@ -424,27 +424,23 @@ export async function dbGetUsers(): Promise<DBUser[]> {
 export async function dbGetUserByCredentials(username: string, password: string): Promise<DBUser | null> {
   if (IS_SUPABASE) {
     const sb = getSupabase();
-    // Try with store_id filter first (multi-tenant), fallback without if column doesn't exist yet
-    try {
-      const { data, error } = await sb
-        .from("users")
-        .select("id, name, username, role, active, phone, employeeCode")
-        .eq("store_id", sid())
-        .eq("username", username.toLowerCase())
-        .eq("passwordHash", password)
-        .single();
-      if (!error) return data as DBUser | null;
-      // If store_id column missing, fall through to query without it
-      if (!error.message?.includes("store_id")) return null;
-    } catch {}
-    // Fallback: no store_id filter (single-store legacy or schema not migrated yet)
-    const { data } = await sb
+    // Try with store_id filter first (multi-tenant)
+    const { data, error } = await sb
+      .from("users")
+      .select("id, name, username, role, active, phone, employeeCode")
+      .eq("store_id", sid())
+      .eq("username", username.toLowerCase())
+      .eq("passwordHash", password)
+      .single();
+    if (!error && data) return data as DBUser;
+    // Fallback: no store_id filter (legacy data or store_id column missing)
+    const { data: data2 } = await sb
       .from("users")
       .select("id, name, username, role, active, phone, employeeCode")
       .eq("username", username.toLowerCase())
       .eq("passwordHash", password)
       .single();
-    return data as DBUser | null;
+    return (data2 ?? null) as DBUser | null;
   }
   return getStoreDb().prepare(
     "SELECT id, name, username, role, active, phone, employeeCode FROM users WHERE username = ? AND passwordHash = ? COLLATE NOCASE"
