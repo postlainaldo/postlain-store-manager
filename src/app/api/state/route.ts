@@ -9,7 +9,7 @@
  * Uses dbAdapter so it works with both Supabase (Vercel) and SQLite (local dev).
  */
 
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import {
   dbGetProducts,
   dbGetWarehouseShelvesForState,
@@ -20,7 +20,8 @@ import {
 import { setActiveStore } from "@/lib/supabase";
 import { getStoreId } from "@/lib/storeContext";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  setActiveStore(getStoreId(req));
   await ensureSupabaseSchema();
 
   const [products, warehouseShelves, displayPlacements, sectionRowOverrides] = await Promise.all([

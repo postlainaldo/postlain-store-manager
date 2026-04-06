@@ -372,12 +372,18 @@ export async function ensureSupabaseSchema() {
     ALTER TABLE pos_orders         ADD COLUMN IF NOT EXISTS store_id TEXT NOT NULL DEFAULT 'postlain';
     ALTER TABLE shift_slots        ADD COLUMN IF NOT EXISTS store_id TEXT NOT NULL DEFAULT 'postlain';
     ALTER TABLE shift_templates    ADD COLUMN IF NOT EXISTS store_id TEXT NOT NULL DEFAULT 'postlain';
+    ALTER TABLE shelves            ADD COLUMN IF NOT EXISTS store_id TEXT NOT NULL DEFAULT 'postlain';
+    ALTER TABLE shift_registrations ADD COLUMN IF NOT EXISTS store_id TEXT NOT NULL DEFAULT 'postlain';
+    ALTER TABLE daily_reports      ADD COLUMN IF NOT EXISTS store_id TEXT NOT NULL DEFAULT 'postlain';
 
-    CREATE INDEX IF NOT EXISTS idx_users_store        ON users(store_id);
-    CREATE INDEX IF NOT EXISTS idx_products_store     ON products(store_id);
-    CREATE INDEX IF NOT EXISTS idx_movements_store    ON movements(store_id);
-    CREATE INDEX IF NOT EXISTS idx_pos_orders_store   ON pos_orders(store_id);
-    CREATE INDEX IF NOT EXISTS idx_shift_slots_store  ON shift_slots(store_id);
+    CREATE INDEX IF NOT EXISTS idx_users_store             ON users(store_id);
+    CREATE INDEX IF NOT EXISTS idx_products_store          ON products(store_id);
+    CREATE INDEX IF NOT EXISTS idx_movements_store         ON movements(store_id);
+    CREATE INDEX IF NOT EXISTS idx_pos_orders_store        ON pos_orders(store_id);
+    CREATE INDEX IF NOT EXISTS idx_shift_slots_store       ON shift_slots(store_id);
+    CREATE INDEX IF NOT EXISTS idx_shelves_store           ON shelves(store_id);
+    CREATE INDEX IF NOT EXISTS idx_shift_reg_store         ON shift_registrations(store_id);
+    CREATE INDEX IF NOT EXISTS idx_daily_reports_store     ON daily_reports(store_id);
   `;
 
   try {
@@ -523,7 +529,6 @@ export async function dbDeleteUser(id: string): Promise<void> {
 
 export async function dbGetProducts(): Promise<DBProduct[]> {
   if (IS_SUPABASE) {
-    // Supabase default limit is 1000 rows — paginate to get all
     const PAGE = 1000;
     const all: DBProduct[] = [];
     let from = 0;
@@ -531,6 +536,7 @@ export async function dbGetProducts(): Promise<DBProduct[]> {
       const { data } = await getSupabase()
         .from("products")
         .select("*")
+        .eq("store_id", sid())
         .order("createdAt")
         .range(from, from + PAGE - 1);
       if (!data?.length) break;
@@ -1064,7 +1070,7 @@ export type DBShelf = {
 
 export async function dbGetAllShelves(): Promise<DBShelf[]> {
   if (IS_SUPABASE) {
-    const { data } = await getSupabase().from("shelves").select("*").order("sortOrder").order("name");
+    const { data } = await getSupabase().from("shelves").select("*").eq("store_id", sid()).order("sortOrder").order("name");
     return (data ?? []) as DBShelf[];
   }
   return getStoreDb().prepare("SELECT * FROM shelves ORDER BY sortOrder, name").all() as DBShelf[];
@@ -1072,7 +1078,7 @@ export async function dbGetAllShelves(): Promise<DBShelf[]> {
 
 export async function dbUpsertShelf(s: DBShelf): Promise<void> {
   if (IS_SUPABASE) {
-    await getSupabase().from("shelves").upsert(s, { onConflict: "id" });
+    await getSupabase().from("shelves").upsert({ ...s, store_id: sid() }, { onConflict: "id" });
     return;
   }
   getStoreDb().prepare(`
@@ -1168,7 +1174,7 @@ export async function dbSetPlacement(slotId: string, productId: string | null): 
 export async function dbGetWarehouseMap(): Promise<Record<string, (string | null)[][]>> {
   if (IS_SUPABASE) {
     const sb = getSupabase();
-    const { data: shelves } = await sb.from("shelves").select("id").eq("type", "WAREHOUSE").order("sortOrder");
+    const { data: shelves } = await sb.from("shelves").select("id").eq("store_id", sid()).eq("type", "WAREHOUSE").order("sortOrder");
     const result: Record<string, (string | null)[][]> = {};
     for (const shelf of (shelves ?? []) as { id: string }[]) {
       // Get all slots for this shelf
@@ -1206,7 +1212,7 @@ export async function dbGetWarehouseMap(): Promise<Record<string, (string | null
 export async function dbGetDisplayMap(): Promise<Record<string, Record<string, (string | null)[][]>>> {
   if (IS_SUPABASE) {
     const sb = getSupabase();
-    const { data: shelves } = await sb.from("shelves").select("id").eq("type", "DISPLAY").order("sortOrder");
+    const { data: shelves } = await sb.from("shelves").select("id").eq("store_id", sid()).eq("type", "DISPLAY").order("sortOrder");
     const result: Record<string, Record<string, (string | null)[][]>> = {};
     for (const shelf of (shelves ?? []) as { id: string }[]) {
       const { data: slots } = await sb.from("slots").select("id, label, tier, position").eq("shelfId", shelf.id);
@@ -1251,7 +1257,7 @@ export async function dbGetWarehouseShelvesForState(): Promise<{
 }[]> {
   if (IS_SUPABASE) {
     const sb = getSupabase();
-    const { data: shelves } = await sb.from("shelves").select("*").eq("type", "WAREHOUSE").order("sortOrder");
+    const { data: shelves } = await sb.from("shelves").select("*").eq("store_id", sid()).eq("type", "WAREHOUSE").order("sortOrder");
     const result = [];
     for (const shelf of (shelves ?? []) as DBShelf[]) {
       const { data: slots } = await sb.from("slots").select("id, tier, position").eq("shelfId", shelf.id);
@@ -1296,7 +1302,7 @@ export async function dbGetWarehouseShelvesForState(): Promise<{
 export async function dbGetDisplayPlacements(): Promise<Record<string, Record<string, Record<number, Record<number, string>>>>> {
   if (IS_SUPABASE) {
     const sb = getSupabase();
-    const { data: shelves } = await sb.from("shelves").select("id").eq("type", "DISPLAY").order("sortOrder");
+    const { data: shelves } = await sb.from("shelves").select("id").eq("store_id", sid()).eq("type", "DISPLAY").order("sortOrder");
     const result: Record<string, Record<string, Record<number, Record<number, string>>>> = {};
     for (const shelf of (shelves ?? []) as { id: string }[]) {
       const { data: slots } = await sb.from("slots").select("id, label, tier, position").eq("shelfId", shelf.id);
@@ -1415,7 +1421,7 @@ export async function dbSetSectionRowOverride(secId: string, subId: string, rowC
   overrides[`${secId}__${subId}`] = rowCount;
   const value = JSON.stringify(overrides);
   if (IS_SUPABASE) {
-    await getSupabase().from("app_settings").upsert({ key, value }, { onConflict: "key" });
+    await getSupabase().from("app_settings").upsert({ key, value, store_id: sid() }, { onConflict: "key" });
     return;
   }
   const db = getStoreDb();
@@ -1444,6 +1450,7 @@ export async function dbGetCustomers(limit = 200): Promise<DBCustomer[]> {
     const { data } = await getSupabase()
       .from("customers")
       .select("*")
+      .eq("store_id", sid())
       .order("totalSpent", { ascending: false })
       .limit(limit);
     return (data ?? []) as DBCustomer[];
@@ -1459,6 +1466,7 @@ export async function dbSearchCustomers(query: string): Promise<DBCustomer[]> {
     const { data } = await getSupabase()
       .from("customers")
       .select("*")
+      .eq("store_id", sid())
       .or(`name.ilike.${q},phone.ilike.${q}`)
       .order("totalSpent", { ascending: false })
       .limit(50);
@@ -1476,7 +1484,7 @@ export async function dbBulkUpsertCustomers(customers: DBCustomer[]): Promise<vo
     for (let i = 0; i < customers.length; i += CHUNK) {
       await getSupabase()
         .from("customers")
-        .upsert(customers.slice(i, i + CHUNK), { onConflict: "id" });
+        .upsert(customers.slice(i, i + CHUNK).map(c => ({ ...c, store_id: sid() })), { onConflict: "id" });
     }
     return;
   }
@@ -1537,6 +1545,7 @@ export async function dbGetPosOrders(opts: { limit?: number; customerId?: string
     let q = getSupabase()
       .from("pos_orders")
       .select("*")
+      .eq("store_id", sid())
       .order("createdAt", { ascending: false })
       .limit(limit);
     if (opts.customerId) q = q.eq("customerId", opts.customerId);
@@ -1619,6 +1628,7 @@ export async function dbGetStaffSales(dateFrom: string, dateTo: string): Promise
     const { data } = await getSupabase()
       .from("pos_orders")
       .select("salesperson,amountTotal,lineCount")
+      .eq("store_id", sid())
       .not("salesperson", "is", null)
       .gte("createdAt", dateFrom)
       .lte("createdAt", dateTo + "T23:59:59.999Z")
@@ -1691,6 +1701,7 @@ export async function dbGetPosSummary(dateFrom: string, dateTo?: string): Promis
     let q = getSupabase()
       .from("pos_orders")
       .select("amountTotal,lineCount")
+      .eq("store_id", sid())
       .in("state", ["done", "paid", "invoiced"])
       .gte("createdAt", dateFrom);
     if (dateTo) q = q.lte("createdAt", dateTo);
@@ -1718,6 +1729,7 @@ export async function dbGetTopProducts(dateFrom: string, limit = 10, dateTo?: st
     let oq = getSupabase()
       .from("pos_orders")
       .select("id")
+      .eq("store_id", sid())
       .in("state", ["done", "paid", "invoiced"])
       .gte("createdAt", dateFrom);
     if (dateTo) oq = oq.lte("createdAt", dateTo);
@@ -1788,6 +1800,7 @@ export async function dbGetDailyReports(limit = 60): Promise<DBDailyReport[]> {
     const { data } = await getSupabase()
       .from("daily_reports")
       .select("*")
+      .eq("store_id", sid())
       .order("date", { ascending: false })
       .order("shift", { ascending: false })
       .limit(limit);
@@ -1803,6 +1816,7 @@ export async function dbGetDailyReportByDate(date: string, shift: string): Promi
     const { data } = await getSupabase()
       .from("daily_reports")
       .select("*")
+      .eq("store_id", sid())
       .eq("date", date)
       .eq("shift", shift)
       .maybeSingle();
@@ -1817,7 +1831,7 @@ export async function dbUpsertDailyReport(r: DBDailyReport): Promise<void> {
   if (IS_SUPABASE) {
     await getSupabase()
       .from("daily_reports")
-      .upsert(r, { onConflict: "id" });
+      .upsert({ ...r, store_id: sid() }, { onConflict: "id" });
     return;
   }
   const db = getStoreDb();
@@ -2028,6 +2042,7 @@ export async function dbUpsertShiftRegistrationBySlotUser(r: DBShiftRegistration
       note: r.note,
       "createdAt": r.createdAt,
       "updatedAt": r.updatedAt,
+      store_id: sid(),
     };
     const { data: existing } = await sb
       .from("shift_registrations")

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import ExcelJS from "exceljs";
-import { IS_SUPABASE, getSupabase } from "@/lib/supabase";
+import { IS_SUPABASE, getSupabase, getActiveStoreId } from "@/lib/supabase";
 import getDb from "@/lib/database";
 import { setActiveStore } from "@/lib/supabase";
 import { getStoreId } from "@/lib/storeContext";
@@ -28,20 +28,21 @@ type RegRow   = { slotId: string; userId: string; status: string };
 async function fetchData(dateFrom: string, dateTo: string) {
   if (IS_SUPABASE) {
     const sb = getSupabase();
+    const sid = getActiveStoreId();
     const [staffRes, slotsRes, regsRes] = await Promise.all([
       sb.from("users").select("id, name, role, username, phone")
-        .eq("active", true).order("role").order("name"),
+        .eq("active", true).eq("store_id", sid).order("role").order("name"),
       sb.from("shift_slots").select("id, date, startTime, endTime")
-        .gte("date", dateFrom).lte("date", dateTo).order("date").order("startTime"),
+        .eq("store_id", sid).gte("date", dateFrom).lte("date", dateTo).order("date").order("startTime"),
       sb.from("shift_registrations").select("slotId, userId, status")
-        .in("status", ["approved", "pending"]),
+        .eq("store_id", sid).in("status", ["approved", "pending"]),
     ]);
     const slots = (slotsRes.data ?? []) as SlotRow[];
     const slotIds = new Set(slots.map(s => s.id));
     const regs = ((regsRes.data ?? []) as RegRow[]).filter(r => slotIds.has(r.slotId));
     return { staff: (staffRes.data ?? []) as StaffRow[], slots, regs };
   } else {
-    const db = getDb();
+    const db = getDb(getActiveStoreId());
     const staff = db.prepare(
       "SELECT id, name, role, username, phone FROM users WHERE active = 1 ORDER BY role, name"
     ).all() as StaffRow[];

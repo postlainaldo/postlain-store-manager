@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { IS_SUPABASE, getSupabase } from "@/lib/supabase";
+import { IS_SUPABASE, getSupabase, getActiveStoreId } from "@/lib/supabase";
 import { setActiveStore } from "@/lib/supabase";
 import { getStoreId } from "@/lib/storeContext";
 
@@ -13,19 +13,20 @@ async function getStoreContext(): Promise<string> {
 
   try {
     const sb = getSupabase();
+    const sid = getActiveStoreId();
     const now = new Date();
     const todayVN = new Date(now.getTime() + 7 * 60 * 60 * 1000).toISOString().slice(0, 10);
     const dayStart = new Date(todayVN + "T00:00:00+07:00").toISOString();
     const dayEnd = new Date(todayVN + "T23:59:59+07:00").toISOString();
 
     const [ordersRes, lowStockRes, totalProductsRes, shiftsRes] = await Promise.all([
-      sb.from("pos_orders").select("total_amount").gte("created_at", dayStart).lte("created_at", dayEnd),
-      sb.from("products").select("name, quantity").lt("quantity", 5).gt("quantity", 0).limit(10),
-      sb.from("products").select("*", { count: "exact", head: true }),
-      sb.from("shift_slots").select("date, startTime, endTime, staffName, staffType").eq("date", todayVN),
+      sb.from("pos_orders").select("amountTotal").eq("store_id", sid).gte("createdAt", dayStart).lte("createdAt", dayEnd),
+      sb.from("products").select("name, quantity").eq("store_id", sid).lt("quantity", 5).gt("quantity", 0).limit(10),
+      sb.from("products").select("*", { count: "exact", head: true }).eq("store_id", sid),
+      sb.from("shift_slots").select("date, startTime, endTime").eq("store_id", sid).eq("date", todayVN),
     ]);
 
-    const revenue = ordersRes.data?.reduce((sum, o) => sum + (o.total_amount ?? 0), 0) ?? 0;
+    const revenue = ordersRes.data?.reduce((sum, o) => sum + (o.amountTotal ?? 0), 0) ?? 0;
     const billCount = ordersRes.data?.length ?? 0;
     const lowStock = lowStockRes.data ?? [];
     const totalProducts = totalProductsRes.count ?? 0;
@@ -44,7 +45,7 @@ async function getStoreContext(): Promise<string> {
 - Sắp hết hàng (dưới 5 cái): ${lowStock.length > 0 ? lowStock.map(p => `${p.name} (còn ${p.quantity})`).join(", ") : "Không có"}
 
 ### Ca làm việc hôm nay
-${shifts.length > 0 ? shifts.map(s => `- ${s.startTime}-${s.endTime}: ${s.staffName ?? "Chưa có"} (${s.staffType ?? ""})`).join("\n") : "- Chưa có ca nào được xếp"}
+${shifts.length > 0 ? shifts.map(s => `- ${s.startTime}-${s.endTime}`).join("\n") : "- Chưa có ca nào được xếp"}
 `;
   } catch {
     return "";
