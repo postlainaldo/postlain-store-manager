@@ -90,8 +90,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             display: "flex",
             flexDirection: "column",
             paddingTop: 10,
-            paddingLeft: 12,
-            paddingRight: 12,
+            paddingLeft: 16,
+            paddingRight: 16,
             paddingBottom: "calc(88px + env(safe-area-inset-bottom, 0px))",
           }}>
             {children}
@@ -103,7 +103,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             style={{ paddingBottom: "calc(90px + env(safe-area-inset-bottom, 0px))" }}
           >
             <div className="page-bg-aurora-mid" />
-            <div style={{ padding: "12px 14px 8px", position: "relative", zIndex: 1 }}>
+            <div style={{ padding: "12px 16px 8px", position: "relative", zIndex: 1 }}>
               {children}
             </div>
           </main>

@@ -222,9 +222,9 @@ function SDivider() { return <div style={{ height: 1, background: "var(--border-
 function SInputRow({ label, value, onChange, type = "text" }: { label: string; value: string; onChange: (v: string) => void; type?: string }) {
   return (
     <div style={{ padding: "10px 20px", display: "flex", alignItems: "center", gap: 16 }}>
-      <label style={{ fontSize: 11, color: "var(--text-muted)", flexShrink: 0, width: 140 }}>{label}</label>
+      <label style={{ fontSize: 11, color: "var(--text-muted)", flexShrink: 0, minWidth: 100, maxWidth: 140 }}>{label}</label>
       <input type={type} value={value} onChange={e => onChange(e.target.value)}
-        style={{ flex: 1, background: "var(--bg-base)", border: "1px solid var(--border)", borderRadius: 8, padding: "7px 12px", fontSize: 11, color: "var(--text-primary)", outline: "none", fontFamily: "inherit", transition: "border-color 0.15s, box-shadow 0.15s" }}
+        style={{ flex: 1, background: "var(--bg-base)", border: "1px solid var(--border)", borderRadius: 8, padding: "7px 12px", fontSize: 16, color: "var(--text-primary)", outline: "none", fontFamily: "inherit", transition: "border-color 0.15s, box-shadow 0.15s" }}
         onFocus={e => { e.target.style.borderColor = "#0ea5e9"; e.target.style.boxShadow = "0 0 0 3px rgba(14,165,233,0.1)"; }}
         onBlur={e => { e.target.style.borderColor = "var(--border)"; e.target.style.boxShadow = "none"; }} />
     </div>
@@ -520,7 +520,7 @@ function StorePanel() {
         <motion.button
           whileTap={{ scale: 0.96 }}
           onClick={handleSave}
-          style={{ padding: "8px 20px", borderRadius: 9, border: "none", background: saved ? "#10b981" : "linear-gradient(135deg, #C9A55A, #d4a84b)", color: saved ? "#fff" : "#0c1a2e", fontSize: 9, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6, transition: "background 0.2s" }}>
+          style={{ padding: "8px 20px", minHeight: 40, borderRadius: 9, border: "none", background: saved ? "#10b981" : "linear-gradient(135deg, #C9A55A, #d4a84b)", color: saved ? "#fff" : "#0c1a2e", fontSize: 9, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6, transition: "background 0.2s" }}>
           <Check size={10} /> {saved ? "ĐÃ LƯU" : "LƯU"}
         </motion.button>
       </div>
@@ -602,9 +602,9 @@ function NotifyPanel() {
         <div style={{ padding: "12px 20px", display: "flex", alignItems: "center", gap: 16 }}>
           <label style={{ fontSize: 11, color: "var(--text-muted)", flexShrink: 0, width: 140 }}>Ngưỡng cảnh báo tồn kho</label>
           <input type="number" value={thresh} onChange={e => setThresh(e.target.value)} min={1}
-            style={{ width: 70, background: "var(--bg-base)", border: "1px solid var(--border)", borderRadius: 8, padding: "7px 10px", fontSize: 11, color: "var(--text-primary)", outline: "none", fontFamily: "inherit" }} />
+            style={{ width: 70, background: "var(--bg-base)", border: "1px solid var(--border)", borderRadius: 8, padding: "7px 10px", fontSize: 16, color: "var(--text-primary)", outline: "none", fontFamily: "inherit" }} />
           <motion.button whileTap={{ scale: 0.96 }} onClick={save}
-            style={{ padding: "7px 14px", borderRadius: 8, border: "none", background: saved ? "#10b981" : "#7c3aed", color: "#fff", fontSize: 9, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", transition: "background 0.2s" }}>
+            style={{ padding: "7px 14px", minHeight: 40, borderRadius: 8, border: "none", background: saved ? "#10b981" : "#7c3aed", color: "#fff", fontSize: 9, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", transition: "background 0.2s" }}>
             {saved ? "✓" : "LƯU"}
           </motion.button>
         </div>
@@ -640,12 +640,12 @@ function ShelvesPanel() {
         ))}
         <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
           <select value={shelfType} onChange={e => setShelfType(e.target.value as "shoes" | "bags")}
-            style={{ flex: 1, background: "var(--bg-base)", border: "1px solid var(--border)", borderRadius: 8, padding: "7px 12px", fontSize: 11, color: "var(--text-primary)", outline: "none", fontFamily: "inherit" }}>
+            style={{ flex: 1, background: "var(--bg-base)", border: "1px solid var(--border)", borderRadius: 8, padding: "7px 12px", fontSize: 16, color: "var(--text-primary)", outline: "none", fontFamily: "inherit" }}>
             <option value="shoes">Kệ Giày</option>
             <option value="bags">Kệ Túi</option>
           </select>
           <button onClick={() => addWarehouseShelf(shelfType)}
-            style={{ padding: "7px 14px", borderRadius: 8, border: "none", background: "#0ea5e9", color: "#fff", fontSize: 9, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 4 }}>
+            style={{ padding: "7px 14px", minHeight: 40, borderRadius: 8, border: "none", background: "#0ea5e9", color: "#fff", fontSize: 9, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 4 }}>
             <Plus size={10} /> THÊM
           </button>
         </div>
@@ -758,9 +758,9 @@ function UsersPanel() {
                   {editMsg && <div style={{ padding: "5px 8px", borderRadius: 7, background: editMsg === "Đã lưu" ? "rgba(16,185,129,0.08)" : "rgba(220,38,38,0.06)", fontSize: 10, color: editMsg === "Đã lưu" ? "#10b981" : "#dc2626" }}>{editMsg}</div>}
                   <input value={editForm.name} onChange={e => setEditForm(v => ({ ...v, name: e.target.value }))}
                     placeholder="Tên hiển thị"
-                    style={{ background: "#fff", border: "1px solid var(--border)", borderRadius: 8, padding: "6px 10px", fontSize: 11, color: "var(--text-primary)", outline: "none", fontFamily: "inherit" }} />
+                    style={{ background: "#fff", border: "1px solid var(--border)", borderRadius: 8, padding: "6px 10px", fontSize: 16, color: "var(--text-primary)", outline: "none", fontFamily: "inherit" }} />
                   <select value={editForm.role} onChange={e => setEditForm(v => ({ ...v, role: e.target.value as UserRole }))}
-                    style={{ background: "#fff", border: "1px solid var(--border)", borderRadius: 8, padding: "6px 10px", fontSize: 11, color: "var(--text-primary)", outline: "none", fontFamily: "inherit" }}>
+                    style={{ background: "#fff", border: "1px solid var(--border)", borderRadius: 8, padding: "6px 10px", fontSize: 16, color: "var(--text-primary)", outline: "none", fontFamily: "inherit" }}>
                     <option value="staff_ft">Nhân Viên (Full Time)</option>
                     <option value="staff_pt">Nhân Viên (Part Time)</option>
                     <option value="staff">Nhân Viên</option>
@@ -769,10 +769,10 @@ function UsersPanel() {
                   </select>
                   <input type="password" value={editForm.password} onChange={e => setEditForm(v => ({ ...v, password: e.target.value }))}
                     placeholder="Mật khẩu mới (để trống = giữ nguyên)"
-                    style={{ background: "#fff", border: "1px solid var(--border)", borderRadius: 8, padding: "6px 10px", fontSize: 11, color: "var(--text-primary)", outline: "none", fontFamily: "inherit" }} />
+                    style={{ background: "#fff", border: "1px solid var(--border)", borderRadius: 8, padding: "6px 10px", fontSize: 16, color: "var(--text-primary)", outline: "none", fontFamily: "inherit" }} />
                   <div style={{ display: "flex", gap: 6 }}>
-                    <button onClick={() => handleEditSave(u)} style={{ flex: 1, padding: "7px", borderRadius: 8, border: "none", background: "#0ea5e9", color: "#fff", fontSize: 9, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>LƯU</button>
-                    <button onClick={() => setEditingId(null)} style={{ padding: "7px 12px", borderRadius: 8, border: "1px solid var(--border)", background: "transparent", color: "var(--text-muted)", fontSize: 9, cursor: "pointer", fontFamily: "inherit" }}>HỦY</button>
+                    <button onClick={() => handleEditSave(u)} style={{ flex: 1, padding: "7px", minHeight: 40, borderRadius: 8, border: "none", background: "#0ea5e9", color: "#fff", fontSize: 9, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>LƯU</button>
+                    <button onClick={() => setEditingId(null)} style={{ padding: "7px 12px", minHeight: 40, borderRadius: 8, border: "1px solid var(--border)", background: "transparent", color: "var(--text-muted)", fontSize: 9, cursor: "pointer", fontFamily: "inherit" }}>HỦY</button>
                   </div>
                 </div>
               )}
@@ -799,10 +799,10 @@ function UsersPanel() {
             {[["Tên hiển thị", "name"], ["Tên đăng nhập", "username"], ["Mật khẩu", "password"]].map(([lbl, key]) => (
               <input key={key} type={key === "password" ? "password" : "text"} placeholder={lbl} value={(newUser as Record<string,string>)[key]}
                 onChange={e => setNewUser(v => ({ ...v, [key]: e.target.value }))}
-                style={{ background: "#fff", border: "1px solid var(--border)", borderRadius: 8, padding: "7px 12px", fontSize: 11, color: "var(--text-primary)", outline: "none", fontFamily: "inherit" }} />
+                style={{ background: "#fff", border: "1px solid var(--border)", borderRadius: 8, padding: "7px 12px", fontSize: 16, color: "var(--text-primary)", outline: "none", fontFamily: "inherit" }} />
             ))}
             <select value={newUser.role} onChange={e => setNewUser(v => ({ ...v, role: e.target.value as UserRole }))}
-              style={{ background: "#fff", border: "1px solid var(--border)", borderRadius: 8, padding: "7px 12px", fontSize: 11, color: "var(--text-primary)", outline: "none", fontFamily: "inherit" }}>
+              style={{ background: "#fff", border: "1px solid var(--border)", borderRadius: 8, padding: "7px 12px", fontSize: 16, color: "var(--text-primary)", outline: "none", fontFamily: "inherit" }}>
               <option value="staff_ft">Nhân Viên (Full Time)</option>
               <option value="staff_pt">Nhân Viên (Part Time)</option>
               <option value="staff">Nhân Viên</option>
@@ -810,8 +810,8 @@ function UsersPanel() {
               <option value="admin">Admin</option>
             </select>
             <div style={{ display: "flex", gap: 8 }}>
-              <button onClick={handleAdd} style={{ flex: 1, padding: "8px", borderRadius: 8, border: "none", background: "#0ea5e9", color: "#fff", fontSize: 9, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>THÊM</button>
-              <button onClick={() => setShowAdd(false)} style={{ padding: "8px 14px", borderRadius: 8, border: "1px solid var(--border)", background: "transparent", color: "var(--text-muted)", fontSize: 9, cursor: "pointer", fontFamily: "inherit" }}><X size={10} /></button>
+              <button onClick={handleAdd} style={{ flex: 1, padding: "8px", minHeight: 40, borderRadius: 8, border: "none", background: "#0ea5e9", color: "#fff", fontSize: 9, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>THÊM</button>
+              <button onClick={() => setShowAdd(false)} style={{ padding: "8px 14px", minHeight: 40, borderRadius: 8, border: "1px solid var(--border)", background: "transparent", color: "var(--text-muted)", fontSize: 9, cursor: "pointer", fontFamily: "inherit" }}><X size={10} /></button>
             </div>
           </div>
         )}
@@ -841,10 +841,10 @@ function SecurityPanel({ currentUser }: { currentUser: { id: string; email: stri
 
   const PwRow = ({ label, value, set, show, setShow }: { label: string; value: string; set: (v: string) => void; show: boolean; setShow: (v: boolean) => void }) => (
     <div style={{ padding: "10px 20px", display: "flex", alignItems: "center", gap: 12 }}>
-      <label style={{ fontSize: 11, color: "var(--text-muted)", flexShrink: 0, width: 160 }}>{label}</label>
+      <label style={{ fontSize: 11, color: "var(--text-muted)", flexShrink: 0, minWidth: 100, maxWidth: 160 }}>{label}</label>
       <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 6, background: "var(--bg-base)", border: "1px solid var(--border)", borderRadius: 8, padding: "0 10px", height: 36 }}>
         <input type={show ? "text" : "password"} value={value} onChange={e => set(e.target.value)}
-          style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: 11, fontFamily: "inherit", color: "var(--text-primary)" }} />
+          style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: 16, fontFamily: "inherit", color: "var(--text-primary)" }} />
         <button onClick={() => setShow(!show)} style={{ background: "none", border: "none", cursor: "pointer", display: "flex" }}>
           {show ? <EyeOff size={12} style={{ color: "var(--text-muted)" }} /> : <Eye size={12} style={{ color: "var(--text-muted)" }} />}
         </button>
@@ -871,7 +871,7 @@ function SecurityPanel({ currentUser }: { currentUser: { id: string; email: stri
       <PwRow label="Xác nhận mật khẩu mới" value={confirmPw} set={setConfirmPw} show={showNew} setShow={setShowNew} />
       <div style={{ padding: "10px 20px 14px", display: "flex", justifyContent: "flex-end" }}>
         <motion.button whileTap={{ scale: 0.96 }} onClick={handleChange}
-          style={{ padding: "8px 20px", borderRadius: 9, border: "none", background: "linear-gradient(135deg, #dc2626, #b91c1c)", color: "#fff", fontSize: 9, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", letterSpacing: "0.08em" }}>
+          style={{ padding: "8px 20px", minHeight: 40, borderRadius: 9, border: "none", background: "linear-gradient(135deg, #dc2626, #b91c1c)", color: "#fff", fontSize: 9, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", letterSpacing: "0.08em" }}>
           ĐỔI MẬT KHẨU
         </motion.button>
       </div>
@@ -954,13 +954,13 @@ function PushPanel({ userId }: { userId: string }) {
         <div style={{ display: "flex", gap: 6 }}>
           {!isDenied && (
             <motion.button whileTap={{ scale: 0.96 }} onClick={isGranted ? resub : enable} disabled={resubStatus === "loading"}
-              style={{ padding: "6px 14px", borderRadius: 7, border: "none", background: resubStatus === "done" ? "#10b981" : resubStatus === "error" ? "#ef4444" : isDefault ? "#C9A55A" : "#7c3aed", color: "#fff", fontSize: 9, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+              style={{ padding: "6px 14px", minHeight: 40, borderRadius: 7, border: "none", background: resubStatus === "done" ? "#10b981" : resubStatus === "error" ? "#ef4444" : isDefault ? "#C9A55A" : "#7c3aed", color: "#fff", fontSize: 9, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
               {resubStatus === "loading" ? "…" : resubStatus === "done" ? "✓ Đã đăng ký" : resubStatus === "error" ? "✗ Lỗi" : isDefault ? "BẬT THÔNG BÁO" : "Đăng ký lại"}
             </motion.button>
           )}
           {isGranted && (
             <motion.button whileTap={{ scale: 0.96 }} onClick={sendTest} disabled={pushStatus === "sending"}
-              style={{ padding: "6px 14px", borderRadius: 7, border: "1px solid var(--border)", background: pushStatus === "sent" ? "#f0fdf4" : "var(--bg-base)", color: pushStatus === "sent" ? "#10b981" : pushStatus === "error" ? "#ef4444" : "#0ea5e9", fontSize: 9, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+              style={{ padding: "6px 14px", minHeight: 40, borderRadius: 7, border: "1px solid var(--border)", background: pushStatus === "sent" ? "#f0fdf4" : "var(--bg-base)", color: pushStatus === "sent" ? "#10b981" : pushStatus === "error" ? "#ef4444" : "#0ea5e9", fontSize: 9, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
               {pushStatus === "sending" ? "Đang gửi…" : pushStatus === "sent" ? "✓ Đã gửi" : pushStatus === "error" ? "✗ Lỗi" : "Gửi thử"}
             </motion.button>
           )}
@@ -1128,7 +1128,7 @@ function VersionPanel() {
         </div>
         {updateReady ? (
           <motion.button whileTap={{ scale: 0.96 }} onClick={onUpdate}
-            style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", borderRadius: 8, border: "none", background: "linear-gradient(135deg, #C9A55A, #d4a84b)", color: "#0c1a2e", fontSize: 9, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+            style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", minHeight: 40, borderRadius: 8, border: "none", background: "linear-gradient(135deg, #C9A55A, #d4a84b)", color: "#0c1a2e", fontSize: 9, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
             <RefreshCw size={10} /> CẬP NHẬT
           </motion.button>
         ) : (
@@ -1253,7 +1253,7 @@ function KpiTargetPanel({ storeTarget, individualTargets, allUsers, onSetStoreTa
                       onChange={e => setIndivInputs(prev => ({ ...prev, [u.id]: e.target.value }))}
                       placeholder="VD: 50M"
                       className="input-glow"
-                      style={{ width: "100%", height: 36, padding: "0 10px", fontSize: 12, fontWeight: 600, color: "var(--text-primary)", boxSizing: "border-box" }}
+                      style={{ width: "100%", height: 36, padding: "0 10px", fontSize: 16, fontWeight: 600, color: "var(--text-primary)", boxSizing: "border-box" }}
                     />
                     {(indivInputs[u.id] ?? "") && parseTargetInput(indivInputs[u.id]) > 0 && (
                       <span style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", fontSize: 9, color: "#0ea5e9", fontWeight: 700, pointerEvents: "none" }}>
@@ -1788,7 +1788,7 @@ export default function ProfilePage() {
                             ? <input value={form[f.key]} onChange={e => setForm(v => ({ ...v, [f.key]: e.target.value }))}
                                 placeholder={f.placeholder}
                                 className="input-glow"
-                                style={{ flex: 1, padding: "7px 11px", fontSize: 11 }} />
+                                style={{ flex: 1, padding: "7px 11px", fontSize: 16 }} />
                             : <span style={{ fontSize: 11, color: form[f.key] ? "var(--text-primary)" : "var(--border-strong)", fontStyle: form[f.key] ? "normal" : "italic", fontWeight: form[f.key] ? 500 : 400 }}>
                                 {form[f.key] || f.placeholder}
                               </span>
@@ -1837,7 +1837,7 @@ export default function ProfilePage() {
                               <span style={{ fontSize: 10, color: "var(--text-muted)", width: 140, flexShrink: 0 }}>{f.label}</span>
                               <div className="input-glow" style={{ flex: 1, display: "flex", alignItems: "center", padding: "0 10px", height: 36 }}>
                                 <input type={showPw ? "text" : "password"} value={f.val} onChange={e => f.set(e.target.value)}
-                                  style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: 11, fontFamily: "inherit", color: "var(--text-primary)" }} />
+                                  style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: 16, fontFamily: "inherit", color: "var(--text-primary)" }} />
                                 {i === 0 && <button onClick={() => setShowPw(v => !v)} style={{ background: "none", border: "none", cursor: "pointer", display: "flex" }}>
                                   {showPw ? <EyeOff size={12} style={{ color: "var(--text-muted)" }} /> : <Eye size={12} style={{ color: "var(--text-muted)" }} />}
                                 </button>}

@@ -944,7 +944,7 @@ function LoginInner() {
                 disabled={locked}
                 style={{
                   flex: 1, background: "transparent", border: "none", outline: "none",
-                  fontSize: 13, color: "#e2e8f0", fontFamily: "inherit",
+                  fontSize: 16, color: "#e2e8f0", fontFamily: "inherit",
                   opacity: locked ? 0.4 : 1,
                 }}
               />
@@ -969,7 +969,7 @@ function LoginInner() {
                   disabled={locked}
                   style={{
                     flex: 1, background: "transparent", border: "none", outline: "none",
-                    fontSize: 13, color: "#e2e8f0", fontFamily: "inherit",
+                    fontSize: 16, color: "#e2e8f0", fontFamily: "inherit",
                     opacity: locked ? 0.4 : 1,
                   }}
                 />

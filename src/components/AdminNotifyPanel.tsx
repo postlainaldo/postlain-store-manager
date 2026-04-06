@@ -53,11 +53,11 @@ export default function AdminNotifyPanel() {
   const SelectedIcon = selectedType.icon;
 
   return (
-    <div style={{ borderRadius: 16, border: "1px solid #bae6fd", background: "#fff", overflow: "hidden" }}>
+    <div style={{ borderRadius: 16, border: "1px solid #bae6fd", background: "#fff", overflow: "hidden", maxHeight: "85vh", overflowY: "auto" }}>
       {/* Header */}
       <div style={{ padding: "12px 20px", borderBottom: "1px solid #e0f2fe", background: "#f0f9ff", display: "flex", alignItems: "center", gap: 8 }}>
         <Bell size={13} style={{ color: "#0ea5e9" }} />
-        <p style={{ fontSize: 9, fontWeight: 700, color: "#64748b", letterSpacing: "0.2em", flex: 1 }}>GỬI THÔNG BÁO ĐẾN NHÂN VIÊN</p>
+        <p style={{ fontSize: 11, fontWeight: 700, color: "#64748b", letterSpacing: "0.2em", flex: 1 }}>GỬI THÔNG BÁO ĐẾN NHÂN VIÊN</p>
       </div>
 
       {/* Compose */}
@@ -76,7 +76,7 @@ export default function AdminNotifyPanel() {
                   cursor: "pointer", fontFamily: "inherit",
                 }}>
                 <TIcon size={9} style={{ color: t.color }} />
-                <span style={{ fontSize: 8, fontWeight: 700, color: active ? t.color : "#94a3b8" }}>{t.label}</span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: active ? t.color : "#94a3b8" }}>{t.label}</span>
               </button>
             );
           })}
@@ -85,13 +85,13 @@ export default function AdminNotifyPanel() {
         <input
           value={form.title} onChange={e => setForm(v => ({ ...v, title: e.target.value }))}
           placeholder="Tiêu đề thông báo..."
-          style={{ width: "100%", background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 8, padding: "8px 12px", fontSize: 12, color: "#0c1a2e", outline: "none", fontFamily: "inherit", marginBottom: 8, boxSizing: "border-box" }}
+          style={{ width: "100%", background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 8, padding: "8px 12px", fontSize: 16, color: "#0c1a2e", outline: "none", fontFamily: "inherit", marginBottom: 8, boxSizing: "border-box" }}
         />
         <textarea
           value={form.body} onChange={e => setForm(v => ({ ...v, body: e.target.value }))}
           placeholder="Nội dung chi tiết..."
           rows={2}
-          style={{ width: "100%", background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 8, padding: "8px 12px", fontSize: 11, color: "#0c1a2e", outline: "none", fontFamily: "inherit", resize: "none", boxSizing: "border-box" }}
+          style={{ width: "100%", background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 8, padding: "8px 12px", fontSize: 16, color: "#0c1a2e", outline: "none", fontFamily: "inherit", resize: "none", boxSizing: "border-box" }}
         />
 
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 10 }}>
@@ -103,7 +103,7 @@ export default function AdminNotifyPanel() {
 
           <button onClick={handleSend} disabled={!form.title.trim() || !form.body.trim() || sending}
             style={{
-              display: "flex", alignItems: "center", gap: 6, padding: "7px 16px", borderRadius: 9, border: "none",
+              display: "flex", alignItems: "center", gap: 6, padding: "10px 16px", minHeight: 40, borderRadius: 9, border: "none",
               background: sent ? "#10b981" : (form.title.trim() ? "#0ea5e9" : "#e0f2fe"),
               color: form.title.trim() ? "#fff" : "#94a3b8",
               fontSize: 9, fontWeight: 700, cursor: form.title.trim() ? "pointer" : "default", fontFamily: "inherit",
@@ -130,16 +130,16 @@ export default function AdminNotifyPanel() {
                   <p style={{ fontSize: 11, fontWeight: 700, color: "#0c1a2e" }}>{n.title}</p>
                   {n.pinned === 1 && <Pin size={8} style={{ color: "#C9A55A" }} />}
                 </div>
-                <p style={{ fontSize: 9, color: "#64748b", marginTop: 2, lineHeight: 1.4 }}>{n.body}</p>
+                <p style={{ fontSize: 11, color: "#64748b", marginTop: 2, lineHeight: 1.4 }}>{n.body}</p>
               </div>
               <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
                 <button onClick={() => handlePin(n.id, n.pinned)}
-                  style={{ width: 24, height: 24, borderRadius: 6, border: `1px solid ${n.pinned ? "#C9A55A" : "#e0f2fe"}`, background: n.pinned ? "rgba(201,165,90,0.1)" : "#f8fafc", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
-                  <Pin size={9} style={{ color: n.pinned ? "#C9A55A" : "#94a3b8" }} />
+                  style={{ width: 36, height: 36, borderRadius: 6, border: `1px solid ${n.pinned ? "#C9A55A" : "#e0f2fe"}`, background: n.pinned ? "rgba(201,165,90,0.1)" : "#f8fafc", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+                  <Pin size={12} style={{ color: n.pinned ? "#C9A55A" : "#94a3b8" }} />
                 </button>
                 <button onClick={() => handleDelete(n.id)}
-                  style={{ width: 24, height: 24, borderRadius: 6, border: "1px solid #fee2e2", background: "#fff5f5", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
-                  <Trash2 size={9} style={{ color: "#dc2626" }} />
+                  style={{ width: 36, height: 36, borderRadius: 6, border: "1px solid #fee2e2", background: "#fff5f5", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+                  <Trash2 size={12} style={{ color: "#dc2626" }} />
                 </button>
               </div>
             </div>

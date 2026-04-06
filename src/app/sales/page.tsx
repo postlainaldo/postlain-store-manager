@@ -120,7 +120,7 @@ export default function SalesPage() {
         </div>
 
         {/* Stats row */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, marginBottom: 28 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(100px, 1fr))", gap: 8, marginBottom: 28 }}>
           {[
             { label: "Doanh thu", value: cur ? `${fmt(cur.totalRevenue)} ₫` : "—", icon: TrendingUp, color: "#C9A55A", accent: "linear-gradient(90deg,#C9A55A,#E2C07A)" },
             { label: "Số đơn", value: cur ? String(cur.orderCount) : "—", icon: Receipt, color: "#0ea5e9", accent: "linear-gradient(90deg,#0ea5e9,#38bdf8)" },

@@ -181,18 +181,18 @@ function TemplateForm({ initial, onSave, onClose }: {
       <div style={{ display:"flex", flexDirection:"column", gap:4 }}>
         <label style={{ fontSize:9, fontWeight:700, color:"#64748b", letterSpacing:"0.1em" }}>TÊN CA</label>
         <input value={name} onChange={e=>setName(e.target.value)} placeholder="Ca Sáng"
-          className="input-glow" style={{ height:36, padding:"0 10px", fontSize:12, width:"100%" }} />
+          className="input-glow" style={{ height:36, padding:"0 10px", fontSize:16, width:"100%" }} />
       </div>
       <div style={{ display:"flex", gap:8 }}>
         <div style={{ flex:1, display:"flex", flexDirection:"column", gap:4 }}>
           <label style={{ fontSize:9, fontWeight:700, color:"#64748b", letterSpacing:"0.1em" }}>BẮT ĐẦU</label>
           <input type="time" value={start} onChange={e=>setStart(e.target.value)}
-            className="input-glow" style={{ height:36, padding:"0 10px", fontSize:12, width:"100%" }} />
+            className="input-glow" style={{ height:36, padding:"0 10px", fontSize:16, width:"100%" }} />
         </div>
         <div style={{ flex:1, display:"flex", flexDirection:"column", gap:4 }}>
           <label style={{ fontSize:9, fontWeight:700, color:"#64748b", letterSpacing:"0.1em" }}>KẾT THÚC</label>
           <input type="time" value={end} onChange={e=>setEnd(e.target.value)}
-            className="input-glow" style={{ height:36, padding:"0 10px", fontSize:12, width:"100%" }} />
+            className="input-glow" style={{ height:36, padding:"0 10px", fontSize:16, width:"100%" }} />
         </div>
       </div>
       <div style={{ display:"flex", flexDirection:"column", gap:4 }}>
@@ -348,11 +348,11 @@ function SlotCard({ slot, regs, isAdmin, currentUserId, allStaff, canRegister, o
                 <div key={reg.id} style={{ display:"flex", alignItems:"center", gap:4, marginBottom:3, background:"rgba(245,158,11,0.05)", borderRadius:6, padding:"3px 6px" }}>
                   <span style={{ fontSize:10, color:"#0c1a2e", flex:1 }}>{reg.userName}</span>
                   <button onClick={() => onApprove(reg)}
-                    style={{ height:20, padding:"0 7px", borderRadius:5, border:"1px solid #bbf7d0", background:"#f0fdf4", cursor:"pointer", fontSize:9, fontWeight:700, color:"#10b981", fontFamily:"inherit" }}>
+                    style={{ minHeight:32, padding:"0 7px", borderRadius:5, border:"1px solid #bbf7d0", background:"#f0fdf4", cursor:"pointer", fontSize:9, fontWeight:700, color:"#10b981", fontFamily:"inherit" }}>
                     ✓
                   </button>
                   <button onClick={() => onReject(reg)}
-                    style={{ height:20, padding:"0 7px", borderRadius:5, border:"1px solid #fca5a5", background:"#fff5f5", cursor:"pointer", fontSize:9, fontWeight:700, color:"#ef4444", fontFamily:"inherit" }}>
+                    style={{ minHeight:32, padding:"0 7px", borderRadius:5, border:"1px solid #fca5a5", background:"#fff5f5", cursor:"pointer", fontSize:9, fontWeight:700, color:"#ef4444", fontFamily:"inherit" }}>
                     ✗
                   </button>
                 </div>
@@ -364,7 +364,7 @@ function SlotCard({ slot, regs, isAdmin, currentUserId, allStaff, canRegister, o
           {!full && unassigned.length > 0 && (
             <div>
               <button onClick={() => setShowAdd(v => !v)}
-                style={{ width:"100%", height:26, borderRadius:7, border:`1px dashed ${slot.color}60`, background:"transparent", cursor:"pointer", fontSize:9, fontWeight:600, color:slot.color, fontFamily:"inherit", display:"flex", alignItems:"center", justifyContent:"center", gap:4 }}>
+                style={{ width:"100%", minHeight:40, borderRadius:7, border:`1px dashed ${slot.color}60`, background:"transparent", cursor:"pointer", fontSize:9, fontWeight:600, color:slot.color, fontFamily:"inherit", display:"flex", alignItems:"center", justifyContent:"center", gap:4 }}>
                 <UserPlus size={9} /> Xếp nhân viên
               </button>
               <AnimatePresence>
@@ -401,11 +401,11 @@ function SlotCard({ slot, regs, isAdmin, currentUserId, allStaff, canRegister, o
           {!myReg ? (
             canRegister ? (
               <button onClick={() => { if (!full) { playSound("save"); onRegister(slot.id); } }} disabled={full}
-                style={{ width:"100%", height:30, borderRadius:8, border:"none", background:full?"#f1f5f9":`linear-gradient(135deg,${slot.color},${slot.color}cc)`, cursor:full?"default":"pointer", fontSize:10, fontWeight:700, color:full?"#94a3b8":"#fff", fontFamily:"inherit" }}>
+                style={{ width:"100%", height:40, borderRadius:8, border:"none", background:full?"#f1f5f9":`linear-gradient(135deg,${slot.color},${slot.color}cc)`, cursor:full?"default":"pointer", fontSize:10, fontWeight:700, color:full?"#94a3b8":"#fff", fontFamily:"inherit" }}>
                 {full ? "Đầy ca" : "Đăng ký ca này"}
               </button>
             ) : (
-              <div style={{ width:"100%", height:30, borderRadius:8, background:"#f8fafc", border:"1px solid #e2e8f0", display:"flex", alignItems:"center", justifyContent:"center", gap:5 }}>
+              <div style={{ width:"100%", height:40, borderRadius:8, background:"#f8fafc", border:"1px solid #e2e8f0", display:"flex", alignItems:"center", justifyContent:"center", gap:5 }}>
                 <span style={{ fontSize:9, color:"#94a3b8", fontWeight:600 }}>
                   {full ? "Đầy ca" : "Đăng ký mở T5–CN"}
                 </span>
@@ -516,12 +516,12 @@ function AddSlotModal({ templates, date, onSave, onClose }: {
         ) : (
           <div style={{ display:"flex", flexDirection:"column", gap:10, marginBottom:12 }}>
             <input value={name} onChange={e=>setName(e.target.value)} placeholder="Tên ca..."
-              className="input-glow" style={{ height:36, padding:"0 10px", fontSize:12, width:"100%" }} />
+              className="input-glow" style={{ height:36, padding:"0 10px", fontSize:16, width:"100%" }} />
             <div style={{ display:"flex", gap:8 }}>
               <input type="time" value={start} onChange={e=>setStart(e.target.value)}
-                style={{ flex:1, height:36, borderRadius:8, border:"1px solid #e2e8f0", padding:"0 8px", fontSize:12, fontFamily:"inherit", outline:"none" }} />
+                style={{ flex:1, height:36, borderRadius:8, border:"1px solid #e2e8f0", padding:"0 8px", fontSize:16, fontFamily:"inherit", outline:"none" }} />
               <input type="time" value={end} onChange={e=>setEnd(e.target.value)}
-                style={{ flex:1, height:36, borderRadius:8, border:"1px solid #e2e8f0", padding:"0 8px", fontSize:12, fontFamily:"inherit", outline:"none" }} />
+                style={{ flex:1, height:36, borderRadius:8, border:"1px solid #e2e8f0", padding:"0 8px", fontSize:16, fontFamily:"inherit", outline:"none" }} />
             </div>
             <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
               {PRESET_COLORS.map(c => (
@@ -544,7 +544,7 @@ function AddSlotModal({ templates, date, onSave, onClose }: {
 
         <textarea value={note} onChange={e=>setNote(e.target.value)} placeholder="Ghi chú (tuỳ chọn)..."
           rows={2}
-          style={{ width:"100%", borderRadius:8, border:"1px solid #e2e8f0", padding:"8px 10px", fontSize:11, fontFamily:"inherit", outline:"none", resize:"none", color:"#0c1a2e", boxSizing:"border-box", marginBottom:12 }} />
+          style={{ width:"100%", borderRadius:8, border:"1px solid #e2e8f0", padding:"8px 10px", fontSize:16, fontFamily:"inherit", outline:"none", resize:"none", color:"#0c1a2e", boxSizing:"border-box", marginBottom:12 }} />
 
         <div style={{ display:"flex", gap:8 }}>
           <button onClick={onClose}
@@ -869,7 +869,7 @@ function ShiftNoteWidget({ currentUser, isAdmin }: { currentUser: AppUser | null
                   <textarea value={text} onChange={e => setText(e.target.value)}
                     onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
                     placeholder={isAdmin ? "Phản hồi nhân viên..." : "Trao đổi nhanh với admin..."}
-                    rows={2} style={{ flex: 1, borderRadius: 10, border: "1px solid #e2e8f0", padding: "8px 10px", fontSize: 11, fontFamily: "inherit", outline: "none", resize: "none", color: "#0c1a2e", background: "#f8fafc", lineHeight: 1.4 }} />
+                    rows={2} style={{ flex: 1, borderRadius: 10, border: "1px solid #e2e8f0", padding: "8px 10px", fontSize: 16, fontFamily: "inherit", outline: "none", resize: "none", color: "#0c1a2e", background: "#f8fafc", lineHeight: 1.4 }} />
                   <button onClick={handleSend} disabled={!text.trim() || sending}
                     style={{ width: 36, height: 36, borderRadius: 10, border: "none", flexShrink: 0, background: text.trim() ? "linear-gradient(135deg,#0c1a2e,#1e3a5f)" : "#f1f5f9", cursor: text.trim() ? "pointer" : "default", display: "flex", alignItems: "center", justifyContent: "center" }}>
                     <Send size={14} style={{ color: text.trim() ? "#C9A55A" : "#cbd5e1" }} />
@@ -887,16 +887,16 @@ function ShiftNoteWidget({ currentUser, isAdmin }: { currentUser: AppUser | null
                   <div style={{ padding: "12px", borderRadius: 12, border: "1px solid #e0f2fe", background: "#f0f9ff", display: "flex", flexDirection: "column", gap: 8 }}>
                     <p style={{ fontSize: 10, fontWeight: 700, color: "#0c1a2e", margin: 0 }}>Gửi yêu cầu mới</p>
                     <select value={reqType} onChange={e => setReqType(e.target.value)}
-                      style={{ borderRadius: 8, border: "1px solid #bae6fd", padding: "6px 8px", fontSize: 11, fontFamily: "inherit", color: "#0c1a2e", background: "#fff", outline: "none" }}>
+                      style={{ borderRadius: 8, border: "1px solid #bae6fd", padding: "6px 8px", fontSize: 16, fontFamily: "inherit", color: "#0c1a2e", background: "#fff", outline: "none" }}>
                       {Object.entries(REQ_TYPE_LABEL).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
                     </select>
                     {(reqType === "swap_shift" || reqType === "day_off") && (
                       <input type="date" value={reqDate} onChange={e => setReqDate(e.target.value)}
-                        style={{ borderRadius: 8, border: "1px solid #bae6fd", padding: "6px 8px", fontSize: 11, fontFamily: "inherit", color: "#0c1a2e", background: "#fff", outline: "none" }} />
+                        style={{ borderRadius: 8, border: "1px solid #bae6fd", padding: "6px 8px", fontSize: 16, fontFamily: "inherit", color: "#0c1a2e", background: "#fff", outline: "none" }} />
                     )}
                     <textarea value={reqContent} onChange={e => setReqContent(e.target.value)}
                       placeholder="Mô tả yêu cầu của bạn..." rows={2}
-                      style={{ borderRadius: 8, border: "1px solid #bae6fd", padding: "7px 9px", fontSize: 11, fontFamily: "inherit", resize: "none", color: "#0c1a2e", background: "#fff", outline: "none", lineHeight: 1.4 }} />
+                      style={{ borderRadius: 8, border: "1px solid #bae6fd", padding: "7px 9px", fontSize: 16, fontFamily: "inherit", resize: "none", color: "#0c1a2e", background: "#fff", outline: "none", lineHeight: 1.4 }} />
                     <button onClick={handleSubmitRequest} disabled={!reqContent.trim() || submitting}
                       style={{ height: 32, borderRadius: 8, border: "none", background: reqContent.trim() ? "linear-gradient(135deg,#0c1a2e,#1e3a5f)" : "#e2e8f0", color: reqContent.trim() ? "#C9A55A" : "#94a3b8", fontSize: 11, fontWeight: 700, cursor: reqContent.trim() ? "pointer" : "default", fontFamily: "inherit" }}>
                       {submitting ? "Đang gửi..." : "Gửi yêu cầu"}
@@ -955,14 +955,14 @@ function ShiftNoteWidget({ currentUser, isAdmin }: { currentUser: AppUser | null
                         <div style={{ display: "flex", flexDirection: "column", gap: 5, marginTop: 2 }}>
                           <input value={replyNote[r.id] ?? ""} onChange={e => setReplyNote(prev => ({ ...prev, [r.id]: e.target.value }))}
                             placeholder="Lý do / ghi chú phản hồi (tuỳ chọn)..."
-                            style={{ borderRadius: 7, border: "1px solid #e2e8f0", padding: "5px 8px", fontSize: 10, fontFamily: "inherit", outline: "none", color: "#0c1a2e" }} />
+                            style={{ borderRadius: 7, border: "1px solid #e2e8f0", padding: "5px 8px", fontSize: 16, fontFamily: "inherit", outline: "none", color: "#0c1a2e" }} />
                           <div style={{ display: "flex", gap: 6 }}>
                             <button onClick={() => handleAdminAction(r.id, "approved")}
-                              style={{ flex: 1, height: 28, borderRadius: 7, border: "none", background: "#16a34a", color: "#fff", fontSize: 10, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                              style={{ flex: 1, height: 40, borderRadius: 7, border: "none", background: "#16a34a", color: "#fff", fontSize: 10, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
                               ✓ Duyệt
                             </button>
                             <button onClick={() => handleAdminAction(r.id, "rejected")}
-                              style={{ flex: 1, height: 28, borderRadius: 7, border: "none", background: "#dc2626", color: "#fff", fontSize: 10, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                              style={{ flex: 1, height: 40, borderRadius: 7, border: "none", background: "#dc2626", color: "#fff", fontSize: 10, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
                               ✕ Từ chối
                             </button>
                           </div>
@@ -974,24 +974,24 @@ function ShiftNoteWidget({ currentUser, isAdmin }: { currentUser: AppUser | null
                           <p style={{ fontSize: 9, fontWeight: 700, color: "#64748b", margin: 0, textTransform: "uppercase", letterSpacing: "0.08em" }}>Chỉnh sửa quyết định</p>
                           <div style={{ display: "flex", gap: 5 }}>
                             <button onClick={() => setEditReqStatus("approved")}
-                              style={{ flex: 1, height: 26, borderRadius: 6, border: `1.5px solid ${editReqStatus === "approved" ? "#16a34a" : "#e2e8f0"}`, background: editReqStatus === "approved" ? "#f0fdf4" : "#fff", color: editReqStatus === "approved" ? "#16a34a" : "#94a3b8", fontSize: 10, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                              style={{ flex: 1, height: 40, borderRadius: 6, border: `1.5px solid ${editReqStatus === "approved" ? "#16a34a" : "#e2e8f0"}`, background: editReqStatus === "approved" ? "#f0fdf4" : "#fff", color: editReqStatus === "approved" ? "#16a34a" : "#94a3b8", fontSize: 10, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
                               ✓ Duyệt
                             </button>
                             <button onClick={() => setEditReqStatus("rejected")}
-                              style={{ flex: 1, height: 26, borderRadius: 6, border: `1.5px solid ${editReqStatus === "rejected" ? "#dc2626" : "#e2e8f0"}`, background: editReqStatus === "rejected" ? "#fff1f2" : "#fff", color: editReqStatus === "rejected" ? "#dc2626" : "#94a3b8", fontSize: 10, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                              style={{ flex: 1, height: 40, borderRadius: 6, border: `1.5px solid ${editReqStatus === "rejected" ? "#dc2626" : "#e2e8f0"}`, background: editReqStatus === "rejected" ? "#fff1f2" : "#fff", color: editReqStatus === "rejected" ? "#dc2626" : "#94a3b8", fontSize: 10, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
                               ✕ Từ chối
                             </button>
                           </div>
                           <input value={editReqNote} onChange={e => setEditReqNote(e.target.value)}
                             placeholder="Ghi chú phản hồi..."
-                            style={{ borderRadius: 6, border: "1px solid #e2e8f0", padding: "5px 8px", fontSize: 10, fontFamily: "inherit", outline: "none", color: "#0c1a2e" }} />
+                            style={{ borderRadius: 6, border: "1px solid #e2e8f0", padding: "5px 8px", fontSize: 16, fontFamily: "inherit", outline: "none", color: "#0c1a2e" }} />
                           <div style={{ display: "flex", gap: 5 }}>
                             <button onClick={saveEditReq}
-                              style={{ flex: 1, height: 26, borderRadius: 6, border: "none", background: "linear-gradient(135deg,#0c1a2e,#1e3a5f)", color: "#C9A55A", fontSize: 10, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                              style={{ flex: 1, height: 40, borderRadius: 6, border: "none", background: "linear-gradient(135deg,#0c1a2e,#1e3a5f)", color: "#C9A55A", fontSize: 10, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
                               Lưu
                             </button>
                             <button onClick={() => setEditingReqId(null)}
-                              style={{ height: 26, padding: "0 12px", borderRadius: 6, border: "1px solid #e2e8f0", background: "#fff", color: "#64748b", fontSize: 10, cursor: "pointer", fontFamily: "inherit" }}>
+                              style={{ height: 40, padding: "0 12px", borderRadius: 6, border: "1px solid #e2e8f0", background: "#fff", color: "#64748b", fontSize: 10, cursor: "pointer", fontFamily: "inherit" }}>
                               Huỷ
                             </button>
                           </div>

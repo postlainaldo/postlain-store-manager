@@ -117,7 +117,7 @@ function Row({ label, value, sub, bold, color }: {
 
 function KpiGrid({ items }: { items: { label: string; value: string; color?: string }[] }) {
   return (
-    <div style={{ display: "grid", gridTemplateColumns: `repeat(${items.length},1fr)`, gap: 6 }}>
+    <div style={{ display: "grid", gridTemplateColumns: `repeat(auto-fit, minmax(120px, 1fr))`, gap: 6 }}>
       {items.map(i => (
         <div key={i.label} className="card-kpi" style={{
           padding: "9px 10px", textAlign: "center",

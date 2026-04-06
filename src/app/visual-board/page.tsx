@@ -120,7 +120,7 @@ const ProductCard = memo(function ProductCard({
 
           {/* MC row */}
           {product.sku && (
-            <span style={{ fontSize: 8, fontWeight: 600, color: cc, lineHeight: 1, letterSpacing: "0.02em" }}>
+            <span style={{ fontSize: 9, fontWeight: 600, color: cc, lineHeight: 1, letterSpacing: "0.02em" }}>
               {product.sku}
             </span>
           )}
@@ -134,7 +134,7 @@ const ProductCard = memo(function ProductCard({
               }} />
             )}
             {product.color && (
-              <span style={{ fontSize: 7.5, color: colorHex ?? "#64748b", fontWeight: 700, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              <span style={{ fontSize: 9, color: colorHex ?? "#64748b", fontWeight: 700, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {product.color}
               </span>
             )}
@@ -143,13 +143,13 @@ const ProductCard = memo(function ProductCard({
           {/* GIÁ row — full price gạch + markdown */}
           <div style={{ display: "flex", alignItems: "center", gap: 3, flexWrap: "nowrap" }}>
             {product.markdownPrice && product.price && (
-              <span style={{ fontSize: 7, color: "#94a3b8", textDecoration: "line-through", whiteSpace: "nowrap" }}>
+              <span style={{ fontSize: 9, color: "#94a3b8", textDecoration: "line-through", whiteSpace: "nowrap" }}>
                 {fmtPrice(product.price)}
               </span>
             )}
             {(product.markdownPrice ?? product.price) && (
               <span style={{
-                fontSize: 8, fontWeight: 700, whiteSpace: "nowrap",
+                fontSize: 9, fontWeight: 700, whiteSpace: "nowrap",
                 color: product.markdownPrice ? "#dc2626" : "#475569",
               }}>
                 {fmtPrice(product.markdownPrice ?? product.price)}
@@ -208,7 +208,7 @@ const ProductCard = memo(function ProductCard({
         }}>
           {/* Tên sản phẩm */}
           <span style={{
-            fontSize: isSmall ? 6 : 7, fontWeight: 700, color: cc,
+            fontSize: isSmall ? 8 : 9, fontWeight: 700, color: cc,
             textAlign: "center", lineHeight: 1.1,
             maxWidth: "100%", overflow: "hidden", wordBreak: "break-all",
           }}>
@@ -218,14 +218,14 @@ const ProductCard = memo(function ProductCard({
           {product.color && !isSmall && (
             <div style={{ display: "flex", alignItems: "center", gap: 2, justifyContent: "center" }}>
               {colorHex && <div style={{ width: 5, height: 5, borderRadius: "50%", background: colorHex, flexShrink: 0 }} />}
-              <span style={{ fontSize: 6, fontWeight: 700, color: colorHex ?? `${cc}bb`, lineHeight: 1 }}>
+              <span style={{ fontSize: 9, fontWeight: 700, color: colorHex ?? `${cc}bb`, lineHeight: 1 }}>
                 {product.color}
               </span>
             </div>
           )}
           {/* Giá */}
           {!isSmall && (product.markdownPrice ?? product.price) && (
-            <span style={{ fontSize: 5.5, fontWeight: 700, color: product.markdownPrice ? "#dc2626" : `${cc}99`, textAlign: "center", lineHeight: 1 }}>
+            <span style={{ fontSize: 9, fontWeight: 700, color: product.markdownPrice ? "#dc2626" : `${cc}99`, textAlign: "center", lineHeight: 1 }}>
               {fmtPrice(product.markdownPrice ?? product.price)}
             </span>
           )}
@@ -235,7 +235,7 @@ const ProductCard = memo(function ProductCard({
       <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 3, background: highlight ? "#C9A55A" : cc }} />
 
       {(product.quantity ?? 0) > 1 && !isSmall && (
-        <div style={{ position: "absolute", top: 2, right: 2, background: "rgba(12,26,46,0.8)", borderRadius: 4, padding: "0 3px", lineHeight: "12px", fontSize: 6.5, fontWeight: 700, color: "#fff" }}>
+        <div style={{ position: "absolute", top: 2, right: 2, background: "rgba(12,26,46,0.8)", borderRadius: 4, padding: "0 3px", lineHeight: "12px", fontSize: 9, fontWeight: 700, color: "#fff" }}>
           ×{product.quantity}
         </div>
       )}
