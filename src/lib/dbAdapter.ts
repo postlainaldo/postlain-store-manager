@@ -422,7 +422,6 @@ export async function dbGetUserByCredentials(username: string, password: string)
       .select("id, name, username, role, active, phone, employeeCode, passwordHash")
       .eq("username", username.toLowerCase())
       .maybeSingle();
-    console.log("[auth] login attempt:", username, "| error:", error?.message, "| data keys:", data ? Object.keys(data) : null, "| passwordHash:", data?.passwordHash, "| input:", password, "| match:", data?.passwordHash === password);
     if (!data) return null;
     if (data.passwordHash !== password) return null;
     return data as DBUser;
