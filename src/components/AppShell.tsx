@@ -66,12 +66,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           flexShrink: 0,
           display: "flex", alignItems: "center", gap: 8,
           padding: "6px 12px",
-          background: isMobileDevice ? "rgba(255,255,255,0.96)" : "rgba(255,255,255,0.72)",
-          backdropFilter: isMobileDevice ? "none" : "blur(24px) saturate(1.8)",
-          WebkitBackdropFilter: isMobileDevice ? "none" : "blur(24px) saturate(1.8)",
-          borderBottom: "1px solid rgba(186,230,253,0.65)",
-          boxShadow: "0 1px 0 rgba(186,230,253,0.9), 0 2px 12px rgba(12,26,46,0.05), inset 0 1px 0 rgba(255,255,255,0.95)",
-          minHeight: 46,
+          background: isMobileDevice ? "rgba(255,255,255,0.97)" : "rgba(255,255,255,0.92)",
+          backdropFilter: isMobileDevice ? "none" : "blur(20px) saturate(1.8)",
+          WebkitBackdropFilter: isMobileDevice ? "none" : "blur(20px) saturate(1.8)",
+          borderBottom: "1px solid rgba(12,26,46,0.05)",
+          boxShadow: "0 1px 0 rgba(201,165,90,0.10), 0 2px 12px rgba(12,26,46,0.05), inset 0 1px 0 rgba(255,255,255,0.95)",
+          minHeight: 52,
           zIndex: 10,
         }}>
           <div style={{ flex: 1, minWidth: 0 }}>

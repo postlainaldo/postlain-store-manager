@@ -40,7 +40,7 @@ export default function TopNav() {
   return (
     <header
       className="topnav hidden md:flex flex-shrink-0 items-center gap-0"
-      style={{ height: 52, padding: "0 20px", zIndex: 40 }}
+      style={{ height: 56, padding: "0 20px", zIndex: 40 }}
     >
       {/* ── Logo ─────────────────────────────────────────── */}
       <Link
@@ -49,15 +49,15 @@ export default function TopNav() {
       >
         <div style={{
           width: 30, height: 30, borderRadius: 8,
-          border: "1.5px solid rgba(14,165,233,0.35)",
-          background: "linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%)",
+          border: "1.5px solid rgba(201,165,90,0.45)",
+          background: "linear-gradient(135deg, #0c1a2e 0%, #1e3a5f 100%)",
           display: "flex", alignItems: "center", justifyContent: "center",
-          boxShadow: "0 2px 10px rgba(14,165,233,0.18)",
+          boxShadow: "0 2px 10px rgba(12,26,46,0.22)",
         }}>
-          <span style={{ fontSize: 12, fontWeight: 800, color: "#0284c7", letterSpacing: "0.06em" }}>P</span>
+          <span style={{ fontSize: 12, fontWeight: 800, color: "#C9A55A", letterSpacing: "0.06em" }}>P</span>
         </div>
         <div style={{ lineHeight: 1 }}>
-          <p style={{ fontSize: 9.5, fontWeight: 800, color: "#0284c7", letterSpacing: "0.48em" }}>POSTLAIN</p>
+          <p style={{ fontSize: 15, fontWeight: 900, color: "#0c1a2e", letterSpacing: "0.14em" }}>POSTLAIN</p>
           <p style={{ fontSize: 7, color: "rgba(12,26,46,0.38)", letterSpacing: "0.2em", marginTop: 3 }}>
             {storeSubtitle || "QUẢN LÝ CỬA HÀNG"}
           </p>
@@ -97,17 +97,17 @@ export default function TopNav() {
               <div style={{
                 display: "flex", alignItems: "center", gap: 7,
                 padding: "4px 10px 4px 6px", borderRadius: 20,
-                background: "rgba(14,165,233,0.07)",
-                border: "1px solid rgba(14,165,233,0.20)",
+                background: "rgba(201,165,90,0.07)",
+                border: "1px solid rgba(201,165,90,0.22)",
                 cursor: "pointer",
                 transition: "background 0.18s, box-shadow 0.18s",
               }}
               onMouseEnter={e => {
-                (e.currentTarget as HTMLDivElement).style.background = "rgba(14,165,233,0.12)";
-                (e.currentTarget as HTMLDivElement).style.boxShadow = "0 0 14px rgba(14,165,233,0.14)";
+                (e.currentTarget as HTMLDivElement).style.background = "rgba(201,165,90,0.13)";
+                (e.currentTarget as HTMLDivElement).style.boxShadow = "0 0 14px rgba(201,165,90,0.16)";
               }}
               onMouseLeave={e => {
-                (e.currentTarget as HTMLDivElement).style.background = "rgba(14,165,233,0.07)";
+                (e.currentTarget as HTMLDivElement).style.background = "rgba(201,165,90,0.07)";
                 (e.currentTarget as HTMLDivElement).style.boxShadow = "none";
               }}
               >
@@ -115,11 +115,11 @@ export default function TopNav() {
                 <div style={{ position: "relative", flexShrink: 0 }}>
                   <div style={{
                     width: 24, height: 24, borderRadius: "50%",
-                    background: "linear-gradient(135deg, #e0f2fe, #bae6fd)",
+                    background: "linear-gradient(135deg, #0c1a2e, #1e3a5f)",
                     display: "flex", alignItems: "center", justifyContent: "center",
-                    border: "1.5px solid rgba(14,165,233,0.35)",
+                    border: "1.5px solid rgba(201,165,90,0.45)",
                   }}>
-                    <span style={{ fontSize: 9, fontWeight: 700, color: "#0284c7" }}>
+                    <span style={{ fontSize: 9, fontWeight: 700, color: "#C9A55A" }}>
                       {currentUser.name.slice(0, 1).toUpperCase()}
                     </span>
                   </div>
@@ -132,7 +132,7 @@ export default function TopNav() {
                 </div>
                 <div style={{ lineHeight: 1 }}>
                   <p style={{ fontSize: 10, fontWeight: 600, color: "rgba(12,26,46,0.85)" }}>{currentUser.name}</p>
-                  <p style={{ fontSize: 7.5, color: "rgba(2,132,199,0.75)", marginTop: 1.5, letterSpacing: "0.08em" }}>
+                  <p style={{ fontSize: 7.5, color: "rgba(201,165,90,0.80)", marginTop: 1.5, letterSpacing: "0.08em" }}>
                     {currentUser.role === "admin" ? "ADMIN" : currentUser.role === "manager" ? "QUẢN LÝ" : "NHÂN VIÊN"}
                   </p>
                 </div>
@@ -168,9 +168,9 @@ export default function TopNav() {
             <div style={{
               display: "flex", alignItems: "center", gap: 6,
               padding: "6px 14px", borderRadius: 8,
-              background: "linear-gradient(135deg, #0ea5e9, #0284c7)",
+              background: "linear-gradient(135deg, #0c1a2e, #1e3a5f)",
               cursor: "pointer",
-              boxShadow: "0 2px 12px rgba(14,165,233,0.3)",
+              boxShadow: "0 2px 12px rgba(12,26,46,0.30)",
             }}>
               <LogIn size={11} style={{ color: "#fff" }} />
               <span style={{ fontSize: 9, fontWeight: 700, color: "#fff", letterSpacing: "0.12em" }}>ĐĂNG NHẬP</span>
