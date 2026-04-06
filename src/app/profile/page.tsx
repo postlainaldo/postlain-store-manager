@@ -1525,7 +1525,7 @@ export default function ProfilePage() {
   const pwStrengthColor = ["transparent", "#ef4444", "#f59e0b", "#10b981"][pwStrength];
 
   return (
-    <div style={{ position: "relative", maxWidth: 860, margin: "0 auto" }}>
+    <div style={{ position: "relative", maxWidth: 860, margin: "0 auto", background: "var(--bg-base)" }}>
       {/* Bắt buộc điền thông tin cá nhân */}
       {showProfileRequired && (
         <div style={{ position: "fixed", inset: 0, zIndex: 800, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(8px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
@@ -1563,10 +1563,10 @@ export default function ProfilePage() {
         <motion.div
           initial={{ opacity: 0, y: -16 }} animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-          style={{ borderRadius: 20, overflow: "hidden", boxShadow: "0 8px 40px rgba(12,26,46,0.14)", marginBottom: 16 }}
+          style={{ borderRadius: 22, overflow: "hidden", boxShadow: "0 12px 48px rgba(12,26,46,0.22), 0 2px 0 rgba(201,165,90,0.18) inset", marginBottom: 16, border: "1px solid rgba(201,165,90,0.25)" }}
         >
           {/* Cover */}
-          <div style={{ height: 140, background: "linear-gradient(135deg, #0c1a2e 0%, #1e3a5f 40%, #0ea5e9 75%, #C9A55A 100%)", position: "relative", overflow: "hidden" }}>
+          <div style={{ height: 140, background: "linear-gradient(135deg, #0c1a2e 0%, #0f2540 50%, #162d4a 100%)", position: "relative", overflow: "hidden" }}>
             {/* Animated mesh overlay */}
             <motion.div
               animate={{ opacity: [0.4, 0.6, 0.4] }}
@@ -1605,7 +1605,7 @@ export default function ProfilePage() {
             ))}
           </div>
 
-          <div style={{ background: "#fff", padding: "0 20px 20px" }}>
+          <div style={{ background: "rgba(255,255,255,0.97)", backdropFilter: "blur(20px) saturate(1.8)", WebkitBackdropFilter: "blur(20px) saturate(1.8)", padding: "0 20px 20px" }}>
             {/* Avatar row */}
             <div style={{ display: "flex", alignItems: "flex-end", gap: 16, marginTop: -52 }}>
               <div style={{ position: "relative" }}>
@@ -1633,14 +1633,14 @@ export default function ProfilePage() {
 
               <div style={{ flex: 1, paddingBottom: 4, paddingTop: 52 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                  <p style={{ fontSize: 20, fontWeight: 800, color: "var(--text-primary)", letterSpacing: "-0.02em", fontFamily: "var(--font-montserrat), sans-serif" }}>
+                  <p style={{ fontSize: 21, fontWeight: 900, color: "var(--text-primary)", letterSpacing: "-0.025em", fontFamily: "var(--font-montserrat), sans-serif", textShadow: "0 1px 2px rgba(12,26,46,0.06)" }}>
                     {profile?.fullName || currentUser.name}
                   </p>
                   <motion.div
-                    whileHover={{ scale: 1.05 }}
-                    style={{ padding: "3px 10px", borderRadius: 20, background: `${rcfg.color}14`, border: `1px solid ${rcfg.color}35`, display: "flex", alignItems: "center", gap: 5, boxShadow: `0 0 10px ${rcfg.color}20` }}>
+                    whileHover={{ scale: 1.06 }}
+                    style={{ padding: "4px 12px", borderRadius: 20, background: `${rcfg.color}16`, border: `1.5px solid ${rcfg.color}40`, display: "flex", alignItems: "center", gap: 5, boxShadow: `0 0 14px ${rcfg.color}25`, backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
                     <RIcon size={10} style={{ color: rcfg.color }} />
-                    <span style={{ fontSize: 9, fontWeight: 700, color: rcfg.color, letterSpacing: "0.06em" }}>{rcfg.label}</span>
+                    <span style={{ fontSize: 9, fontWeight: 800, color: rcfg.color, letterSpacing: "0.08em", textTransform: "uppercase" }}>{rcfg.label}</span>
                   </motion.div>
                 </div>
                 <p style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>@{currentUser.email}</p>
@@ -1649,7 +1649,7 @@ export default function ProfilePage() {
 
               {/* Actions */}
               <div style={{ display: "flex", gap: 8, paddingTop: 52, paddingBottom: 4 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 5, padding: "7px 12px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--bg-base)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 5, padding: "7px 12px", borderRadius: 10, border: "1px solid rgba(186,230,253,0.6)", background: "rgba(255,255,255,0.88)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", boxShadow: "0 2px 8px rgba(12,26,46,0.06)" }}>
                   <div style={{ position: "relative", width: 8, height: 8 }}>
                     <div style={{ width: 8, height: 8, borderRadius: "50%", background: scfg.color }} />
                     {form.status === "working" && (
@@ -1660,9 +1660,9 @@ export default function ProfilePage() {
                   <span style={{ fontSize: 9, color: scfg.color, fontWeight: 600 }}>{scfg.label}</span>
                 </div>
                 <motion.button
-                  whileHover={{ background: "rgba(220,38,38,0.08)" }} whileTap={{ scale: 0.96 }}
+                  whileHover={{ background: "rgba(220,38,38,0.1)", boxShadow: "0 2px 10px rgba(220,38,38,0.15)" }} whileTap={{ scale: 0.95 }}
                   onClick={() => { logout(); router.replace("/login"); }}
-                  style={{ padding: "7px 12px", borderRadius: 10, border: "1px solid rgba(220,38,38,0.3)", background: "rgba(220,38,38,0.05)", color: "#dc2626", fontSize: 9, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 5 }}>
+                  style={{ padding: "7px 14px", borderRadius: 10, border: "1.5px solid rgba(220,38,38,0.35)", background: "rgba(220,38,38,0.06)", color: "#dc2626", fontSize: 9, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 5, backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", letterSpacing: "0.04em" }}>
                   <LogOut size={11} /> THOÁT
                 </motion.button>
               </div>
@@ -1703,8 +1703,10 @@ export default function ProfilePage() {
                       whileHover={{ y: -2 }}
                       style={{
                         flex: 1, padding: "10px 6px", borderRadius: 12, textAlign: "center",
-                        background: `${s.color}07`, border: `1px solid ${s.color}20`,
+                        background: `${s.color}10`, border: `1px solid ${s.color}28`,
                         display: "flex", flexDirection: "column", alignItems: "center", gap: 3,
+                        backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)",
+                        boxShadow: `0 2px 8px ${s.color}10`,
                       }}
                     >
                       <s.icon size={12} style={{ color: s.color }} />
@@ -1720,11 +1722,11 @@ export default function ProfilePage() {
 
         {/* ── Tabs ────────────────────────────────────────────────────────── */}
         <div style={{
-          display: "flex", gap: 3,
-          background: cardBg,
-          backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)",
-          borderRadius: 16, border: `1px solid ${cardBorder}`, padding: 5, marginBottom: 16,
-          boxShadow: cardShadow,
+          display: "flex", gap: 4,
+          background: "rgba(255,255,255,0.92)",
+          backdropFilter: "blur(20px) saturate(1.8)", WebkitBackdropFilter: "blur(20px) saturate(1.8)",
+          borderRadius: 18, border: "1px solid rgba(201,165,90,0.22)", padding: 5, marginBottom: 16,
+          boxShadow: "0 4px 20px rgba(12,26,46,0.1), inset 0 1px 0 rgba(255,255,255,0.9)",
           transition: "background 0.5s, border-color 0.5s",
         }}>
           {TABS.map(t => {
@@ -1736,14 +1738,15 @@ export default function ProfilePage() {
                 onClick={() => setTab(t.id)}
                 whileTap={{ scale: 0.97 }}
                 style={{
-                  flex: 1, padding: "9px 4px", borderRadius: 11, border: "none", cursor: "pointer",
+                  flex: 1, padding: "10px 4px", borderRadius: 13, border: "none", cursor: "pointer",
                   fontFamily: "inherit", position: "relative",
-                  background: active ? "linear-gradient(135deg, #C9A55A, #d4a84b)" : "transparent",
+                  background: active ? "linear-gradient(135deg, #C9A55A 0%, #d4a84b 60%, #b8913e 100%)" : "transparent",
                   color: active ? "#fff" : "var(--text-muted)",
-                  fontSize: 9.5, fontWeight: active ? 700 : 500,
-                  transition: "all 0.18s",
+                  fontSize: 9.5, fontWeight: active ? 800 : 500,
+                  transition: "all 0.2s",
                   display: "flex", flexDirection: "column", alignItems: "center", gap: 3,
-                  boxShadow: active ? "0 2px 10px rgba(201,165,90,0.3)" : "none",
+                  boxShadow: active ? "0 4px 14px rgba(201,165,90,0.4), inset 0 1px 0 rgba(255,255,255,0.25)" : "none",
+                  letterSpacing: active ? "0.02em" : "0",
                 }}
               >
                 <TIcon size={13} />
@@ -1765,8 +1768,8 @@ export default function ProfilePage() {
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
 
                 {/* Info card */}
-                <div style={{ borderRadius: 16, border: `1px solid ${cardBorder}`, background: cardBg, overflow: "hidden", boxShadow: cardShadow, backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)" }}>
-                  <div style={{ padding: "13px 20px", borderBottom: "1px solid var(--border-subtle)", background: "linear-gradient(90deg, rgba(14,165,233,0.05), #fff)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <div style={{ borderRadius: 18, border: "1px solid rgba(186,230,253,0.65)", background: "rgba(255,255,255,0.92)", overflow: "hidden", boxShadow: "0 4px 24px rgba(12,26,46,0.08), inset 0 1px 0 rgba(255,255,255,0.9)", backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)" }}>
+                  <div style={{ padding: "13px 20px", borderBottom: "1px solid rgba(186,230,253,0.5)", background: "linear-gradient(90deg, rgba(14,165,233,0.06), rgba(255,255,255,0.8))", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                       <div style={{ width: 3, height: 14, borderRadius: 2, background: "#0ea5e9", boxShadow: "0 0 6px rgba(14,165,233,0.5)" }} />
                       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -1781,7 +1784,7 @@ export default function ProfilePage() {
                         </motion.button>
                       : <div style={{ display: "flex", gap: 6 }}>
                           <motion.button whileTap={{ scale: 0.96 }} onClick={handleSave}
-                            style={{ display: "flex", alignItems: "center", gap: 4, padding: "6px 14px", borderRadius: 8, border: "none", background: saved ? "#10b981" : "linear-gradient(135deg, #C9A55A, #d4a84b)", color: saved ? "#fff" : "#0c1a2e", cursor: "pointer", fontFamily: "inherit", fontSize: 8.5, fontWeight: 700 }}>
+                            style={{ display: "flex", alignItems: "center", gap: 4, padding: "6px 16px", borderRadius: 9, border: "none", background: saved ? "#10b981" : "linear-gradient(135deg, #C9A55A 0%, #d4a84b 60%, #b8913e 100%)", color: "#fff", cursor: "pointer", fontFamily: "inherit", fontSize: 8.5, fontWeight: 800, boxShadow: saved ? "none" : "0 3px 12px rgba(201,165,90,0.4)", letterSpacing: "0.04em" }}>
                             <Check size={9} /> {saved ? "ĐÃ LƯU" : "LƯU"}
                           </motion.button>
                           <button onClick={() => setEditing(false)}
@@ -1842,7 +1845,7 @@ export default function ProfilePage() {
                 </div>
 
                 {/* Password change */}
-                <div style={{ borderRadius: 16, border: `1px solid ${cardBorder}`, background: cardBg, overflow: "hidden", boxShadow: cardShadow, backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", transition: "background 0.5s, border-color 0.5s" }}>
+                <div style={{ borderRadius: 18, border: "1px solid rgba(186,230,253,0.65)", background: "rgba(255,255,255,0.92)", overflow: "hidden", boxShadow: "0 4px 24px rgba(12,26,46,0.08), inset 0 1px 0 rgba(255,255,255,0.9)", backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)", transition: "background 0.5s, border-color 0.5s" }}>
                   <motion.button whileHover={{ background: "var(--bg-base)" }} onClick={() => setPwOpen(v => !v)}
                     style={{ width: "100%", padding: "14px 20px", display: "flex", alignItems: "center", gap: 10, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", textAlign: "left", transition: "background 0.15s" }}>
                     <div style={{ width: 28, height: 28, borderRadius: 8, background: "rgba(220,38,38,0.08)", border: "1px solid rgba(220,38,38,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -1983,7 +1986,7 @@ export default function ProfilePage() {
               return (
                 <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                   {/* Month selector */}
-                  <div style={{ background: "#fff", borderRadius: 16, border: "1px solid var(--border)", padding: "14px 20px", display: "flex", alignItems: "center", gap: 12, boxShadow: "0 2px 12px rgba(14,165,233,0.05)" }}>
+                  <div style={{ background: "rgba(255,255,255,0.92)", backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)", borderRadius: 18, border: "1px solid rgba(201,165,90,0.22)", padding: "14px 20px", display: "flex", alignItems: "center", gap: 12, boxShadow: "0 4px 20px rgba(12,26,46,0.08), inset 0 1px 0 rgba(255,255,255,0.9)" }}>
                     <Trophy size={16} style={{ color: "#C9A55A" }} />
                     <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)", flex: 1, fontFamily: "var(--font-montserrat), sans-serif" }}>BẢNG XẾP HẠNG DOANH SỐ</span>
                     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -2036,9 +2039,11 @@ export default function ProfilePage() {
                             initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
                             transition={{ delay: i * 0.04, ease: [0.16, 1, 0.3, 1] }}
                             style={{
-                              background: isMe ? "linear-gradient(135deg, rgba(201,165,90,0.06), rgba(14,165,233,0.04))" : "#fff",
-                              border: isMe ? "1.5px solid rgba(201,165,90,0.35)" : "1px solid var(--border)",
-                              borderRadius: 14, padding: "14px 16px", boxShadow: isMe ? "0 4px 20px rgba(201,165,90,0.12)" : "0 1px 4px rgba(0,0,0,0.04)",
+                              background: isMe ? "linear-gradient(135deg, rgba(201,165,90,0.08), rgba(14,165,233,0.05))" : "rgba(255,255,255,0.88)",
+                              border: isMe ? "1.5px solid rgba(201,165,90,0.4)" : "1px solid rgba(186,230,253,0.55)",
+                              borderRadius: 14, padding: "14px 16px",
+                              boxShadow: isMe ? "0 6px 24px rgba(201,165,90,0.15), inset 0 1px 0 rgba(255,255,255,0.8)" : "0 2px 8px rgba(12,26,46,0.05)",
+                              backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)",
                             }}>
                             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                               <div style={{ width: 32, height: 32, borderRadius: 10, background: i < 3 ? `${pctColor}15` : "var(--bg-base)", border: `1.5px solid ${i < 3 ? pctColor : "var(--border)"}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
@@ -2126,7 +2131,7 @@ export default function ProfilePage() {
                     const storePctColor = storePct == null ? "#C9A55A"
                       : storePct >= 100 ? "#C9A55A" : storePct >= 80 ? "#10b981" : storePct >= 60 ? "#0ea5e9" : storePct >= 40 ? "#f59e0b" : "#ef4444";
                     return (
-                      <div style={{ background: "linear-gradient(135deg, rgba(12,26,46,0.04), rgba(14,165,233,0.04))", borderRadius: 14, border: "1px solid var(--border)", padding: "12px 16px" }}>
+                      <div style={{ background: "linear-gradient(135deg, rgba(12,26,46,0.05), rgba(14,165,233,0.05))", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", borderRadius: 16, border: "1px solid rgba(201,165,90,0.2)", padding: "14px 16px", boxShadow: "0 4px 16px rgba(12,26,46,0.07)" }}>
                         <div style={{ display: "flex", gap: 4, alignItems: "center", marginBottom: 10 }}>
                           <TrendingUp size={12} style={{ color: "#C9A55A" }} />
                           <span style={{ fontSize: 9, fontWeight: 700, color: "var(--text-muted)", letterSpacing: "0.08em", textTransform: "uppercase", flex: 1 }}>Tổng Cộng Tháng</span>
