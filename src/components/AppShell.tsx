@@ -10,7 +10,9 @@ import NotificationBanner from "@/components/NotificationBanner";
 import AudioUnlocker from "@/components/AudioUnlocker";
 import PushPrompt from "@/components/PushPrompt";
 import AIChatWidget from "@/components/AIChatWidget";
-import { useStore } from "@/store/useStore";
+import { useStore, sel } from "@/store/useStore";
+import { useTheme } from "@/hooks/useTheme";
+import ThemeToggle from "@/components/ThemeToggle";
 
 const NO_SHELL_PATHS = ["/login", "/setup", "/install", "/store-select"];
 
@@ -23,6 +25,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const isFullHeight = FULL_HEIGHT_PATHS.some(p => pathname.startsWith(p));
 
   const currentUser = useStore(s => s.currentUser);
+  const t = useTheme();
 
   // Detect mobile after hydration to avoid blur on mobile top bar
   const [isMobileDevice, setIsMobileDevice] = useState(true); // safe default = no blur
@@ -64,11 +67,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           flexShrink: 0,
           display: "flex", alignItems: "center", gap: 8,
           padding: "6px 12px",
-          background: isMobileDevice ? "rgba(8,14,26,0.98)" : "rgba(8,14,26,0.92)",
+          background: t.isLight
+            ? (isMobileDevice ? "rgba(255,255,255,0.98)" : "rgba(255,255,255,0.92)")
+            : (isMobileDevice ? "rgba(8,14,26,0.98)" : "rgba(8,14,26,0.92)"),
           backdropFilter: isMobileDevice ? "none" : "blur(24px) saturate(1.6)",
           WebkitBackdropFilter: isMobileDevice ? "none" : "blur(24px) saturate(1.6)",
-          borderBottom: "1px solid rgba(201,165,90,0.10)",
-          boxShadow: "0 1px 0 rgba(201,165,90,0.08), 0 2px 12px rgba(0,0,0,0.40)",
+          borderBottom: t.isLight ? "1px solid rgba(0,0,0,0.07)" : "1px solid rgba(201,165,90,0.10)",
+          boxShadow: t.isLight ? "0 1px 0 rgba(0,0,0,0.06), 0 2px 8px rgba(0,0,0,0.08)" : "0 1px 0 rgba(201,165,90,0.08), 0 2px 12px rgba(0,0,0,0.40)",
           minHeight: 52,
           zIndex: 10,
         }}>
@@ -76,6 +81,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             <GlobalSearch />
           </div>
           <NotificationBanner />
+          <ThemeToggle size={15} />
         </div>
 
         {/* Content */}

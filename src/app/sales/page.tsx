@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import { ShoppingBag, TrendingUp, Receipt, RefreshCw, BarChart2, ChevronDown, ChevronUp } from "lucide-react";
 import Link from "next/link";
+import { useTheme } from "@/hooks/useTheme";
 
 
 type Summary = { totalRevenue: number; orderCount: number; avgOrderValue: number };
@@ -20,8 +21,9 @@ function fmtDate(iso: string) {
 }
 
 export default function SalesPage() {
-  const cardBg = "rgba(15,23,42,0.85)";
-  const cardBorder = "rgba(255,255,255,0.07)";
+  const t = useTheme();
+  const cardBg = t.cardBg;
+  const cardBorder = t.cardBorder;
   const [summary, setSummary] = useState<PeriodSummary | null>(null);
   const [orders, setOrders] = useState<PosOrder[]>([]);
   const [topProducts, setTopProducts] = useState<TopProduct[]>([]);

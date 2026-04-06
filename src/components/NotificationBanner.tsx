@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Bell, X, Pin, Megaphone, Info, AlertTriangle, CheckCircle } from "lucide-react";
 import { useStore, sel } from "@/store/useStore";
+import { useTheme } from "@/hooks/useTheme";
 import { playSound } from "@/hooks/useSFX";
 
 type Notif = { id: string; title: string; body: string; type: string; createdBy: string; createdAt: string; pinned: number };
@@ -27,6 +28,7 @@ function timeAgo(iso: string) {
 
 export default function NotificationBanner() {
   const currentUser = useStore(sel.currentUser);
+  const t = useTheme();
   const [notifs, setNotifs] = useState<Notif[]>([]);
   const [open, setOpen] = useState(false);
   // For banner popup (latest pinned/urgent)
@@ -81,8 +83,9 @@ export default function NotificationBanner() {
         <button
           onClick={() => { const next = !open; setOpen(next); setBanner(null); playSound(next ? "modalOpen" : "modalClose"); }}
           style={{
-            width: 32, height: 32, borderRadius: 8, border: "1px solid #bae6fd",
-            background: open ? "rgba(14,165,233,0.08)" : "#f0f9ff",
+            width: 32, height: 32, borderRadius: 8,
+            border: t.isLight ? "1px solid rgba(0,0,0,0.10)" : "1px solid rgba(255,255,255,0.12)",
+            background: open ? "rgba(14,165,233,0.08)" : t.iconBtnBg,
             display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer",
             position: "relative",
           }}
@@ -112,12 +115,12 @@ export default function NotificationBanner() {
               style={{
                 position: "absolute", right: 0, top: "calc(100% + 8px)",
                 width: 340, maxHeight: 480,
-                background: "rgba(15,23,42,0.85)", border: "1px solid #bae6fd",
-                borderRadius: 16, boxShadow: "0 12px 40px rgba(12,26,46,0.12)",
+                background: t.cardBg, border: `1px solid ${t.cardBorder}`,
+                borderRadius: 16, boxShadow: t.cardShadowLg,
                 zIndex: 200, overflow: "hidden", display: "flex", flexDirection: "column",
               }}
             >
-              <div style={{ padding: "12px 16px", borderBottom: "1px solid #e0f2fe", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div style={{ padding: "12px 16px", borderBottom: `1px solid ${t.cardBorder}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <Bell size={13} style={{ color: "#0ea5e9" }} />
                   <p style={{ fontSize: 11, fontWeight: 700, color: "var(--text-primary)" }}>Thông Báo</p>
@@ -131,7 +134,7 @@ export default function NotificationBanner() {
                     </button>
                   )}
                   <button onClick={() => setOpen(false)}
-                    style={{ width: 22, height: 22, borderRadius: 6, border: "1px solid #e0f2fe", background: "rgba(15,23,42,0.85)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+                    style={{ width: 22, height: 22, borderRadius: 6, border: `1px solid ${t.cardBorder}`, background: t.iconBtnBg, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
                     <X size={10} style={{ color: "#94a3b8" }} />
                   </button>
                 </div>
@@ -149,12 +152,12 @@ export default function NotificationBanner() {
                     <div key={n.id}
                       onClick={() => setDismissed(prev => new Set([...prev, n.id]))}
                       style={{
-                        padding: "12px 16px", cursor: "pointer", borderBottom: "1px solid #f0f9ff",
-                        background: isRead ? "transparent" : "rgba(14,165,233,0.03)",
+                        padding: "12px 16px", cursor: "pointer", borderBottom: `1px solid ${t.cardBorder}`,
+                        background: isRead ? "transparent" : "rgba(14,165,233,0.04)",
                         transition: "background 0.12s",
                       }}
-                      onMouseEnter={e => e.currentTarget.style.background = "#f8fafc"}
-                      onMouseLeave={e => e.currentTarget.style.background = isRead ? "transparent" : "rgba(14,165,233,0.03)"}
+                      onMouseEnter={e => e.currentTarget.style.background = t.rowHover}
+                      onMouseLeave={e => e.currentTarget.style.background = isRead ? "transparent" : "rgba(14,165,233,0.04)"}
                     >
                       <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
                         <div style={{ width: 30, height: 30, borderRadius: 8, background: tcfg.bg, border: `1px solid ${tcfg.border}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
@@ -189,9 +192,9 @@ export default function NotificationBanner() {
             style={{
               position: "fixed", top: 64, left: "50%",
               width: "min(420px, calc(100vw - 32px))",
-              background: "rgba(15,23,42,0.85)", border: "1px solid #bae6fd",
+              background: t.cardBg, border: `1px solid ${t.cardBorder}`,
               borderRadius: 14, padding: "14px 16px",
-              boxShadow: "0 8px 32px rgba(12,26,46,0.15)",
+              boxShadow: t.cardShadowLg,
               zIndex: 300, display: "flex", gap: 12, alignItems: "flex-start",
             }}
           >
@@ -208,7 +211,7 @@ export default function NotificationBanner() {
                     <p style={{ fontSize: 10, color: "#64748b", marginTop: 3, lineHeight: 1.5 }}>{banner.body}</p>
                   </div>
                   <button onClick={() => { setBanner(null); setDismissed(prev => new Set([...prev, banner.id])); }}
-                    style={{ width: 22, height: 22, borderRadius: 6, border: "1px solid #e0f2fe", background: "rgba(15,23,42,0.85)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}>
+                    style={{ width: 22, height: 22, borderRadius: 6, border: `1px solid ${t.cardBorder}`, background: t.iconBtnBg, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}>
                     <X size={10} style={{ color: "#94a3b8" }} />
                   </button>
                 </>

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Bell, Send, Pin, Trash2, Megaphone, Info, AlertTriangle, CheckCircle, X } from "lucide-react";
 import { useStore, sel } from "@/store/useStore";
+import { useTheme } from "@/hooks/useTheme";
 
 type Notif = { id: string; title: string; body: string; type: string; createdBy: string; createdAt: string; pinned: number };
 
@@ -16,6 +17,7 @@ const TYPES = [
 
 export default function AdminNotifyPanel() {
   const currentUser = useStore(sel.currentUser);
+  const t = useTheme();
   const [notifs, setNotifs] = useState<Notif[]>([]);
   const [form, setForm] = useState({ title: "", body: "", type: "info", pinned: false });
   const [sending, setSending] = useState(false);
@@ -53,7 +55,7 @@ export default function AdminNotifyPanel() {
   const SelectedIcon = selectedType.icon;
 
   return (
-    <div style={{ borderRadius: 18, border: "1px solid rgba(255,255,255,0.08)", background: "rgba(15,23,42,0.88)", backdropFilter: "blur(20px) saturate(1.5)", WebkitBackdropFilter: "blur(20px) saturate(1.5)", overflow: "hidden", maxHeight: "85vh", overflowY: "auto", boxShadow: "0 4px 32px rgba(0,0,0,0.40), inset 0 1px 0 rgba(255,255,255,0.06)" }}>
+    <div style={{ borderRadius: 18, border: `1px solid ${t.cardBorder}`, background: t.cardBg, backdropFilter: "blur(20px) saturate(1.5)", WebkitBackdropFilter: "blur(20px) saturate(1.5)", overflow: "hidden", maxHeight: "85vh", overflowY: "auto", boxShadow: t.cardShadowLg }}>
       {/* Header */}
       <div style={{ padding: "12px 20px", borderBottom: "1px solid rgba(255,255,255,0.06)", background: "linear-gradient(90deg, rgba(14,165,233,0.10), rgba(255,255,255,0.03))", display: "flex", alignItems: "center", gap: 8 }}>
         <div style={{ width: 24, height: 24, borderRadius: 7, background: "rgba(14,165,233,0.10)", border: "1px solid rgba(14,165,233,0.20)", display: "flex", alignItems: "center", justifyContent: "center" }}>

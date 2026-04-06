@@ -7,8 +7,10 @@ import {
   MessageSquare, ShoppingBag, ClipboardList, CalendarDays,
 } from "lucide-react";
 import { useStore } from "@/store/useStore";
+import { useTheme } from "@/hooks/useTheme";
 import NotificationBanner from "@/components/NotificationBanner";
 import GlobalSearch from "@/components/GlobalSearch";
+import ThemeToggle from "@/components/ThemeToggle";
 import { useSFX } from "@/hooks/useSFX";
 
 const NAV_ITEMS_BASE = [
@@ -27,6 +29,7 @@ export default function TopNav() {
   const currentUser = useStore(s => s.currentUser);
   const logout = useStore(s => s.logout);
   const sfx = useSFX();
+  const t = useTheme();
   const isAdmin = currentUser?.role === "admin" || currentUser?.role === "manager";
   const NAV_ITEMS = NAV_ITEMS_BASE.filter(it => !it.adminOnly || isAdmin);
 
@@ -57,8 +60,8 @@ export default function TopNav() {
           <span style={{ fontSize: 12, fontWeight: 800, color: "#C9A55A", letterSpacing: "0.06em" }}>P</span>
         </div>
         <div style={{ lineHeight: 1 }}>
-          <p style={{ fontSize: 15, fontWeight: 900, color: "#f0f4ff", letterSpacing: "0.14em" }}>POSTLAIN</p>
-          <p style={{ fontSize: 7, color: "rgba(255,255,255,0.30)", letterSpacing: "0.2em", marginTop: 3 }}>
+          <p style={{ fontSize: 15, fontWeight: 900, color: t.textPrimary, letterSpacing: "0.14em" }}>POSTLAIN</p>
+          <p style={{ fontSize: 7, color: t.textMuted, letterSpacing: "0.2em", marginTop: 3 }}>
             {storeSubtitle || "QUẢN LÝ CỬA HÀNG"}
           </p>
         </div>
@@ -89,6 +92,7 @@ export default function TopNav() {
       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
         <GlobalSearch />
         <NotificationBanner />
+        <ThemeToggle size={15} />
 
         {currentUser ? (
           <>
@@ -115,11 +119,11 @@ export default function TopNav() {
                 <div style={{ position: "relative", flexShrink: 0 }}>
                   <div style={{
                     width: 24, height: 24, borderRadius: "50%",
-                    background: "linear-gradient(135deg, #0c1a2e, #1e3a5f)",
+                    background: t.avatarGradient,
                     display: "flex", alignItems: "center", justifyContent: "center",
                     border: "1.5px solid rgba(201,165,90,0.45)",
                   }}>
-                    <span style={{ fontSize: 9, fontWeight: 700, color: "#C9A55A" }}>
+                    <span style={{ fontSize: 9, fontWeight: 700, color: t.avatarText }}>
                       {currentUser.name.slice(0, 1).toUpperCase()}
                     </span>
                   </div>
@@ -131,7 +135,7 @@ export default function TopNav() {
                   }} />
                 </div>
                 <div style={{ lineHeight: 1 }}>
-                  <p style={{ fontSize: 10, fontWeight: 600, color: "rgba(240,244,255,0.85)" }}>{currentUser.name}</p>
+                  <p style={{ fontSize: 10, fontWeight: 600, color: t.textPrimary }}>{currentUser.name}</p>
                   <p style={{ fontSize: 7.5, color: "rgba(201,165,90,0.80)", marginTop: 1.5, letterSpacing: "0.08em" }}>
                     {currentUser.role === "admin" ? "ADMIN" : currentUser.role === "manager" ? "QUẢN LÝ" : "NHÂN VIÊN"}
                   </p>

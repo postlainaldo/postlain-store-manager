@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, createContext, useContext } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Check } from "lucide-react";
-import { useStore } from "@/store/useStore";
+import { useStore, sel } from "@/store/useStore";
 import SplashScreen from "@/components/SplashScreen";
 import OnboardingGate from "@/components/OnboardingGate";
 
@@ -25,6 +25,15 @@ const APP_VERSION = process.env.NEXT_PUBLIC_APP_VERSION ?? "2.1.0";
 export default function Providers({ children }: { children: React.ReactNode }) {
   const [hydrated, setHydrated] = useState(false);
   const [updateReady, setUpdateReady] = useState(false);
+  const theme = useStore(sel.theme);
+
+  // Sync theme to DOM
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme);
+    document.documentElement.style.colorScheme = theme;
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    if (metaTheme) metaTheme.setAttribute("content", theme === "light" ? "#f2f2f7" : "#0c1a2e");
+  }, [theme]);
   // "justUpdated" = true khi vừa reload sau auto-update → hiện toast "Đã cập nhật"
   const [justUpdated, setJustUpdated] = useState(false);
   const dismissTimer = useRef<ReturnType<typeof setTimeout> | null>(null);

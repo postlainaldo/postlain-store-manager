@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, Package, Users, Bell, X, Hash, ArrowRight } from "lucide-react";
 import { useStore } from "@/store/useStore";
+import { useTheme } from "@/hooks/useTheme";
 import { useRouter } from "next/navigation";
 import { playSound } from "@/hooks/useSFX";
 
@@ -49,6 +50,7 @@ export default function GlobalSearch() {
 
   const products = useStore(s => s.products);
   const users = useStore(s => s.users);
+  const t = useTheme();
 
   // Keyboard shortcut: Ctrl+K or Cmd+K
   useEffect(() => {
@@ -184,7 +186,7 @@ export default function GlobalSearch() {
         {open && (
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            style={{ position: "fixed", inset: 0, zIndex: 9000, background: "rgba(12,26,46,0.5)", backdropFilter: "blur(4px)", padding: "10vh 16px 0" }}
+            style={{ position: "fixed", inset: 0, zIndex: 9000, background: t.overlayBg, backdropFilter: "blur(4px)", padding: "10vh 16px 0" }}
             onClick={e => { if (e.target === e.currentTarget) setOpen(false); }}
           >
             <motion.div
@@ -192,10 +194,10 @@ export default function GlobalSearch() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.96, y: -12 }}
               transition={{ duration: 0.15, ease: [0.16, 1, 0.3, 1] }}
-              style={{ background: "rgba(15,23,42,0.85)", borderRadius: 16, border: "1px solid #bae6fd", boxShadow: "0 32px 80px rgba(12,26,46,0.2)", width: "100%", maxWidth: 560, margin: "0 auto", overflow: "hidden" }}
+              style={{ background: t.cardBg, borderRadius: 16, border: `1px solid ${t.cardBorder}`, boxShadow: t.cardShadowLg, width: "100%", maxWidth: 560, margin: "0 auto", overflow: "hidden" }}
             >
               {/* Search input */}
-              <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 16px", borderBottom: "1px solid #e0f2fe" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 16px", borderBottom: `1px solid ${t.cardBorder}` }}>
                 <Search size={14} style={{ color: "#0ea5e9", flexShrink: 0 }} />
                 <input
                   ref={inputRef}
@@ -239,8 +241,8 @@ export default function GlobalSearch() {
                       >
                         <div style={{
                           width: 28, height: 28, borderRadius: 7, flexShrink: 0,
-                          background: selected === i ? "rgba(14,165,233,0.12)" : "#f0f9ff",
-                          border: "1px solid #e0f2fe",
+                          background: selected === i ? "rgba(14,165,233,0.12)" : t.iconBtnBg,
+                          border: `1px solid ${t.cardBorder}`,
                           display: "flex", alignItems: "center", justifyContent: "center",
                         }}>
                           {r.color
@@ -266,10 +268,10 @@ export default function GlobalSearch() {
               </div>
 
               {/* Footer hint */}
-              <div style={{ borderTop: "1px solid #e0f2fe", padding: "7px 16px", display: "flex", gap: 12, alignItems: "center" }}>
+              <div style={{ borderTop: `1px solid ${t.cardBorder}`, padding: "7px 16px", display: "flex", gap: 12, alignItems: "center" }}>
                 {[["↑↓", "Di chuyển"], ["↵", "Chọn"], ["Esc", "Đóng"]].map(([k, v]) => (
                   <span key={k} style={{ fontSize: 9, color: "#94a3b8", display: "flex", gap: 4, alignItems: "center" }}>
-                    <span style={{ background: "rgba(14,165,233,0.08)", border: "1px solid #e0f2fe", borderRadius: 4, padding: "1px 5px", fontSize: 8.5, fontWeight: 600, color: "#64748b" }}>{k}</span>
+                    <span style={{ background: "rgba(14,165,233,0.08)", border: `1px solid ${t.cardBorder}`, borderRadius: 4, padding: "1px 5px", fontSize: 8.5, fontWeight: 600, color: t.textMuted }}>{k}</span>
                     {v}
                   </span>
                 ))}

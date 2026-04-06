@@ -4,6 +4,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronRight, Package, CalendarDays, Pencil, Archive, CheckCircle2, Clock, Sparkles } from "lucide-react";
 import { CollectionStatus, Gender, COLLECTION_STATUS_LABEL, GENDER_LABEL } from "@/types/inventory";
+import { useTheme } from "@/hooks/useTheme";
 
 // ─── Mock data ────────────────────────────────────────────────────────────────
 
@@ -48,6 +49,7 @@ const fadeUp = {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function CollectionsPage() {
+  const t = useTheme();
   const [filter,   setFilter]   = useState<CollectionStatus | "all">("all");
   const [expanded, setExpanded] = useState<string | null>(null);
 
@@ -120,7 +122,7 @@ export default function CollectionsPage() {
           const open = expanded === col.id;
           return (
             <motion.div key={col.id} custom={i} initial="hidden" animate="visible" variants={fadeUp}
-              style={{ background: "rgba(15,23,42,0.85)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", border: "1px solid rgba(186,230,253,0.55)", borderRadius: 12, overflow: "hidden", boxShadow: "0 2px 12px rgba(12,26,46,0.06)" }}
+              style={{ background: t.cardBg, backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", border: `1px solid ${t.cardBorder}`, borderRadius: 12, overflow: "hidden", boxShadow: t.cardShadow }}
             >
               <button onClick={() => setExpanded(open ? null : col.id)}
                 style={{ width: "100%", padding: "14px 20px", background: "transparent", border: "none", cursor: "pointer", fontFamily: "inherit", display: "grid", gridTemplateColumns: "1fr auto auto auto auto", gap: 16, alignItems: "center" }}

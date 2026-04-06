@@ -13,6 +13,7 @@ import {
   ArrowUpDown, ArrowUp, ArrowDown, ChevronDown,
 } from "lucide-react";
 import QRScannerModal from "@/components/QRScannerModal";
+import { useTheme } from "@/hooks/useTheme";
 import { playSound } from "@/hooks/useSFX";
 import { parseMCFromNotes, colorCodeToHex } from "@/lib/categoryMapping";
 import "barcode-detector/polyfill";
@@ -191,9 +192,10 @@ function ListView() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const cardBg = "rgba(15,23,42,0.85)";
-  const cardBorder = "rgba(255,255,255,0.07)";
-  const tableHeaderBg = "rgba(255,255,255,0.04)";
+  const t = useTheme();
+  const cardBg = t.cardBg;
+  const cardBorder = t.cardBorder;
+  const tableHeaderBg = t.isLight ? "rgba(0,0,0,0.03)" : "rgba(255,255,255,0.04)";
 
   // ── URL-backed filters (shareable, survive refresh) ───────────────
   const search      = searchParams.get("q")     ?? "";

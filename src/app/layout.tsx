@@ -12,7 +12,7 @@ const montserrat = Montserrat({
 });
 
 export const viewport: Viewport = {
-  themeColor: "#0c1a2e",
+  themeColor: "#f2f2f7",
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
@@ -46,7 +46,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="vi">
+    <html lang="vi" suppressHydrationWarning>
       <head>
         {/* Apple PWA — explicit link tags required, metadata API not enough for iOS */}
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />

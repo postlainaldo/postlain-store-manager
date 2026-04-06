@@ -86,8 +86,10 @@ interface StoreState {
   uiCompact: boolean;
   uiAnimations: boolean;
   uiDensity: "comfortable" | "compact";
+  theme: "light" | "dark";
   setUISetting: (key: "uiCompact" | "uiAnimations", value: boolean) => void;
   setUIDensity: (value: "comfortable" | "compact") => void;
+  setTheme: (theme: "light" | "dark") => void;
 
   // ── Legacy 3D display layout ─────────────────────────────────────────────
   shelfLayout: ShelfLayout;
@@ -276,8 +278,10 @@ export const useStore = create<StoreState>()(
       uiCompact: false,
       uiAnimations: true,
       uiDensity: "comfortable",
+      theme: "light",
       setUISetting: (key, value) => set({ [key]: value }),
       setUIDensity: (value) => set({ uiDensity: value }),
+      setTheme: (theme) => set({ theme }),
 
       // ── Product CRUD ──────────────────────────────────────────────────────
       setProducts: (products) => set({ products }),
@@ -774,6 +778,7 @@ export const useStore = create<StoreState>()(
         uiCompact: s.uiCompact,
         uiAnimations: s.uiAnimations,
         uiDensity: s.uiDensity,
+        theme: s.theme,
         currentUser: s.currentUser,
       }),
       skipHydration: true,
@@ -815,6 +820,8 @@ export const sel = {
   uiAnimations:         (s: StoreState) => s.uiAnimations,
   uiCompact:            (s: StoreState) => s.uiCompact,
   setUISetting:         (s: StoreState) => s.setUISetting,
+  theme:                (s: StoreState) => s.theme,
+  setTheme:             (s: StoreState) => s.setTheme,
   lowStockThreshold:    (s: StoreState) => s.lowStockThreshold,
   setLowStockThreshold: (s: StoreState) => s.setLowStockThreshold,
   kpiStoreTarget:       (s: StoreState) => s.kpiStoreTarget,
