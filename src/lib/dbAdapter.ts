@@ -34,6 +34,7 @@ export type DBUser = {
   bio?: string | null;
   phone?: string | null;
   fullName?: string | null;
+  employeeCode?: string | null;
 };
 
 export type DBProduct = {
@@ -136,8 +137,11 @@ export async function ensureSupabaseSchema() {
       status       TEXT DEFAULT 'online',
       bio          TEXT DEFAULT '',
       phone        TEXT DEFAULT '',
-      "fullName"   TEXT DEFAULT ''
+      "fullName"   TEXT DEFAULT '',
+      "employeeCode" TEXT DEFAULT ''
     );
+
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS "employeeCode" TEXT DEFAULT '';
 
     INSERT INTO users (id, name, username, "passwordHash", role, active, "createdAt")
     VALUES ('user_admin', 'Admin', 'admin', 'Aldo@123', 'admin', 1, NOW()::TEXT)
@@ -402,7 +406,7 @@ export async function dbGetUsers(): Promise<DBUser[]> {
     try {
       const { data, error } = await sb
         .from("users")
-        .select("id, name, username, role, active, createdAt, avatar, status, bio, phone, fullName")
+        .select("id, name, username, role, active, createdAt, avatar, status, bio, phone, fullName, employeeCode")
         .eq("store_id", sid())
         .order("createdAt");
       if (!error) return (data ?? []) as DBUser[];
@@ -410,11 +414,11 @@ export async function dbGetUsers(): Promise<DBUser[]> {
     // Fallback without store_id
     const { data } = await sb
       .from("users")
-      .select("id, name, username, role, active, createdAt, avatar, status, bio, phone, fullName")
+      .select("id, name, username, role, active, createdAt, avatar, status, bio, phone, fullName, employeeCode")
       .order("createdAt");
     return (data ?? []) as DBUser[];
   }
-  return getStoreDb().prepare("SELECT id, name, username, role, active, createdAt, avatar, status, bio, phone, fullName FROM users ORDER BY createdAt").all() as DBUser[];
+  return getStoreDb().prepare("SELECT id, name, username, role, active, createdAt, avatar, status, bio, phone, fullName, employeeCode FROM users ORDER BY createdAt").all() as DBUser[];
 }
 
 export async function dbGetUserByCredentials(username: string, password: string): Promise<DBUser | null> {
@@ -424,7 +428,7 @@ export async function dbGetUserByCredentials(username: string, password: string)
     try {
       const { data, error } = await sb
         .from("users")
-        .select("id, name, username, role, active")
+        .select("id, name, username, role, active, phone, employeeCode")
         .eq("store_id", sid())
         .eq("username", username.toLowerCase())
         .eq("passwordHash", password)
@@ -436,14 +440,14 @@ export async function dbGetUserByCredentials(username: string, password: string)
     // Fallback: no store_id filter (single-store legacy or schema not migrated yet)
     const { data } = await sb
       .from("users")
-      .select("id, name, username, role, active")
+      .select("id, name, username, role, active, phone, employeeCode")
       .eq("username", username.toLowerCase())
       .eq("passwordHash", password)
       .single();
     return data as DBUser | null;
   }
   return getStoreDb().prepare(
-    "SELECT id, name, username, role, active FROM users WHERE username = ? AND passwordHash = ? COLLATE NOCASE"
+    "SELECT id, name, username, role, active, phone, employeeCode FROM users WHERE username = ? AND passwordHash = ? COLLATE NOCASE"
   ).get(username.trim().toLowerCase(), password) as DBUser | null;
 }
 
@@ -476,7 +480,7 @@ export async function dbCreateUser(user: {
 
 export async function dbUpdateUser(id: string, fields: {
   name?: string; username?: string; password?: string; role?: string; active?: number;
-  avatar?: string; status?: string; bio?: string; phone?: string; fullName?: string;
+  avatar?: string; status?: string; bio?: string; phone?: string; fullName?: string; employeeCode?: string;
 }): Promise<void> {
   if (IS_SUPABASE) {
     const sb = getSupabase();
@@ -491,6 +495,7 @@ export async function dbUpdateUser(id: string, fields: {
     if (fields.bio !== undefined) update.bio = fields.bio;
     if (fields.phone !== undefined) update.phone = fields.phone;
     if (fields.fullName !== undefined) update.fullName = fields.fullName;
+    if (fields.employeeCode !== undefined) update.employeeCode = fields.employeeCode;
     await sb.from("users").update(update).eq("id", id);
     return;
   }
@@ -510,6 +515,7 @@ export async function dbUpdateUser(id: string, fields: {
     if (fields.bio !== undefined) { sets.push("bio=?"); vals.push(fields.bio); }
     if (fields.phone !== undefined) { sets.push("phone=?"); vals.push(fields.phone); }
     if (fields.fullName !== undefined) { sets.push("fullName=?"); vals.push(fields.fullName); }
+    if (fields.employeeCode !== undefined) { sets.push("employeeCode=?"); vals.push(fields.employeeCode); }
     if (sets.length) {
       vals.push(id);
       db.prepare(`UPDATE users SET ${sets.join(",")} WHERE id=?`).run(...vals);

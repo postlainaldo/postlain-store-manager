@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
   const user = await dbGetUserByCredentials(username, password);
   if (!user || !user.active) return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
 
-  return NextResponse.json({ id: user.id, name: user.name, username: user.username, role: user.role });
+  return NextResponse.json({ id: user.id, name: user.name, username: user.username, role: user.role, phone: user.phone ?? null, employeeCode: user.employeeCode ?? null });
 }
 
 // GET /api/auth — list users (no passwords)

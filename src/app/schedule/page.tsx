@@ -170,6 +170,7 @@ function TemplateForm({ initial, onSave, onClose }: {
   onSave: (t: Omit<ShiftTemplate, "id"|"createdAt"> & { staffType: StaffType }) => void;
   onClose: () => void;
 }) {
+  const t = useTheme();
   const [name,      setName]      = useState(initial?.name ?? "");
   const [start,     setStart]     = useState(initial?.startTime ?? "08:00");
   const [end,       setEnd]       = useState(initial?.endTime ?? "14:00");
@@ -214,10 +215,10 @@ function TemplateForm({ initial, onSave, onClose }: {
           <label style={{ fontSize:9, fontWeight:700, color:"#64748b", letterSpacing:"0.1em" }}>TỐI ĐA</label>
           <div style={{ display:"flex", alignItems:"center", gap:4 }}>
             <button onClick={()=>setMax(m=>Math.max(1,m-1))}
-              style={{ width:28, height:28, borderRadius:7, border:"1px solid #e2e8f0", background: t.cardBg, cursor:"pointer", fontSize:14, color: "var(--text-primary)" }}>−</button>
+              style={{ width:28, height:28, borderRadius:7, border:"1px solid #e2e8f0", background: "var(--bg-card)", cursor:"pointer", fontSize:14, color: "var(--text-primary)" }}>−</button>
             <span style={{ minWidth:24, textAlign:"center", fontSize:13, fontWeight:700, color: "var(--text-primary)" }}>{max}</span>
             <button onClick={()=>setMax(m=>Math.min(20,m+1))}
-              style={{ width:28, height:28, borderRadius:7, border:"1px solid #e2e8f0", background: t.cardBg, cursor:"pointer", fontSize:14, color: "var(--text-primary)" }}>+</button>
+              style={{ width:28, height:28, borderRadius:7, border:"1px solid #e2e8f0", background: "var(--bg-card)", cursor:"pointer", fontSize:14, color: "var(--text-primary)" }}>+</button>
           </div>
         </div>
       </div>
@@ -270,7 +271,7 @@ function SlotCard({ slot, regs, isAdmin, currentUserId, allStaff, canRegister, o
       style={{
         borderRadius:12,
         border: bulkMode && isSelected ? `2px solid ${slot.color}` : `1.5px solid ${slot.color}28`,
-        background: bulkMode && isSelected ? `${slot.color}10` : t.cardBg,
+        background: bulkMode && isSelected ? `${slot.color}10` : "var(--bg-card)",
         backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)",
         boxShadow: "0 2px 12px rgba(12,26,46,0.06), 0 1px 3px rgba(12,26,46,0.04)",
         overflow:"hidden", marginBottom:0,
@@ -334,7 +335,7 @@ function SlotCard({ slot, regs, isAdmin, currentUserId, allStaff, canRegister, o
                   </div>
                   <span style={{ fontSize:10, color: "var(--text-primary)", flex:1 }}>{reg.userName}</span>
                   <button onClick={() => onUnassign(slot.id, reg.userId)}
-                    style={{ width:18, height:18, borderRadius:4, border:"1px solid #fca5a5", background: t.cardBg, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" }}>
+                    style={{ width:18, height:18, borderRadius:4, border:"1px solid #fca5a5", background: "var(--bg-card)", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" }}>
                     <UserMinus size={8} style={{ color:"#ef4444" }} />
                   </button>
                 </div>
@@ -375,7 +376,7 @@ function SlotCard({ slot, regs, isAdmin, currentUserId, allStaff, canRegister, o
                     <div style={{ marginTop:6, display:"flex", flexWrap:"wrap", gap:4 }}>
                       {unassigned.map(u => (
                         <button key={u.id} onClick={() => { onAssign(slot.id, u); setShowAdd(false); }}
-                          style={{ padding:"3px 8px", borderRadius:20, border:`1px solid ${slot.color}40`, background: t.cardBg, cursor:"pointer", fontSize:9, fontWeight:600, color:slot.color, fontFamily:"inherit" }}>
+                          style={{ padding:"3px 8px", borderRadius:20, border:`1px solid ${slot.color}40`, background: "var(--bg-card)", cursor:"pointer", fontSize:9, fontWeight:600, color:slot.color, fontFamily:"inherit" }}>
                           {u.name}
                         </button>
                       ))}
@@ -407,7 +408,7 @@ function SlotCard({ slot, regs, isAdmin, currentUserId, allStaff, canRegister, o
                 {full ? "Đầy ca" : "Đăng ký ca này"}
               </button>
             ) : (
-              <div style={{ width:"100%", height:40, borderRadius:8, background: t.cardBg, border:"1px solid #e2e8f0", display:"flex", alignItems:"center", justifyContent:"center", gap:5 }}>
+              <div style={{ width:"100%", height:40, borderRadius:8, background: "var(--bg-card)", border:"1px solid #e2e8f0", display:"flex", alignItems:"center", justifyContent:"center", gap:5 }}>
                 <span style={{ fontSize:9, color:"#94a3b8", fontWeight:600 }}>
                   {full ? "Đầy ca" : "Đăng ký mở T5–CN"}
                 </span>
@@ -471,7 +472,7 @@ function AddSlotModal({ templates, date, onSave, onClose }: {
       onClick={e=>{ if(e.target===e.currentTarget) onClose(); }}>
       <motion.div initial={{ opacity:0, scale:0.95, y:10 }} animate={{ opacity:1, scale:1, y:0 }}
         style={{
-          background: t.cardBg,
+          background: "var(--bg-card)",
           backdropFilter:"blur(20px)", WebkitBackdropFilter:"blur(20px)",
           borderRadius:20, padding:20, width:"100%", maxWidth:360,
           boxShadow: "0 24px 80px rgba(12,26,46,0.18), 0 4px 16px rgba(12,26,46,0.08)",
@@ -482,7 +483,7 @@ function AddSlotModal({ templates, date, onSave, onClose }: {
             <p style={{ fontSize:13, fontWeight:700, color: "var(--text-primary)" }}>Thêm ca làm</p>
             <p style={{ fontSize:10, color:"#64748b" }}>{dayLabel}</p>
           </div>
-          <button onClick={onClose} style={{ width:28, height:28, borderRadius:8, border:"1px solid #e2e8f0", background: t.cardBg, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" }}>
+          <button onClick={onClose} style={{ width:28, height:28, borderRadius:8, border:"1px solid #e2e8f0", background: "var(--bg-card)", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" }}>
             <X size={12} style={{ color:"#64748b" }} />
           </button>
         </div>
@@ -533,9 +534,9 @@ function AddSlotModal({ templates, date, onSave, onClose }: {
             </div>
             <div style={{ display:"flex", alignItems:"center", gap:6 }}>
               <span style={{ fontSize:10, color:"#64748b" }}>Tối đa:</span>
-              <button onClick={()=>setMax(m=>Math.max(1,m-1))} style={{ width:26,height:26,borderRadius:7,border:"1px solid #e2e8f0",background: t.cardBg,cursor:"pointer",fontSize:14 }}>−</button>
+              <button onClick={()=>setMax(m=>Math.max(1,m-1))} style={{ width:26,height:26,borderRadius:7,border:"1px solid #e2e8f0",background: "var(--bg-card)",cursor:"pointer",fontSize:14 }}>−</button>
               <span style={{ minWidth:20,textAlign:"center",fontSize:13,fontWeight:700,color: "var(--text-primary)" }}>{max}</span>
-              <button onClick={()=>setMax(m=>Math.min(20,m+1))} style={{ width:26,height:26,borderRadius:7,border:"1px solid #e2e8f0",background: t.cardBg,cursor:"pointer",fontSize:14 }}>+</button>
+              <button onClick={()=>setMax(m=>Math.min(20,m+1))} style={{ width:26,height:26,borderRadius:7,border:"1px solid #e2e8f0",background: "var(--bg-card)",cursor:"pointer",fontSize:14 }}>+</button>
             </div>
             <div style={{ display:"flex", flexDirection:"column", gap:4 }}>
               <span style={{ fontSize:9, fontWeight:700, color:"#64748b", letterSpacing:"0.1em" }}>LOẠI NHÂN VIÊN</span>
@@ -550,7 +551,7 @@ function AddSlotModal({ templates, date, onSave, onClose }: {
 
         <div style={{ display:"flex", gap:8 }}>
           <button onClick={onClose}
-            style={{ flex:1, height:36, borderRadius:9, border:"1px solid #e2e8f0", background: t.cardBg, cursor:"pointer", fontSize:11, fontWeight:600, color:"#64748b", fontFamily:"inherit" }}>Huỷ</button>
+            style={{ flex:1, height:36, borderRadius:9, border:"1px solid #e2e8f0", background: "var(--bg-card)", cursor:"pointer", fontSize:11, fontWeight:600, color:"#64748b", fontFamily:"inherit" }}>Huỷ</button>
           <button onClick={handleSave}
             style={{ flex:2, height:36, borderRadius:9, border:"none", background:"#0ea5e9", cursor:"pointer", fontSize:11, fontWeight:700, color:"#fff", fontFamily:"inherit" }}>
             Thêm ca
@@ -788,7 +789,7 @@ function ShiftNoteWidget({ currentUser, isAdmin }: { currentUser: AppUser | null
               width: "min(340px, calc(100vw - 32px))",
               height: 460,
               borderRadius: 18,
-              background: t.cardBg,
+              background: "var(--bg-card)",
               boxShadow: "0 16px 48px rgba(12,26,46,0.22), 0 2px 8px rgba(12,26,46,0.08)",
               border: "1px solid rgba(201,165,90,0.3)",
               display: "flex", flexDirection: "column",
@@ -871,7 +872,7 @@ function ShiftNoteWidget({ currentUser, isAdmin }: { currentUser: AppUser | null
                   <textarea value={text} onChange={e => setText(e.target.value)}
                     onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
                     placeholder={isAdmin ? "Phản hồi nhân viên..." : "Trao đổi nhanh với admin..."}
-                    rows={2} style={{ flex: 1, borderRadius: 10, border: "1px solid #e2e8f0", padding: "8px 10px", fontSize: 16, fontFamily: "inherit", outline: "none", resize: "none", color: "var(--text-primary)", background: t.cardBg, lineHeight: 1.4 }} />
+                    rows={2} style={{ flex: 1, borderRadius: 10, border: "1px solid #e2e8f0", padding: "8px 10px", fontSize: 16, fontFamily: "inherit", outline: "none", resize: "none", color: "var(--text-primary)", background: "var(--bg-card)", lineHeight: 1.4 }} />
                   <button onClick={handleSend} disabled={!text.trim() || sending}
                     style={{ width: 36, height: 36, borderRadius: 10, border: "none", flexShrink: 0, background: text.trim() ? "linear-gradient(135deg,#0c1a2e,#1e3a5f)" : "#f1f5f9", cursor: text.trim() ? "pointer" : "default", display: "flex", alignItems: "center", justifyContent: "center" }}>
                     <Send size={14} style={{ color: text.trim() ? "#C9A55A" : "#cbd5e1" }} />
@@ -889,16 +890,16 @@ function ShiftNoteWidget({ currentUser, isAdmin }: { currentUser: AppUser | null
                   <div style={{ padding: "12px", borderRadius: 12, border: "1px solid #e0f2fe", background: "rgba(14,165,233,0.08)", display: "flex", flexDirection: "column", gap: 8 }}>
                     <p style={{ fontSize: 10, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>Gửi yêu cầu mới</p>
                     <select value={reqType} onChange={e => setReqType(e.target.value)}
-                      style={{ borderRadius: 8, border: "1px solid #bae6fd", padding: "6px 8px", fontSize: 16, fontFamily: "inherit", color: "var(--text-primary)", background: t.cardBg, outline: "none" }}>
+                      style={{ borderRadius: 8, border: "1px solid #bae6fd", padding: "6px 8px", fontSize: 16, fontFamily: "inherit", color: "var(--text-primary)", background: "var(--bg-card)", outline: "none" }}>
                       {Object.entries(REQ_TYPE_LABEL).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
                     </select>
                     {(reqType === "swap_shift" || reqType === "day_off") && (
                       <input type="date" value={reqDate} onChange={e => setReqDate(e.target.value)}
-                        style={{ borderRadius: 8, border: "1px solid #bae6fd", padding: "6px 8px", fontSize: 16, fontFamily: "inherit", color: "var(--text-primary)", background: t.cardBg, outline: "none" }} />
+                        style={{ borderRadius: 8, border: "1px solid #bae6fd", padding: "6px 8px", fontSize: 16, fontFamily: "inherit", color: "var(--text-primary)", background: "var(--bg-card)", outline: "none" }} />
                     )}
                     <textarea value={reqContent} onChange={e => setReqContent(e.target.value)}
                       placeholder="Mô tả yêu cầu của bạn..." rows={2}
-                      style={{ borderRadius: 8, border: "1px solid #bae6fd", padding: "7px 9px", fontSize: 16, fontFamily: "inherit", resize: "none", color: "var(--text-primary)", background: t.cardBg, outline: "none", lineHeight: 1.4 }} />
+                      style={{ borderRadius: 8, border: "1px solid #bae6fd", padding: "7px 9px", fontSize: 16, fontFamily: "inherit", resize: "none", color: "var(--text-primary)", background: "var(--bg-card)", outline: "none", lineHeight: 1.4 }} />
                     <button onClick={handleSubmitRequest} disabled={!reqContent.trim() || submitting}
                       style={{ height: 32, borderRadius: 8, border: "none", background: reqContent.trim() ? "linear-gradient(135deg,#0c1a2e,#1e3a5f)" : "rgba(255,255,255,0.10)", color: reqContent.trim() ? "#C9A55A" : "#94a3b8", fontSize: 11, fontWeight: 700, cursor: reqContent.trim() ? "pointer" : "default", fontFamily: "inherit" }}>
                       {submitting ? "Đang gửi..." : "Gửi yêu cầu"}
@@ -972,7 +973,7 @@ function ShiftNoteWidget({ currentUser, isAdmin }: { currentUser: AppUser | null
                       )}
                       {/* Admin: sửa yêu cầu đã xử lý */}
                       {isAdmin && !isPending && editingReqId === r.id && (
-                        <div style={{ display: "flex", flexDirection: "column", gap: 5, marginTop: 2, padding: "8px 10px", borderRadius: 8, background: t.cardBg, border: "1px solid #e2e8f0" }}>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 5, marginTop: 2, padding: "8px 10px", borderRadius: 8, background: "var(--bg-card)", border: "1px solid #e2e8f0" }}>
                           <p style={{ fontSize: 9, fontWeight: 700, color: "#64748b", margin: 0, textTransform: "uppercase", letterSpacing: "0.08em" }}>Chỉnh sửa quyết định</p>
                           <div style={{ display: "flex", gap: 5 }}>
                             <button onClick={() => setEditReqStatus("approved")}
@@ -993,7 +994,7 @@ function ShiftNoteWidget({ currentUser, isAdmin }: { currentUser: AppUser | null
                               Lưu
                             </button>
                             <button onClick={() => setEditingReqId(null)}
-                              style={{ height: 40, padding: "0 12px", borderRadius: 6, border: "1px solid #e2e8f0", background: t.cardBg, color: "#64748b", fontSize: 10, cursor: "pointer", fontFamily: "inherit" }}>
+                              style={{ height: 40, padding: "0 12px", borderRadius: 6, border: "1px solid #e2e8f0", background: "var(--bg-card)", color: "#64748b", fontSize: 10, cursor: "pointer", fontFamily: "inherit" }}>
                               Huỷ
                             </button>
                           </div>
@@ -1312,7 +1313,7 @@ export default function SchedulePage() {
   return (
     <div style={{ display:"flex", flexDirection:"column", height:"100%", minHeight:0, background:"var(--bg-base)" }}>
       {/* ── Header ── */}
-      <div style={{ padding: isMobile ? "12px 14px 10px" : "16px 20px 12px", background: t.cardBg, backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)", borderBottom:"1px solid rgba(186,230,253,0.7)", flexShrink:0 }}>
+      <div style={{ padding: isMobile ? "12px 14px 10px" : "16px 20px 12px", background: "var(--bg-card)", backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)", borderBottom:"1px solid rgba(186,230,253,0.7)", flexShrink:0 }}>
         <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:8 }}>
           <div>
             <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:2 }}>
@@ -1418,7 +1419,7 @@ export default function SchedulePage() {
           <AnimatePresence>
             {showTemplates && isAdmin && (
               <motion.div initial={{ height:0, opacity:0 }} animate={{ height:"auto", opacity:1 }} exit={{ height:0, opacity:0 }} style={{ overflow:"hidden" }}>
-                <div style={{ marginTop:12, padding:14, background: t.cardBg, backdropFilter:"blur(12px)", WebkitBackdropFilter:"blur(12px)", borderRadius:12, border:"1px solid rgba(186,230,253,0.65)" }}>
+                <div style={{ marginTop:12, padding:14, background: "var(--bg-card)", backdropFilter:"blur(12px)", WebkitBackdropFilter:"blur(12px)", borderRadius:12, border:"1px solid rgba(186,230,253,0.65)" }}>
                   <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:10 }}>
                     <p style={{ fontSize:10, fontWeight:700, color:"#64748b", letterSpacing:"0.12em" }}>MẪU CA LÀM VIỆC</p>
                     <button onClick={()=>{ setAddTemplate(v=>!v); setEditTemplate(null); }}
@@ -1428,14 +1429,14 @@ export default function SchedulePage() {
                   </div>
 
                   {addTemplate && !editTemplate && (
-                    <div style={{ marginBottom:12, padding:14, background: t.cardBg, borderRadius:10, border:"1px solid rgba(186,230,253,0.7)" }}>
+                    <div style={{ marginBottom:12, padding:14, background: "var(--bg-card)", borderRadius:10, border:"1px solid rgba(186,230,253,0.7)" }}>
                       <p style={{ fontSize:10, fontWeight:700, color:"#0ea5e9", marginBottom:10 }}>Tạo mẫu mới</p>
                       <TemplateForm onSave={handleSaveTemplate} onClose={()=>setAddTemplate(false)} />
                     </div>
                   )}
 
                   {editTemplate && (
-                    <div style={{ marginBottom:12, padding:14, background: t.cardBg, borderRadius:10, border:`1.5px solid ${editTemplate.color}60` }}>
+                    <div style={{ marginBottom:12, padding:14, background: "var(--bg-card)", borderRadius:10, border:`1.5px solid ${editTemplate.color}60` }}>
                       <p style={{ fontSize:10, fontWeight:700, color:editTemplate.color, marginBottom:10 }}>Chỉnh sửa: {editTemplate.name}</p>
                       <TemplateForm initial={editTemplate} onSave={handleSaveTemplate} onClose={()=>setEditTemplate(null)} />
                     </div>
@@ -1443,7 +1444,7 @@ export default function SchedulePage() {
 
                   <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
                     {templates.map(t => (
-                      <div key={t.id} style={{ display:"flex", alignItems:"center", gap:8, padding:"8px 12px", borderRadius:10, background: t.cardBg, border:`1.5px solid ${t.color}40`, minWidth:160 }}>
+                      <div key={t.id} style={{ display:"flex", alignItems:"center", gap:8, padding:"8px 12px", borderRadius:10, background: "var(--bg-card)", border:`1.5px solid ${t.color}40`, minWidth:160 }}>
                         <div style={{ width:4, height:32, borderRadius:2, background:t.color, flexShrink:0 }} />
                         <div style={{ flex:1, minWidth:0 }}>
                           <div style={{ display:"flex", alignItems:"center", gap:5 }}>
@@ -1475,7 +1476,7 @@ export default function SchedulePage() {
         {/* Week nav + view toggle */}
         <div style={{ display:"flex", alignItems:"center", gap:isMobile?6:8, marginTop:12 }}>
           <button onClick={()=>setWeekOffset(v=>v-1)}
-            style={{ width:30,height:30,borderRadius:9,border:"1px solid var(--border)",background: t.cardBg,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}>
+            style={{ width:30,height:30,borderRadius:9,border:"1px solid var(--border)",background: "var(--bg-card)",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}>
             <ChevronLeft size={14} style={{ color:"var(--text-muted)" }} />
           </button>
           <button onClick={()=>setWeekOffset(0)}
@@ -1484,7 +1485,7 @@ export default function SchedulePage() {
           </button>
           <span style={{ fontSize:isMobile?10:11, fontWeight:700, color: "var(--text-primary)", flex:1, textAlign:"center" }}>{weekLabel}</span>
           <button onClick={()=>setWeekOffset(v=>v+1)}
-            style={{ width:30,height:30,borderRadius:9,border:"1px solid var(--border)",background: t.cardBg,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}>
+            style={{ width:30,height:30,borderRadius:9,border:"1px solid var(--border)",background: "var(--bg-card)",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}>
             <ChevronRight size={14} style={{ color:"var(--text-muted)" }} />
           </button>
           <div style={{ display:"flex", gap:2, padding:3, background:"rgba(14,165,233,0.06)", borderRadius:10, border:"1px solid var(--border)", flexShrink:0 }}>
@@ -1573,7 +1574,7 @@ export default function SchedulePage() {
                       </div>
                       {isAdmin && (
                         <button onClick={() => setAddingSlot(ds)}
-                          style={{ width:30, height:30, borderRadius:9, border:"1px solid #e0f2fe", background: t.cardBg, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" }}>
+                          style={{ width:30, height:30, borderRadius:9, border:"1px solid #e0f2fe", background: "var(--bg-card)", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" }}>
                           <Plus size={13} style={{ color:"#0ea5e9" }} />
                         </button>
                       )}
@@ -1696,7 +1697,7 @@ export default function SchedulePage() {
                 <p style={{ fontSize:11, color:"#94a3b8", textAlign:"center", padding:"40px 0" }}>Không có nhân viên nào đang hoạt động.</p>
               )}
               {staffSchedule.map(({ uid, name, role, slots: mySlots }) => (
-                <div key={uid} style={{ background: t.cardBg, borderRadius:12, border:"1px solid #e0f2fe", padding:"10px 14px" }}>
+                <div key={uid} style={{ background: "var(--bg-card)", borderRadius:12, border:"1px solid #e0f2fe", padding:"10px 14px" }}>
                   <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom: mySlots.length > 0 ? 8 : 0 }}>
                     <div style={{ width:32, height:32, borderRadius:"50%", background:"linear-gradient(135deg,#0c1a2e,#1e3a5f)", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
                       <span style={{ fontSize:11, fontWeight:700, color:"#C9A55A" }}>{name[0]?.toUpperCase()}</span>
@@ -1776,7 +1777,7 @@ export default function SchedulePage() {
                             </div>
                           ))}
                           {dayShifts.length === 0 && (
-                            <div style={{ height:34, borderRadius:7, background: t.cardBg, border:"1px dashed #e2e8f0", display:"flex", alignItems:"center", justifyContent:"center" }}>
+                            <div style={{ height:34, borderRadius:7, background: "var(--bg-card)", border:"1px dashed #e2e8f0", display:"flex", alignItems:"center", justifyContent:"center" }}>
                               <span style={{ fontSize:8, color:"rgba(255,255,255,0.10)" }}>—</span>
                             </div>
                           )}
@@ -1792,7 +1793,7 @@ export default function SchedulePage() {
       </div>
 
       {/* Leave Type Legend */}
-      <div style={{ padding:"12px 20px 16px", background: t.cardBg, borderTop:"1px solid #e0f2fe", flexShrink:0 }}>
+      <div style={{ padding:"12px 20px 16px", background: "var(--bg-card)", borderTop:"1px solid #e0f2fe", flexShrink:0 }}>
         <p style={{ fontSize:8.5, fontWeight:700, color:"#94a3b8", letterSpacing:"0.12em", marginBottom:8 }}>LOẠI NGÀY VẮNG / PHÉP</p>
         <div style={{ display:"flex", flexWrap:"wrap", gap:"5px 10px" }}>
           {[
@@ -1837,7 +1838,7 @@ export default function SchedulePage() {
               left: "50%",
               transform: "translateX(-50%)",
               width: "min(420px, calc(100vw - 32px))",
-              background: t.cardBgElevated,
+              background: "var(--bg-elevated)",
               backdropFilter: "blur(16px)",
               WebkitBackdropFilter: "blur(16px)",
               borderRadius: 16,
@@ -1911,7 +1912,7 @@ export default function SchedulePage() {
           <motion.div
             initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
             transition={{ type:"spring", damping:30, stiffness:300 }}
-            style={{ position:"fixed", bottom:0, left:0, right:0, background: t.cardBg, backdropFilter:"blur(20px)", WebkitBackdropFilter:"blur(20px)", borderRadius:"20px 20px 0 0",
+            style={{ position:"fixed", bottom:0, left:0, right:0, background: "var(--bg-card)", backdropFilter:"blur(20px)", WebkitBackdropFilter:"blur(20px)", borderRadius:"20px 20px 0 0",
                      boxShadow:"0 -8px 40px rgba(12,26,46,0.14), inset 0 1px 0 rgba(255,255,255,0.8)", zIndex:200, maxHeight:"80vh", display:"flex", flexDirection:"column" }}>
             <div style={{ padding:"14px 16px 12px", borderBottom:"1px solid var(--border-subtle)", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
               <p style={{ fontSize:13, fontWeight:700, color: "var(--text-primary)" }}>Mẫu Ca Làm Việc</p>
@@ -1927,14 +1928,14 @@ export default function SchedulePage() {
               </button>
 
               {addTemplate && !editTemplate && (
-                <div style={{ marginBottom:16, padding:14, background: t.cardBg, borderRadius:12, border:"1px solid #bae6fd" }}>
+                <div style={{ marginBottom:16, padding:14, background: "var(--bg-card)", borderRadius:12, border:"1px solid #bae6fd" }}>
                   <p style={{ fontSize:10, fontWeight:700, color:"#0ea5e9", marginBottom:10 }}>Tạo mẫu mới</p>
                   <TemplateForm onSave={handleSaveTemplate} onClose={()=>setAddTemplate(false)} />
                 </div>
               )}
 
               {editTemplate && (
-                <div style={{ marginBottom:16, padding:14, background: t.cardBg, borderRadius:12, border:`1.5px solid ${editTemplate.color}60` }}>
+                <div style={{ marginBottom:16, padding:14, background: "var(--bg-card)", borderRadius:12, border:`1.5px solid ${editTemplate.color}60` }}>
                   <p style={{ fontSize:10, fontWeight:700, color:editTemplate.color, marginBottom:10 }}>Chỉnh sửa: {editTemplate.name}</p>
                   <TemplateForm initial={editTemplate} onSave={handleSaveTemplate} onClose={()=>setEditTemplate(null)} />
                 </div>
@@ -1942,7 +1943,7 @@ export default function SchedulePage() {
 
               <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
                 {templates.map(t => (
-                  <div key={t.id} style={{ display:"flex", alignItems:"center", gap:10, padding:"10px 12px", borderRadius:12, background: t.cardBg, border:`1.5px solid ${t.color}40` }}>
+                  <div key={t.id} style={{ display:"flex", alignItems:"center", gap:10, padding:"10px 12px", borderRadius:12, background: "var(--bg-card)", border:`1.5px solid ${t.color}40` }}>
                     <div style={{ width:4, height:36, borderRadius:2, background:t.color, flexShrink:0 }} />
                     <div style={{ flex:1, minWidth:0 }}>
                       <p style={{ fontSize:12, fontWeight:700, color: "var(--text-primary)" }}>{t.name}</p>

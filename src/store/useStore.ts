@@ -36,6 +36,8 @@ export interface AppUser {
   passwordHash: string; // simple: store plain pin in dev
   createdAt: string;
   active: boolean;
+  phone?: string | null;
+  employeeCode?: string | null;
 }
 
 interface StoreState {
@@ -209,6 +211,8 @@ export const useStore = create<StoreState>()(
             passwordHash: "",
             createdAt: new Date().toISOString(),
             active: true,
+            phone: user.phone ?? null,
+            employeeCode: user.employeeCode ?? null,
           };
           set({ currentUser: appUser });
           return true;
@@ -223,7 +227,7 @@ export const useStore = create<StoreState>()(
         try {
           const res = await fetch("/api/auth");
           if (!res.ok) return;
-          const dbUsers = await res.json() as { id: string; name: string; username: string; role: string; active: number; createdAt: string }[];
+          const dbUsers = await res.json() as { id: string; name: string; username: string; role: string; active: number; createdAt: string; phone?: string | null; employeeCode?: string | null }[];
           const mapped: AppUser[] = dbUsers.map(u => ({
             id: u.id,
             name: u.name,
@@ -232,6 +236,8 @@ export const useStore = create<StoreState>()(
             passwordHash: "",
             createdAt: u.createdAt,
             active: u.active === 1,
+            phone: u.phone ?? null,
+            employeeCode: u.employeeCode ?? null,
           }));
           set({ users: mapped });
         } catch { /* network error — keep existing list */ }

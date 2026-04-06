@@ -125,7 +125,7 @@ function Avatar({ src, name, size = 32, status }: { src?: string | null; name: s
 
 const iconBtn: React.CSSProperties = {
   width: 26, height: 26, borderRadius: 7, border: "1px solid rgba(186,230,253,0.55)",
-  background: t.cardBg, display: "flex", alignItems: "center",
+  background: "var(--bg-card)", display: "flex", alignItems: "center",
   justifyContent: "center", cursor: "pointer",
 };
 
@@ -148,7 +148,7 @@ function ImageLightbox({ src, onClose }: { src: string; onClose: () => void }) {
     >
       <div onClick={e => e.stopPropagation()} style={{ position: "relative", maxWidth: "90vw", maxHeight: "90vh" }}>
         <img src={src} alt="" style={{ maxWidth: "90vw", maxHeight: "90vh", objectFit: "contain", borderRadius: 12, boxShadow: "0 8px 48px rgba(0,0,0,0.6)", display: "block" }} />
-        <button onClick={onClose} style={{ position: "absolute", top: -14, right: -14, width: 32, height: 32, borderRadius: "50%", background: t.cardBg, backdropFilter: "blur(8px)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 2px 8px rgba(0,0,0,0.3)" }}>
+        <button onClick={onClose} style={{ position: "absolute", top: -14, right: -14, width: 32, height: 32, borderRadius: "50%", background: "var(--bg-card)", backdropFilter: "blur(8px)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 2px 8px rgba(0,0,0,0.3)" }}>
           <X size={16} style={{ color: "var(--text-primary)" }} />
         </button>
         <a href={src} download target="_blank" rel="noreferrer"
@@ -192,7 +192,7 @@ function MediaContent({ msg, isMe, onOpenLightbox }: { msg: Message; isMe: boole
         marginTop: msg.content ? 6 : 0,
         display: "flex", alignItems: "center", gap: 8,
         padding: "8px 10px", borderRadius: 10,
-        background: t.cardBg,
+        background: "var(--bg-card)",
         border: "1px solid rgba(186,230,253,0.6)",
         textDecoration: "none", cursor: "pointer",
       }}
@@ -308,7 +308,7 @@ function MsgBubble({ msg, isMe, showHeader, members, onDelete, onRevoke, onReply
                   <button onClick={() => onReact(msg.id, emoji)}
                     onMouseEnter={() => setHoveredReaction(emoji)}
                     onMouseLeave={() => setHoveredReaction(null)}
-                    style={{ display: "flex", alignItems: "center", gap: 3, background: t.cardBg, border: "1px solid rgba(186,230,253,0.55)", borderRadius: 12, padding: "2px 7px", cursor: "pointer", fontSize: 12, lineHeight: 1.4 }}>
+                    style={{ display: "flex", alignItems: "center", gap: 3, background: "var(--bg-card)", border: "1px solid rgba(186,230,253,0.55)", borderRadius: 12, padding: "2px 7px", cursor: "pointer", fontSize: 12, lineHeight: 1.4 }}>
                     {emoji} <span style={{ fontSize: 9.5, color: "#64748b" }}>{userIds.length}</span>
                   </button>
                   {hoveredReaction === emoji && (
@@ -356,7 +356,7 @@ function MsgBubble({ msg, isMe, showHeader, members, onDelete, onRevoke, onReply
             style={{
               position: "absolute", top: -14, right: 16,
               display: "flex", alignItems: "center", gap: 2,
-              background: t.cardBg, backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", border: "1px solid rgba(186,230,253,0.55)", borderRadius: 10,
+              background: "var(--bg-card)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", border: "1px solid rgba(186,230,253,0.55)", borderRadius: 10,
               padding: "3px 5px",
               boxShadow: "0 4px 20px rgba(12,26,46,0.12), inset 0 1px 0 rgba(255,255,255,0.8)",
               zIndex: 10,
@@ -374,7 +374,7 @@ function MsgBubble({ msg, isMe, showHeader, members, onDelete, onRevoke, onReply
                     initial={{ opacity: 0, scale: 0.9, y: 4 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0 }}
                     style={{
                       position: "absolute", right: 0, bottom: "calc(100% + 4px)",
-                      background: t.cardBg, backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)", border: "1px solid rgba(186,230,253,0.55)", borderRadius: 20, padding: "6px 10px",
+                      background: "var(--bg-card)", backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)", border: "1px solid rgba(186,230,253,0.55)", borderRadius: 20, padding: "6px 10px",
                       display: "flex", flexWrap: "wrap", gap: 2, width: 200,
                       boxShadow: "0 4px 24px rgba(12,26,46,0.14), inset 0 1px 0 rgba(255,255,255,0.8)", zIndex: 30,
                     }}
@@ -450,7 +450,7 @@ function UploadPreview({ file, onCancel }: { file: File; onCancel: () => void })
   const isImage = file.type.startsWith("image/");
   const url = isImage ? URL.createObjectURL(file) : null;
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", borderRadius: 10, background: t.cardBg, border: "1px solid rgba(186,230,253,0.6)", marginBottom: 6 }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", borderRadius: 10, background: "var(--bg-card)", border: "1px solid rgba(186,230,253,0.6)", marginBottom: 6 }}>
       {url
         ? <img src={url} alt="" style={{ width: 40, height: 40, objectFit: "cover", borderRadius: 6 }} />
         : <FileIcon size={18} style={{ color: "#6366f1", flexShrink: 0 }} />
@@ -1039,8 +1039,8 @@ export default function ChatPage() {
     <div style={{
       display: "flex", flexDirection: "column", height: "100%",
       ...(isMobile
-        ? { flex: 1, background: t.cardBg, backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)" }
-        : { width: 232, flexShrink: 0, borderRight: "1px solid rgba(186,230,253,0.6)", background: t.cardBg, backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)" }),
+        ? { flex: 1, background: "var(--bg-card)", backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)" }
+        : { width: 232, flexShrink: 0, borderRight: "1px solid rgba(186,230,253,0.6)", background: "var(--bg-card)", backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)" }),
     }}>
       {/* Server header */}
       <div style={{
@@ -1096,7 +1096,7 @@ export default function ChatPage() {
                   <input value={newRoomName} onChange={e => setNewRoomName(e.target.value)} autoFocus
                     onKeyDown={e => { if (e.key === "Enter") handleCreateRoom(); if (e.key === "Escape") { setNewRoom(false); setNewRoomName(""); } }}
                     placeholder="tên-kênh..."
-                    style={{ flex: 1, fontSize: 11, background: t.cardBg, border: "1px solid rgba(186,230,253,0.6)", borderRadius: 4, padding: "5px 8px", outline: "none", fontFamily: "inherit", color: "var(--text-primary)" }}
+                    style={{ flex: 1, fontSize: 11, background: "var(--bg-card)", border: "1px solid rgba(186,230,253,0.6)", borderRadius: 4, padding: "5px 8px", outline: "none", fontFamily: "inherit", color: "var(--text-primary)" }}
                   />
                   <button onClick={handleCreateRoom} style={{ background: "linear-gradient(135deg,#6366f1,#818cf8)", border: "none", borderRadius: 4, padding: "4px 8px", cursor: "pointer" }}>
                     <Check size={11} style={{ color: "#fff" }} />
@@ -1169,7 +1169,7 @@ export default function ChatPage() {
         <div style={{
           height: 52, borderTop: "1px solid rgba(186,230,253,0.6)",
           display: "flex", alignItems: "center", padding: "0 8px", gap: 8, flexShrink: 0,
-          background: t.cardBg,
+          background: "var(--bg-card)",
           backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)",
         }}>
           <Avatar src={null} name={currentUser.name} size={32} status="online" />
@@ -1192,7 +1192,7 @@ export default function ChatPage() {
       <div style={{
         height: 48, padding: "0 16px 0 12px", borderBottom: `1px solid ${cardBorder}`,
         display: "flex", alignItems: "center", gap: 10, flexShrink: 0,
-        background: t.cardBg,
+        background: "var(--bg-card)",
         backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)",
         boxShadow: "0 1px 0 rgba(186,230,253,0.4), inset 0 1px 0 rgba(255,255,255,0.8)",
       }}>
@@ -1251,7 +1251,7 @@ export default function ChatPage() {
           <motion.div
             initial={{ height: 0, opacity: 0 }} animate={{ height: 44, opacity: 1 }} exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.15 }}
-            style={{ overflow: "hidden", borderBottom: "1px solid rgba(186,230,253,0.5)", background: t.cardBg, flexShrink: 0 }}
+            style={{ overflow: "hidden", borderBottom: "1px solid rgba(186,230,253,0.5)", background: "var(--bg-card)", flexShrink: 0 }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 14px", height: 44 }}>
               <Search size={12} style={{ color: "#94a3b8", flexShrink: 0 }} />
@@ -1311,7 +1311,7 @@ export default function ChatPage() {
             return (
               <div key={`date-${item.date}-${i}`} style={{ display: "flex", alignItems: "center", gap: 10, margin: "16px 16px 8px" }}>
                 <div style={{ flex: 1, height: 1, background: "rgba(99,102,241,0.25)" }} />
-                <span style={{ fontSize: 10, color: "var(--text-muted)", fontWeight: 700, whiteSpace: "nowrap", padding: "0 8px", background: t.cardBg, borderRadius: 20, border: "1px solid rgba(186,230,253,0.55)" }}>{item.date}</span>
+                <span style={{ fontSize: 10, color: "var(--text-muted)", fontWeight: 700, whiteSpace: "nowrap", padding: "0 8px", background: "var(--bg-card)", borderRadius: 20, border: "1px solid rgba(186,230,253,0.55)" }}>{item.date}</span>
                 <div style={{ flex: 1, height: 1, background: "rgba(99,102,241,0.25)" }} />
               </div>
             );
@@ -1352,7 +1352,7 @@ export default function ChatPage() {
 
       {/* Edit message bar */}
       {editingMsg && (
-        <div style={{ padding: "8px 16px", borderTop: "1px solid rgba(186,230,253,0.5)", background: t.cardBg, flexShrink: 0 }}>
+        <div style={{ padding: "8px 16px", borderTop: "1px solid rgba(186,230,253,0.5)", background: "var(--bg-card)", flexShrink: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
             <Pencil size={11} style={{ color: "#6366f1" }} />
             <span style={{ fontSize: 10, color: "#6366f1", fontWeight: 600 }}>Đang chỉnh sửa tin nhắn</span>
@@ -1389,7 +1389,7 @@ export default function ChatPage() {
           </div>
         ) : (
           <div style={{
-            background: t.cardBg,
+            background: "var(--bg-card)",
             backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)",
             borderRadius: 12, overflow: "hidden",
             border: "1px solid rgba(186,230,253,0.6)",
@@ -1456,7 +1456,7 @@ export default function ChatPage() {
             transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
             style={{
               position: "absolute", top: 0, right: 0, bottom: 0, width: Math.min(300, typeof window !== "undefined" ? window.innerWidth : 300),
-              background: t.cardBg, backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", borderLeft: "1px solid rgba(186,230,253,0.6)", zIndex: 30,
+              background: "var(--bg-card)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", borderLeft: "1px solid rgba(186,230,253,0.6)", zIndex: 30,
               display: "flex", flexDirection: "column", overflow: "hidden",
             }}
           >
@@ -1487,17 +1487,17 @@ export default function ChatPage() {
 
               {/* Room settings (admin only) */}
               {isAdmin && (
-                <div style={{ padding: "14px 16px", borderBottom: "1px solid rgba(186,230,253,0.5)", background: t.cardBg }}>
+                <div style={{ padding: "14px 16px", borderBottom: "1px solid rgba(186,230,253,0.5)", background: "var(--bg-card)" }}>
                   <p style={{ fontSize: 8.5, fontWeight: 700, color: "#6366f1", letterSpacing: "0.12em", marginBottom: 10 }}>CÀI ĐẶT KÊNH</p>
                   <div style={{ marginBottom: 10 }}>
                     <p style={{ fontSize: 9, color: "#94a3b8", marginBottom: 4 }}>Tên kênh</p>
                     <input value={roomSettingsName} onChange={e => setRoomSettingsName(e.target.value)}
-                      style={{ width: "100%", fontSize: 11, color: "var(--text-primary)", fontFamily: "inherit", background: t.cardBg, border: "1px solid rgba(186,230,253,0.6)", borderRadius: 7, padding: "6px 10px", outline: "none", boxSizing: "border-box" }} />
+                      style={{ width: "100%", fontSize: 11, color: "var(--text-primary)", fontFamily: "inherit", background: "var(--bg-card)", border: "1px solid rgba(186,230,253,0.6)", borderRadius: 7, padding: "6px 10px", outline: "none", boxSizing: "border-box" }} />
                   </div>
                   <div style={{ marginBottom: 10 }}>
                     <p style={{ fontSize: 9, color: "#94a3b8", marginBottom: 4 }}>Icon (emoji)</p>
                     <input value={roomSettingsIcon} onChange={e => setRoomSettingsIcon(e.target.value)} maxLength={4}
-                      placeholder="💬" style={{ width: "100%", fontSize: 16, fontFamily: "inherit", background: t.cardBg, border: "1px solid rgba(186,230,253,0.6)", borderRadius: 7, padding: "6px 10px", outline: "none", boxSizing: "border-box" }} />
+                      placeholder="💬" style={{ width: "100%", fontSize: 16, fontFamily: "inherit", background: "var(--bg-card)", border: "1px solid rgba(186,230,253,0.6)", borderRadius: 7, padding: "6px 10px", outline: "none", boxSizing: "border-box" }} />
                   </div>
                   <div style={{ marginBottom: 10 }}>
                     <p style={{ fontSize: 9, color: "#94a3b8", marginBottom: 6 }}>Màu nền (tin nhắn admin)</p>
@@ -1543,7 +1543,7 @@ export default function ChatPage() {
 
                     {/* Admin member management: checkboxes */}
                     {isAdmin && showMemberMgmt && activeRoom.type !== "direct" && (
-                      <div style={{ marginBottom: 10, padding: "8px 10px", background: t.cardBg, borderRadius: 8, border: "1px solid rgba(186,230,253,0.5)" }}>
+                      <div style={{ marginBottom: 10, padding: "8px 10px", background: "var(--bg-card)", borderRadius: 8, border: "1px solid rgba(186,230,253,0.5)" }}>
                         <p style={{ fontSize: 9, color: "#64748b", marginBottom: 8 }}>Bỏ chọn để hạn chế truy cập. Để trống = mọi người đều thấy kênh này.</p>
                         <div style={{ display: "flex", flexDirection: "column", gap: 4, maxHeight: 180, overflowY: "auto" }}>
                           {members.map(m => {
@@ -1668,7 +1668,7 @@ export default function ChatPage() {
               initial={{ opacity: 0, y: 12, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -8, scale: 0.95 }}
               transition={{ duration: 0.22 }}
               style={{
-                background: t.cardBg,
+                background: "var(--bg-card)",
                 backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)",
                 border: `1px solid ${cardBorder}`, borderRadius: 14,
                 padding: "10px 14px", maxWidth: 260,

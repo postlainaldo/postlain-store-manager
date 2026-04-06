@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Smartphone, Bell, Check, ChevronRight, Apple, Chrome, Share2, PlusSquare, AlertTriangle, RefreshCw } from "lucide-react";
+import { Smartphone, Bell, Check, ChevronRight, Share2, PlusSquare, AlertTriangle, RefreshCw, UserCircle } from "lucide-react";
 import { useStore, sel } from "@/store/useStore";
+import type { AppUser } from "@/store/useStore";
 
 // Only marks install step done — notify step is re-checked every visit via real permission
 const LS_INSTALL_KEY = (uid: string) => `onboarding_install_${uid}`;
@@ -13,6 +14,113 @@ function urlB64ToUint8Array(base64String: string) {
   const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
   const rawData = atob(base64);
   return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
+}
+
+// ─── Step 0: Complete Profile ─────────────────────────────────────────────────
+function StepProfile({ user, onDone }: { user: AppUser; onDone: (updated: Partial<AppUser>) => void }) {
+  const [form, setForm] = useState({
+    name: user.name ?? "",
+    email: user.email ?? "",
+    phone: user.phone ?? "",
+    employeeCode: user.employeeCode ?? "",
+  });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  const missing = {
+    name: !form.name.trim(),
+    email: !form.email.trim(),
+    phone: !form.phone.trim(),
+    employeeCode: !form.employeeCode.trim(),
+  };
+  const hasAnyMissing = Object.values(missing).some(Boolean);
+
+  const handleSave = async () => {
+    if (hasAnyMissing) return;
+    setSaving(true);
+    setError("");
+    try {
+      const res = await fetch("/api/auth/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: user.id,
+          name: form.name.trim(),
+          phone: form.phone.trim(),
+          employeeCode: form.employeeCode.trim(),
+        }),
+      });
+      if (!res.ok) { setError("Lưu thất bại, thử lại."); setSaving(false); return; }
+      onDone({ name: form.name.trim(), phone: form.phone.trim(), employeeCode: form.employeeCode.trim() });
+    } catch { setError("Lỗi kết nối."); setSaving(false); }
+  };
+
+  const Field = ({ label, value, onChange, placeholder, type = "text" }: {
+    label: string; value: string; onChange: (v: string) => void; placeholder: string; type?: string;
+  }) => (
+    <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+      <label style={{ fontSize: 10, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.08em" }}>{label}</label>
+      <input
+        type={type}
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        placeholder={placeholder}
+        style={{
+          padding: "10px 12px", borderRadius: 10, fontSize: 14,
+          border: `1.5px solid ${value.trim() ? "#e2e8f0" : "#fca5a5"}`,
+          background: value.trim() ? "#f8fafc" : "#fff5f5",
+          outline: "none", fontFamily: "inherit", color: "#0f172a",
+          transition: "border-color 0.15s, background 0.15s",
+        }}
+        onFocus={e => { e.currentTarget.style.borderColor = "#C9A55A"; e.currentTarget.style.background = "#fff"; }}
+        onBlur={e => {
+          e.currentTarget.style.borderColor = e.currentTarget.value.trim() ? "#e2e8f0" : "#fca5a5";
+          e.currentTarget.style.background = e.currentTarget.value.trim() ? "#f8fafc" : "#fff5f5";
+        }}
+      />
+    </div>
+  );
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+      <p style={{ fontSize: 11, color: "#64748b", margin: 0, lineHeight: 1.7 }}>
+        Vui lòng điền đầy đủ thông tin trước khi sử dụng hệ thống.
+        Thông tin này được dùng để xếp ca, liên lạc và quản lý nhân sự.
+      </p>
+
+      <Field label="Họ và tên *" value={form.name} onChange={v => setForm(f => ({ ...f, name: v }))} placeholder="Nguyễn Văn A" />
+      <Field label="Email *" value={form.email} onChange={v => setForm(f => ({ ...f, email: v }))} placeholder="email@postlain.com" type="email" />
+      <Field label="Số điện thoại *" value={form.phone} onChange={v => setForm(f => ({ ...f, phone: v }))} placeholder="0901 234 567" type="tel" />
+      <Field label="Mã nhân viên *" value={form.employeeCode} onChange={v => setForm(f => ({ ...f, employeeCode: v }))} placeholder="NV001" />
+
+      {hasAnyMissing && (
+        <p style={{ fontSize: 10, color: "#dc2626", margin: 0 }}>* Tất cả các trường đều bắt buộc</p>
+      )}
+      {error && (
+        <div style={{ padding: "9px 12px", borderRadius: 9, background: "#fff1f2", border: "1px solid #fecaca" }}>
+          <p style={{ fontSize: 11, color: "#dc2626", margin: 0 }}>{error}</p>
+        </div>
+      )}
+
+      <motion.button
+        whileTap={{ scale: 0.97 }}
+        onClick={handleSave}
+        disabled={hasAnyMissing || saving}
+        style={{
+          padding: "13px", borderRadius: 12, border: "none",
+          background: !hasAnyMissing ? "linear-gradient(135deg, #C9A55A, #a07c3a)" : "#e2e8f0",
+          color: !hasAnyMissing ? "#fff" : "#94a3b8",
+          fontSize: 12, fontWeight: 800,
+          cursor: !hasAnyMissing && !saving ? "pointer" : "not-allowed",
+          fontFamily: "inherit",
+          display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+          marginTop: 4,
+        }}
+      >
+        {saving ? "Đang lưu…" : <><Check size={14} /> Lưu & Tiếp tục</>}
+      </motion.button>
+    </div>
+  );
 }
 
 // ─── Step 1: Install PWA ─────────────────────────────────────────────────────
@@ -338,53 +446,79 @@ function StepNotify({ userId, onDone }: { userId: string; onDone: () => void }) 
 }
 
 // ─── Main Gate ────────────────────────────────────────────────────────────────
+// Steps: "profile" → "install" → "notify" → done (null)
+type GateStep = "profile" | "install" | "notify" | null;
+
+function needsProfileFill(u: AppUser): boolean {
+  return !u.phone?.trim() || !u.employeeCode?.trim() || !u.name?.trim() || !u.email?.trim();
+}
+
 export default function OnboardingGate({ children }: { children: React.ReactNode }) {
   const currentUser = useStore(sel.currentUser);
-  const [step, setStep] = useState<0 | 1 | 2>(0);
+  const updateUser  = useStore(sel.updateUser);
+  const [step, setStep] = useState<GateStep>(null);
   const [checked, setChecked] = useState(false);
 
   useEffect(() => {
     if (!currentUser) { setChecked(true); return; }
 
-    // Check real notification permission every visit — cannot trust localStorage alone
+    // 1. Profile check (highest priority)
+    if (needsProfileFill(currentUser)) {
+      setStep("profile");
+      setChecked(true);
+      return;
+    }
+
+    // 2. PWA install check
+    const installDone = localStorage.getItem(LS_INSTALL_KEY(currentUser.id)) === "1";
+
+    // 3. Notification check (real permission, not localStorage)
     const notifGranted =
       typeof Notification !== "undefined" && Notification.permission === "granted";
 
-    const installDone = localStorage.getItem(LS_INSTALL_KEY(currentUser.id)) === "1";
-
-    if (installDone && notifGranted) {
-      // Both done — pass through
-      setStep(0);
-    } else if (!installDone) {
-      setStep(1);
+    if (!installDone) {
+      setStep("install");
+    } else if (!notifGranted) {
+      setStep("notify");
     } else {
-      // Install done but notification not granted
-      setStep(2);
+      setStep(null);
     }
     setChecked(true);
-  }, [currentUser?.id]);
+  }, [currentUser?.id, currentUser?.phone, currentUser?.employeeCode]);
+
+  const completeProfile = (updated: Partial<AppUser>) => {
+    if (!currentUser) return;
+    // Patch store so needsProfileFill re-evaluates
+    updateUser(currentUser.id, updated);
+    const installDone = localStorage.getItem(LS_INSTALL_KEY(currentUser.id)) === "1";
+    const notifGranted = typeof Notification !== "undefined" && Notification.permission === "granted";
+    if (!installDone) setStep("install");
+    else if (!notifGranted) setStep("notify");
+    else setStep(null);
+  };
 
   const completeInstall = () => {
     if (!currentUser) return;
     localStorage.setItem(LS_INSTALL_KEY(currentUser.id), "1");
-    setStep(2);
+    const notifGranted = typeof Notification !== "undefined" && Notification.permission === "granted";
+    setStep(notifGranted ? null : "notify");
   };
 
-  const completeNotify = () => {
-    setStep(0);
-  };
+  const completeNotify = () => setStep(null);
 
   if (!checked) return null;
-  if (step === 0) return <>{children}</>;
+  if (step === null) return <>{children}</>;
 
-  const stepLabel = step === 1 ? "Cài ứng dụng" : "Bật thông báo";
-  const stepIcon = step === 1
-    ? <Smartphone size={20} style={{ color: "#C9A55A" }} />
-    : <Bell size={20} style={{ color: "#7c3aed" }} />;
+  const STEP_META: Record<NonNullable<GateStep>, { label: string; icon: React.ReactNode; color: string; num: number; total: number }> = {
+    profile: { label: "Thông tin cá nhân", icon: <UserCircle size={20} style={{ color: "#0ea5e9" }} />, color: "#0ea5e9", num: 1, total: 3 },
+    install: { label: "Cài ứng dụng",      icon: <Smartphone size={20} style={{ color: "#C9A55A" }} />, color: "#C9A55A", num: 2, total: 3 },
+    notify:  { label: "Bật thông báo",     icon: <Bell size={20} style={{ color: "#7c3aed" }} />,        color: "#7c3aed", num: 3, total: 3 },
+  };
+  const meta = STEP_META[step];
 
   return (
     <>
-      {/* Full overlay — no interaction with app behind */}
+      {/* Full overlay */}
       <div style={{ position: "fixed", inset: 0, zIndex: 900, background: "rgba(12,26,46,0.75)", backdropFilter: "blur(10px)" }} />
 
       <AnimatePresence mode="wait">
@@ -410,38 +544,37 @@ export default function OnboardingGate({ children }: { children: React.ReactNode
             <div style={{ padding: "18px 24px 14px", borderBottom: "1px solid #f1f5f9", background: "#fafbfc" }}>
               {/* Progress bar */}
               <div style={{ display: "flex", gap: 6, marginBottom: 14 }}>
-                {[1, 2].map(i => (
+                {[1, 2, 3].map(i => (
                   <div key={i} style={{
                     flex: 1, height: 4, borderRadius: 4,
-                    background: i < step ? "#16a34a" : i === step ? (step === 1 ? "#C9A55A" : "#7c3aed") : "#e2e8f0",
+                    background: i < meta.num ? "#16a34a" : i === meta.num ? meta.color : "#e2e8f0",
                     transition: "background 0.3s",
-                  }}>
-                    {i < step && (
-                      <div style={{ height: "100%", borderRadius: 4, background: "#16a34a", display: "flex", alignItems: "center", justifyContent: "flex-end", paddingRight: 4 }} />
-                    )}
-                  </div>
+                  }} />
                 ))}
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <div style={{
                   width: 38, height: 38, borderRadius: 12, flexShrink: 0,
-                  background: step === 1 ? "rgba(201,165,90,0.1)" : "rgba(124,58,237,0.1)",
-                  border: `1.5px solid ${step === 1 ? "rgba(201,165,90,0.3)" : "rgba(124,58,237,0.3)"}`,
+                  background: `${meta.color}18`,
+                  border: `1.5px solid ${meta.color}44`,
                   display: "flex", alignItems: "center", justifyContent: "center",
                 }}>
-                  {stepIcon}
+                  {meta.icon}
                 </div>
                 <div>
-                  <p style={{ fontSize: 9, fontWeight: 700, color: "#94a3b8", margin: 0, letterSpacing: 1, textTransform: "uppercase" }}>Bắt buộc · Bước {step}/2</p>
-                  <p style={{ fontSize: 15, fontWeight: 800, color: "#0c1a2e", margin: 0 }}>{stepLabel}</p>
+                  <p style={{ fontSize: 9, fontWeight: 700, color: "#94a3b8", margin: 0, letterSpacing: 1, textTransform: "uppercase" }}>
+                    Bắt buộc · Bước {meta.num}/{meta.total}
+                  </p>
+                  <p style={{ fontSize: 15, fontWeight: 800, color: "#0c1a2e", margin: 0 }}>{meta.label}</p>
                 </div>
               </div>
             </div>
 
             {/* Body */}
-            <div style={{ padding: "20px 24px 24px", maxHeight: "62vh", overflowY: "auto" }}>
-              {step === 1 && <StepInstall onDone={completeInstall} />}
-              {step === 2 && <StepNotify userId={currentUser?.id ?? ""} onDone={completeNotify} />}
+            <div style={{ padding: "20px 24px 24px", maxHeight: "65vh", overflowY: "auto" }}>
+              {step === "profile" && currentUser && <StepProfile user={currentUser} onDone={completeProfile} />}
+              {step === "install" && <StepInstall onDone={completeInstall} />}
+              {step === "notify"  && <StepNotify userId={currentUser?.id ?? ""} onDone={completeNotify} />}
             </div>
           </div>
         </motion.div>

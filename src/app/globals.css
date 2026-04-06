@@ -74,6 +74,18 @@
   --shadow-gold: 0 4px 24px rgba(201,165,90,0.25);
   --shadow-nav:  0 1px 0 rgba(201,165,90,0.12), 0 2px 12px rgba(0,0,0,0.08);
 
+  /* ── Semantic extras ─────────────────────────────────────────────────── */
+  --overlay-bg:          rgba(0,0,0,0.35);
+  --row-hover:           rgba(0,0,0,0.025);
+  --label-bg:            rgba(255,255,255,0.9);
+  --label-border:        rgba(0,0,0,0.08);
+  --icon-btn-bg:         rgba(0,0,0,0.05);
+  --icon-btn-border:     rgba(0,0,0,0.10);
+  --bubble-bg:           rgba(0,0,0,0.06);
+  --status-dot-border:   rgba(255,255,255,0.8);
+  --avatar-gradient:     linear-gradient(135deg, #e5e5ea, #d1d1d6);
+  --avatar-text:         #1c1c1e;
+
   /* ── Radius — same in both ───────────────────────────────────────────── */
   --r-xs:   4px;
   --r-sm:   8px;
@@ -125,6 +137,18 @@
   --shadow-blue: 0 4px 24px rgba(59,130,246,0.35);
   --shadow-gold: 0 4px 24px rgba(201,165,90,0.35);
   --shadow-nav:  0 1px 0 rgba(201,165,90,0.10), 0 4px 24px rgba(0,0,0,0.40);
+
+  /* ── Semantic extras ─────────────────────────────────────────────────── */
+  --overlay-bg:          rgba(0,0,0,0.65);
+  --row-hover:           rgba(59,130,246,0.05);
+  --label-bg:            rgba(5,10,22,0.75);
+  --label-border:        rgba(255,255,255,0.08);
+  --icon-btn-bg:         rgba(255,255,255,0.08);
+  --icon-btn-border:     rgba(255,255,255,0.12);
+  --bubble-bg:           rgba(255,255,255,0.08);
+  --status-dot-border:   rgba(8,14,26,0.8);
+  --avatar-gradient:     linear-gradient(135deg, #0c1a2e, #1e3a5f);
+  --avatar-text:         #C9A55A;
 }
 
 

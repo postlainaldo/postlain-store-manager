@@ -162,7 +162,7 @@ function PremiumCard({
   return (
     <div style={{
       borderRadius: 16, border: "1px solid rgba(255,255,255,0.07)",
-      background: t.cardBg,
+      background: "var(--bg-card)",
       backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)",
       overflow: "hidden",
       boxShadow: "0 4px 24px rgba(0,0,0,0.40), inset 0 1px 0 rgba(255,255,255,0.05)",
@@ -211,7 +211,7 @@ function AnimatedToggle({ on, set, label, desc }: { on: boolean; set: (v: boolea
         <motion.div
           animate={{ x: on ? 20 : 2 }}
           transition={{ type: "spring", stiffness: 500, damping: 28 }}
-          style={{ position: "absolute", top: 3, width: 16, height: 16, borderRadius: "50%", background: t.cardBg, boxShadow: "0 1px 4px rgba(0,0,0,0.2)" }}
+          style={{ position: "absolute", top: 3, width: 16, height: 16, borderRadius: "50%", background: "var(--bg-card)", boxShadow: "0 1px 4px rgba(0,0,0,0.2)" }}
         />
       </div>
     </motion.div>
@@ -316,13 +316,13 @@ function StaffProfileModal({ member, onClose }: { member: TeamMember; onClose: (
         <div style={{ height: 90, background: `linear-gradient(135deg, ${rcfg.color}22, #e0f2fe)`, position: "relative", overflow: "hidden" }}>
           <div style={{ position: "absolute", inset: 0, backgroundImage: "repeating-linear-gradient(0deg,transparent,transparent 18px,rgba(14,165,233,0.05) 18px,rgba(14,165,233,0.05) 19px),repeating-linear-gradient(90deg,transparent,transparent 18px,rgba(14,165,233,0.05) 18px,rgba(14,165,233,0.05) 19px)" }} />
           <div style={{ position: "absolute", top: -30, right: -30, width: 100, height: 100, borderRadius: "50%", background: `radial-gradient(circle, ${rcfg.color}30 0%, transparent 70%)` }} />
-          <button onClick={onClose} style={{ position: "absolute", top: 10, right: 10, width: 28, height: 28, borderRadius: 8, border: `1px solid ${t.cardBorder}`, background: t.overlayBg, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
-            <X size={12} style={{ color: t.textMuted }} />
+          <button onClick={onClose} style={{ position: "absolute", top: 10, right: 10, width: 28, height: 28, borderRadius: 8, border: "1px solid var(--border)", background: "var(--overlay-bg)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+            <X size={12} style={{ color: "var(--text-muted)" }} />
           </button>
         </div>
 
         {/* Content */}
-        <div style={{ background: t.cardBg, padding: "0 20px 20px" }}>
+        <div style={{ background: "var(--bg-card)", padding: "0 20px 20px" }}>
           {/* Avatar row */}
           <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginTop: -28, marginBottom: 14 }}>
             <div style={{ position: "relative" }}>
@@ -403,7 +403,7 @@ function TeamCard({ member, isMe, onView, canView, kpiTarget, revenue }: {
       style={{
         padding: "16px", borderRadius: 16,
         border: `1px solid ${isMe ? "rgba(201,165,90,0.35)" : "var(--border)"}`,
-        background: t.cardBg, display: "flex", gap: 14, alignItems: "center",
+        background: "var(--bg-card)", display: "flex", gap: 14, alignItems: "center",
         boxShadow: "0 2px 8px rgba(14,165,233,0.05)",
         position: "relative", overflow: "hidden",
         transition: "box-shadow 0.2s",
@@ -595,7 +595,7 @@ function NotifyPanel() {
               }}>
               <div style={{
                 position: "absolute", top: 3, left: prefs[key] ? 18 : 3,
-                width: 14, height: 14, borderRadius: "50%", background: t.cardBg,
+                width: 14, height: 14, borderRadius: "50%", background: "var(--bg-card)",
                 transition: "left 0.2s", boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
               }} />
             </div>
@@ -760,9 +760,9 @@ function UsersPanel() {
                   {editMsg && <div style={{ padding: "5px 8px", borderRadius: 7, background: editMsg === "Đã lưu" ? "rgba(16,185,129,0.08)" : "rgba(220,38,38,0.06)", fontSize: 10, color: editMsg === "Đã lưu" ? "#10b981" : "#dc2626" }}>{editMsg}</div>}
                   <input value={editForm.name} onChange={e => setEditForm(v => ({ ...v, name: e.target.value }))}
                     placeholder="Tên hiển thị"
-                    style={{ background: t.cardBg, border: "1px solid var(--border)", borderRadius: 8, padding: "6px 10px", fontSize: 16, color: "var(--text-primary)", outline: "none", fontFamily: "inherit" }} />
+                    style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 8, padding: "6px 10px", fontSize: 16, color: "var(--text-primary)", outline: "none", fontFamily: "inherit" }} />
                   <select value={editForm.role} onChange={e => setEditForm(v => ({ ...v, role: e.target.value as UserRole }))}
-                    style={{ background: t.cardBg, border: "1px solid var(--border)", borderRadius: 8, padding: "6px 10px", fontSize: 16, color: "var(--text-primary)", outline: "none", fontFamily: "inherit" }}>
+                    style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 8, padding: "6px 10px", fontSize: 16, color: "var(--text-primary)", outline: "none", fontFamily: "inherit" }}>
                     <option value="staff_ft">Nhân Viên (Full Time)</option>
                     <option value="staff_pt">Nhân Viên (Part Time)</option>
                     <option value="staff">Nhân Viên</option>
@@ -771,7 +771,7 @@ function UsersPanel() {
                   </select>
                   <input type="password" value={editForm.password} onChange={e => setEditForm(v => ({ ...v, password: e.target.value }))}
                     placeholder="Mật khẩu mới (để trống = giữ nguyên)"
-                    style={{ background: t.cardBg, border: "1px solid var(--border)", borderRadius: 8, padding: "6px 10px", fontSize: 16, color: "var(--text-primary)", outline: "none", fontFamily: "inherit" }} />
+                    style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 8, padding: "6px 10px", fontSize: 16, color: "var(--text-primary)", outline: "none", fontFamily: "inherit" }} />
                   <div style={{ display: "flex", gap: 6 }}>
                     <button onClick={() => handleEditSave(u)} style={{ flex: 1, padding: "7px", minHeight: 40, borderRadius: 8, border: "none", background: "#0ea5e9", color: "#fff", fontSize: 9, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>LƯU</button>
                     <button onClick={() => setEditingId(null)} style={{ padding: "7px 12px", minHeight: 40, borderRadius: 8, border: "1px solid var(--border)", background: "transparent", color: "var(--text-muted)", fontSize: 9, cursor: "pointer", fontFamily: "inherit" }}>HỦY</button>
@@ -801,10 +801,10 @@ function UsersPanel() {
             {[["Tên hiển thị", "name"], ["Tên đăng nhập", "username"], ["Mật khẩu", "password"]].map(([lbl, key]) => (
               <input key={key} type={key === "password" ? "password" : "text"} placeholder={lbl} value={(newUser as Record<string,string>)[key]}
                 onChange={e => setNewUser(v => ({ ...v, [key]: e.target.value }))}
-                style={{ background: t.cardBg, border: "1px solid var(--border)", borderRadius: 8, padding: "7px 12px", fontSize: 16, color: "var(--text-primary)", outline: "none", fontFamily: "inherit" }} />
+                style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 8, padding: "7px 12px", fontSize: 16, color: "var(--text-primary)", outline: "none", fontFamily: "inherit" }} />
             ))}
             <select value={newUser.role} onChange={e => setNewUser(v => ({ ...v, role: e.target.value as UserRole }))}
-              style={{ background: t.cardBg, border: "1px solid var(--border)", borderRadius: 8, padding: "7px 12px", fontSize: 16, color: "var(--text-primary)", outline: "none", fontFamily: "inherit" }}>
+              style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 8, padding: "7px 12px", fontSize: 16, color: "var(--text-primary)", outline: "none", fontFamily: "inherit" }}>
               <option value="staff_ft">Nhân Viên (Full Time)</option>
               <option value="staff_pt">Nhân Viên (Part Time)</option>
               <option value="staff">Nhân Viên</option>
@@ -1533,7 +1533,7 @@ export default function ProfilePage() {
       {showProfileRequired && (
         <div style={{ position: "fixed", inset: 0, zIndex: 800, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(8px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
           <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
-            style={{ background: t.cardBg, borderRadius: 20, padding: "28px 24px", maxWidth: 360, width: "100%", textAlign: "center", boxShadow: "0 24px 80px rgba(0,0,0,0.25)" }}>
+            style={{ background: "var(--bg-card)", borderRadius: 20, padding: "28px 24px", maxWidth: 360, width: "100%", textAlign: "center", boxShadow: "0 24px 80px rgba(0,0,0,0.25)" }}>
             <div style={{ width: 56, height: 56, borderRadius: 16, background: "rgba(14,165,233,0.1)", border: "2px solid rgba(14,165,233,0.3)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
               <User size={24} style={{ color: "#0ea5e9" }} />
             </div>
@@ -1608,7 +1608,7 @@ export default function ProfilePage() {
             ))}
           </div>
 
-          <div style={{ background: t.cardBg, padding: "0 20px 20px" }}>
+          <div style={{ background: "var(--bg-card)", padding: "0 20px 20px" }}>
             {/* Avatar row */}
             <div style={{ display: "flex", alignItems: "flex-end", gap: 16, marginTop: -52 }}>
               <div style={{ position: "relative" }}>
@@ -1652,7 +1652,7 @@ export default function ProfilePage() {
 
               {/* Actions */}
               <div style={{ display: "flex", gap: 8, paddingTop: 52, paddingBottom: 4 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 5, padding: "7px 12px", borderRadius: 10, border: `1px solid ${t.cardBorder}`, background: t.cardBg, boxShadow: t.cardShadow }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 5, padding: "7px 12px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--bg-card)", boxShadow: "var(--shadow-md)" }}>
                   <div style={{ position: "relative", width: 8, height: 8 }}>
                     <div style={{ width: 8, height: 8, borderRadius: "50%", background: scfg.color }} />
                     {form.status === "working" && (
@@ -1726,7 +1726,7 @@ export default function ProfilePage() {
         {/* ── Tabs ────────────────────────────────────────────────────────── */}
         <div style={{
           display: "flex", gap: 4,
-          background: t.cardBg,
+          background: "var(--bg-card)",
           backdropFilter: "blur(20px) saturate(1.8)", WebkitBackdropFilter: "blur(20px) saturate(1.8)",
           borderRadius: 18, border: "1px solid rgba(201,165,90,0.22)", padding: 5, marginBottom: 16,
           boxShadow: "0 4px 20px rgba(12,26,46,0.1), inset 0 1px 0 rgba(255,255,255,0.9)",
@@ -1771,7 +1771,7 @@ export default function ProfilePage() {
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
 
                 {/* Info card */}
-                <div style={{ borderRadius: 18, border: "1px solid rgba(186,230,253,0.65)", background: t.cardBg, overflow: "hidden", boxShadow: "0 4px 24px rgba(12,26,46,0.08), inset 0 1px 0 rgba(255,255,255,0.9)", backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)" }}>
+                <div style={{ borderRadius: 18, border: "1px solid rgba(186,230,253,0.65)", background: "var(--bg-card)", overflow: "hidden", boxShadow: "0 4px 24px rgba(12,26,46,0.08), inset 0 1px 0 rgba(255,255,255,0.9)", backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)" }}>
                   <div style={{ padding: "13px 20px", borderBottom: "1px solid rgba(255,255,255,0.06)", background: "linear-gradient(90deg, rgba(14,165,233,0.08), rgba(255,255,255,0.03))", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                       <div style={{ width: 3, height: 14, borderRadius: 2, background: "#0ea5e9", boxShadow: "0 0 6px rgba(14,165,233,0.5)" }} />
@@ -1848,7 +1848,7 @@ export default function ProfilePage() {
                 </div>
 
                 {/* Password change */}
-                <div style={{ borderRadius: 18, border: "1px solid rgba(186,230,253,0.65)", background: t.cardBg, overflow: "hidden", boxShadow: "0 4px 24px rgba(12,26,46,0.08), inset 0 1px 0 rgba(255,255,255,0.9)", backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)", transition: "background 0.5s, border-color 0.5s" }}>
+                <div style={{ borderRadius: 18, border: "1px solid rgba(186,230,253,0.65)", background: "var(--bg-card)", overflow: "hidden", boxShadow: "0 4px 24px rgba(12,26,46,0.08), inset 0 1px 0 rgba(255,255,255,0.9)", backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)", transition: "background 0.5s, border-color 0.5s" }}>
                   <motion.button whileHover={{ background: "var(--bg-base)" }} onClick={() => setPwOpen(v => !v)}
                     style={{ width: "100%", padding: "14px 20px", display: "flex", alignItems: "center", gap: 10, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", textAlign: "left", transition: "background 0.15s" }}>
                     <div style={{ width: 28, height: 28, borderRadius: 8, background: "rgba(220,38,38,0.08)", border: "1px solid rgba(220,38,38,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -1989,7 +1989,7 @@ export default function ProfilePage() {
               return (
                 <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                   {/* Month selector */}
-                  <div style={{ background: t.cardBg, backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)", borderRadius: 18, border: "1px solid rgba(201,165,90,0.22)", padding: "14px 20px", display: "flex", alignItems: "center", gap: 12, boxShadow: "0 4px 20px rgba(12,26,46,0.08), inset 0 1px 0 rgba(255,255,255,0.9)" }}>
+                  <div style={{ background: "var(--bg-card)", backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)", borderRadius: 18, border: "1px solid rgba(201,165,90,0.22)", padding: "14px 20px", display: "flex", alignItems: "center", gap: 12, boxShadow: "0 4px 20px rgba(12,26,46,0.08), inset 0 1px 0 rgba(255,255,255,0.9)" }}>
                     <Trophy size={16} style={{ color: "#C9A55A" }} />
                     <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)", flex: 1, fontFamily: "var(--font-montserrat), sans-serif" }}>BẢNG XẾP HẠNG DOANH SỐ</span>
                     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -2042,8 +2042,8 @@ export default function ProfilePage() {
                             initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
                             transition={{ delay: i * 0.04, ease: [0.16, 1, 0.3, 1] }}
                             style={{
-                              background: isMe ? "linear-gradient(135deg, rgba(201,165,90,0.10), rgba(59,130,246,0.06))" : t.cardBg,
-                              border: isMe ? "1.5px solid rgba(201,165,90,0.35)" : `1px solid ${t.cardBorder}`,
+                              background: isMe ? "linear-gradient(135deg, rgba(201,165,90,0.10), rgba(59,130,246,0.06))" : "var(--bg-card)",
+                              border: isMe ? "1.5px solid rgba(201,165,90,0.35)" : "1px solid var(--border)",
                               borderRadius: 14, padding: "14px 16px",
                               boxShadow: isMe ? "0 6px 24px rgba(201,165,90,0.20), inset 0 1px 0 rgba(255,255,255,0.06)" : "0 2px 8px rgba(0,0,0,0.30)",
                               backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)",

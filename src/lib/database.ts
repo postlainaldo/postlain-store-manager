@@ -115,8 +115,9 @@ function migrateSchema(db: Database.Database) {
   if (!userCols.includes("avatar"))   db.exec("ALTER TABLE users ADD COLUMN avatar TEXT");
   if (!userCols.includes("status"))   db.exec("ALTER TABLE users ADD COLUMN status TEXT DEFAULT 'online'");
   if (!userCols.includes("bio"))      db.exec("ALTER TABLE users ADD COLUMN bio TEXT DEFAULT ''");
-  if (!userCols.includes("phone"))    db.exec("ALTER TABLE users ADD COLUMN phone TEXT DEFAULT ''");
-  if (!userCols.includes("fullName")) db.exec("ALTER TABLE users ADD COLUMN fullName TEXT DEFAULT ''");
+  if (!userCols.includes("phone"))        db.exec("ALTER TABLE users ADD COLUMN phone TEXT DEFAULT ''");
+  if (!userCols.includes("fullName"))     db.exec("ALTER TABLE users ADD COLUMN fullName TEXT DEFAULT ''");
+  if (!userCols.includes("employeeCode")) db.exec("ALTER TABLE users ADD COLUMN employeeCode TEXT DEFAULT ''");
 
   // ── chat system ─────────────────────────────────────────────────────────────
   db.exec(`
