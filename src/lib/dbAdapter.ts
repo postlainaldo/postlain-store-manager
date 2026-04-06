@@ -393,10 +393,18 @@ export async function ensureSupabaseSchema() {
 export async function dbGetUsers(): Promise<DBUser[]> {
   if (IS_SUPABASE) {
     const sb = getSupabase();
+    try {
+      const { data, error } = await sb
+        .from("users")
+        .select("id, name, username, role, active, createdAt, avatar, status, bio, phone, fullName")
+        .eq("store_id", sid())
+        .order("createdAt");
+      if (!error) return (data ?? []) as DBUser[];
+    } catch {}
+    // Fallback without store_id
     const { data } = await sb
       .from("users")
       .select("id, name, username, role, active, createdAt, avatar, status, bio, phone, fullName")
-      .eq("store_id", sid())
       .order("createdAt");
     return (data ?? []) as DBUser[];
   }
@@ -406,10 +414,23 @@ export async function dbGetUsers(): Promise<DBUser[]> {
 export async function dbGetUserByCredentials(username: string, password: string): Promise<DBUser | null> {
   if (IS_SUPABASE) {
     const sb = getSupabase();
+    // Try with store_id filter first (multi-tenant), fallback without if column doesn't exist yet
+    try {
+      const { data, error } = await sb
+        .from("users")
+        .select("id, name, username, role, active")
+        .eq("store_id", sid())
+        .eq("username", username.toLowerCase())
+        .eq("passwordHash", password)
+        .single();
+      if (!error) return data as DBUser | null;
+      // If store_id column missing, fall through to query without it
+      if (!error.message?.includes("store_id")) return null;
+    } catch {}
+    // Fallback: no store_id filter (single-store legacy or schema not migrated yet)
     const { data } = await sb
       .from("users")
       .select("id, name, username, role, active")
-      .eq("store_id", sid())
       .eq("username", username.toLowerCase())
       .eq("passwordHash", password)
       .single();
