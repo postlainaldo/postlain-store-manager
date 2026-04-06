@@ -115,7 +115,7 @@ function Avatar({ src, name, size = 32, status }: { src?: string | null; name: s
           position: "absolute", bottom: -1, right: -1,
           width: Math.max(8, size * 0.28), height: Math.max(8, size * 0.28),
           borderRadius: "50%", background: STATUS_COLOR[status] ?? "#cbd5e1",
-          border: "1.5px solid #fff",
+          border: "1.5px solid rgba(255,255,255,0.9)",
         }} />
       )}
     </div>
@@ -123,8 +123,8 @@ function Avatar({ src, name, size = 32, status }: { src?: string | null; name: s
 }
 
 const iconBtn: React.CSSProperties = {
-  width: 26, height: 26, borderRadius: 7, border: "1px solid #e0e7ff",
-  background: "#f8f9ff", display: "flex", alignItems: "center",
+  width: 26, height: 26, borderRadius: 7, border: "1px solid rgba(186,230,253,0.55)",
+  background: "rgba(255,255,255,0.72)", display: "flex", alignItems: "center",
   justifyContent: "center", cursor: "pointer",
 };
 
@@ -147,7 +147,7 @@ function ImageLightbox({ src, onClose }: { src: string; onClose: () => void }) {
     >
       <div onClick={e => e.stopPropagation()} style={{ position: "relative", maxWidth: "90vw", maxHeight: "90vh" }}>
         <img src={src} alt="" style={{ maxWidth: "90vw", maxHeight: "90vh", objectFit: "contain", borderRadius: 12, boxShadow: "0 8px 48px rgba(0,0,0,0.6)", display: "block" }} />
-        <button onClick={onClose} style={{ position: "absolute", top: -14, right: -14, width: 32, height: 32, borderRadius: "50%", background: "#fff", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 2px 8px rgba(0,0,0,0.3)" }}>
+        <button onClick={onClose} style={{ position: "absolute", top: -14, right: -14, width: 32, height: 32, borderRadius: "50%", background: "rgba(255,255,255,0.92)", backdropFilter: "blur(8px)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 2px 8px rgba(0,0,0,0.3)" }}>
           <X size={16} style={{ color: "#0c1a2e" }} />
         </button>
         <a href={src} download target="_blank" rel="noreferrer"
@@ -191,8 +191,8 @@ function MediaContent({ msg, isMe, onOpenLightbox }: { msg: Message; isMe: boole
         marginTop: msg.content ? 6 : 0,
         display: "flex", alignItems: "center", gap: 8,
         padding: "8px 10px", borderRadius: 10,
-        background: "#f0f4ff",
-        border: "1px solid #e0e7ff",
+        background: "rgba(238,246,253,0.9)",
+        border: "1px solid rgba(186,230,253,0.6)",
         textDecoration: "none", cursor: "pointer",
       }}
     >
@@ -307,7 +307,7 @@ function MsgBubble({ msg, isMe, showHeader, members, onDelete, onRevoke, onReply
                   <button onClick={() => onReact(msg.id, emoji)}
                     onMouseEnter={() => setHoveredReaction(emoji)}
                     onMouseLeave={() => setHoveredReaction(null)}
-                    style={{ display: "flex", alignItems: "center", gap: 3, background: "#f0f4ff", border: "1px solid #e0e7ff", borderRadius: 12, padding: "2px 7px", cursor: "pointer", fontSize: 12, lineHeight: 1.4 }}>
+                    style={{ display: "flex", alignItems: "center", gap: 3, background: "rgba(255,255,255,0.82)", border: "1px solid rgba(186,230,253,0.55)", borderRadius: 12, padding: "2px 7px", cursor: "pointer", fontSize: 12, lineHeight: 1.4 }}>
                     {emoji} <span style={{ fontSize: 9.5, color: "#64748b" }}>{userIds.length}</span>
                   </button>
                   {hoveredReaction === emoji && (
@@ -355,9 +355,9 @@ function MsgBubble({ msg, isMe, showHeader, members, onDelete, onRevoke, onReply
             style={{
               position: "absolute", top: -14, right: 16,
               display: "flex", alignItems: "center", gap: 2,
-              background: "#fff", border: "1px solid #e0e7ff", borderRadius: 10,
+              background: "rgba(255,255,255,0.94)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", border: "1px solid rgba(186,230,253,0.55)", borderRadius: 10,
               padding: "3px 5px",
-              boxShadow: "0 4px 16px rgba(99,102,241,0.10)",
+              boxShadow: "0 4px 20px rgba(12,26,46,0.12), inset 0 1px 0 rgba(255,255,255,0.8)",
               zIndex: 10,
             }}
           >
@@ -373,9 +373,9 @@ function MsgBubble({ msg, isMe, showHeader, members, onDelete, onRevoke, onReply
                     initial={{ opacity: 0, scale: 0.9, y: 4 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0 }}
                     style={{
                       position: "absolute", right: 0, bottom: "calc(100% + 4px)",
-                      background: "#fff", border: "1px solid #e0e7ff", borderRadius: 20, padding: "6px 10px",
+                      background: "rgba(255,255,255,0.96)", backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)", border: "1px solid rgba(186,230,253,0.55)", borderRadius: 20, padding: "6px 10px",
                       display: "flex", flexWrap: "wrap", gap: 2, width: 200,
-                      boxShadow: "0 4px 20px rgba(99,102,241,0.12)", zIndex: 30,
+                      boxShadow: "0 4px 24px rgba(12,26,46,0.14), inset 0 1px 0 rgba(255,255,255,0.8)", zIndex: 30,
                     }}
                   >
                     {QUICK_REACTIONS.map(e => (
@@ -449,7 +449,7 @@ function UploadPreview({ file, onCancel }: { file: File; onCancel: () => void })
   const isImage = file.type.startsWith("image/");
   const url = isImage ? URL.createObjectURL(file) : null;
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", borderRadius: 10, background: "#f0f4ff", border: "1px solid #e0e7ff", marginBottom: 6 }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", borderRadius: 10, background: "rgba(238,246,253,0.9)", border: "1px solid rgba(186,230,253,0.6)", marginBottom: 6 }}>
       {url
         ? <img src={url} alt="" style={{ width: 40, height: 40, objectFit: "cover", borderRadius: 6 }} />
         : <FileIcon size={18} style={{ color: "#6366f1", flexShrink: 0 }} />
@@ -1037,8 +1037,8 @@ export default function ChatPage() {
     <div style={{
       display: "flex", flexDirection: "column", height: "100%",
       ...(isMobile
-        ? { flex: 1, background: "rgba(240,244,255,0.92)" }
-        : { width: 232, flexShrink: 0, borderRight: `1px solid ${cardBorder}`, background: "rgba(240,244,255,0.85)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)" }),
+        ? { flex: 1, background: "rgba(255,255,255,0.82)", backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)" }
+        : { width: 232, flexShrink: 0, borderRight: "1px solid rgba(186,230,253,0.6)", background: "rgba(255,255,255,0.82)", backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)" }),
     }}>
       {/* Server header */}
       <div style={{
@@ -1094,7 +1094,7 @@ export default function ChatPage() {
                   <input value={newRoomName} onChange={e => setNewRoomName(e.target.value)} autoFocus
                     onKeyDown={e => { if (e.key === "Enter") handleCreateRoom(); if (e.key === "Escape") { setNewRoom(false); setNewRoomName(""); } }}
                     placeholder="tên-kênh..."
-                    style={{ flex: 1, fontSize: 11, background: "#fff", border: "1px solid #e0e7ff", borderRadius: 4, padding: "5px 8px", outline: "none", fontFamily: "inherit", color: "#0c1a2e" }}
+                    style={{ flex: 1, fontSize: 11, background: "rgba(255,255,255,0.88)", border: "1px solid rgba(186,230,253,0.6)", borderRadius: 4, padding: "5px 8px", outline: "none", fontFamily: "inherit", color: "#0c1a2e" }}
                   />
                   <button onClick={handleCreateRoom} style={{ background: "linear-gradient(135deg,#6366f1,#818cf8)", border: "none", borderRadius: 4, padding: "4px 8px", cursor: "pointer" }}>
                     <Check size={11} style={{ color: "#fff" }} />
@@ -1116,12 +1116,12 @@ export default function ChatPage() {
                       margin: "1px 8px", padding: isMobile ? "10px 10px" : "6px 8px",
                       cursor: "pointer", display: "flex", alignItems: "center", gap: 8,
                       borderRadius: 6,
-                      background: isActive ? "linear-gradient(135deg, rgba(99,102,241,0.12), rgba(139,92,246,0.08))" : "transparent",
-                      borderLeft: isActive ? "3px solid #6366f1" : "3px solid transparent",
+                      background: isActive ? "rgba(201,165,90,0.08)" : "transparent",
+                      borderLeft: isActive ? "2px solid #C9A55A" : "2px solid transparent",
                       transition: "background 0.1s, border-color 0.1s",
                     }}
-                    onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = "rgba(99,102,241,0.06)"; }}
-                    onMouseLeave={e => { e.currentTarget.style.background = isActive ? "linear-gradient(135deg, rgba(99,102,241,0.12), rgba(139,92,246,0.08))" : "transparent"; }}
+                    onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = "rgba(201,165,90,0.05)"; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = isActive ? "rgba(201,165,90,0.08)" : "transparent"; }}
                   >
                     {isMobile
                       ? <div style={{ width: 38, height: 38, borderRadius: "50%", background: isDM ? "linear-gradient(135deg,#6366f1,#818cf8)" : "#e0e7ff", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
@@ -1130,17 +1130,17 @@ export default function ChatPage() {
                       : <>
                           {room.icon
                             ? <span style={{ fontSize: 14, flexShrink: 0 }}>{room.icon}</span>
-                            : <Icon size={16} style={{ color: isActive ? "#6366f1" : "#94a3b8", flexShrink: 0 }} />
+                            : <Icon size={16} style={{ color: isActive ? "#C9A55A" : "#94a3b8", flexShrink: 0 }} />
                           }
                         </>
                     }
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ fontSize: 13, color: isActive ? "#0c1a2e" : "#64748b", fontWeight: isActive || unread > 0 ? 600 : 400, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", transition: "color 0.1s" }}>
+                      <p style={{ fontSize: 13, color: isActive ? "#0c1a2e" : "var(--text-secondary)", fontWeight: isActive || unread > 0 ? 600 : 400, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", transition: "color 0.1s" }}>
                         {room.name}
                       </p>
                     </div>
                     {unread > 0 && (
-                      <div style={{ minWidth: 18, height: 18, borderRadius: 9, background: "#6366f1", display: "flex", alignItems: "center", justifyContent: "center", padding: "0 4px", flexShrink: 0 }}>
+                      <div style={{ minWidth: 18, height: 18, borderRadius: 9, background: "#C9A55A", display: "flex", alignItems: "center", justifyContent: "center", padding: "0 4px", flexShrink: 0 }}>
                         <span style={{ fontSize: 8, fontWeight: 800, color: "#fff" }}>{unread > 99 ? "99+" : unread}</span>
                       </div>
                     )}
@@ -1165,10 +1165,10 @@ export default function ChatPage() {
       {/* Self user bar */}
       {!isMobile && currentUser && (
         <div style={{
-          height: 52, borderTop: "1px solid rgba(186,230,253,0.45)",
+          height: 52, borderTop: "1px solid rgba(186,230,253,0.6)",
           display: "flex", alignItems: "center", padding: "0 8px", gap: 8, flexShrink: 0,
-          background: "rgba(240,244,255,0.85)",
-          backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)",
+          background: "rgba(255,255,255,0.82)",
+          backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)",
         }}>
           <Avatar src={null} name={currentUser.name} size={32} status="online" />
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -1185,14 +1185,14 @@ export default function ChatPage() {
   );
 
   const chatMainEl = (
-    <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, position: "relative", background: "rgba(250,251,255,0.92)" }}>
+    <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, position: "relative", background: "var(--bg-base)" }}>
       {/* Header */}
       <div style={{
         height: 48, padding: "0 16px 0 12px", borderBottom: `1px solid ${cardBorder}`,
         display: "flex", alignItems: "center", gap: 10, flexShrink: 0,
-        background: cardBg,
-        backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)",
-        boxShadow: "0 1px 0 rgba(99,102,241,0.06)",
+        background: "rgba(255,255,255,0.92)",
+        backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)",
+        boxShadow: "0 1px 0 rgba(186,230,253,0.4), inset 0 1px 0 rgba(255,255,255,0.8)",
       }}>
         {isMobile ? (
           <button onClick={() => setMobileView("rooms")} style={{ ...iconBtn, background: "transparent", border: "none", flexShrink: 0 }}>
@@ -1249,7 +1249,7 @@ export default function ChatPage() {
           <motion.div
             initial={{ height: 0, opacity: 0 }} animate={{ height: 44, opacity: 1 }} exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.15 }}
-            style={{ overflow: "hidden", borderBottom: "1px solid #e0e7ff", background: "#f8f9ff", flexShrink: 0 }}
+            style={{ overflow: "hidden", borderBottom: "1px solid rgba(186,230,253,0.5)", background: "rgba(255,255,255,0.88)", flexShrink: 0 }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 14px", height: 44 }}>
               <Search size={12} style={{ color: "#94a3b8", flexShrink: 0 }} />
@@ -1309,7 +1309,7 @@ export default function ChatPage() {
             return (
               <div key={`date-${item.date}-${i}`} style={{ display: "flex", alignItems: "center", gap: 10, margin: "16px 16px 8px" }}>
                 <div style={{ flex: 1, height: 1, background: "#e0e7ff" }} />
-                <span style={{ fontSize: 10, color: "#94a3b8", fontWeight: 700, whiteSpace: "nowrap", padding: "0 8px", background: "#fafbff", borderRadius: 20, border: "1px solid #e0e7ff" }}>{item.date}</span>
+                <span style={{ fontSize: 10, color: "var(--text-muted)", fontWeight: 700, whiteSpace: "nowrap", padding: "0 8px", background: "rgba(255,255,255,0.88)", borderRadius: 20, border: "1px solid rgba(186,230,253,0.55)" }}>{item.date}</span>
                 <div style={{ flex: 1, height: 1, background: "#e0e7ff" }} />
               </div>
             );
@@ -1350,7 +1350,7 @@ export default function ChatPage() {
 
       {/* Edit message bar */}
       {editingMsg && (
-        <div style={{ padding: "8px 16px", borderTop: "1px solid #e0e7ff", background: "#f0f4ff", flexShrink: 0 }}>
+        <div style={{ padding: "8px 16px", borderTop: "1px solid rgba(186,230,253,0.5)", background: "rgba(255,255,255,0.88)", flexShrink: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
             <Pencil size={11} style={{ color: "#6366f1" }} />
             <span style={{ fontSize: 10, color: "#6366f1", fontWeight: 600 }}>Đang chỉnh sửa tin nhắn</span>
@@ -1368,7 +1368,7 @@ export default function ChatPage() {
                 if (e.key === "Escape") { setEditingMsg(null); setEditContent(""); }
               }}
               rows={1}
-              style={{ flex: 1, fontSize: 13, color: "#0c1a2e", fontFamily: "inherit", background: "#fff", border: "1px solid #e0e7ff", borderRadius: 8, padding: "8px 12px", outline: "none", resize: "none", lineHeight: 1.5, maxHeight: 100, overflowY: "auto" }}
+              style={{ flex: 1, fontSize: 13, color: "#0c1a2e", fontFamily: "inherit", background: "rgba(255,255,255,0.9)", border: "1px solid rgba(186,230,253,0.6)", borderRadius: 8, padding: "8px 12px", outline: "none", resize: "none", lineHeight: 1.5, maxHeight: 100, overflowY: "auto" }}
               onInput={e => { const t = e.currentTarget; t.style.height = "auto"; t.style.height = Math.min(t.scrollHeight, 100) + "px"; }}
             />
             <button onClick={handleSaveEdit} style={{ width: 36, height: 36, borderRadius: 8, border: "none", background: "linear-gradient(135deg,#6366f1,#818cf8)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}>
@@ -1387,16 +1387,16 @@ export default function ChatPage() {
           </div>
         ) : (
           <div style={{
-            background: cardBg,
-            backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)",
+            background: "rgba(255,255,255,0.92)",
+            backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)",
             borderRadius: 12, overflow: "hidden",
-            border: `1px solid ${cardBorder}`,
-            boxShadow: "0 2px 12px rgba(12,26,46,0.06), inset 0 1px 0 rgba(255,255,255,0.6)",
+            border: "1px solid rgba(186,230,253,0.6)",
+            boxShadow: "0 4px 20px rgba(12,26,46,0.08), inset 0 1px 0 rgba(255,255,255,0.9)",
           }}>
             {replyTo && (
-              <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: "#f0f4ff", borderBottom: "1px solid #e0e7ff" }}>
-                <Reply size={11} style={{ color: "#6366f1", flexShrink: 0 }} />
-                <span style={{ fontSize: 10, fontWeight: 700, color: "#6366f1" }}>Trả lời</span>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: "rgba(201,165,90,0.06)", borderBottom: "1px solid rgba(201,165,90,0.2)" }}>
+                <Reply size={11} style={{ color: "#C9A55A", flexShrink: 0 }} />
+                <span style={{ fontSize: 10, fontWeight: 700, color: "#C9A55A" }}>Trả lời</span>
                 <span style={{ fontSize: 10, fontWeight: 600, color: "#0c1a2e" }}>{replyTo.userName}</span>
                 <span style={{ fontSize: 10, color: "#64748b", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {replyTo.mediaType === "image" ? "📷 Ảnh" : replyTo.mediaType === "file" ? "📎 File" : replyTo.content}
@@ -1434,7 +1434,7 @@ export default function ChatPage() {
                 onClick={handleSend}
                 disabled={(!input.trim() && !pendingFile) || sending || uploading || !activeRoom}
                 title="Gửi (Enter)"
-                style={{ width: 34, height: 34, borderRadius: 7, border: "none", flexShrink: 0, marginBottom: 2, background: (input.trim() || pendingFile) && activeRoom ? "linear-gradient(135deg,#6366f1,#818cf8)" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", cursor: (input.trim() || pendingFile) && activeRoom ? "pointer" : "default", transition: "background 0.1s" }}
+                style={{ width: 34, height: 34, borderRadius: 7, border: "none", flexShrink: 0, marginBottom: 2, background: (input.trim() || pendingFile) && activeRoom ? "linear-gradient(135deg,#C9A55A,#e8c97a)" : "transparent", boxShadow: (input.trim() || pendingFile) && activeRoom ? "0 2px 12px rgba(201,165,90,0.45)" : "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: (input.trim() || pendingFile) && activeRoom ? "pointer" : "default", transition: "background 0.1s, box-shadow 0.1s" }}
               >
                 {uploading
                   ? <div style={{ width: 13, height: 13, borderRadius: "50%", border: "2px solid #fff", borderTopColor: "transparent", animation: "spin 0.6s linear infinite" }} />
@@ -1454,12 +1454,12 @@ export default function ChatPage() {
             transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
             style={{
               position: "absolute", top: 0, right: 0, bottom: 0, width: Math.min(300, typeof window !== "undefined" ? window.innerWidth : 300),
-              background: "#fff", borderLeft: "1px solid #e0e7ff", zIndex: 30,
+              background: "rgba(255,255,255,0.96)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", borderLeft: "1px solid rgba(186,230,253,0.6)", zIndex: 30,
               display: "flex", flexDirection: "column", overflow: "hidden",
             }}
           >
             {/* Panel header */}
-            <div style={{ padding: "14px 16px", borderBottom: "1px solid #e0e7ff", display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ padding: "14px 16px", borderBottom: "1px solid rgba(186,230,253,0.5)", display: "flex", alignItems: "center", gap: 10 }}>
               <div style={{ flex: 1 }}>
                 <p style={{ fontSize: 13, fontWeight: 700, color: "#0c1a2e" }}>Thông Tin Nhóm</p>
               </div>
@@ -1470,8 +1470,8 @@ export default function ChatPage() {
 
             <div style={{ flex: 1, overflowY: "auto" }}>
               {/* Room avatar + name */}
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "20px 16px 14px", borderBottom: "1px solid #e0e7ff" }}>
-                <div style={{ width: 64, height: 64, borderRadius: "50%", background: activeRoom.color ? activeRoom.color + "22" : "#eef0fd", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 10, border: "2px solid #e0e7ff" }}>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "20px 16px 14px", borderBottom: "1px solid rgba(186,230,253,0.5)" }}>
+                <div style={{ width: 64, height: 64, borderRadius: "50%", background: activeRoom.color ? activeRoom.color + "22" : "rgba(238,240,253,0.8)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 10, border: "2px solid rgba(186,230,253,0.55)" }}>
                   {activeRoom.icon
                     ? <span style={{ fontSize: 28 }}>{activeRoom.icon}</span>
                     : activeRoom.type === "announce"
@@ -1485,24 +1485,24 @@ export default function ChatPage() {
 
               {/* Room settings (admin only) */}
               {isAdmin && (
-                <div style={{ padding: "14px 16px", borderBottom: "1px solid #e0e7ff", background: "#f0f4ff" }}>
+                <div style={{ padding: "14px 16px", borderBottom: "1px solid rgba(186,230,253,0.5)", background: "rgba(238,246,253,0.7)" }}>
                   <p style={{ fontSize: 8.5, fontWeight: 700, color: "#6366f1", letterSpacing: "0.12em", marginBottom: 10 }}>CÀI ĐẶT KÊNH</p>
                   <div style={{ marginBottom: 10 }}>
                     <p style={{ fontSize: 9, color: "#94a3b8", marginBottom: 4 }}>Tên kênh</p>
                     <input value={roomSettingsName} onChange={e => setRoomSettingsName(e.target.value)}
-                      style={{ width: "100%", fontSize: 11, color: "#0c1a2e", fontFamily: "inherit", background: "#fff", border: "1px solid #e0e7ff", borderRadius: 7, padding: "6px 10px", outline: "none", boxSizing: "border-box" }} />
+                      style={{ width: "100%", fontSize: 11, color: "#0c1a2e", fontFamily: "inherit", background: "rgba(255,255,255,0.88)", border: "1px solid rgba(186,230,253,0.6)", borderRadius: 7, padding: "6px 10px", outline: "none", boxSizing: "border-box" }} />
                   </div>
                   <div style={{ marginBottom: 10 }}>
                     <p style={{ fontSize: 9, color: "#94a3b8", marginBottom: 4 }}>Icon (emoji)</p>
                     <input value={roomSettingsIcon} onChange={e => setRoomSettingsIcon(e.target.value)} maxLength={4}
-                      placeholder="💬" style={{ width: "100%", fontSize: 16, fontFamily: "inherit", background: "#fff", border: "1px solid #e0e7ff", borderRadius: 7, padding: "6px 10px", outline: "none", boxSizing: "border-box" }} />
+                      placeholder="💬" style={{ width: "100%", fontSize: 16, fontFamily: "inherit", background: "rgba(255,255,255,0.88)", border: "1px solid rgba(186,230,253,0.6)", borderRadius: 7, padding: "6px 10px", outline: "none", boxSizing: "border-box" }} />
                   </div>
                   <div style={{ marginBottom: 10 }}>
                     <p style={{ fontSize: 9, color: "#94a3b8", marginBottom: 6 }}>Màu nền (tin nhắn admin)</p>
                     <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                       {["", "#0ea5e9", "#8b5cf6", "#10b981", "#f59e0b", "#ef4444", "#ec4899", "#0c1a2e"].map(c => (
                         <button key={c || "none"} onClick={() => setRoomSettingsColor(c)}
-                          style={{ width: 24, height: 24, borderRadius: "50%", border: roomSettingsColor === c ? "2.5px solid #6366f1" : "1.5px solid #e0e7ff", background: c || "#f1f5f9", cursor: "pointer", flexShrink: 0 }} />
+                          style={{ width: 24, height: 24, borderRadius: "50%", border: roomSettingsColor === c ? "2.5px solid #C9A55A" : "1.5px solid rgba(186,230,253,0.6)", background: c || "var(--bg-base)", cursor: "pointer", flexShrink: 0 }} />
                       ))}
                     </div>
                   </div>
@@ -1525,7 +1525,7 @@ export default function ChatPage() {
                 const visibleMembers = allowedIds ? members.filter(m => allowedIds!.includes(m.id)) : members;
 
                 return (
-                  <div style={{ padding: "14px 16px", borderBottom: "1px solid #e0e7ff" }}>
+                  <div style={{ padding: "14px 16px", borderBottom: "1px solid rgba(186,230,253,0.5)" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
                       <Users size={12} style={{ color: "#94a3b8" }} />
                       <p style={{ fontSize: 8.5, fontWeight: 700, color: "#6366f1", letterSpacing: "0.12em", flex: 1 }}>THÀNH VIÊN · {visibleMembers.length}</p>
@@ -1541,7 +1541,7 @@ export default function ChatPage() {
 
                     {/* Admin member management: checkboxes */}
                     {isAdmin && showMemberMgmt && activeRoom.type !== "direct" && (
-                      <div style={{ marginBottom: 10, padding: "8px 10px", background: "#f0f4ff", borderRadius: 8, border: "1px solid #e0e7ff" }}>
+                      <div style={{ marginBottom: 10, padding: "8px 10px", background: "rgba(238,246,253,0.8)", borderRadius: 8, border: "1px solid rgba(186,230,253,0.5)" }}>
                         <p style={{ fontSize: 9, color: "#64748b", marginBottom: 8 }}>Bỏ chọn để hạn chế truy cập. Để trống = mọi người đều thấy kênh này.</p>
                         <div style={{ display: "flex", flexDirection: "column", gap: 4, maxHeight: 180, overflowY: "auto" }}>
                           {members.map(m => {
@@ -1604,7 +1604,7 @@ export default function ChatPage() {
 
               {/* Shared images */}
               {infoPanelMedia.length > 0 && (
-                <div style={{ padding: "14px 16px", borderBottom: "1px solid #e0e7ff" }}>
+                <div style={{ padding: "14px 16px", borderBottom: "1px solid rgba(186,230,253,0.5)" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
                     <ImageIcon size={12} style={{ color: "#94a3b8" }} />
                     <p style={{ fontSize: 8.5, fontWeight: 700, color: "#6366f1", letterSpacing: "0.12em" }}>ẢNH · {infoPanelMedia.length}</p>
