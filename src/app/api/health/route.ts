@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { IS_SUPABASE } from "@/lib/supabase";
+import { setActiveStore } from "@/lib/supabase";
+import { getStoreId } from "@/lib/storeContext";
 
 export async function GET() {
   const info: Record<string, unknown> = {

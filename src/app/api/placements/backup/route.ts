@@ -14,6 +14,8 @@ import {
 } from "@/lib/dbAdapter";
 import { IS_SUPABASE, getSupabase } from "@/lib/supabase";
 import getDb from "@/lib/database";
+import { setActiveStore } from "@/lib/supabase";
+import { getStoreId } from "@/lib/storeContext";
 
 export const dynamic = "force-dynamic";
 
@@ -68,6 +70,7 @@ export async function GET() {
 
 // ── POST — restore placements from JSON ───────────────────────────────────────
 export async function POST(req: NextRequest) {
+  setActiveStore(getStoreId(req));
   await ensureSupabaseSchema();
 
   let data: {

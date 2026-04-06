@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { writeFileSync, mkdirSync, existsSync } from "fs";
 import { join, extname } from "path";
+import { setActiveStore } from "@/lib/supabase";
+import { getStoreId } from "@/lib/storeContext";
 
 export async function POST(req: NextRequest) {
+  setActiveStore(getStoreId(req));
   const formData = await req.formData();
   const file = formData.get("file") as File | null;
 

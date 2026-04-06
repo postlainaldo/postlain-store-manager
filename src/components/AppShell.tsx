@@ -12,7 +12,7 @@ import PushPrompt from "@/components/PushPrompt";
 import AIChatWidget from "@/components/AIChatWidget";
 import { useStore } from "@/store/useStore";
 
-const NO_SHELL_PATHS = ["/login", "/setup", "/install"];
+const NO_SHELL_PATHS = ["/login", "/setup", "/install", "/store-select"];
 
 // Pages that need full-height containers (no extra padding, scroll managed inside)
 const FULL_HEIGHT_PATHS = ["/chat", "/visual-board"];

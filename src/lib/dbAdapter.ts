@@ -2,14 +2,22 @@
  * Postlain Store Manager — Database Adapter
  *
  * Abstracts over SQLite (local dev) and Supabase PostgreSQL (Vercel).
- * All API routes should use these functions instead of calling getDb() directly.
+ * All API routes should use these functions instead of calling getStoreDb() directly.
  *
  * WHY: SQLite /tmp on Vercel resets on cold starts → data loss.
  *      Supabase provides persistent PostgreSQL storage for free.
  */
 
-import { IS_SUPABASE, getSupabase } from "./supabase";
+import { IS_SUPABASE, getSupabase, getActiveStoreId } from "./supabase";
 import getDb from "./database";
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+/** SQLite: lấy DB đúng store */
+function getStoreDb() { return getDb(getActiveStoreId()); }
+
+/** storeId hiện tại */
+function sid() { return getActiveStoreId(); }
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -352,6 +360,24 @@ export async function ensureSupabaseSchema() {
     );
     CREATE INDEX IF NOT EXISTS idx_shift_reg_slot ON shift_registrations("slotId");
     CREATE INDEX IF NOT EXISTS idx_shift_reg_user ON shift_registrations("userId");
+
+    -- Multi-tenant: thêm store_id vào các bảng chính (data cũ default = 'postlain')
+    ALTER TABLE users              ADD COLUMN IF NOT EXISTS store_id TEXT NOT NULL DEFAULT 'postlain';
+    ALTER TABLE products           ADD COLUMN IF NOT EXISTS store_id TEXT NOT NULL DEFAULT 'postlain';
+    ALTER TABLE chat_rooms         ADD COLUMN IF NOT EXISTS store_id TEXT NOT NULL DEFAULT 'postlain';
+    ALTER TABLE notifications      ADD COLUMN IF NOT EXISTS store_id TEXT NOT NULL DEFAULT 'postlain';
+    ALTER TABLE movements          ADD COLUMN IF NOT EXISTS store_id TEXT NOT NULL DEFAULT 'postlain';
+    ALTER TABLE app_settings       ADD COLUMN IF NOT EXISTS store_id TEXT NOT NULL DEFAULT 'postlain';
+    ALTER TABLE customers          ADD COLUMN IF NOT EXISTS store_id TEXT NOT NULL DEFAULT 'postlain';
+    ALTER TABLE pos_orders         ADD COLUMN IF NOT EXISTS store_id TEXT NOT NULL DEFAULT 'postlain';
+    ALTER TABLE shift_slots        ADD COLUMN IF NOT EXISTS store_id TEXT NOT NULL DEFAULT 'postlain';
+    ALTER TABLE shift_templates    ADD COLUMN IF NOT EXISTS store_id TEXT NOT NULL DEFAULT 'postlain';
+
+    CREATE INDEX IF NOT EXISTS idx_users_store        ON users(store_id);
+    CREATE INDEX IF NOT EXISTS idx_products_store     ON products(store_id);
+    CREATE INDEX IF NOT EXISTS idx_movements_store    ON movements(store_id);
+    CREATE INDEX IF NOT EXISTS idx_pos_orders_store   ON pos_orders(store_id);
+    CREATE INDEX IF NOT EXISTS idx_shift_slots_store  ON shift_slots(store_id);
   `;
 
   try {
@@ -370,10 +396,11 @@ export async function dbGetUsers(): Promise<DBUser[]> {
     const { data } = await sb
       .from("users")
       .select("id, name, username, role, active, createdAt, avatar, status, bio, phone, fullName")
+      .eq("store_id", sid())
       .order("createdAt");
     return (data ?? []) as DBUser[];
   }
-  return getDb().prepare("SELECT id, name, username, role, active, createdAt, avatar, status, bio, phone, fullName FROM users ORDER BY createdAt").all() as DBUser[];
+  return getStoreDb().prepare("SELECT id, name, username, role, active, createdAt, avatar, status, bio, phone, fullName FROM users ORDER BY createdAt").all() as DBUser[];
 }
 
 export async function dbGetUserByCredentials(username: string, password: string): Promise<DBUser | null> {
@@ -382,12 +409,13 @@ export async function dbGetUserByCredentials(username: string, password: string)
     const { data } = await sb
       .from("users")
       .select("id, name, username, role, active")
+      .eq("store_id", sid())
       .eq("username", username.toLowerCase())
       .eq("passwordHash", password)
       .single();
     return data as DBUser | null;
   }
-  return getDb().prepare(
+  return getStoreDb().prepare(
     "SELECT id, name, username, role, active FROM users WHERE username = ? AND passwordHash = ? COLLATE NOCASE"
   ).get(username.trim().toLowerCase(), password) as DBUser | null;
 }
@@ -395,10 +423,10 @@ export async function dbGetUserByCredentials(username: string, password: string)
 export async function dbGetUserById(id: string): Promise<DBUser | null> {
   if (IS_SUPABASE) {
     const sb = getSupabase();
-    const { data } = await sb.from("users").select("*").eq("id", id).single();
+    const { data } = await sb.from("users").select("*").eq("store_id", sid()).eq("id", id).single();
     return data as DBUser | null;
   }
-  return getDb().prepare("SELECT * FROM users WHERE id = ?").get(id) as DBUser | null;
+  return getStoreDb().prepare("SELECT * FROM users WHERE id = ?").get(id) as DBUser | null;
 }
 
 export async function dbCreateUser(user: {
@@ -410,10 +438,11 @@ export async function dbCreateUser(user: {
     await sb.from("users").insert({
       id: user.id, name: user.name, username: user.username.toLowerCase(),
       passwordHash: user.password, role: user.role, active: 1, createdAt: user.createdAt,
+      store_id: sid(),
     });
     return;
   }
-  getDb().prepare(
+  getStoreDb().prepare(
     "INSERT INTO users (id, name, username, passwordHash, role, active, createdAt) VALUES (?,?,?,?,?,?,?)"
   ).run(user.id, user.name, user.username.toLowerCase(), user.password, user.role, 1, user.createdAt);
 }
@@ -438,7 +467,7 @@ export async function dbUpdateUser(id: string, fields: {
     await sb.from("users").update(update).eq("id", id);
     return;
   }
-  const db = getDb();
+  const db = getStoreDb();
   if (fields.password) {
     db.prepare("UPDATE users SET name=?, username=?, passwordHash=?, role=?, active=? WHERE id=?")
       .run(fields.name, fields.username?.toLowerCase(), fields.password, fields.role, fields.active ?? 1, id);
@@ -466,7 +495,7 @@ export async function dbDeleteUser(id: string): Promise<void> {
     await getSupabase().from("users").delete().eq("id", id);
     return;
   }
-  getDb().prepare("DELETE FROM users WHERE id = ?").run(id);
+  getStoreDb().prepare("DELETE FROM users WHERE id = ?").run(id);
 }
 
 // ─── Products ─────────────────────────────────────────────────────────────────
@@ -490,7 +519,7 @@ export async function dbGetProducts(): Promise<DBProduct[]> {
     }
     return all;
   }
-  return getDb().prepare("SELECT * FROM products ORDER BY createdAt").all() as DBProduct[];
+  return getStoreDb().prepare("SELECT * FROM products ORDER BY createdAt").all() as DBProduct[];
 }
 
 export async function dbGetProductBySku(sku: string): Promise<DBProduct | null> {
@@ -498,13 +527,13 @@ export async function dbGetProductBySku(sku: string): Promise<DBProduct | null> 
   if (IS_SUPABASE) {
     // Try exact SKU first (EAN barcode), then internal ref stored in notes
     const { data } = await getSupabase()
-      .from("products").select("*").ilike("sku", s).maybeSingle();
+      .from("products").select("*").eq("store_id", sid()).ilike("sku", s).maybeSingle();
     if (data) return data as DBProduct;
     const { data: byRef } = await getSupabase()
-      .from("products").select("*").ilike("notes", `%Ref: ${s}%`).maybeSingle();
+      .from("products").select("*").eq("store_id", sid()).ilike("notes", `%Ref: ${s}%`).maybeSingle();
     return byRef as DBProduct | null;
   }
-  const db = getDb();
+  const db = getStoreDb();
   const bySkу = db.prepare("SELECT * FROM products WHERE sku = ? COLLATE NOCASE").get(s) as DBProduct | null;
   if (bySkу) return bySkу;
   // Fallback: search internal reference in notes field
@@ -520,7 +549,7 @@ export async function dbUpsertProduct(p: DBProduct): Promise<DBProduct> {
       .single();
     return data as DBProduct;
   }
-  const db = getDb();
+  const db = getStoreDb();
   db.prepare(`
     INSERT OR REPLACE INTO products
       (id,name,sku,category,productType,quantity,price,markdownPrice,color,size,imagePath,notes,createdAt,updatedAt)
@@ -545,7 +574,7 @@ export async function dbBulkUpsertProducts(products: DBProduct[]): Promise<void>
   }
   // SQLite: use INSERT + ON CONFLICT UPDATE (never DELETE+INSERT) to avoid
   // cascading deletes on placements/other FK tables that reference products(id)
-  const db = getDb();
+  const db = getStoreDb();
   const stmt = db.prepare(`
     INSERT INTO products
       (id,name,sku,category,productType,quantity,price,markdownPrice,color,size,imagePath,notes,createdAt,updatedAt)
@@ -569,10 +598,10 @@ export async function dbBulkUpsertProducts(products: DBProduct[]): Promise<void>
 
 export async function dbDeleteProduct(id: string): Promise<void> {
   if (IS_SUPABASE) {
-    await getSupabase().from("products").delete().eq("id", id);
+    await getSupabase().from("products").delete().eq("store_id", sid()).eq("id", id);
     return;
   }
-  getDb().prepare("DELETE FROM products WHERE id = ?").run(id);
+  getStoreDb().prepare("DELETE FROM products WHERE id = ?").run(id);
 }
 
 export async function dbDeleteProducts(ids: string[]): Promise<void> {
@@ -581,12 +610,12 @@ export async function dbDeleteProducts(ids: string[]): Promise<void> {
     // Chunk to avoid Supabase URL length limit (~2000 items per .in())
     const CHUNK = 200;
     for (let i = 0; i < ids.length; i += CHUNK) {
-      await getSupabase().from("products").delete().in("id", ids.slice(i, i + CHUNK));
+      await getSupabase().from("products").delete().eq("store_id", sid()).in("id", ids.slice(i, i + CHUNK));
     }
     return;
   }
   // SQLite: use a single transaction for performance
-  const db = getDb();
+  const db = getStoreDb();
   const del = db.transaction((batch: string[]) => {
     const stmt = db.prepare("DELETE FROM products WHERE id = ?");
     for (const id of batch) stmt.run(id);
@@ -603,17 +632,17 @@ export async function dbDeleteStaleProducts(currentIds: Set<string>): Promise<nu
   if (IS_SUPABASE) {
     const sb = getSupabase();
     // Fetch all odoo- product ids currently in DB
-    const { data } = await sb.from("products").select("id").like("id", "odoo-%");
+    const { data } = await sb.from("products").select("id").eq("store_id", sid()).like("id", "odoo-%");
     const stale = (data ?? []).map((r: { id: string }) => r.id).filter(id => !currentIds.has(id));
     if (!stale.length) return 0;
     // Delete in chunks
     const CHUNK = 200;
     for (let i = 0; i < stale.length; i += CHUNK) {
-      await sb.from("products").delete().in("id", stale.slice(i, i + CHUNK));
+      await sb.from("products").delete().eq("store_id", sid()).in("id", stale.slice(i, i + CHUNK));
     }
     return stale.length;
   }
-  const db = getDb();
+  const db = getStoreDb();
   const existing = db.prepare("SELECT id FROM products WHERE id LIKE 'odoo-%'").all() as { id: string }[];
   const stale = existing.map(r => r.id).filter(id => !currentIds.has(id));
   if (!stale.length) return 0;
@@ -628,11 +657,11 @@ export async function dbDeleteStaleProducts(currentIds: Set<string>): Promise<nu
 /** Delete all products whose ID starts with "odoo-" (from previous syncs) */
 export async function dbDeleteAllProducts(): Promise<number> {
   if (IS_SUPABASE) {
-    const { count } = await getSupabase().from("products").select("*", { count: "exact", head: true });
-    await getSupabase().from("products").delete().neq("id", "");
+    const { count } = await getSupabase().from("products").select("*", { count: "exact", head: true }).eq("store_id", sid());
+    await getSupabase().from("products").delete().eq("store_id", sid()).neq("id", "");
     return count ?? 0;
   }
-  const db = getDb();
+  const db = getStoreDb();
   const { changes } = db.prepare("DELETE FROM products").run() as { changes: number };
   return changes;
 }
@@ -649,12 +678,12 @@ export async function dbDeleteBadOdooProducts(): Promise<number> {
     if (ids.length > 0) {
       const CHUNK = 200;
       for (let i = 0; i < ids.length; i += CHUNK) {
-        await getSupabase().from("products").delete().in("id", ids.slice(i, i + CHUNK));
+        await getSupabase().from("products").delete().eq("store_id", sid()).in("id", ids.slice(i, i + CHUNK));
       }
     }
     return ids.length;
   }
-  const db = getDb();
+  const db = getStoreDb();
   const rows = db.prepare(
     "SELECT id FROM products WHERE id LIKE 'odoo-%' AND (category = 'Khác' OR price IS NULL OR price = 0)"
   ).all() as { id: string }[];
@@ -676,12 +705,12 @@ export async function dbDeleteAllOdooProducts(): Promise<number> {
     if (ids.length > 0) {
       const CHUNK = 200;
       for (let i = 0; i < ids.length; i += CHUNK) {
-        await getSupabase().from("products").delete().in("id", ids.slice(i, i + CHUNK));
+        await getSupabase().from("products").delete().eq("store_id", sid()).in("id", ids.slice(i, i + CHUNK));
       }
     }
     return ids.length;
   }
-  const db = getDb();
+  const db = getStoreDb();
   const rows = db.prepare("SELECT id FROM products WHERE id LIKE 'odoo-%'").all() as { id: string }[];
   if (rows.length > 0) {
     const del = db.transaction(() => {
@@ -700,13 +729,13 @@ export async function dbUpdateRoomMembers(roomId: string, memberIds: string[] | 
     await getSupabase().from("chat_rooms").update({ memberIds: val }).eq("id", roomId);
     return;
   }
-  getDb().prepare('UPDATE chat_rooms SET "memberIds"=? WHERE id=?').run(val, roomId);
+  getStoreDb().prepare('UPDATE chat_rooms SET "memberIds"=? WHERE id=?').run(val, roomId);
 }
 
 export async function dbGetRooms(): Promise<(DBRoom & { lastMessage: unknown; messageCount: number })[]> {
   if (IS_SUPABASE) {
     const sb = getSupabase();
-    const { data: rooms } = await sb.from("chat_rooms").select("*").order("createdAt");
+    const { data: rooms } = await sb.from("chat_rooms").select("*").eq("store_id", sid()).order("createdAt");
     if (!rooms) return [];
     const result = await Promise.all(rooms.map(async (r) => {
       const { data: last } = await sb
@@ -726,7 +755,7 @@ export async function dbGetRooms(): Promise<(DBRoom & { lastMessage: unknown; me
     }));
     return result;
   }
-  const db = getDb();
+  const db = getStoreDb();
   const rooms = db.prepare("SELECT * FROM chat_rooms ORDER BY createdAt").all() as DBRoom[];
   return rooms.map(r => {
     const last = db.prepare(
@@ -745,7 +774,7 @@ export async function dbGetMessages(roomId: string, since?: string): Promise<DBM
     const { data } = await q;
     return (data ?? []) as DBMessage[];
   }
-  const db = getDb();
+  const db = getStoreDb();
   if (since) {
     return db.prepare("SELECT * FROM chat_messages WHERE roomId=? AND createdAt > ? ORDER BY createdAt ASC LIMIT 80").all(roomId, since) as DBMessage[];
   }
@@ -765,7 +794,7 @@ export async function dbInsertMessage(msg: {
     });
     return;
   }
-  getDb().prepare(`
+  getStoreDb().prepare(`
     INSERT INTO chat_messages (id, roomId, userId, userName, content, mediaUrl, mediaType, replyToId, createdAt)
     VALUES (?,?,?,?,?,?,?,?,?)
   `).run(msg.id, msg.roomId, msg.userId, msg.userName, msg.content,
@@ -774,18 +803,18 @@ export async function dbInsertMessage(msg: {
 
 export async function dbRoomExists(roomId: string): Promise<boolean> {
   if (IS_SUPABASE) {
-    const { data } = await getSupabase().from("chat_rooms").select("id").eq("id", roomId).single();
+    const { data } = await getSupabase().from("chat_rooms").select("id").eq("store_id", sid()).eq("id", roomId).single();
     return !!data;
   }
-  return !!getDb().prepare("SELECT id FROM chat_rooms WHERE id=?").get(roomId);
+  return !!getStoreDb().prepare("SELECT id FROM chat_rooms WHERE id=?").get(roomId);
 }
 
 export async function dbCreateRoom(id: string, name: string, type: string, createdBy: string, createdAt: string): Promise<void> {
   if (IS_SUPABASE) {
-    await getSupabase().from("chat_rooms").insert({ id, name, type, createdBy, createdAt });
+    await getSupabase().from("chat_rooms").insert({ id, name, type, createdBy, createdAt , store_id: sid()});
     return;
   }
-  getDb().prepare("INSERT INTO chat_rooms (id, name, type, createdBy, createdAt) VALUES (?,?,?,?,?)")
+  getStoreDb().prepare("INSERT INTO chat_rooms (id, name, type, createdBy, createdAt) VALUES (?,?,?,?,?)")
     .run(id, name, type, createdBy, createdAt);
 }
 
@@ -794,7 +823,7 @@ export async function dbDeleteRoom(roomId: string): Promise<void> {
     await getSupabase().from("chat_rooms").delete().eq("id", roomId);
     return;
   }
-  getDb().prepare("DELETE FROM chat_rooms WHERE id=?").run(roomId);
+  getStoreDb().prepare("DELETE FROM chat_rooms WHERE id=?").run(roomId);
 }
 
 export async function dbClearRoomMessages(roomId: string): Promise<void> {
@@ -802,7 +831,7 @@ export async function dbClearRoomMessages(roomId: string): Promise<void> {
     await getSupabase().from("chat_messages").delete().eq("roomId", roomId);
     return;
   }
-  getDb().prepare("DELETE FROM chat_messages WHERE roomId=?").run(roomId);
+  getStoreDb().prepare("DELETE FROM chat_messages WHERE roomId=?").run(roomId);
 }
 
 export async function dbSoftDeleteMessage(msgId: string, deletedAt: string): Promise<{ found: boolean }> {
@@ -814,9 +843,9 @@ export async function dbSoftDeleteMessage(msgId: string, deletedAt: string): Pro
       .eq("id", msgId);
     return { found: true };
   }
-  const msg = getDb().prepare("SELECT userId FROM chat_messages WHERE id=?").get(msgId) as { userId: string } | undefined;
+  const msg = getStoreDb().prepare("SELECT userId FROM chat_messages WHERE id=?").get(msgId) as { userId: string } | undefined;
   if (!msg) return { found: false };
-  getDb().prepare("UPDATE chat_messages SET content=?, deletedAt=? WHERE id=?")
+  getStoreDb().prepare("UPDATE chat_messages SET content=?, deletedAt=? WHERE id=?")
     .run("[Tin nhắn đã bị xóa]", deletedAt, msgId);
   return { found: true };
 }
@@ -826,7 +855,7 @@ export async function dbGetMessageSender(msgId: string): Promise<{ userId: strin
     const { data } = await getSupabase().from("chat_messages").select("userId").eq("id", msgId).single();
     return data as { userId: string } | null;
   }
-  return getDb().prepare("SELECT userId FROM chat_messages WHERE id=?").get(msgId) as { userId: string } | null;
+  return getStoreDb().prepare("SELECT userId FROM chat_messages WHERE id=?").get(msgId) as { userId: string } | null;
 }
 
 export async function dbUpdateReactions(msgId: string, reactions: string): Promise<void> {
@@ -834,7 +863,7 @@ export async function dbUpdateReactions(msgId: string, reactions: string): Promi
     await getSupabase().from("chat_messages").update({ reactions }).eq("id", msgId);
     return;
   }
-  getDb().prepare("UPDATE chat_messages SET reactions=? WHERE id=?").run(reactions, msgId);
+  getStoreDb().prepare("UPDATE chat_messages SET reactions=? WHERE id=?").run(reactions, msgId);
 }
 
 export async function dbGetUserRole(userId: string): Promise<string | null> {
@@ -842,7 +871,7 @@ export async function dbGetUserRole(userId: string): Promise<string | null> {
     const { data } = await getSupabase().from("users").select("role").eq("id", userId).single();
     return (data as { role: string } | null)?.role ?? null;
   }
-  const u = getDb().prepare("SELECT role FROM users WHERE id=?").get(userId) as { role: string } | undefined;
+  const u = getStoreDb().prepare("SELECT role FROM users WHERE id=?").get(userId) as { role: string } | undefined;
   return u?.role ?? null;
 }
 
@@ -853,7 +882,7 @@ export async function dbPinMessage(msgId: string, userId: string, pin: boolean):
     await getSupabase().from("chat_messages").update({ pinnedAt: now, pinnedBy }).eq("id", msgId);
     return;
   }
-  getDb().prepare("UPDATE chat_messages SET pinnedAt=?, pinnedBy=? WHERE id=?").run(now, pinnedBy, msgId);
+  getStoreDb().prepare("UPDATE chat_messages SET pinnedAt=?, pinnedBy=? WHERE id=?").run(now, pinnedBy, msgId);
 }
 
 export async function dbGetPinnedMessages(roomId: string): Promise<DBMessage[]> {
@@ -866,7 +895,7 @@ export async function dbGetPinnedMessages(roomId: string): Promise<DBMessage[]> 
       .order("pinnedAt");
     return (data ?? []) as DBMessage[];
   }
-  return getDb().prepare(
+  return getStoreDb().prepare(
     "SELECT * FROM chat_messages WHERE roomId=? AND pinnedAt IS NOT NULL ORDER BY pinnedAt ASC"
   ).all(roomId) as DBMessage[];
 }
@@ -884,7 +913,7 @@ export async function dbSearchMessages(roomId: string, query: string): Promise<D
       .limit(50);
     return (data ?? []) as DBMessage[];
   }
-  return getDb().prepare(
+  return getStoreDb().prepare(
     "SELECT * FROM chat_messages WHERE roomId=? AND deletedAt IS NULL AND content LIKE ? ORDER BY createdAt ASC LIMIT 50"
   ).all(roomId, q) as DBMessage[];
 }
@@ -898,9 +927,9 @@ export async function dbRevokeMessage(msgId: string, revokedAt: string): Promise
       .eq("id", msgId);
     return { found: true };
   }
-  const msg = getDb().prepare("SELECT userId FROM chat_messages WHERE id=?").get(msgId) as { userId: string } | undefined;
+  const msg = getStoreDb().prepare("SELECT userId FROM chat_messages WHERE id=?").get(msgId) as { userId: string } | undefined;
   if (!msg) return { found: false };
-  getDb().prepare("UPDATE chat_messages SET content=?, revokedAt=?, mediaUrl=NULL WHERE id=?")
+  getStoreDb().prepare("UPDATE chat_messages SET content=?, revokedAt=?, mediaUrl=NULL WHERE id=?")
     .run("[Tin nhắn đã được thu hồi]", revokedAt, msgId);
   return { found: true };
 }
@@ -911,7 +940,7 @@ export async function dbMarkRead(roomId: string, userId: string): Promise<void> 
     await getSupabase().from("chat_read_receipts").upsert({ roomId, userId, lastReadAt: now }, { onConflict: "roomId,userId" });
     return;
   }
-  getDb().prepare(
+  getStoreDb().prepare(
     "INSERT INTO chat_read_receipts (roomId, userId, lastReadAt) VALUES (?,?,?) ON CONFLICT(roomId, userId) DO UPDATE SET lastReadAt=excluded.lastReadAt"
   ).run(roomId, userId, now);
 }
@@ -921,7 +950,7 @@ export async function dbGetReadReceipts(roomId: string): Promise<{ userId: strin
     const { data } = await getSupabase().from("chat_read_receipts").select("userId, lastReadAt").eq("roomId", roomId);
     return (data ?? []) as { userId: string; lastReadAt: string }[];
   }
-  return getDb().prepare(
+  return getStoreDb().prepare(
     "SELECT userId, lastReadAt FROM chat_read_receipts WHERE roomId=?"
   ).all(roomId) as { userId: string; lastReadAt: string }[];
 }
@@ -930,10 +959,10 @@ export async function dbGetReadReceipts(roomId: string): Promise<{ userId: strin
 
 export async function dbGetNotifications(): Promise<DBNotification[]> {
   if (IS_SUPABASE) {
-    const { data } = await getSupabase().from("notifications").select("*").order("createdAt", { ascending: false }).limit(50);
+    const { data } = await getSupabase().from("notifications").select("*").eq("store_id", sid()).order("createdAt", { ascending: false }).limit(50);
     return (data ?? []) as DBNotification[];
   }
-  return getDb().prepare("SELECT * FROM notifications ORDER BY createdAt DESC LIMIT 50").all() as DBNotification[];
+  return getStoreDb().prepare("SELECT * FROM notifications ORDER BY createdAt DESC LIMIT 50").all() as DBNotification[];
 }
 
 export async function dbInsertNotification(n: DBNotification): Promise<void> {
@@ -941,28 +970,28 @@ export async function dbInsertNotification(n: DBNotification): Promise<void> {
     await getSupabase().from("notifications").insert(n);
     return;
   }
-  getDb().prepare(
+  getStoreDb().prepare(
     "INSERT INTO notifications (id, title, body, type, createdBy, createdAt, pinned) VALUES (?,?,?,?,?,?,?)"
   ).run(n.id, n.title, n.body, n.type, n.createdBy, n.createdAt, n.pinned);
 }
 
 export async function dbDeleteNotification(id: string): Promise<void> {
   if (IS_SUPABASE) {
-    await getSupabase().from("notifications").delete().eq("id", id);
+    await getSupabase().from("notifications").delete().eq("store_id", sid()).eq("id", id);
     return;
   }
-  getDb().prepare("DELETE FROM notifications WHERE id=?").run(id);
+  getStoreDb().prepare("DELETE FROM notifications WHERE id=?").run(id);
 }
 
 // ─── Movements ────────────────────────────────────────────────────────────────
 
 export async function dbGetMovements(limit = 50): Promise<DBMovement[]> {
   if (IS_SUPABASE) {
-    const { data } = await getSupabase().from("movements").select("*")
+    const { data } = await getSupabase().from("movements").select("*").eq("store_id", sid())
       .order("createdAt", { ascending: false }).limit(limit);
     return (data ?? []) as DBMovement[];
   }
-  return getDb().prepare("SELECT * FROM movements ORDER BY createdAt DESC LIMIT ?").all(limit) as DBMovement[];
+  return getStoreDb().prepare("SELECT * FROM movements ORDER BY createdAt DESC LIMIT ?").all(limit) as DBMovement[];
 }
 
 export async function dbInsertMovement(m: DBMovement): Promise<void> {
@@ -970,7 +999,7 @@ export async function dbInsertMovement(m: DBMovement): Promise<void> {
     await getSupabase().from("movements").insert(m);
     return;
   }
-  getDb().prepare(
+  getStoreDb().prepare(
     "INSERT INTO movements (id,productId,productName,variant,type,fromLoc,toLoc,qty,byUser,createdAt) VALUES (?,?,?,?,?,?,?,?,?,?)"
   ).run(m.id, m.productId ?? null, m.productName, m.variant, m.type,
     m.fromLoc ?? null, m.toLoc ?? null, m.qty, m.byUser, m.createdAt);
@@ -983,7 +1012,7 @@ export async function dbGetPushSubs(): Promise<DBPushSub[]> {
     const { data } = await getSupabase().from("push_subs").select("*");
     return (data ?? []) as DBPushSub[];
   }
-  return getDb().prepare("SELECT * FROM push_subs").all() as DBPushSub[];
+  return getStoreDb().prepare("SELECT * FROM push_subs").all() as DBPushSub[];
 }
 
 export async function dbUpsertPushSub(sub: DBPushSub): Promise<void> {
@@ -991,7 +1020,7 @@ export async function dbUpsertPushSub(sub: DBPushSub): Promise<void> {
     await getSupabase().from("push_subs").upsert(sub, { onConflict: "endpoint" });
     return;
   }
-  getDb().prepare(`
+  getStoreDb().prepare(`
     INSERT OR REPLACE INTO push_subs (id, userId, endpoint, p256dh, auth, createdAt)
     VALUES (?,?,?,?,?,?)
   `).run(sub.id, sub.userId, sub.endpoint, sub.p256dh, sub.auth, sub.createdAt);
@@ -1002,7 +1031,7 @@ export async function dbDeletePushSub(endpoint: string): Promise<void> {
     await getSupabase().from("push_subs").delete().eq("endpoint", endpoint);
     return;
   }
-  getDb().prepare("DELETE FROM push_subs WHERE endpoint = ?").run(endpoint);
+  getStoreDb().prepare("DELETE FROM push_subs WHERE endpoint = ?").run(endpoint);
 }
 
 // ─── Shelves ──────────────────────────────────────────────────────────────────
@@ -1017,7 +1046,7 @@ export async function dbGetAllShelves(): Promise<DBShelf[]> {
     const { data } = await getSupabase().from("shelves").select("*").order("sortOrder").order("name");
     return (data ?? []) as DBShelf[];
   }
-  return getDb().prepare("SELECT * FROM shelves ORDER BY sortOrder, name").all() as DBShelf[];
+  return getStoreDb().prepare("SELECT * FROM shelves ORDER BY sortOrder, name").all() as DBShelf[];
 }
 
 export async function dbUpsertShelf(s: DBShelf): Promise<void> {
@@ -1025,7 +1054,7 @@ export async function dbUpsertShelf(s: DBShelf): Promise<void> {
     await getSupabase().from("shelves").upsert(s, { onConflict: "id" });
     return;
   }
-  getDb().prepare(`
+  getStoreDb().prepare(`
     INSERT INTO shelves(id,name,type,subType,sortOrder)
     VALUES(@id,@name,@type,@subType,@sortOrder)
     ON CONFLICT(id) DO UPDATE SET name=excluded.name,type=excluded.type,subType=excluded.subType,sortOrder=excluded.sortOrder
@@ -1045,7 +1074,7 @@ export async function dbDeleteShelf(shelfId: string): Promise<void> {
     await sb.from("shelves").delete().eq("id", shelfId);
     return;
   }
-  const db = getDb();
+  const db = getStoreDb();
   const slots = db.prepare(`SELECT id FROM slots WHERE "shelfId" = ?`).all(shelfId) as { id: string }[];
   const slotIds = slots.map(s => s.id);
   if (slotIds.length) {
@@ -1077,7 +1106,7 @@ export async function dbGetOrCreateSlot(shelfId: string, tier: number, position:
     );
     return slotId;
   }
-  const db = getDb();
+  const db = getStoreDb();
   const existing = db.prepare("SELECT id FROM slots WHERE shelfId=? AND tier=? AND position=? AND label=?").get(shelfId, tier, position, label) as { id: string } | undefined;
   if (existing) return existing.id;
   db.prepare("INSERT OR IGNORE INTO slots(id,shelfId,tier,position,label) VALUES(?,?,?,?,?)").run(slotId, shelfId, tier, position, label);
@@ -1101,7 +1130,7 @@ export async function dbSetPlacement(slotId: string, productId: string | null): 
     );
     return;
   }
-  const db = getDb();
+  const db = getStoreDb();
   if (!productId) {
     db.prepare("DELETE FROM placements WHERE slotId = ?").run(slotId);
     return;
@@ -1139,7 +1168,7 @@ export async function dbGetWarehouseMap(): Promise<Record<string, (string | null
     return result;
   }
   // SQLite fallback
-  const db = getDb();
+  const db = getStoreDb();
   const shelves = db.prepare("SELECT * FROM shelves WHERE type='WAREHOUSE' ORDER BY sortOrder, name").all() as DBShelf[];
   const result: Record<string, (string | null)[][]> = {};
   for (const shelf of shelves) {
@@ -1179,7 +1208,7 @@ export async function dbGetDisplayMap(): Promise<Record<string, Record<string, (
     return result;
   }
   // SQLite fallback
-  const db = getDb();
+  const db = getStoreDb();
   const shelves = db.prepare("SELECT * FROM shelves WHERE type='DISPLAY' ORDER BY sortOrder").all() as DBShelf[];
   const result: Record<string, Record<string, (string | null)[][]>> = {};
   for (const shelf of shelves) {
@@ -1228,7 +1257,7 @@ export async function dbGetWarehouseShelvesForState(): Promise<{
     return result;
   }
   // SQLite fallback
-  const db = getDb();
+  const db = getStoreDb();
   const shelves = db.prepare("SELECT * FROM shelves WHERE type='WAREHOUSE' ORDER BY sortOrder, name").all() as DBShelf[];
   return shelves.map(shelf => {
     const tiers: (string | null)[][] = Array.from({ length: 4 }, () => []);
@@ -1268,7 +1297,7 @@ export async function dbGetDisplayPlacements(): Promise<Record<string, Record<st
     return result;
   }
   // SQLite fallback
-  const db = getDb();
+  const db = getStoreDb();
   const shelves = db.prepare("SELECT * FROM shelves WHERE type='DISPLAY' ORDER BY sortOrder").all() as DBShelf[];
   const result: Record<string, Record<string, Record<number, Record<number, string>>>> = {};
   for (const shelf of shelves) {
@@ -1302,7 +1331,7 @@ const SETTINGS_DEFAULTS: AppSettings = {
 export async function dbGetAppSettings(): Promise<AppSettings> {
   if (IS_SUPABASE) {
     const sb = getSupabase();
-    const { data } = await sb.from("app_settings").select("key, value");
+    const { data } = await sb.from("app_settings").select("key, value").eq("store_id", sid());
     const map: Record<string, string> = {};
     for (const row of (data ?? []) as { key: string; value: string }[]) {
       map[row.key] = row.value;
@@ -1314,7 +1343,7 @@ export async function dbGetAppSettings(): Promise<AppSettings> {
       storeEmail:   map["storeEmail"]   ?? SETTINGS_DEFAULTS.storeEmail,
     };
   }
-  const db = getDb();
+  const db = getStoreDb();
   // Ensure table exists in SQLite
   db.prepare("CREATE TABLE IF NOT EXISTS app_settings (key TEXT PRIMARY KEY, value TEXT NOT NULL DEFAULT '')").run();
   const rows = db.prepare("SELECT key, value FROM app_settings").all() as { key: string; value: string }[];
@@ -1335,7 +1364,7 @@ export async function dbSetAppSettings(settings: Partial<AppSettings>): Promise<
     await sb.from("app_settings").upsert(rows, { onConflict: "key" });
     return;
   }
-  const db = getDb();
+  const db = getStoreDb();
   db.prepare("CREATE TABLE IF NOT EXISTS app_settings (key TEXT PRIMARY KEY, value TEXT NOT NULL DEFAULT '')").run();
   const stmt = db.prepare("INSERT INTO app_settings(key, value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value");
   for (const [key, value] of Object.entries(settings)) {
@@ -1350,10 +1379,10 @@ export async function dbSetAppSettings(settings: Partial<AppSettings>): Promise<
 export async function dbGetSectionRowOverrides(): Promise<Record<string, number>> {
   const key = "sectionRowOverrides";
   if (IS_SUPABASE) {
-    const { data } = await getSupabase().from("app_settings").select("value").eq("key", key).single();
+    const { data } = await getSupabase().from("app_settings").select("value").eq("store_id", sid()).eq("key", key).single();
     try { return JSON.parse((data as { value: string } | null)?.value ?? "{}"); } catch { return {}; }
   }
-  const db = getDb();
+  const db = getStoreDb();
   db.prepare("CREATE TABLE IF NOT EXISTS app_settings (key TEXT PRIMARY KEY, value TEXT NOT NULL DEFAULT '')").run();
   const row = db.prepare("SELECT value FROM app_settings WHERE key=?").get(key) as { value: string } | undefined;
   try { return JSON.parse(row?.value ?? "{}"); } catch { return {}; }
@@ -1368,7 +1397,7 @@ export async function dbSetSectionRowOverride(secId: string, subId: string, rowC
     await getSupabase().from("app_settings").upsert({ key, value }, { onConflict: "key" });
     return;
   }
-  const db = getDb();
+  const db = getStoreDb();
   db.prepare("CREATE TABLE IF NOT EXISTS app_settings (key TEXT PRIMARY KEY, value TEXT NOT NULL DEFAULT '')").run();
   db.prepare("INSERT INTO app_settings(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value").run(key, value);
 }
@@ -1398,7 +1427,7 @@ export async function dbGetCustomers(limit = 200): Promise<DBCustomer[]> {
       .limit(limit);
     return (data ?? []) as DBCustomer[];
   }
-  return getDb().prepare(
+  return getStoreDb().prepare(
     "SELECT * FROM customers ORDER BY totalSpent DESC LIMIT ?"
   ).all(limit) as DBCustomer[];
 }
@@ -1414,7 +1443,7 @@ export async function dbSearchCustomers(query: string): Promise<DBCustomer[]> {
       .limit(50);
     return (data ?? []) as DBCustomer[];
   }
-  return getDb().prepare(
+  return getStoreDb().prepare(
     "SELECT * FROM customers WHERE name LIKE ? OR phone LIKE ? ORDER BY totalSpent DESC LIMIT 50"
   ).all(q, q) as DBCustomer[];
 }
@@ -1430,7 +1459,7 @@ export async function dbBulkUpsertCustomers(customers: DBCustomer[]): Promise<vo
     }
     return;
   }
-  const db = getDb();
+  const db = getStoreDb();
   const stmt = db.prepare(`
     INSERT INTO customers (id,odooId,name,phone,email,street,totalOrders,totalSpent,lastOrderAt,createdAt,updatedAt)
     VALUES (?,?,?,?,?,?,?,?,?,?,?)
@@ -1494,7 +1523,7 @@ export async function dbGetPosOrders(opts: { limit?: number; customerId?: string
     const { data } = await q;
     return (data ?? []) as DBPosOrder[];
   }
-  const db = getDb();
+  const db = getStoreDb();
   if (opts.customerId) {
     return db.prepare(
       "SELECT * FROM pos_orders WHERE customerId=? ORDER BY createdAt DESC LIMIT ?"
@@ -1518,7 +1547,7 @@ export async function dbGetPosOrderLines(orderId: string): Promise<DBPosOrderLin
       .eq("orderId", orderId);
     return (data ?? []) as DBPosOrderLine[];
   }
-  return getDb().prepare(
+  return getStoreDb().prepare(
     "SELECT * FROM pos_order_lines WHERE orderId=?"
   ).all(orderId) as DBPosOrderLine[];
 }
@@ -1534,7 +1563,7 @@ export async function dbBulkUpsertPosOrders(orders: DBPosOrder[]): Promise<void>
     }
     return;
   }
-  const db = getDb();
+  const db = getStoreDb();
   // Ensure salesperson column exists (SQLite ALTER TABLE is safe to run multiple times via try/catch)
   try { db.prepare(`ALTER TABLE pos_orders ADD COLUMN salesperson TEXT`).run(); } catch { /* already exists */ }
   const stmt = db.prepare(`
@@ -1590,7 +1619,7 @@ export async function dbGetStaffSales(dateFrom: string, dateTo: string): Promise
       ipt: v.orders > 0 ? v.qty / v.orders : 0,
     })).sort((a, b) => b.revenue - a.revenue);
   }
-  const db = getDb();
+  const db = getStoreDb();
   try { db.prepare(`ALTER TABLE pos_orders ADD COLUMN salesperson TEXT`).run(); } catch { /* already exists */ }
   return db.prepare(`
     SELECT salesperson,
@@ -1618,7 +1647,7 @@ export async function dbBulkUpsertPosOrderLines(lines: DBPosOrderLine[]): Promis
     }
     return;
   }
-  const db = getDb();
+  const db = getStoreDb();
   const stmt = db.prepare(`
     INSERT INTO pos_order_lines (id,orderId,odooId,productId,productName,sku,qty,priceUnit,discount,priceSubtotal)
     VALUES (?,?,?,?,?,?,?,?,?,?)
@@ -1654,7 +1683,7 @@ export async function dbGetPosSummary(dateFrom: string, dateTo?: string): Promis
     ? "state IN ('done','paid','invoiced') AND createdAt >= ? AND createdAt <= ?"
     : "state IN ('done','paid','invoiced') AND createdAt >= ?";
   const params = dateTo ? [dateFrom, dateTo] : [dateFrom];
-  const r = getDb().prepare(
+  const r = getStoreDb().prepare(
     `SELECT COALESCE(SUM(amountTotal),0) as rev, COUNT(*) as cnt, COALESCE(SUM(lineCount),0) as qty FROM pos_orders WHERE ${where}`
   ).get(...params) as { rev: number; cnt: number; qty: number };
   return { totalRevenue: r.rev, orderCount: r.cnt, avgOrderValue: r.cnt ? r.rev / r.cnt : 0, qtyTotal: r.qty };
@@ -1693,7 +1722,7 @@ export async function dbGetTopProducts(dateFrom: string, limit = 10, dateTo?: st
     }
     return [...map.values()].sort((a, b) => b.totalQty - a.totalQty).slice(0, limit);
   }
-  return getDb().prepare(`
+  return getStoreDb().prepare(`
     SELECT l.productName, l.sku, SUM(l.qty) as totalQty, SUM(l.priceSubtotal) as totalRevenue
     FROM pos_order_lines l
     JOIN pos_orders o ON o.id = l.orderId
@@ -1743,7 +1772,7 @@ export async function dbGetDailyReports(limit = 60): Promise<DBDailyReport[]> {
       .limit(limit);
     return (data ?? []) as DBDailyReport[];
   }
-  return getDb().prepare(
+  return getStoreDb().prepare(
     "SELECT * FROM daily_reports ORDER BY date DESC, shift DESC LIMIT ?"
   ).all(limit) as DBDailyReport[];
 }
@@ -1758,7 +1787,7 @@ export async function dbGetDailyReportByDate(date: string, shift: string): Promi
       .maybeSingle();
     return (data as DBDailyReport | null);
   }
-  return getDb().prepare(
+  return getStoreDb().prepare(
     "SELECT * FROM daily_reports WHERE date=? AND shift=?"
   ).get(date, shift) as DBDailyReport | null;
 }
@@ -1770,7 +1799,7 @@ export async function dbUpsertDailyReport(r: DBDailyReport): Promise<void> {
       .upsert(r, { onConflict: "id" });
     return;
   }
-  const db = getDb();
+  const db = getStoreDb();
   db.prepare(`
     INSERT INTO daily_reports
       (id,date,shift,revTotal,revCash,revCard,revTransfer,revVnpay,revMomo,revUrbox,revNinja,revOther,
@@ -1818,7 +1847,7 @@ export type DBShiftRegistration = {
 
 async function ensureShiftTables() {
   if (IS_SUPABASE) return;
-  const db = getDb();
+  const db = getStoreDb();
   db.prepare(`CREATE TABLE IF NOT EXISTS shift_templates (id TEXT PRIMARY KEY, name TEXT NOT NULL, "startTime" TEXT NOT NULL, "endTime" TEXT NOT NULL, color TEXT NOT NULL DEFAULT '#0ea5e9', "maxStaff" INTEGER NOT NULL DEFAULT 3, "createdAt" TEXT NOT NULL)`).run();
   db.prepare(`CREATE TABLE IF NOT EXISTS shift_slots (id TEXT PRIMARY KEY, "templateId" TEXT, date TEXT NOT NULL, name TEXT NOT NULL, "startTime" TEXT NOT NULL, "endTime" TEXT NOT NULL, color TEXT NOT NULL DEFAULT '#0ea5e9', "maxStaff" INTEGER NOT NULL DEFAULT 3, note TEXT, "createdAt" TEXT NOT NULL, "updatedAt" TEXT NOT NULL DEFAULT '')`).run();
   // Migrations: add columns if not exists (for existing DBs)
@@ -1832,12 +1861,12 @@ async function ensureShiftTables() {
 export async function dbGetShiftTemplates(): Promise<DBShiftTemplate[]> {
   if (IS_SUPABASE) {
     const { data, error } = await getSupabase()
-      .from("shift_templates").select("*").order("startTime");
+      .from("shift_templates").select("*").eq("store_id", sid()).order("startTime");
     if (error) throw new Error("dbGetShiftTemplates: " + error.message);
     return (data ?? []).map(sbRowToTemplate);
   }
   await ensureShiftTables();
-  return getDb().prepare(`SELECT * FROM shift_templates ORDER BY "startTime"`).all() as DBShiftTemplate[];
+  return getStoreDb().prepare(`SELECT * FROM shift_templates ORDER BY "startTime"`).all() as DBShiftTemplate[];
 }
 
 export async function dbUpsertShiftTemplate(t: DBShiftTemplate): Promise<void> {
@@ -1858,30 +1887,30 @@ export async function dbUpsertShiftTemplate(t: DBShiftTemplate): Promise<void> {
     return;
   }
   await ensureShiftTables();
-  getDb().prepare(`INSERT INTO shift_templates(id,name,"startTime","endTime",color,"maxStaff","createdAt","staffType") VALUES(@id,@name,@startTime,@endTime,@color,@maxStaff,@createdAt,@staffType) ON CONFLICT(id) DO UPDATE SET name=excluded.name,"startTime"=excluded."startTime","endTime"=excluded."endTime",color=excluded.color,"maxStaff"=excluded."maxStaff","staffType"=excluded."staffType"`).run({ ...t, staffType: t.staffType ?? "ALL" });
+  getStoreDb().prepare(`INSERT INTO shift_templates(id,name,"startTime","endTime",color,"maxStaff","createdAt","staffType") VALUES(@id,@name,@startTime,@endTime,@color,@maxStaff,@createdAt,@staffType) ON CONFLICT(id) DO UPDATE SET name=excluded.name,"startTime"=excluded."startTime","endTime"=excluded."endTime",color=excluded.color,"maxStaff"=excluded."maxStaff","staffType"=excluded."staffType"`).run({ ...t, staffType: t.staffType ?? "ALL" });
 }
 
 export async function dbDeleteShiftTemplate(id: string): Promise<void> {
   if (IS_SUPABASE) {
-    const { error } = await getSupabase().from("shift_templates").delete().eq("id", id);
+    const { error } = await getSupabase().from("shift_templates").delete().eq("store_id", sid()).eq("id", id);
     if (error) throw new Error("dbDeleteShiftTemplate: " + error.message);
     return;
   }
   await ensureShiftTables();
-  getDb().prepare("DELETE FROM shift_templates WHERE id=?").run(id);
+  getStoreDb().prepare("DELETE FROM shift_templates WHERE id=?").run(id);
 }
 
 export async function dbGetShiftSlots(dateFrom: string, dateTo: string): Promise<DBShiftSlot[]> {
   if (IS_SUPABASE) {
     const { data, error } = await getSupabase()
-      .from("shift_slots").select("*")
+      .from("shift_slots").select("*").eq("store_id", sid())
       .gte("date", dateFrom).lte("date", dateTo)
       .order("date").order("startTime");
     if (error) throw new Error("dbGetShiftSlots: " + error.message);
     return (data ?? []).map(sbRowToSlot);
   }
   await ensureShiftTables();
-  return getDb().prepare(`SELECT * FROM shift_slots WHERE date>=? AND date<=? ORDER BY date,"startTime"`).all(dateFrom, dateTo) as DBShiftSlot[];
+  return getStoreDb().prepare(`SELECT * FROM shift_slots WHERE date>=? AND date<=? ORDER BY date,"startTime"`).all(dateFrom, dateTo) as DBShiftSlot[];
 }
 
 export async function dbUpsertShiftSlot(s: DBShiftSlot): Promise<void> {
@@ -1902,7 +1931,7 @@ export async function dbUpsertShiftSlot(s: DBShiftSlot): Promise<void> {
     return;
   }
   await ensureShiftTables();
-  getDb().prepare(`INSERT INTO shift_slots(id,"templateId",date,name,"startTime","endTime",color,"maxStaff",note,"createdAt","updatedAt","staffType") VALUES(@id,@templateId,@date,@name,@startTime,@endTime,@color,@maxStaff,@note,@createdAt,@updatedAt,@staffType) ON CONFLICT(id) DO UPDATE SET "templateId"=excluded."templateId",date=excluded.date,name=excluded.name,"startTime"=excluded."startTime","endTime"=excluded."endTime",color=excluded.color,"maxStaff"=excluded."maxStaff",note=excluded.note,"updatedAt"=excluded."updatedAt","staffType"=excluded."staffType"`).run({ ...s, staffType: s.staffType ?? "ALL" });
+  getStoreDb().prepare(`INSERT INTO shift_slots(id,"templateId",date,name,"startTime","endTime",color,"maxStaff",note,"createdAt","updatedAt","staffType") VALUES(@id,@templateId,@date,@name,@startTime,@endTime,@color,@maxStaff,@note,@createdAt,@updatedAt,@staffType) ON CONFLICT(id) DO UPDATE SET "templateId"=excluded."templateId",date=excluded.date,name=excluded.name,"startTime"=excluded."startTime","endTime"=excluded."endTime",color=excluded.color,"maxStaff"=excluded."maxStaff",note=excluded.note,"updatedAt"=excluded."updatedAt","staffType"=excluded."staffType"`).run({ ...s, staffType: s.staffType ?? "ALL" });
 }
 
 // Map Supabase row (camelCase keys returned by PostgREST) to typed objects
@@ -1936,9 +1965,9 @@ function sbRowToSlot(r: any): DBShiftSlot {
 }
 
 export async function dbDeleteShiftSlot(id: string): Promise<void> {
-  if (IS_SUPABASE) { await getSupabase().from("shift_slots").delete().eq("id", id); return; }
+  if (IS_SUPABASE) { await getSupabase().from("shift_slots").delete().eq("store_id", sid()).eq("id", id); return; }
   await ensureShiftTables();
-  getDb().prepare("DELETE FROM shift_slots WHERE id=?").run(id);
+  getStoreDb().prepare("DELETE FROM shift_slots WHERE id=?").run(id);
 }
 
 export async function dbGetShiftRegistrations(slotIds: string[]): Promise<DBShiftRegistration[]> {
@@ -1963,7 +1992,7 @@ export async function dbGetShiftRegistrations(slotIds: string[]): Promise<DBShif
   }
   await ensureShiftTables();
   const ph = slotIds.map(() => "?").join(",");
-  return getDb().prepare(`SELECT * FROM shift_registrations WHERE "slotId" IN (${ph})`).all(...slotIds) as DBShiftRegistration[];
+  return getStoreDb().prepare(`SELECT * FROM shift_registrations WHERE "slotId" IN (${ph})`).all(...slotIds) as DBShiftRegistration[];
 }
 
 export async function dbUpsertShiftRegistrationBySlotUser(r: DBShiftRegistration): Promise<void> {
@@ -1997,13 +2026,13 @@ export async function dbUpsertShiftRegistrationBySlotUser(r: DBShiftRegistration
     return;
   }
   await ensureShiftTables();
-  getDb().prepare(`INSERT INTO shift_registrations(id,"slotId","userId","userName",status,note,"createdAt","updatedAt") VALUES(@id,@slotId,@userId,@userName,@status,@note,@createdAt,@updatedAt) ON CONFLICT("slotId","userId") DO UPDATE SET status=excluded.status,note=excluded.note,"updatedAt"=excluded."updatedAt"`).run(r);
+  getStoreDb().prepare(`INSERT INTO shift_registrations(id,"slotId","userId","userName",status,note,"createdAt","updatedAt") VALUES(@id,@slotId,@userId,@userName,@status,@note,@createdAt,@updatedAt) ON CONFLICT("slotId","userId") DO UPDATE SET status=excluded.status,note=excluded.note,"updatedAt"=excluded."updatedAt"`).run(r);
 }
 
 export async function dbDeleteShiftRegistration(id: string): Promise<void> {
-  if (IS_SUPABASE) { await getSupabase().from("shift_registrations").delete().eq("id", id); return; }
+  if (IS_SUPABASE) { await getSupabase().from("shift_registrations").delete().eq("store_id", sid()).eq("id", id); return; }
   await ensureShiftTables();
-  getDb().prepare("DELETE FROM shift_registrations WHERE id=?").run(id);
+  getStoreDb().prepare("DELETE FROM shift_registrations WHERE id=?").run(id);
 }
 
 // ─── Shift Requests ───────────────────────────────────────────────────────────
@@ -2022,7 +2051,7 @@ export type DBShiftRequest = {
 };
 
 function ensureShiftRequestsTable() {
-  getDb().prepare(`CREATE TABLE IF NOT EXISTS shift_requests (
+  getStoreDb().prepare(`CREATE TABLE IF NOT EXISTS shift_requests (
     id TEXT PRIMARY KEY,
     "userId" TEXT NOT NULL,
     "userName" TEXT NOT NULL,
@@ -2064,9 +2093,9 @@ export async function dbGetShiftRequests(userId?: string): Promise<DBShiftReques
   }
   ensureShiftRequestsTable();
   if (userId) {
-    return getDb().prepare(`SELECT * FROM shift_requests WHERE "userId"=? ORDER BY "createdAt" DESC LIMIT 100`).all(userId) as DBShiftRequest[];
+    return getStoreDb().prepare(`SELECT * FROM shift_requests WHERE "userId"=? ORDER BY "createdAt" DESC LIMIT 100`).all(userId) as DBShiftRequest[];
   }
-  return getDb().prepare(`SELECT * FROM shift_requests ORDER BY "createdAt" DESC LIMIT 100`).all() as DBShiftRequest[];
+  return getStoreDb().prepare(`SELECT * FROM shift_requests ORDER BY "createdAt" DESC LIMIT 100`).all() as DBShiftRequest[];
 }
 
 export async function dbInsertShiftRequest(r: DBShiftRequest): Promise<void> {
@@ -2081,7 +2110,7 @@ export async function dbInsertShiftRequest(r: DBShiftRequest): Promise<void> {
     return;
   }
   ensureShiftRequestsTable();
-  getDb().prepare(`INSERT INTO shift_requests(id,"userId","userName",type,status,content,"adminNote","targetDate","createdAt","updatedAt") VALUES(@id,@userId,@userName,@type,@status,@content,@adminNote,@targetDate,@createdAt,@updatedAt)`).run(r);
+  getStoreDb().prepare(`INSERT INTO shift_requests(id,"userId","userName",type,status,content,"adminNote","targetDate","createdAt","updatedAt") VALUES(@id,@userId,@userName,@type,@status,@content,@adminNote,@targetDate,@createdAt,@updatedAt)`).run(r);
 }
 
 export async function dbUpdateShiftRequest(id: string, fields: { status: string; adminNote?: string; updatedAt: string }): Promise<void> {
@@ -2095,5 +2124,5 @@ export async function dbUpdateShiftRequest(id: string, fields: { status: string;
     return;
   }
   ensureShiftRequestsTable();
-  getDb().prepare(`UPDATE shift_requests SET status=?, "adminNote"=?, "updatedAt"=? WHERE id=?`).run(fields.status, fields.adminNote ?? null, fields.updatedAt, id);
+  getStoreDb().prepare(`UPDATE shift_requests SET status=?, "adminNote"=?, "updatedAt"=? WHERE id=?`).run(fields.status, fields.adminNote ?? null, fields.updatedAt, id);
 }

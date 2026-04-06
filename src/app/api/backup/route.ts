@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import Database from "better-sqlite3";
 import path from "path";
+import { setActiveStore } from "@/lib/supabase";
+import { getStoreId } from "@/lib/storeContext";
 
 const DB_PATH = path.join(process.env.DATA_DIR ?? path.join(process.cwd(), "data"), "postlain.db");
 
@@ -25,6 +27,7 @@ const TABLES = [
 
 // ── GET /api/backup — dump all tables as JSON ─────────────────────────────────
 export async function GET(req: NextRequest) {
+  setActiveStore(getStoreId(req));
   // Admin-only: check Authorization header carries user id of an admin
   const userId = req.headers.get("x-user-id");
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -61,6 +64,7 @@ export async function GET(req: NextRequest) {
 
 // ── POST /api/backup — restore from JSON body ─────────────────────────────────
 export async function POST(req: NextRequest) {
+  setActiveStore(getStoreId(req));
   const userId = req.headers.get("x-user-id");
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 

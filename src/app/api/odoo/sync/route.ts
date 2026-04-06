@@ -3,6 +3,8 @@ import { fetchOdooProducts, testOdooConnection } from "@/lib/odoo";
 import { dbBulkUpsertProducts, dbDeleteStaleProducts } from "@/lib/dbAdapter";
 import type { DBProduct } from "@/lib/dbAdapter";
 import { MC_MAP } from "@/lib/categoryMapping";
+import { setActiveStore } from "@/lib/supabase";
+import { getStoreId } from "@/lib/storeContext";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -133,6 +135,7 @@ export async function GET() {
 // ─── POST /api/odoo/sync — run full sync ──────────────────────────────────────
 
 export async function POST(req: NextRequest) {
+  setActiveStore(getStoreId(req));
   try {
     if (!process.env.ODOO_URL) {
       return NextResponse.json({ ok: false, error: "ODOO_URL env var not set" }, { status: 400 });

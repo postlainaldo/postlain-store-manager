@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { IS_SUPABASE, getSupabase } from "@/lib/supabase";
+import { setActiveStore } from "@/lib/supabase";
+import { getStoreId } from "@/lib/storeContext";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 // gemini-2.0-flash: latest stable, replaces deprecated gemini-2.0-flash-lite
@@ -50,6 +52,7 @@ ${shifts.length > 0 ? shifts.map(s => `- ${s.startTime}-${s.endTime}: ${s.staffN
 }
 
 export async function POST(req: NextRequest) {
+  setActiveStore(getStoreId(req));
   if (!GEMINI_API_KEY) {
     return NextResponse.json({ error: "GEMINI_API_KEY chưa được cấu hình trong environment variables" }, { status: 500 });
   }

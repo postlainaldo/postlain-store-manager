@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
+import { setActiveStore } from "@/lib/supabase";
+import { getStoreId } from "@/lib/storeContext";
   dbGetRooms, dbGetMessages, dbInsertMessage, dbRoomExists,
   dbCreateRoom, dbDeleteRoom, dbSoftDeleteMessage,
   dbGetMessageSender, dbUpdateReactions, dbGetUserRole,
@@ -14,6 +16,7 @@ import {
 // GET /api/chat?roomId=xxx&search=q — search messages by content
 // GET /api/chat?roomId=xxx&pinned=1 — pinned messages in room
 export async function GET(req: NextRequest) {
+  setActiveStore(getStoreId(req));
   const { searchParams } = req.nextUrl;
 
   if (searchParams.get("rooms")) {
@@ -48,6 +51,7 @@ export async function GET(req: NextRequest) {
 // POST /api/chat — send message (text or media)
 // POST /api/chat/typing — broadcast typing indicator (handled inline below via ?typing=1)
 export async function POST(req: NextRequest) {
+  setActiveStore(getStoreId(req));
   const { searchParams } = req.nextUrl;
 
   // ── Mark room as read ────────────────────────────────────────────────────────
@@ -94,6 +98,7 @@ export async function POST(req: NextRequest) {
 
 // PUT /api/chat — create room (optionally with explicit id for idempotent upsert)
 export async function PUT(req: NextRequest) {
+  setActiveStore(getStoreId(req));
   const { name, type, createdBy, id: requestedId } = await req.json();
   if (!name?.trim()) return NextResponse.json({ error: "Missing name" }, { status: 400 });
   const id = requestedId?.trim() || `room_${Date.now()}`;
@@ -108,6 +113,7 @@ export async function PUT(req: NextRequest) {
 
 // PATCH /api/chat — soft delete / edit message / update reactions / update room / pin
 export async function PATCH(req: NextRequest) {
+  setActiveStore(getStoreId(req));
   const { msgId, roomId, userId, action, reactions, content, icon, color, name, pin, memberIds } = await req.json();
 
   // ── Clear all messages in room (admin only) ──────────────────────────────
@@ -219,6 +225,7 @@ export async function PATCH(req: NextRequest) {
 
 // DELETE /api/chat — delete room (not default ones)
 export async function DELETE(req: NextRequest) {
+  setActiveStore(getStoreId(req));
   const { roomId } = await req.json();
   if (roomId === "room_general" || roomId === "room_announce") {
     return NextResponse.json({ error: "Cannot delete default rooms" }, { status: 400 });

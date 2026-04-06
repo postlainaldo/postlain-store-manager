@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getPalexyTraffic, getPalexyStores } from "@/lib/palexy";
+import { setActiveStore } from "@/lib/supabase";
+import { getStoreId } from "@/lib/storeContext";
 
 export const dynamic = "force-dynamic";
 
 // GET /api/palexy?date=2026-03-24          → returns { traffic: 123 }
 // GET /api/palexy?action=stores            → returns list of stores (for setup)
 export async function GET(req: NextRequest) {
+  setActiveStore(getStoreId(req));
   const { searchParams } = new URL(req.url);
   const date = searchParams.get("date");
   const action = searchParams.get("action");

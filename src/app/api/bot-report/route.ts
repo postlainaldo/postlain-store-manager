@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { IS_SUPABASE, getSupabase } from "@/lib/supabase";
+import { setActiveStore } from "@/lib/supabase";
+import { getStoreId } from "@/lib/storeContext";
 
 export const dynamic = "force-dynamic";
 
@@ -11,6 +13,7 @@ const BOT_SECRET = process.env.BOT_REPORT_SECRET ?? "postlain-bot-2026";
  * Trả về báo cáo dạng text đơn giản cho bot Telegram đọc
  */
 export async function GET(req: NextRequest) {
+  setActiveStore(getStoreId(req));
   const { searchParams } = new URL(req.url);
   const secret = searchParams.get("secret");
   const type = searchParams.get("type") ?? "daily";

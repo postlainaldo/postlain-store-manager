@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import ExcelJS from "exceljs";
 import { IS_SUPABASE, getSupabase } from "@/lib/supabase";
 import getDb from "@/lib/database";
+import { setActiveStore } from "@/lib/supabase";
+import { getStoreId } from "@/lib/storeContext";
 
 // ── Mã ca từ giờ ─────────────────────────────────────────────────────────────
 const SHIFT_CODES: Record<string, string> = {
@@ -82,6 +84,7 @@ function styleCell(
 }
 
 export async function GET(req: NextRequest) {
+  setActiveStore(getStoreId(req));
   const { searchParams } = req.nextUrl;
   const dateFrom = searchParams.get("dateFrom");
   const dateTo   = searchParams.get("dateTo");

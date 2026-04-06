@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { dbDeleteBadOdooProducts } from "@/lib/dbAdapter";
+import { setActiveStore } from "@/lib/supabase";
+import { getStoreId } from "@/lib/storeContext";
 
 export const dynamic = "force-dynamic";
 

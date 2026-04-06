@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { dbGetProducts, dbBulkUpsertProducts, dbDeleteProducts, type DBProduct } from "@/lib/dbAdapter";
 import { sendPushToAll } from "@/lib/push";
+import { setActiveStore } from "@/lib/supabase";
+import { getStoreId } from "@/lib/storeContext";
 
 export async function POST(req: NextRequest) {
+  setActiveStore(getStoreId(req));
   const rows: DBProduct[] = await req.json();
   if (!rows.length) return NextResponse.json({ products: [], inserted: 0, updated: 0, deleted: 0 });
 

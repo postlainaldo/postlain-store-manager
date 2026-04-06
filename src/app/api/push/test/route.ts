@@ -5,6 +5,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { dbGetPushSubs } from "@/lib/dbAdapter";
 import { sendPushToAll } from "@/lib/push";
+import { setActiveStore } from "@/lib/supabase";
+import { getStoreId } from "@/lib/storeContext";
 
 export async function GET() {
   const subs = await dbGetPushSubs();
@@ -21,6 +23,7 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  setActiveStore(getStoreId(req));
   const body = await req.json().catch(() => ({}));
   const title = body.title ?? "Test Push";
   const message = body.body ?? "Thông báo kiểm tra từ Postlain";

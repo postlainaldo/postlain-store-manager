@@ -27,6 +27,8 @@ import {
   ensureSupabaseSchema,
 } from "@/lib/dbAdapter";
 import { notifyClients } from "@/lib/sseClients";
+import { setActiveStore } from "@/lib/supabase";
+import { getStoreId } from "@/lib/storeContext";
 
 export async function GET() {
   await ensureSupabaseSchema();
@@ -35,6 +37,7 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  setActiveStore(getStoreId(req));
   await ensureSupabaseSchema();
 
   const body = await req.json() as {
@@ -88,6 +91,7 @@ export async function POST(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
+  setActiveStore(getStoreId(req));
   await ensureSupabaseSchema();
   const { shelfId } = await req.json() as { shelfId: string };
   if (!shelfId) return NextResponse.json({ error: "Missing shelfId" }, { status: 400 });

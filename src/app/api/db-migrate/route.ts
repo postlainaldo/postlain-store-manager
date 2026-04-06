@@ -5,6 +5,8 @@
  */
 import { NextResponse } from "next/server";
 import { IS_SUPABASE, getSupabase } from "@/lib/supabase";
+import { setActiveStore } from "@/lib/supabase";
+import { getStoreId } from "@/lib/storeContext";
 
 export const dynamic = "force-dynamic";
 

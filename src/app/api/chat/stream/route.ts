@@ -1,11 +1,14 @@
 import { NextRequest } from "next/server";
 import { dbGetMessages, dbGetRooms } from "@/lib/dbAdapter";
+import { setActiveStore } from "@/lib/supabase";
+import { getStoreId } from "@/lib/storeContext";
 
 export const dynamic = "force-dynamic";
 
 // GET /api/chat/stream?roomId=xxx&since=iso
 // Returns SSE stream — polls DB every 1s for new messages
 export async function GET(req: NextRequest) {
+  setActiveStore(getStoreId(req));
   const { searchParams } = req.nextUrl;
   const roomId = searchParams.get("roomId");
   if (!roomId) return new Response("Missing roomId", { status: 400 });

@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { dbGetMovements, dbInsertMovement } from "@/lib/dbAdapter";
+import { setActiveStore } from "@/lib/supabase";
+import { getStoreId } from "@/lib/storeContext";
 
 // GET /api/movements?limit=20
 export async function GET(req: NextRequest) {
+  setActiveStore(getStoreId(req));
   const limit = Math.min(Number(req.nextUrl.searchParams.get("limit") ?? "20"), 100);
   const rows = await dbGetMovements(limit);
   return NextResponse.json(rows, {
@@ -12,6 +15,7 @@ export async function GET(req: NextRequest) {
 
 // POST /api/movements — log a movement
 export async function POST(req: NextRequest) {
+  setActiveStore(getStoreId(req));
   const body = await req.json();
   const { productId, productName, variant, type, fromLoc, toLoc, qty, byUser } = body;
   if (!productName || !type) return NextResponse.json({ error: "Missing fields" }, { status: 400 });

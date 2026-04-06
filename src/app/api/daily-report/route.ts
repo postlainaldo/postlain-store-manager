@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { buildMorningReport, buildEveningReport, buildOverviewReport } from "@/lib/odooReports";
 import { getPalexyTraffic, getPalexyTrafficRange } from "@/lib/palexy";
+import { setActiveStore } from "@/lib/supabase";
+import { getStoreId } from "@/lib/storeContext";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60; // Vercel: allow up to 60s for Odoo calls
@@ -11,6 +13,7 @@ export const maxDuration = 60; // Vercel: allow up to 60s for Odoo calls
  * GET /api/daily-report?type=overview&from=2026-03-18&to=2026-03-24
  */
 export async function GET(req: NextRequest) {
+  setActiveStore(getStoreId(req));
   const { searchParams } = new URL(req.url);
   const type = searchParams.get("type") ?? "morning";
   const date = searchParams.get("date");

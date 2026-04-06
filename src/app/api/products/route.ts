@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { dbGetProducts, dbGetProductBySku, dbUpsertProduct, dbDeleteProduct, dbDeleteProducts, dbGetUserRole } from "@/lib/dbAdapter";
 import type { Product } from "@/types";
+import { setActiveStore } from "@/lib/supabase";
+import { getStoreId } from "@/lib/storeContext";
 
 // GET is public — needed for visual board, scan, etc.
 export async function GET(req: NextRequest) {
+  setActiveStore(getStoreId(req));
   const sku = req.nextUrl.searchParams.get("sku");
   if (sku) {
     const product = await dbGetProductBySku(sku);
@@ -22,6 +25,7 @@ async function requireManagerOrAbove(req: NextRequest): Promise<{ error: NextRes
 }
 
 export async function POST(req: NextRequest) {
+  setActiveStore(getStoreId(req));
   const auth = await requireManagerOrAbove(req);
   if (auth) return auth.error;
   const product: Product = await req.json();
@@ -30,6 +34,7 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PUT(req: NextRequest) {
+  setActiveStore(getStoreId(req));
   const auth = await requireManagerOrAbove(req);
   if (auth) return auth.error;
   const updated: Product = await req.json();
@@ -39,6 +44,7 @@ export async function PUT(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
+  setActiveStore(getStoreId(req));
   const auth = await requireManagerOrAbove(req);
   if (auth) return auth.error;
   const body = await req.json();

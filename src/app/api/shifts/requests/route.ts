@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { dbGetShiftRequests, dbInsertShiftRequest, dbUpdateShiftRequest } from "@/lib/dbAdapter";
+import { setActiveStore } from "@/lib/supabase";
+import { getStoreId } from "@/lib/storeContext";
 
 // GET /api/shifts/requests?userId=xxx  — staff: own requests
 // GET /api/shifts/requests             — admin: all requests
 export async function GET(req: NextRequest) {
+  setActiveStore(getStoreId(req));
   try {
     const userId = req.nextUrl.searchParams.get("userId") ?? undefined;
     const data = await dbGetShiftRequests(userId);
@@ -15,6 +18,7 @@ export async function GET(req: NextRequest) {
 
 // POST /api/shifts/requests — submit new request
 export async function POST(req: NextRequest) {
+  setActiveStore(getStoreId(req));
   try {
     const { userId, userName, type, content, targetDate } = await req.json();
     if (!userId || !content?.trim()) {
@@ -40,6 +44,7 @@ export async function POST(req: NextRequest) {
 
 // PATCH /api/shifts/requests — admin approve/reject
 export async function PATCH(req: NextRequest) {
+  setActiveStore(getStoreId(req));
   try {
     const { id, status, adminNote } = await req.json();
     if (!id || !["approved", "rejected"].includes(status)) {

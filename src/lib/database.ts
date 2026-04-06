@@ -2,38 +2,39 @@
  * Postlain Store Manager — SQLite Database Layer
  * Uses better-sqlite3 (synchronous, no ORM overhead)
  *
- * Data is ALWAYS stored in ./data/postlain.db (never in /tmp).
- * The data/ directory is committed via data/.gitkeep so it is
- * never wiped by deployments.
+ * Multi-tenant: mỗi store có file DB riêng: ./data/{storeId}.db
+ * Fallback về "postlain" nếu không có STORE_ID env.
+ * DATA_DIR env var (set trong Coolify volume mount) cho phép dùng volume ngoài.
  */
 
 import Database from "better-sqlite3";
 import path from "path";
 import fs from "fs";
 
-// ─── Singleton ────────────────────────────────────────────────────────────────
+// ─── Singleton map — 1 connection per storeId ─────────────────────────────────
 
-// DB path: DATA_DIR env var (set in Coolify volume mount) or ./data/postlain.db
 const dataDir = process.env.DATA_DIR ?? path.join(process.cwd(), "data");
-const DB_PATH = path.join(dataDir, "postlain.db");
-
 if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
 
-// Module-level singleton (Next.js hot-reload safe via globalThis cache)
 declare global {
   // eslint-disable-next-line no-var
-  var __postlainDb: Database.Database | undefined;
+  var __storeDbMap: Map<string, Database.Database> | undefined;
 }
+if (!globalThis.__storeDbMap) globalThis.__storeDbMap = new Map();
 
-function getDb(): Database.Database {
-  if (globalThis.__postlainDb) return globalThis.__postlainDb;
-  const db = new Database(DB_PATH);
+function getDb(storeId?: string): Database.Database {
+  const id  = storeId ?? process.env.STORE_ID ?? "postlain";
+  const map = globalThis.__storeDbMap!;
+  if (map.has(id)) return map.get(id)!;
+
+  const dbPath = path.join(dataDir, `${id}.db`);
+  const db = new Database(dbPath);
   db.pragma("journal_mode = WAL");
   db.pragma("foreign_keys = ON");
   db.pragma("busy_timeout = 5000");
   initSchema(db);
   migrateSchema(db);
-  globalThis.__postlainDb = db;
+  map.set(id, db);
   return db;
 }
 

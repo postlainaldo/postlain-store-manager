@@ -1,13 +1,13 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence, useMotionValue, useSpring } from "framer-motion";
 import {
   Eye, EyeOff, Lock, User, AlertCircle, Check, ArrowRight,
   Shield, Wifi, WifiOff, Sparkles,
 } from "lucide-react";
-import { useStore } from "@/store/useStore";
+import { useStore, sel } from "@/store/useStore";
 import { useSFX, unlockAudio } from "@/hooks/useSFX";
 
 // ─── Floating particle ────────────────────────────────────────────────────────
@@ -300,12 +300,22 @@ function Field({
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
-export default function LoginPage() {
-  const router  = useRouter();
-  const login   = useStore(s => s.login);
-  const sfx     = useSFX();
-  const capsOn  = useCapsLock();
-  const online  = useOnlineStatus();
+import { Suspense } from "react";
+
+function LoginInner() {
+  const router         = useRouter();
+  const searchParams   = useSearchParams();
+  const login          = useStore(sel.login);
+  const setStoreId     = useStore(sel.setCurrentStoreId);
+  const sfx            = useSFX();
+  const capsOn         = useCapsLock();
+  const online         = useOnlineStatus();
+
+  // Set storeId từ URL param khi load trang
+  useEffect(() => {
+    const storeParam = searchParams.get("store");
+    if (storeParam) setStoreId(storeParam);
+  }, [searchParams, setStoreId]);
 
   const [username,    setUsername]    = useState("");
   const [password,    setPassword]    = useState("");
@@ -866,5 +876,13 @@ export default function LoginPage() {
         </div>
       </motion.div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginInner />
+    </Suspense>
   );
 }

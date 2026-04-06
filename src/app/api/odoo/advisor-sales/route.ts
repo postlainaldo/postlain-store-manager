@@ -5,10 +5,13 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { fetchAdvisorSales } from "@/lib/odoo";
+import { setActiveStore } from "@/lib/supabase";
+import { getStoreId } from "@/lib/storeContext";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
+  setActiveStore(getStoreId(req));
   if (!process.env.ODOO_URL) {
     return NextResponse.json({ ok: false, error: "ODOO_URL not set" }, { status: 400 });
   }

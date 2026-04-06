@@ -39,6 +39,10 @@ export interface AppUser {
 }
 
 interface StoreState {
+  // ── Multi-tenant ──────────────────────────────────────────────────────────
+  currentStoreId: string;
+  setCurrentStoreId: (id: string) => void;
+
   // ── Auth ─────────────────────────────────────────────────────────────────
   users: AppUser[];
   currentUser: AppUser | null;
@@ -169,14 +173,27 @@ const DEFAULT_ADMIN: AppUser = {
 export const useStore = create<StoreState>()(
   persist(
     (set, get) => ({
+      // ── Multi-tenant ───────────────────────────────────────────────────────
+      currentStoreId: typeof window !== "undefined"
+        ? (localStorage.getItem("plsm_store_id") ?? "postlain")
+        : "postlain",
+      setCurrentStoreId: (id) => {
+        try { localStorage.setItem("plsm_store_id", id); document.cookie = `plsm_store_id=${id};path=/;max-age=31536000`; } catch {}
+        set({ currentStoreId: id });
+      },
+
       // ── Auth ──────────────────────────────────────────────────────────────
       users: [DEFAULT_ADMIN],
       currentUser: null,
       login: async (username, password) => {
         try {
+          const storeId = get().currentStoreId;
           const res = await fetch("/api/auth", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+              "Content-Type": "application/json",
+              "x-store-id": storeId,
+            },
             body: JSON.stringify({ username: username.trim(), password }),
           });
           if (!res.ok) return false;
@@ -768,6 +785,9 @@ export const useStore = create<StoreState>()(
 // This ensures only the selected slice triggers a re-render,
 // instead of re-rendering on any store change.
 export const sel = {
+  // Multi-tenant
+  currentStoreId:       (s: StoreState) => s.currentStoreId,
+  setCurrentStoreId:    (s: StoreState) => s.setCurrentStoreId,
   // Auth
   currentUser:          (s: StoreState) => s.currentUser,
   users:                (s: StoreState) => s.users,

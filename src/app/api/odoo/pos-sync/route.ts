@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { fetchPosOrders, fetchPosOrderLines, fetchOdooCustomers } from "@/lib/odoo";
 import {
+import { setActiveStore } from "@/lib/supabase";
+import { getStoreId } from "@/lib/storeContext";
   dbBulkUpsertPosOrders,
   dbBulkUpsertPosOrderLines,
   dbBulkUpsertCustomers,
@@ -82,6 +84,7 @@ function mapLine(l: Awaited<ReturnType<typeof fetchPosOrderLines>>[number]): DBP
 // ─── POST /api/odoo/pos-sync ──────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
+  setActiveStore(getStoreId(req));
   try {
     if (!process.env.ODOO_URL) {
       return NextResponse.json({ ok: false, error: "ODOO_URL not set" }, { status: 400 });

@@ -2,12 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { dbGetDailyReports, dbGetDailyReportByDate, dbUpsertDailyReport, DBDailyReport } from "@/lib/dbAdapter";
 import { dbGetPosSummary, dbGetTopProducts, dbGetPosOrders } from "@/lib/dbAdapter";
 import { getPalexyTraffic } from "@/lib/palexy";
+import { setActiveStore } from "@/lib/supabase";
+import { getStoreId } from "@/lib/storeContext";
 
 export const dynamic = "force-dynamic";
 
 // ─── GET ──────────────────────────────────────────────────────────────────────
 
 export async function GET(req: NextRequest) {
+  setActiveStore(getStoreId(req));
   const { searchParams } = new URL(req.url);
   const date = searchParams.get("date");        // YYYY-MM-DD
   const shift = searchParams.get("shift");
@@ -79,6 +82,7 @@ export async function GET(req: NextRequest) {
 // ─── POST — save manual fields (traffic, target, HB/SC/ACC notes) ────────────
 
 export async function POST(req: NextRequest) {
+  setActiveStore(getStoreId(req));
   try {
     const body = await req.json() as Partial<DBDailyReport>;
     if (!body.date || !body.shift) {

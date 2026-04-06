@@ -3,6 +3,8 @@
  */
 import { NextResponse } from "next/server";
 import { NextRequest } from "next/server";
+import { setActiveStore } from "@/lib/supabase";
+import { getStoreId } from "@/lib/storeContext";
 
 export const dynamic = "force-dynamic";
 
@@ -35,6 +37,7 @@ async function callKw(cookie: string, model: string, method: string, args: unkno
 }
 
 export async function GET(req: NextRequest) {
+  setActiveStore(getStoreId(req));
   if (!ODOO_URL) return NextResponse.json({ error: "ODOO_URL not set" }, { status: 400 });
   const mode = new URL(req.url).searchParams.get("mode") ?? "advisor_group";
 

@@ -3,6 +3,8 @@ import { dbGetNotifications, dbInsertNotification, dbDeleteNotification, dbInser
 import { IS_SUPABASE, getSupabase } from "@/lib/supabase";
 import getDb from "@/lib/database";
 import { sendPushToAll } from "@/lib/push";
+import { setActiveStore } from "@/lib/supabase";
+import { getStoreId } from "@/lib/storeContext";
 
 async function requireManagerOrAbove(req: NextRequest): Promise<NextResponse | null> {
   const userId = req.headers.get("x-user-id");
@@ -20,6 +22,7 @@ export async function GET() {
 
 // POST /api/notifications — create notification (admin/manager only)
 export async function POST(req: NextRequest) {
+  setActiveStore(getStoreId(req));
   const authErr = await requireManagerOrAbove(req);
   if (authErr) return authErr;
   const { title, body, type, createdBy, pinned } = await req.json();
@@ -51,6 +54,7 @@ export async function POST(req: NextRequest) {
 
 // DELETE /api/notifications (admin/manager only)
 export async function DELETE(req: NextRequest) {
+  setActiveStore(getStoreId(req));
   const authErr = await requireManagerOrAbove(req);
   if (authErr) return authErr;
   const { id } = await req.json();
@@ -60,6 +64,7 @@ export async function DELETE(req: NextRequest) {
 
 // PATCH /api/notifications — toggle pin (admin/manager only)
 export async function PATCH(req: NextRequest) {
+  setActiveStore(getStoreId(req));
   const authErr = await requireManagerOrAbove(req);
   if (authErr) return authErr;
   const { id, pinned } = await req.json();

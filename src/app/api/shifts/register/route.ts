@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
+import { setActiveStore } from "@/lib/supabase";
+import { getStoreId } from "@/lib/storeContext";
   dbUpsertShiftRegistrationBySlotUser,
   dbDeleteShiftRegistration,
   dbGetShiftRegistrations,
@@ -9,6 +11,7 @@ import {
 // POST /api/shifts/register — register, cancel, approve/reject, or assign (admin direct)
 // body: { action: "register"|"cancel"|"approve"|"reject"|"assign"|"unassign", slotId, userId, userName, registrationId?, note? }
 export async function POST(req: NextRequest) {
+  setActiveStore(getStoreId(req));
   let body: Record<string, unknown> = {};
   try {
     body = await req.json();

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import getDb from "@/lib/database";
+import { setActiveStore } from "@/lib/supabase";
+import { getStoreId } from "@/lib/storeContext";
 
 type ActivityRow = { id: string; userId: string; userName: string; type: string; content: string; createdAt: string };
 
@@ -14,6 +16,7 @@ export async function GET() {
 
 // POST /api/activity — post a message/status
 export async function POST(req: NextRequest) {
+  setActiveStore(getStoreId(req));
   const { userId, userName, type, content } = await req.json();
   if (!userId || !content) return NextResponse.json({ error: "Missing fields" }, { status: 400 });
   const db = getDb();

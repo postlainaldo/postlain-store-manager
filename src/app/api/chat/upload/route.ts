@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { IS_SUPABASE, getSupabase } from "@/lib/supabase";
 import { extname } from "path";
+import { setActiveStore } from "@/lib/supabase";
+import { getStoreId } from "@/lib/storeContext";
 
 const ALLOWED_IMAGES = [".jpg", ".jpeg", ".png", ".gif", ".webp"];
 const ALLOWED_FILES  = [".pdf", ".doc", ".docx", ".xls", ".xlsx", ".txt", ".zip"];
 const MAX_MB = 20;
 
 export async function POST(req: NextRequest) {
+  setActiveStore(getStoreId(req));
   const formData = await req.formData();
   const file = formData.get("file") as File | null;
   if (!file) return NextResponse.json({ error: "No file" }, { status: 400 });

@@ -8,6 +8,8 @@ import {
 } from "@/lib/dbAdapter";
 import { IS_SUPABASE, getSupabase } from "@/lib/supabase";
 import getDb from "@/lib/database";
+import { setActiveStore } from "@/lib/supabase";
+import { getStoreId } from "@/lib/storeContext";
 
 const REG_CLOSED_KEY = "regClosed";
 
@@ -36,6 +38,7 @@ async function setRegClosed(closed: boolean): Promise<void> {
 // GET /api/shifts?dateFrom=2026-03-24&dateTo=2026-03-30
 // Returns: { templates, slots, registrations }
 export async function GET(req: NextRequest) {
+  setActiveStore(getStoreId(req));
   try {
     await ensureSupabaseSchema();
     const { searchParams } = new URL(req.url);
@@ -60,6 +63,7 @@ export async function GET(req: NextRequest) {
 // POST /api/shifts  — create/update template or slot
 // body: { kind: "template"|"slot", data: {...} }
 export async function POST(req: NextRequest) {
+  setActiveStore(getStoreId(req));
   try {
     const { kind, data } = await req.json() as { kind: "template" | "slot"; data: DBShiftTemplate | DBShiftSlot };
     const now = new Date().toISOString();
@@ -85,6 +89,7 @@ export async function POST(req: NextRequest) {
 
 // PATCH /api/shifts  — update settings (e.g. regClosed)
 export async function PATCH(req: NextRequest) {
+  setActiveStore(getStoreId(req));
   try {
     await ensureSupabaseSchema();
     const body = await req.json() as { regClosed?: boolean };
@@ -100,6 +105,7 @@ export async function PATCH(req: NextRequest) {
 
 // DELETE /api/shifts?kind=template&id=xxx  or  kind=slot
 export async function DELETE(req: NextRequest) {
+  setActiveStore(getStoreId(req));
   try {
     const { searchParams } = new URL(req.url);
     const kind = searchParams.get("kind");

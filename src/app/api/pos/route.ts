@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { dbGetPosOrders, dbGetPosOrderLines, dbGetPosSummary, dbGetTopProducts, dbGetStaffSales } from "@/lib/dbAdapter";
+import { setActiveStore } from "@/lib/supabase";
+import { getStoreId } from "@/lib/storeContext";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
+  setActiveStore(getStoreId(req));
   const { searchParams } = new URL(req.url);
   const action = searchParams.get("action") ?? "orders";
   const customerId = searchParams.get("customerId") ?? undefined;

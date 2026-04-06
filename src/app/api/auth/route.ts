@@ -3,9 +3,12 @@ import {
   dbGetUsers, dbGetUserByCredentials, dbGetUserById,
   dbCreateUser, dbUpdateUser, dbDeleteUser,
 } from "@/lib/dbAdapter";
+import { setActiveStore } from "@/lib/supabase";
+import { getStoreId } from "@/lib/storeContext";
 
 // POST /api/auth — login
 export async function POST(req: NextRequest) {
+  setActiveStore(getStoreId(req));
   const { username, password } = await req.json();
   if (!username || !password) return NextResponse.json({ error: "Missing fields" }, { status: 400 });
 
@@ -16,14 +19,15 @@ export async function POST(req: NextRequest) {
 }
 
 // GET /api/auth — list users (no passwords)
-export async function GET() {
+export async function GET(req: NextRequest) {
+  setActiveStore(getStoreId(req));
   const users = await dbGetUsers();
   return NextResponse.json(users);
 }
 
 // PUT /api/auth — add or update user
 export async function PUT(req: NextRequest) {
-  const { id, name, username, password, role, active } = await req.json();
+  setActiveStore(getStoreId(req));
   const now = new Date().toISOString();
 
   if (id) {
@@ -43,6 +47,7 @@ export async function PUT(req: NextRequest) {
 
 // DELETE /api/auth — remove user
 export async function DELETE(req: NextRequest) {
+  setActiveStore(getStoreId(req));
   const { id } = await req.json();
   if (id === "user_admin") return NextResponse.json({ error: "Cannot delete admin" }, { status: 400 });
   await dbDeleteUser(id);
@@ -51,6 +56,7 @@ export async function DELETE(req: NextRequest) {
 
 // PATCH /api/auth — validate session (check user still exists)
 export async function PATCH(req: NextRequest) {
+  setActiveStore(getStoreId(req));
   const { id } = await req.json();
   if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
   const user = await dbGetUserById(id);

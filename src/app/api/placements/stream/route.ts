@@ -7,6 +7,8 @@
 
 import { NextResponse } from "next/server";
 import { sseClients } from "@/lib/sseClients";
+import { setActiveStore } from "@/lib/supabase";
+import { getStoreId } from "@/lib/storeContext";
 
 export async function GET() {
   const encoder = new TextEncoder();
