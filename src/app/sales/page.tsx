@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { motion } from "framer-motion";
 import { ShoppingBag, TrendingUp, Receipt, RefreshCw, BarChart2, ChevronDown, ChevronUp } from "lucide-react";
 import Link from "next/link";
 
@@ -71,19 +72,29 @@ export default function SalesPage() {
   const cur = summary?.[period];
 
   return (
-    <div style={{ minHeight: "100vh", padding: "24px 16px 80px" }}>
+    <div style={{ minHeight: "100vh", padding: "24px 16px 80px", position: "relative" }}>
       <div style={{ maxWidth: 860, margin: "0 auto" }}>
 
         {/* Header */}
-        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 24, gap: 12, flexWrap: "wrap" }}>
-          <div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-              <ShoppingBag size={20} color="var(--gold)" />
-              <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>Bán Hàng</h1>
+        <motion.div
+          initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.28 }}
+          style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 24, gap: 12, flexWrap: "wrap" }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{
+              width: 42, height: 42, borderRadius: 13,
+              background: "linear-gradient(135deg, rgba(201,165,90,0.18) 0%, rgba(201,165,90,0.06) 100%)",
+              border: "1px solid rgba(201,165,90,0.35)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              boxShadow: "0 4px 16px rgba(201,165,90,0.16)",
+              flexShrink: 0,
+            }}>
+              <ShoppingBag size={18} color="var(--gold)" />
             </div>
-            <p style={{ fontSize: 12, color: "var(--text-muted)", margin: 0 }}>
-              Dữ liệu POS từ Odoo • Auto-sync 2:00 SA hàng ngày
-            </p>
+            <div>
+              <p style={{ fontSize: 8.5, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.32em", margin: 0 }}>POSTLAIN</p>
+              <h1 style={{ fontSize: 22, fontWeight: 300, color: "var(--text-primary)", margin: 0, letterSpacing: "0.01em", lineHeight: 1.2 }}>Bán Hàng</h1>
+            </div>
           </div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
 
@@ -98,7 +109,7 @@ export default function SalesPage() {
               {syncing ? "Đang sync..." : "Sync POS"}
             </button>
           </div>
-        </div>
+        </motion.div>
 
         {syncMsg && (
           <div style={{
