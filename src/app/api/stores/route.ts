@@ -27,14 +27,6 @@ const DEFAULT_STORES: StoreConfig[] = [
     accentColor: "#c9a55a",
     active: true,
   },
-  {
-    id: "royvilla",
-    name: "ROY VILLA COFFEE",
-    description: "Roy Villa Coffee",
-    color: "#1a0e05",
-    accentColor: "#c8703a",
-    active: true,
-  },
 ];
 
 function readStores(): StoreConfig[] {
@@ -42,7 +34,12 @@ function readStores(): StoreConfig[] {
   if (process.env.STORES_JSON) {
     try { return JSON.parse(process.env.STORES_JSON); } catch {}
   }
-  // 2. Hardcoded default (file on disk may be stale from volume mount)
+  // 2. File trên disk
+  try {
+    const raw = fs.readFileSync(STORES_PATH, "utf-8");
+    return JSON.parse(raw);
+  } catch {}
+  // 3. Hardcoded fallback
   return DEFAULT_STORES;
 }
 
