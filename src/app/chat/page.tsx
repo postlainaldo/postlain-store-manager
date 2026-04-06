@@ -485,7 +485,23 @@ export default function ChatPage() {
   const [newRoomName, setNewRoomName] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [connected, setConnected] = useState(false);
+  const chatReadKey = currentUser ? `chat_read_${currentUser.id}` : null;
   const [readCounts, setReadCounts] = useState<Record<string, number>>({});
+
+  // Load readCounts from localStorage after currentUser is available
+  useEffect(() => {
+    if (!chatReadKey) return;
+    try {
+      const saved = JSON.parse(localStorage.getItem(chatReadKey) ?? "{}");
+      if (saved && typeof saved === "object") setReadCounts(saved);
+    } catch { /* ignore */ }
+  }, [chatReadKey]);
+
+  // Persist readCounts to localStorage whenever it changes
+  useEffect(() => {
+    if (!chatReadKey) return;
+    localStorage.setItem(chatReadKey, JSON.stringify(readCounts));
+  }, [readCounts, chatReadKey]);
   const [typingUsers, setTypingUsers] = useState<string[]>([]);
   const [replyTo, setReplyTo] = useState<Message | null>(null);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
