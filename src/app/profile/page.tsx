@@ -9,7 +9,7 @@ import {
   Settings, Users, RefreshCw, Info,
   Plus, Trash2, UserPlus, Activity,
   Award, Bell, Zap, Shield, Store, Trophy, BarChart2, TrendingUp, ChevronLeft, ChevronRight,
-  Download, Upload, Database, AlertTriangle,
+  Download, Upload, Database, AlertTriangle, Hash, Mail,
 } from "lucide-react";
 import { useStore, sel } from "@/store/useStore";
 import { useRouter } from "next/navigation";
@@ -1307,7 +1307,8 @@ export default function ProfilePage() {
   const [activity, setActivity] = useState<Activity[]>([]);
   const [tab, setTab] = useState<"profile" | "team" | "leaderboard" | "settings">("profile");
   const [editing, setEditing] = useState(false);
-  const [form, setForm] = useState({ name: "", fullName: "", bio: "", phone: "", status: "working" as Status });
+  const [form, setForm] = useState({ name: "", fullName: "", bio: "", phone: "", email: "", status: "working" as Status });
+  const [showProfileRequired, setShowProfileRequired] = useState(false);
   const [saved, setSaved] = useState(false);
   const [pwOpen, setPwOpen] = useState(false);
   const [oldPw, setOldPw] = useState(""); const [newPw, setNewPw] = useState(""); const [confirmPw, setConfirmPw] = useState("");
@@ -1334,7 +1335,10 @@ export default function ProfilePage() {
     setProfile(p);
     setActivity(Array.isArray(a) ? a : []);
     const savedStatus = (p.status ?? "working") as Status;
-    setForm({ name: p.name ?? "", fullName: p.fullName ?? "", bio: p.bio ?? "", phone: p.phone ?? "", status: savedStatus });
+    setForm({ name: p.name ?? "", fullName: p.fullName ?? "", bio: p.bio ?? "", phone: p.phone ?? "", email: p.email ?? "", status: savedStatus });
+    if (!(p.fullName ?? "").trim() && !(p.phone ?? "").trim()) {
+      setShowProfileRequired(true);
+    }
 
     // Compute schedule-based shift status for ALL members today
     try {
@@ -1469,6 +1473,7 @@ export default function ProfilePage() {
   const handleSave = async () => {
     await fetch("/api/profile", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: currentUser.id, ...form, avatar: profile?.avatar }) });
     setSaved(true);
+    if (form.fullName.trim() && form.phone.trim()) setShowProfileRequired(false);
     setTimeout(() => { setSaved(false); setEditing(false); }, 1200);
     load();
   };
@@ -1507,7 +1512,7 @@ export default function ProfilePage() {
   const isManager = currentUser.role === "admin" || currentUser.role === "manager";
   const canViewProfiles = isManager;
 
-  const activeMembers = team.filter(m => m.active).length;
+  const activeMembers = team.filter(m => Number(m.active) !== 0).length;
 
   const TABS = [
     { id: "profile" as const,      label: "Hồ Sơ",       icon: User       },
@@ -1521,6 +1526,24 @@ export default function ProfilePage() {
 
   return (
     <div style={{ position: "relative", maxWidth: 860, margin: "0 auto" }}>
+      {/* Bắt buộc điền thông tin cá nhân */}
+      {showProfileRequired && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 800, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(8px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+          <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
+            style={{ background: "white", borderRadius: 20, padding: "28px 24px", maxWidth: 360, width: "100%", textAlign: "center", boxShadow: "0 24px 80px rgba(0,0,0,0.25)" }}>
+            <div style={{ width: 56, height: 56, borderRadius: 16, background: "rgba(14,165,233,0.1)", border: "2px solid rgba(14,165,233,0.3)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
+              <User size={24} style={{ color: "#0ea5e9" }} />
+            </div>
+            <h3 style={{ fontSize: 17, fontWeight: 700, color: "#0f172a", marginBottom: 8 }}>Hoàn thiện hồ sơ</h3>
+            <p style={{ fontSize: 13, color: "#64748b", lineHeight: 1.6, marginBottom: 20 }}>Vui lòng điền đầy đủ họ tên và số điện thoại để tiếp tục sử dụng ứng dụng.</p>
+            <button onClick={() => { setShowProfileRequired(false); setEditing(true); }}
+              style={{ width: "100%", padding: "12px", borderRadius: 12, border: "none", background: "linear-gradient(135deg, #0ea5e9, #0284c7)", color: "white", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
+              Điền thông tin ngay
+            </button>
+          </motion.div>
+        </div>
+      )}
+
       {/* Staff profile modal */}
       <AnimatePresence>
         {viewingMember && (
@@ -1769,16 +1792,27 @@ export default function ProfilePage() {
                     }
                   </div>
 
+                  {/* Mã nhân viên — always readonly */}
+                  <div>
+                    <div style={{ padding: "12px 20px", display: "flex", alignItems: "center", gap: 14 }}>
+                      <div style={{ width: 28, height: 28, borderRadius: 8, background: "rgba(14,165,233,0.08)", border: "1px solid rgba(14,165,233,0.15)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                        <Hash size={12} style={{ color: "#0ea5e9" }} />
+                      </div>
+                      <span style={{ fontSize: 10, color: "var(--text-muted)", width: 110, flexShrink: 0 }}>Mã nhân viên</span>
+                      <span style={{ fontSize: 11, color: "var(--text-primary)", fontWeight: 500 }}>
+                        {profile?.username ?? currentUser.email}
+                      </span>
+                    </div>
+                  </div>
                   {[
-                    { label: "Tên hiển thị", key: "name" as const,     icon: User,     placeholder: "Tên trong app" },
-                    { label: "Họ và tên",    key: "fullName" as const,  icon: User,     placeholder: "Nguyễn Văn A" },
-                    { label: "Số điện thoại",key: "phone" as const,     icon: Phone,    placeholder: "0901 234 567" },
-                    { label: "Giới thiệu",   key: "bio" as const,       icon: FileText, placeholder: "Một câu giới thiệu..." },
+                    { label: "Họ và tên",     key: "fullName" as const, icon: User,     placeholder: "Nguyễn Văn A" },
+                    { label: "Số điện thoại", key: "phone" as const,    icon: Phone,    placeholder: "0901 234 567" },
+                    { label: "Email",         key: "email" as const,    icon: Mail,     placeholder: "ten@email.com" },
                   ].map((f, i) => {
                     const FIcon = f.icon;
                     return (
                       <div key={f.key}>
-                        {i > 0 && <div style={{ height: 1, background: "var(--border-subtle)", margin: "0 20px" }} />}
+                        <div style={{ height: 1, background: "var(--border-subtle)", margin: "0 20px" }} />
                         <div style={{ padding: "12px 20px", display: "flex", alignItems: "center", gap: 14 }}>
                           <div style={{ width: 28, height: 28, borderRadius: 8, background: "rgba(14,165,233,0.08)", border: "1px solid rgba(14,165,233,0.15)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                             <FIcon size={12} style={{ color: "#0ea5e9" }} />
@@ -1893,7 +1927,7 @@ export default function ProfilePage() {
                   <motion.div animate={{ opacity: [1, 0.3, 1] }} transition={{ duration: 1.5, repeat: Infinity }}
                     style={{ width: 5, height: 5, borderRadius: "50%", background: "#0ea5e9", boxShadow: "0 0 6px rgba(14,165,233,0.8)" }} />
                   <span style={{ fontSize: 9, color: "rgba(14,165,233,0.8)", letterSpacing: "0.15em", fontWeight: 600 }}>
-                    {team.filter(m => m.active).length} THÀNH VIÊN ĐANG HOẠT ĐỘNG
+                    {team.filter(m => Number(m.active) !== 0).length} THÀNH VIÊN ĐANG HOẠT ĐỘNG
                   </span>
                 </div>
                 {canViewProfiles && (
@@ -1902,7 +1936,7 @@ export default function ProfilePage() {
                     Nhấn vào thẻ nhân viên để xem hồ sơ chi tiết
                   </div>
                 )}
-                {team.filter(m => m.active).map((m, i) => {
+                {team.filter(m => Number(m.active) !== 0).map((m, i) => {
                   const { target, revenue } = getSalesForMember(m);
                   return (
                     <motion.div key={m.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
@@ -1911,13 +1945,13 @@ export default function ProfilePage() {
                     </motion.div>
                   );
                 })}
-                {team.filter(m => !m.active).length > 0 && (
+                {team.filter(m => Number(m.active) === 0).length > 0 && (
                   <>
                     <div style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "4px 12px", borderRadius: 20, border: "1px solid rgba(148,163,184,0.25)", background: "rgba(148,163,184,0.06)", width: "fit-content", marginTop: 8 }}>
                       <div style={{ width: 5, height: 5, borderRadius: "50%", background: "#94a3b8" }} />
                       <span style={{ fontSize: 9, color: "#94a3b8", letterSpacing: "0.15em", fontWeight: 600 }}>ĐÃ VÔ HIỆU HÓA</span>
                     </div>
-                    {team.filter(m => !m.active).map(m => (
+                    {team.filter(m => Number(m.active) === 0).map(m => (
                       <div key={m.id} style={{ opacity: 0.4 }}><TeamCard member={m} isMe={false} canView={canViewProfiles} onView={() => setViewingMember(m)} /></div>
                     ))}
                   </>
