@@ -13,18 +13,43 @@ export type StoreConfig = {
   active: boolean;
 };
 
+// Coolify mounts /app/data as a volume — stores.json bị đè mất.
+// Priority: STORES_JSON env var (JSON string) → file tại STORES_PATH
 const STORES_PATH = path.join(process.cwd(), "data", "stores.json");
 
+// Fallback cứng nếu cả env lẫn file đều không có
+const DEFAULT_STORES: StoreConfig[] = [
+  {
+    id: "postlain",
+    name: "ALDO GO! ĐÀ LẠT",
+    description: "Thời trang POSTLAIN — Đà Lạt",
+    color: "#0c1a2e",
+    accentColor: "#c9a55a",
+    active: true,
+  },
+];
+
 function readStores(): StoreConfig[] {
+  // 1. Env var (Coolify env)
+  if (process.env.STORES_JSON) {
+    try { return JSON.parse(process.env.STORES_JSON); } catch {}
+  }
+  // 2. File trên disk
   try {
     return JSON.parse(fs.readFileSync(STORES_PATH, "utf-8"));
   } catch {
-    return [];
+    // 3. Hardcoded fallback
+    return DEFAULT_STORES;
   }
 }
 
 function writeStores(stores: StoreConfig[]) {
-  fs.writeFileSync(STORES_PATH, JSON.stringify(stores, null, 2));
+  try {
+    fs.mkdirSync(path.dirname(STORES_PATH), { recursive: true });
+    fs.writeFileSync(STORES_PATH, JSON.stringify(stores, null, 2));
+  } catch (e) {
+    console.error("[stores] writeStores failed:", e);
+  }
 }
 
 // GET /api/stores — danh sách store active (public)
