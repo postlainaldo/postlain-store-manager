@@ -424,23 +424,15 @@ export async function dbGetUsers(): Promise<DBUser[]> {
 export async function dbGetUserByCredentials(username: string, password: string): Promise<DBUser | null> {
   if (IS_SUPABASE) {
     const sb = getSupabase();
-    // Try with store_id filter first (multi-tenant)
-    const { data, error } = await sb
+    // Fetch by username only, compare passwordHash in code (avoids PostgREST camelCase quoting issues)
+    const { data } = await sb
       .from("users")
-      .select("id, name, username, role, active, phone, employeeCode")
-      .eq("store_id", sid())
+      .select("id, name, username, role, active, phone, employeeCode, passwordHash")
       .eq("username", username.toLowerCase())
-      .eq("passwordHash", password)
-      .single();
-    if (!error && data) return data as DBUser;
-    // Fallback: no store_id filter (legacy data or store_id column missing)
-    const { data: data2 } = await sb
-      .from("users")
-      .select("id, name, username, role, active, phone, employeeCode")
-      .eq("username", username.toLowerCase())
-      .eq("passwordHash", password)
-      .single();
-    return (data2 ?? null) as DBUser | null;
+      .maybeSingle();
+    if (!data) return null;
+    if (data.passwordHash !== password) return null;
+    return data as DBUser;
   }
   return getStoreDb().prepare(
     "SELECT id, name, username, role, active, phone, employeeCode FROM users WHERE username = ? AND passwordHash = ? COLLATE NOCASE"
