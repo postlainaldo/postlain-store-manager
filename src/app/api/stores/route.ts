@@ -30,9 +30,15 @@ const DEFAULT_STORES: StoreConfig[] = [
 ];
 
 function readStores(): StoreConfig[] {
-  // 1. Env var (Coolify env)
+  // 1. Env var (Coolify env) — chỉ dùng nếu không chứa store cũ đã xóa
   if (process.env.STORES_JSON) {
-    try { return JSON.parse(process.env.STORES_JSON); } catch {}
+    try {
+      const parsed = JSON.parse(process.env.STORES_JSON);
+      if (Array.isArray(parsed)) {
+        const filtered = parsed.filter((s: StoreConfig) => s.id !== "royvilla");
+        if (filtered.length > 0) return filtered;
+      }
+    } catch {}
   }
   // 2. File trên disk
   try {
