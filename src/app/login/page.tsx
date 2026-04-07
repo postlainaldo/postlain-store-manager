@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence, useMotionValue, useSpring } from "framer-motion";
 import {
   Eye, EyeOff, Lock, User, AlertCircle, Check, ArrowRight,
-  Shield, Wifi, WifiOff, Sparkles, Store, ChevronRight,
+  Shield, Wifi, WifiOff, Sparkles, Store,
   MessageCircle, FileText, ShieldCheck, X,
 } from "lucide-react";
 import { useStore, sel } from "@/store/useStore";
@@ -423,17 +423,25 @@ function FooterLinks() {
                 backdropFilter: "blur(6px)",
               }}
             />
+            {/* Wrapper full-screen flex center — tránh framer-motion conflict với transform translate */}
+            <div
+              key="modal-wrapper"
+              style={{
+                position: "fixed", inset: 0, zIndex: 301,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                pointerEvents: "none",
+                padding: "0 24px",
+              }}
+            >
             <motion.div
               key="modal"
-              initial={{ opacity: 0, y: 24, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 16, scale: 0.97 }}
+              initial={{ opacity: 0, scale: 0.95, y: 16 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.97, y: 8 }}
               transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
               style={{
-                position: "fixed", left: "50%", top: "50%",
-                transform: "translate(-50%, -50%)",
-                zIndex: 301,
-                width: "calc(100vw - 48px)", maxWidth: 380,
+                pointerEvents: "auto",
+                width: "100%", maxWidth: 380,
                 background: "rgba(8,18,36,0.96)",
                 border: "1px solid rgba(255,255,255,0.08)",
                 borderRadius: 24,
@@ -509,6 +517,7 @@ function FooterLinks() {
                 ))}
               </div>
             </motion.div>
+            </div>
           </>
         )}
       </AnimatePresence>
@@ -768,49 +777,21 @@ function LoginInner() {
             Store Manager
           </p>
 
-          {/* Store badge + đổi cửa hàng */}
+          {/* Store badge — chỉ hiển thị tên, không có nút đổi */}
           {storeName && (
-            <motion.div
-              initial={{ opacity: 0, y: 6, scale: 0.94 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-              style={{ display: "flex", justifyContent: "center", marginTop: 12 }}
-            >
-              <motion.button
-                onClick={() => { setStoreId(null as unknown as string); router.push("/store-select"); }}
-                whileHover={{ scale: 1.04, backgroundColor: "rgba(201,165,90,0.18)" }}
-                whileTap={{ scale: 0.97 }}
-                style={{
-                  display: "flex", alignItems: "center", gap: 7,
-                  background: "rgba(201,165,90,0.10)",
-                  border: "1px solid rgba(201,165,90,0.28)",
-                  borderRadius: 24, padding: "5px 12px 5px 9px",
-                  cursor: "pointer", outline: "none",
-                  transition: "background 0.2s, border-color 0.2s",
-                  boxShadow: "0 2px 12px rgba(201,165,90,0.10)",
-                }}
-              >
-                <div style={{
-                  width: 18, height: 18, borderRadius: "50%",
-                  background: "rgba(201,165,90,0.20)",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  flexShrink: 0,
-                }}>
-                  <Store size={9} style={{ color: "#c9a55a" }} />
-                </div>
-                <span style={{ fontSize: 9.5, color: "#c9a55a", fontWeight: 700, letterSpacing: "0.08em", maxWidth: 140, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            <div style={{ display: "flex", justifyContent: "center", marginTop: 12 }}>
+              <div style={{
+                display: "flex", alignItems: "center", gap: 6,
+                background: "rgba(201,165,90,0.08)",
+                border: "1px solid rgba(201,165,90,0.22)",
+                borderRadius: 20, padding: "4px 12px 4px 8px",
+              }}>
+                <Store size={9} style={{ color: "#c9a55a" }} />
+                <span style={{ fontSize: 9.5, color: "#c9a55a", fontWeight: 700, letterSpacing: "0.08em" }}>
                   {storeName}
                 </span>
-                <div style={{
-                  display: "flex", alignItems: "center", gap: 2,
-                  paddingLeft: 4, borderLeft: "1px solid rgba(201,165,90,0.20)",
-                  marginLeft: 1,
-                }}>
-                  <span style={{ fontSize: 8, color: "rgba(201,165,90,0.55)", letterSpacing: "0.06em" }}>đổi</span>
-                  <ChevronRight size={8} style={{ color: "rgba(201,165,90,0.45)" }} />
-                </div>
-              </motion.button>
-            </motion.div>
+              </div>
+            </div>
           )}
 
           {/* Online indicator */}
