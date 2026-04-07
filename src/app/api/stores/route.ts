@@ -27,25 +27,22 @@ const DEFAULT_STORES: StoreConfig[] = [
     accentColor: "#c9a55a",
     active: true,
   },
+  {
+    id: "royvilla",
+    name: "ROY VILLA COFFEE",
+    description: "Roy Villa Coffee",
+    color: "#1a0e05",
+    accentColor: "#c8703a",
+    active: true,
+  },
 ];
 
 function readStores(): StoreConfig[] {
-  // 1. Env var (Coolify env) — chỉ dùng nếu không chứa store cũ đã xóa
+  // 1. Env var (Coolify env)
   if (process.env.STORES_JSON) {
-    try {
-      const parsed = JSON.parse(process.env.STORES_JSON);
-      if (Array.isArray(parsed)) {
-        const filtered = parsed.filter((s: StoreConfig) => s.id !== "royvilla");
-        if (filtered.length > 0) return filtered;
-      }
-    } catch {}
+    try { return JSON.parse(process.env.STORES_JSON); } catch {}
   }
-  // 2. File trên disk
-  try {
-    const raw = fs.readFileSync(STORES_PATH, "utf-8");
-    return JSON.parse(raw);
-  } catch {}
-  // 3. Hardcoded fallback
+  // 2. Hardcoded default (file on disk may be stale from volume mount)
   return DEFAULT_STORES;
 }
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { dbGetUserById, dbGetUsers, dbUpdateUser } from "@/lib/dbAdapter";
-import { getIsSupabase, getSupabase } from "@/lib/supabase";
+import { IS_SUPABASE } from "@/lib/supabase";
+import { getSupabase } from "@/lib/supabase";
 import getDb from "@/lib/database";
 import { setActiveStore } from "@/lib/supabase";
 import { getStoreId } from "@/lib/storeContext";
@@ -22,7 +23,7 @@ export async function GET(req: NextRequest) {
 // PUT /api/profile — update profile fields
 export async function PUT(req: NextRequest) {
   setActiveStore(getStoreId(req));
-  const { id, name, fullName, bio, phone, email, employeeCode, avatar, status } = await req.json();
+  const { id, name, fullName, bio, phone, avatar, status } = await req.json();
   if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
 
   await dbUpdateUser(id, {
@@ -30,8 +31,6 @@ export async function PUT(req: NextRequest) {
     fullName: fullName ?? "",
     bio: bio ?? "",
     phone: phone ?? "",
-    ...(email !== undefined ? { email } : {}),
-    ...(employeeCode !== undefined ? { employeeCode } : {}),
     avatar: avatar ?? null,
     status: status ?? "online",
   });
@@ -40,7 +39,7 @@ export async function PUT(req: NextRequest) {
   try {
     const actId = `act_${Date.now()}`;
     const now = new Date().toISOString();
-    if (getIsSupabase()) {
+    if (IS_SUPABASE) {
       const user = await dbGetUserById(id);
       await getSupabase().from("activity").insert({
         id: actId, userId: id, userName: user?.name ?? "Unknown",

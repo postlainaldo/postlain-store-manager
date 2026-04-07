@@ -1118,62 +1118,37 @@ export default function SchedulePage() {
 
   async function handleRegister(slotId: string) {
     if (!currentUser) return;
-    const now = new Date().toISOString();
-    const tempId = `reg_temp_${Date.now()}`;
-    // Optimistic: thêm registration pending ngay
-    setRegistrations(prev => [...prev, { id: tempId, slotId, userId: currentUser.id, userName: currentUser.name, status: "pending", note: null, createdAt: now, updatedAt: now }]);
     const res = await fetch("/api/shifts/register", { method:"POST", headers:{"Content-Type":"application/json"},
       body: JSON.stringify({ action:"register", slotId, userId:currentUser.id, userName:currentUser.name }) });
-    if (!res.ok) {
-      setRegistrations(prev => prev.filter(r => r.id !== tempId));
-      alert("Đăng ký ca thất bại, thử lại."); return;
-    }
-    // Sync thực từ server để lấy id thật
-    const data = await res.json().catch(() => null);
-    if (data?.id) setRegistrations(prev => prev.map(r => r.id === tempId ? { ...r, id: data.id } : r));
-    else load();
+    if (!res.ok) { alert("Đăng ký ca thất bại, thử lại."); return; }
+    load();
   }
 
   async function handleCancel(regId: string) {
     const reg = registrations.find(r => r.id === regId);
     if (!reg) return;
-    // Optimistic: xoá ngay
-    setRegistrations(prev => prev.filter(r => r.id !== regId));
-    const res = await fetch("/api/shifts/register", { method:"POST", headers:{"Content-Type":"application/json"},
+    await fetch("/api/shifts/register", { method:"POST", headers:{"Content-Type":"application/json"},
       body: JSON.stringify({ action:"cancel", slotId:reg.slotId, userId:reg.userId, userName:reg.userName, registrationId:regId }) });
-    if (!res.ok) load(); // rollback bằng cách reload nếu lỗi
+    load();
   }
 
   async function handleApprove(reg: ShiftRegistration) {
-    // Optimistic: đổi status ngay
-    setRegistrations(prev => prev.map(r => r.id === reg.id ? { ...r, status: "approved" } : r));
-    const res = await fetch("/api/shifts/register", { method:"POST", headers:{"Content-Type":"application/json"},
+    await fetch("/api/shifts/register", { method:"POST", headers:{"Content-Type":"application/json"},
       body: JSON.stringify({ action:"approve", slotId:reg.slotId, userId:reg.userId, userName:reg.userName, registrationId:reg.id }) });
-    if (!res.ok) load();
+    load();
   }
 
   async function handleReject(reg: ShiftRegistration) {
-    // Optimistic: đổi status ngay
-    setRegistrations(prev => prev.map(r => r.id === reg.id ? { ...r, status: "rejected" } : r));
-    const res = await fetch("/api/shifts/register", { method:"POST", headers:{"Content-Type":"application/json"},
+    await fetch("/api/shifts/register", { method:"POST", headers:{"Content-Type":"application/json"},
       body: JSON.stringify({ action:"reject", slotId:reg.slotId, userId:reg.userId, userName:reg.userName, registrationId:reg.id }) });
-    if (!res.ok) load();
+    load();
   }
 
   async function handleAssign(slotId: string, user: AppUser) {
-    const now = new Date().toISOString();
-    const tempId = `reg_temp_${Date.now()}`;
-    // Optimistic: thêm approved ngay
-    setRegistrations(prev => [...prev, { id: tempId, slotId, userId: user.id, userName: user.name, status: "approved", note: null, createdAt: now, updatedAt: now }]);
     const res = await fetch("/api/shifts/register", { method:"POST", headers:{"Content-Type":"application/json"},
       body: JSON.stringify({ action:"assign", slotId, userId:user.id, userName:user.name }) });
-    if (!res.ok) {
-      setRegistrations(prev => prev.filter(r => r.id !== tempId));
-      alert("Xếp ca thất bại, thử lại."); return;
-    }
-    const data = await res.json().catch(() => null);
-    if (data?.id) setRegistrations(prev => prev.map(r => r.id === tempId ? { ...r, id: data.id } : r));
-    else load();
+    if (!res.ok) { alert("Xếp ca thất bại, thử lại."); return; }
+    load();
   }
 
   async function handleUnassign(slotId: string, userId: string) {
@@ -1740,7 +1715,7 @@ export default function SchedulePage() {
                           <div key={s.id} style={{ display:"flex", alignItems:"center", gap:8, padding:"5px 10px", borderRadius:9, background:`${s.color}10`, border:`1px solid ${s.color}35` }}>
                             <div style={{ width:3, height:28, borderRadius:2, background:s.color, flexShrink:0 }} />
                             <div>
-                              <p style={{ fontSize:10, fontWeight:700, color:s.color, margin:0 }}>{DAYS_VI[d.getDay()]} · {s.name}</p>
+                              <p style={{ fontSize:10, fontWeight:700, color:s.color, margin:0 }}>{DAYS_VI[d.getDay()]} {d.getDate()} · {s.name}</p>
                               <p style={{ fontSize:9, color:"#64748b", margin:0 }}>{fmt(s.startTime)} – {fmt(s.endTime)}</p>
                             </div>
                           </div>

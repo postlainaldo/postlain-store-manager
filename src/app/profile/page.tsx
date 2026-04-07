@@ -38,7 +38,7 @@ function urlB64ToUint8Array(base64String: string) {
 
 type Status = "working" | "off_shift" | "day_off" | "AL" | "SL" | "MAL" | "PCU" | "UL" | "OIL" | "BT" | "MML" | "CSL" | "CML" | "CL" | "PX" | "NDF" | "PHC" | "Xmas" | "MS";
 type Activity = { id: string; userId: string; userName: string; type: string; content: string; createdAt: string };
-type TeamMember = { id: string; name: string; fullName: string; username: string; role: string; active: number; avatar: string | null; status: string; bio: string; phone: string; email: string; employeeCode: string; createdAt: string };
+type TeamMember = { id: string; name: string; fullName: string; username: string; role: string; active: number; avatar: string | null; status: string; bio: string; phone: string; createdAt: string };
 
 // Grouped status config: schedule-based + leave codes
 const STATUS_CFG: Record<string, { label: string; color: string; group: string }> = {
@@ -367,18 +367,6 @@ function StaffProfileModal({ member, onClose }: { member: TeamMember; onClose: (
                 <span style={{ fontSize: 10, color: "var(--text-primary)" }}>{member.phone}</span>
               </div>
             )}
-            {member.email && (
-              <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 10, background: "var(--bg-base)", border: "1px solid var(--border)" }}>
-                <Mail size={11} style={{ color: "#0ea5e9", flexShrink: 0 }} />
-                <span style={{ fontSize: 10, color: "var(--text-primary)" }}>{member.email}</span>
-              </div>
-            )}
-            {member.employeeCode && (
-              <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 10, background: "var(--bg-base)", border: "1px solid var(--border)" }}>
-                <Hash size={11} style={{ color: "#64748b", flexShrink: 0 }} />
-                <span style={{ fontSize: 10, color: "var(--text-primary)" }}>Mã NV: {member.employeeCode}</span>
-              </div>
-            )}
             {member.createdAt && (
               <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 10, background: "var(--bg-base)", border: "1px solid var(--border)" }}>
                 <Info size={11} style={{ color: "#64748b", flexShrink: 0 }} />
@@ -463,26 +451,12 @@ function TeamCard({ member, isMe, onView, canView, kpiTarget, revenue }: {
           </div>
         </div>
         {member.bio && <p style={{ fontSize: 9.5, color: "var(--text-muted)", marginTop: 5, fontStyle: "italic", lineHeight: 1.5 }}>"{member.bio}"</p>}
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 4 }}>
-          {member.phone && (
-            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-              <Phone size={9} style={{ color: "var(--text-muted)" }} />
-              <span style={{ fontSize: 9, color: "var(--text-muted)" }}>{member.phone}</span>
-            </div>
-          )}
-          {member.email && (
-            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-              <Mail size={9} style={{ color: "var(--text-muted)" }} />
-              <span style={{ fontSize: 9, color: "var(--text-muted)" }}>{member.email}</span>
-            </div>
-          )}
-          {member.employeeCode && (
-            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-              <Hash size={9} style={{ color: "var(--text-muted)" }} />
-              <span style={{ fontSize: 9, color: "var(--text-muted)" }}>{member.employeeCode}</span>
-            </div>
-          )}
-        </div>
+        {member.phone && (
+          <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 4 }}>
+            <Phone size={9} style={{ color: "var(--text-muted)" }} />
+            <span style={{ fontSize: 9, color: "var(--text-muted)" }}>{member.phone}</span>
+          </div>
+        )}
         {/* KPI target mini progress */}
         {pct !== null && (
           <div style={{ marginTop: 8 }}>
@@ -1336,7 +1310,7 @@ export default function ProfilePage() {
   const [activity, setActivity] = useState<Activity[]>([]);
   const [tab, setTab] = useState<"profile" | "team" | "leaderboard" | "settings">("profile");
   const [editing, setEditing] = useState(false);
-  const [form, setForm] = useState({ name: "", fullName: "", bio: "", phone: "", email: "", employeeCode: "", status: "working" as Status });
+  const [form, setForm] = useState({ name: "", fullName: "", bio: "", phone: "", email: "", status: "working" as Status });
   const [showProfileRequired, setShowProfileRequired] = useState(false);
   const [saved, setSaved] = useState(false);
   const [pwOpen, setPwOpen] = useState(false);
@@ -1364,7 +1338,7 @@ export default function ProfilePage() {
     setProfile(p);
     setActivity(Array.isArray(a) ? a : []);
     const savedStatus = (p.status ?? "working") as Status;
-    setForm({ name: p.name ?? "", fullName: p.fullName ?? "", bio: p.bio ?? "", phone: p.phone ?? "", email: p.email ?? "", employeeCode: p.employeeCode ?? "", status: savedStatus });
+    setForm({ name: p.name ?? "", fullName: p.fullName ?? "", bio: p.bio ?? "", phone: p.phone ?? "", email: p.email ?? "", status: savedStatus });
     if (!(p.fullName ?? "").trim() && !(p.phone ?? "").trim()) {
       setShowProfileRequired(true);
     }
@@ -1415,7 +1389,7 @@ export default function ProfilePage() {
         if (autoStatus !== savedStatus) {
           setForm(f => ({ ...f, status: autoStatus }));
           await fetch("/api/profile", { method: "PUT", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ id: currentUser.id, name: p.name ?? "", fullName: p.fullName ?? "", bio: p.bio ?? "", phone: p.phone ?? "", email: p.email ?? "", employeeCode: p.employeeCode ?? "", status: autoStatus, avatar: p.avatar }) });
+            body: JSON.stringify({ id: currentUser.id, name: p.name ?? "", fullName: p.fullName ?? "", bio: p.bio ?? "", phone: p.phone ?? "", status: autoStatus, avatar: p.avatar }) });
         }
       }
     } catch {
@@ -1824,23 +1798,22 @@ export default function ProfilePage() {
                     }
                   </div>
 
-                  {/* Email — always readonly (= username/login) */}
+                  {/* Mã nhân viên — always readonly */}
                   <div>
                     <div style={{ padding: "12px 20px", display: "flex", alignItems: "center", gap: 14 }}>
                       <div style={{ width: 28, height: 28, borderRadius: 8, background: "rgba(14,165,233,0.08)", border: "1px solid rgba(14,165,233,0.15)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                        <Mail size={12} style={{ color: "#0ea5e9" }} />
+                        <Hash size={12} style={{ color: "#0ea5e9" }} />
                       </div>
-                      <span style={{ fontSize: 10, color: "var(--text-muted)", width: 110, flexShrink: 0 }}>Tên đăng nhập</span>
+                      <span style={{ fontSize: 10, color: "var(--text-muted)", width: 110, flexShrink: 0 }}>Mã nhân viên</span>
                       <span style={{ fontSize: 11, color: "var(--text-primary)", fontWeight: 500 }}>
-                        {profile?.username ?? currentUser.username}
+                        {profile?.username ?? currentUser.email}
                       </span>
                     </div>
                   </div>
                   {[
-                    { label: "Họ và tên",     key: "fullName" as const,      icon: User,     placeholder: "Nguyễn Văn A" },
-                    { label: "Số điện thoại", key: "phone" as const,         icon: Phone,    placeholder: "0901 234 567" },
-                    { label: "Email",         key: "email" as const,         icon: Mail,     placeholder: "ten@email.com" },
-                    { label: "Mã nhân viên",  key: "employeeCode" as const,  icon: Hash,     placeholder: "NV001" },
+                    { label: "Họ và tên",     key: "fullName" as const, icon: User,     placeholder: "Nguyễn Văn A" },
+                    { label: "Số điện thoại", key: "phone" as const,    icon: Phone,    placeholder: "0901 234 567" },
+                    { label: "Email",         key: "email" as const,    icon: Mail,     placeholder: "ten@email.com" },
                   ].map((f, i) => {
                     const FIcon = f.icon;
                     return (

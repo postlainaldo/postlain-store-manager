@@ -34,20 +34,20 @@ export default function NotificationBanner() {
   // For banner popup (latest pinned/urgent)
   const [banner, setBanner] = useState<Notif | null>(null);
 
+  // Load dismissed IDs from localStorage synchronously on first render
   const lsKey = currentUser ? `notif_dismissed_${currentUser.id}` : null;
-  const [dismissed, setDismissed] = useState<Set<string>>(new Set());
+  const [dismissed, setDismissed] = useState<Set<string>>(() => {
+    if (typeof window === "undefined" || !currentUser) return new Set<string>();
+    try {
+      const key = `notif_dismissed_${currentUser.id}`;
+      const saved = JSON.parse(localStorage.getItem(key) ?? "[]");
+      if (Array.isArray(saved)) return new Set<string>(saved);
+    } catch { /* ignore */ }
+    return new Set<string>();
+  });
   // Keep a ref so load() always reads current dismissed without re-subscribing
   const dismissedRef = useRef(dismissed);
   useEffect(() => { dismissedRef.current = dismissed; }, [dismissed]);
-
-  // Sync dismissed from localStorage after Zustand rehydrates currentUser
-  useEffect(() => {
-    if (!lsKey) return;
-    try {
-      const saved = JSON.parse(localStorage.getItem(lsKey) ?? "[]");
-      if (Array.isArray(saved)) setDismissed(new Set<string>(saved));
-    } catch { /* ignore */ }
-  }, [lsKey]);
 
   // Persist dismissed to localStorage whenever it changes
   useEffect(() => {

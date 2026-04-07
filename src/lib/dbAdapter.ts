@@ -8,7 +8,7 @@
  *      Supabase provides persistent PostgreSQL storage for free.
  */
 
-import { getIsSupabase as IS_SUPABASE, getSupabase, getActiveStoreId } from "./supabase";
+import { IS_SUPABASE, getSupabase, getActiveStoreId } from "./supabase";
 import getDb from "./database";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -35,7 +35,6 @@ export type DBUser = {
   phone?: string | null;
   fullName?: string | null;
   employeeCode?: string | null;
-  email?: string | null;
 };
 
 export type DBProduct = {
@@ -119,7 +118,7 @@ export type DBPushSub = {
 let supabaseInited = false;
 
 export async function ensureSupabaseSchema() {
-  if (!IS_SUPABASE() || supabaseInited) return;
+  if (!IS_SUPABASE || supabaseInited) return;
   supabaseInited = true;
   const sb = getSupabase();
 
@@ -402,11 +401,11 @@ export async function ensureSupabaseSchema() {
 // ─── Users ────────────────────────────────────────────────────────────────────
 
 export async function dbGetUsers(): Promise<DBUser[]> {
-  if (IS_SUPABASE()) {
+  if (IS_SUPABASE) {
     const sb = getSupabase();
     const { data } = await sb
       .from("users")
-      .select("id, name, username, role, active, createdAt, avatar, status, bio, phone, fullName, employeeCode, email")
+      .select("id, name, username, role, active, createdAt, avatar, status, bio, phone, fullName, employeeCode")
       .order("createdAt");
     return (data ?? []) as DBUser[];
   }
@@ -414,7 +413,7 @@ export async function dbGetUsers(): Promise<DBUser[]> {
 }
 
 export async function dbGetUserByCredentials(username: string, password: string): Promise<DBUser | null> {
-  if (IS_SUPABASE()) {
+  if (IS_SUPABASE) {
     const sb = getSupabase();
     // Fetch by username only, compare passwordHash in code (avoids PostgREST camelCase quoting issues)
     const { data, error } = await sb
@@ -422,6 +421,7 @@ export async function dbGetUserByCredentials(username: string, password: string)
       .select("id, name, username, role, active, phone, employeeCode, passwordHash")
       .eq("username", username.toLowerCase())
       .maybeSingle();
+    console.log("[auth] login attempt:", username, "| error:", error?.message, "| data keys:", data ? Object.keys(data) : null, "| passwordHash:", data?.passwordHash, "| input:", password, "| match:", data?.passwordHash === password);
     if (!data) return null;
     if (data.passwordHash !== password) return null;
     return data as DBUser;
@@ -432,7 +432,7 @@ export async function dbGetUserByCredentials(username: string, password: string)
 }
 
 export async function dbGetUserById(id: string): Promise<DBUser | null> {
-  if (IS_SUPABASE()) {
+  if (IS_SUPABASE) {
     const sb = getSupabase();
     const { data } = await sb.from("users").select("*").eq("store_id", sid()).eq("id", id).single();
     return data as DBUser | null;
@@ -444,7 +444,7 @@ export async function dbCreateUser(user: {
   id: string; name: string; username: string; password: string;
   role: string; createdAt: string;
 }): Promise<void> {
-  if (IS_SUPABASE()) {
+  if (IS_SUPABASE) {
     const sb = getSupabase();
     await sb.from("users").insert({
       id: user.id, name: user.name, username: user.username.toLowerCase(),
@@ -460,9 +460,9 @@ export async function dbCreateUser(user: {
 
 export async function dbUpdateUser(id: string, fields: {
   name?: string; username?: string; password?: string; role?: string; active?: number;
-  avatar?: string; status?: string; bio?: string; phone?: string; fullName?: string; employeeCode?: string; email?: string;
+  avatar?: string; status?: string; bio?: string; phone?: string; fullName?: string; employeeCode?: string;
 }): Promise<void> {
-  if (IS_SUPABASE()) {
+  if (IS_SUPABASE) {
     const sb = getSupabase();
     const update: Record<string, unknown> = {};
     if (fields.name !== undefined) update.name = fields.name;
@@ -476,7 +476,6 @@ export async function dbUpdateUser(id: string, fields: {
     if (fields.phone !== undefined) update.phone = fields.phone;
     if (fields.fullName !== undefined) update.fullName = fields.fullName;
     if (fields.employeeCode !== undefined) update.employeeCode = fields.employeeCode;
-    if (fields.email !== undefined) update.email = fields.email;
     await sb.from("users").update(update).eq("id", id);
     return;
   }
@@ -505,7 +504,7 @@ export async function dbUpdateUser(id: string, fields: {
 }
 
 export async function dbDeleteUser(id: string): Promise<void> {
-  if (IS_SUPABASE()) {
+  if (IS_SUPABASE) {
     await getSupabase().from("users").delete().eq("id", id);
     return;
   }
@@ -515,7 +514,7 @@ export async function dbDeleteUser(id: string): Promise<void> {
 // ─── Products ─────────────────────────────────────────────────────────────────
 
 export async function dbGetProducts(): Promise<DBProduct[]> {
-  if (IS_SUPABASE()) {
+  if (IS_SUPABASE) {
     const PAGE = 1000;
     const all: DBProduct[] = [];
     let from = 0;
@@ -538,7 +537,7 @@ export async function dbGetProducts(): Promise<DBProduct[]> {
 
 export async function dbGetProductBySku(sku: string): Promise<DBProduct | null> {
   const s = sku.trim();
-  if (IS_SUPABASE()) {
+  if (IS_SUPABASE) {
     // Try exact SKU first (EAN barcode), then internal ref stored in notes
     const { data } = await getSupabase()
       .from("products").select("*").eq("store_id", sid()).ilike("sku", s).maybeSingle();
@@ -555,7 +554,7 @@ export async function dbGetProductBySku(sku: string): Promise<DBProduct | null> 
 }
 
 export async function dbUpsertProduct(p: DBProduct): Promise<DBProduct> {
-  if (IS_SUPABASE()) {
+  if (IS_SUPABASE) {
     const { data } = await getSupabase()
       .from("products")
       .upsert({ ...p }, { onConflict: "id" })
@@ -576,7 +575,7 @@ export async function dbUpsertProduct(p: DBProduct): Promise<DBProduct> {
 
 export async function dbBulkUpsertProducts(products: DBProduct[]): Promise<void> {
   if (!products.length) return;
-  if (IS_SUPABASE()) {
+  if (IS_SUPABASE) {
     // Supabase upsert accepts an array — one round-trip for all rows
     const CHUNK = 500;
     for (let i = 0; i < products.length; i += CHUNK) {
@@ -611,7 +610,7 @@ export async function dbBulkUpsertProducts(products: DBProduct[]): Promise<void>
 }
 
 export async function dbDeleteProduct(id: string): Promise<void> {
-  if (IS_SUPABASE()) {
+  if (IS_SUPABASE) {
     await getSupabase().from("products").delete().eq("store_id", sid()).eq("id", id);
     return;
   }
@@ -620,7 +619,7 @@ export async function dbDeleteProduct(id: string): Promise<void> {
 
 export async function dbDeleteProducts(ids: string[]): Promise<void> {
   if (!ids.length) return;
-  if (IS_SUPABASE()) {
+  if (IS_SUPABASE) {
     // Chunk to avoid Supabase URL length limit (~2000 items per .in())
     const CHUNK = 200;
     for (let i = 0; i < ids.length; i += CHUNK) {
@@ -643,7 +642,7 @@ export async function dbDeleteProducts(ids: string[]): Promise<void> {
  * Placements referencing removed products are cleaned up separately if needed.
  */
 export async function dbDeleteStaleProducts(currentIds: Set<string>): Promise<number> {
-  if (IS_SUPABASE()) {
+  if (IS_SUPABASE) {
     const sb = getSupabase();
     // Fetch all odoo- product ids currently in DB
     const { data } = await sb.from("products").select("id").eq("store_id", sid()).like("id", "odoo-%");
@@ -670,7 +669,7 @@ export async function dbDeleteStaleProducts(currentIds: Set<string>): Promise<nu
 
 /** Delete all products whose ID starts with "odoo-" (from previous syncs) */
 export async function dbDeleteAllProducts(): Promise<number> {
-  if (IS_SUPABASE()) {
+  if (IS_SUPABASE) {
     const { count } = await getSupabase().from("products").select("*", { count: "exact", head: true }).eq("store_id", sid());
     await getSupabase().from("products").delete().eq("store_id", sid()).neq("id", "");
     return count ?? 0;
@@ -682,7 +681,7 @@ export async function dbDeleteAllProducts(): Promise<number> {
 
 // Delete products with category "Khác" or no price (garbage products from Odoo)
 export async function dbDeleteBadOdooProducts(): Promise<number> {
-  if (IS_SUPABASE()) {
+  if (IS_SUPABASE) {
     const { data } = await getSupabase()
       .from("products")
       .select("id")
@@ -710,7 +709,7 @@ export async function dbDeleteBadOdooProducts(): Promise<number> {
 }
 
 export async function dbDeleteAllOdooProducts(): Promise<number> {
-  if (IS_SUPABASE()) {
+  if (IS_SUPABASE) {
     const { data } = await getSupabase()
       .from("products")
       .select("id")
@@ -739,7 +738,7 @@ export async function dbDeleteAllOdooProducts(): Promise<number> {
 
 export async function dbUpdateRoomMembers(roomId: string, memberIds: string[] | null): Promise<void> {
   const val = memberIds === null ? null : JSON.stringify(memberIds);
-  if (IS_SUPABASE()) {
+  if (IS_SUPABASE) {
     await getSupabase().from("chat_rooms").update({ memberIds: val }).eq("id", roomId);
     return;
   }
@@ -747,7 +746,7 @@ export async function dbUpdateRoomMembers(roomId: string, memberIds: string[] | 
 }
 
 export async function dbGetRooms(): Promise<(DBRoom & { lastMessage: unknown; messageCount: number })[]> {
-  if (IS_SUPABASE()) {
+  if (IS_SUPABASE) {
     const sb = getSupabase();
     const { data: rooms } = await sb.from("chat_rooms").select("*").eq("store_id", sid()).order("createdAt");
     if (!rooms) return [];
@@ -781,7 +780,7 @@ export async function dbGetRooms(): Promise<(DBRoom & { lastMessage: unknown; me
 }
 
 export async function dbGetMessages(roomId: string, since?: string): Promise<DBMessage[]> {
-  if (IS_SUPABASE()) {
+  if (IS_SUPABASE) {
     const sb = getSupabase();
     let q = sb.from("chat_messages").select("*").eq("roomId", roomId).order("createdAt").limit(80);
     if (since) q = q.gt("createdAt", since);
@@ -800,7 +799,7 @@ export async function dbInsertMessage(msg: {
   content: string; mediaUrl?: string | null; mediaType?: string | null;
   replyToId?: string | null; createdAt: string;
 }): Promise<void> {
-  if (IS_SUPABASE()) {
+  if (IS_SUPABASE) {
     await getSupabase().from("chat_messages").insert({
       id: msg.id, roomId: msg.roomId, userId: msg.userId, userName: msg.userName,
       content: msg.content, mediaUrl: msg.mediaUrl ?? null, mediaType: msg.mediaType ?? null,
@@ -816,7 +815,7 @@ export async function dbInsertMessage(msg: {
 }
 
 export async function dbRoomExists(roomId: string): Promise<boolean> {
-  if (IS_SUPABASE()) {
+  if (IS_SUPABASE) {
     const { data } = await getSupabase().from("chat_rooms").select("id").eq("store_id", sid()).eq("id", roomId).single();
     return !!data;
   }
@@ -824,7 +823,7 @@ export async function dbRoomExists(roomId: string): Promise<boolean> {
 }
 
 export async function dbCreateRoom(id: string, name: string, type: string, createdBy: string, createdAt: string): Promise<void> {
-  if (IS_SUPABASE()) {
+  if (IS_SUPABASE) {
     await getSupabase().from("chat_rooms").insert({ id, name, type, createdBy, createdAt , store_id: sid()});
     return;
   }
@@ -833,7 +832,7 @@ export async function dbCreateRoom(id: string, name: string, type: string, creat
 }
 
 export async function dbDeleteRoom(roomId: string): Promise<void> {
-  if (IS_SUPABASE()) {
+  if (IS_SUPABASE) {
     await getSupabase().from("chat_rooms").delete().eq("id", roomId);
     return;
   }
@@ -841,7 +840,7 @@ export async function dbDeleteRoom(roomId: string): Promise<void> {
 }
 
 export async function dbClearRoomMessages(roomId: string): Promise<void> {
-  if (IS_SUPABASE()) {
+  if (IS_SUPABASE) {
     await getSupabase().from("chat_messages").delete().eq("roomId", roomId);
     return;
   }
@@ -849,7 +848,7 @@ export async function dbClearRoomMessages(roomId: string): Promise<void> {
 }
 
 export async function dbSoftDeleteMessage(msgId: string, deletedAt: string): Promise<{ found: boolean }> {
-  if (IS_SUPABASE()) {
+  if (IS_SUPABASE) {
     const { data: msg } = await getSupabase().from("chat_messages").select("userId").eq("id", msgId).single();
     if (!msg) return { found: false };
     await getSupabase().from("chat_messages")
@@ -865,7 +864,7 @@ export async function dbSoftDeleteMessage(msgId: string, deletedAt: string): Pro
 }
 
 export async function dbGetMessageSender(msgId: string): Promise<{ userId: string } | null> {
-  if (IS_SUPABASE()) {
+  if (IS_SUPABASE) {
     const { data } = await getSupabase().from("chat_messages").select("userId").eq("id", msgId).single();
     return data as { userId: string } | null;
   }
@@ -873,7 +872,7 @@ export async function dbGetMessageSender(msgId: string): Promise<{ userId: strin
 }
 
 export async function dbUpdateReactions(msgId: string, reactions: string): Promise<void> {
-  if (IS_SUPABASE()) {
+  if (IS_SUPABASE) {
     await getSupabase().from("chat_messages").update({ reactions }).eq("id", msgId);
     return;
   }
@@ -881,7 +880,7 @@ export async function dbUpdateReactions(msgId: string, reactions: string): Promi
 }
 
 export async function dbGetUserRole(userId: string): Promise<string | null> {
-  if (IS_SUPABASE()) {
+  if (IS_SUPABASE) {
     const { data } = await getSupabase().from("users").select("role").eq("id", userId).single();
     return (data as { role: string } | null)?.role ?? null;
   }
@@ -892,7 +891,7 @@ export async function dbGetUserRole(userId: string): Promise<string | null> {
 export async function dbPinMessage(msgId: string, userId: string, pin: boolean): Promise<void> {
   const now = pin ? new Date().toISOString() : null;
   const pinnedBy = pin ? userId : null;
-  if (IS_SUPABASE()) {
+  if (IS_SUPABASE) {
     await getSupabase().from("chat_messages").update({ pinnedAt: now, pinnedBy }).eq("id", msgId);
     return;
   }
@@ -900,7 +899,7 @@ export async function dbPinMessage(msgId: string, userId: string, pin: boolean):
 }
 
 export async function dbGetPinnedMessages(roomId: string): Promise<DBMessage[]> {
-  if (IS_SUPABASE()) {
+  if (IS_SUPABASE) {
     const { data } = await getSupabase()
       .from("chat_messages")
       .select("*")
@@ -916,7 +915,7 @@ export async function dbGetPinnedMessages(roomId: string): Promise<DBMessage[]> 
 
 export async function dbSearchMessages(roomId: string, query: string): Promise<DBMessage[]> {
   const q = `%${query}%`;
-  if (IS_SUPABASE()) {
+  if (IS_SUPABASE) {
     const { data } = await getSupabase()
       .from("chat_messages")
       .select("*")
@@ -933,7 +932,7 @@ export async function dbSearchMessages(roomId: string, query: string): Promise<D
 }
 
 export async function dbRevokeMessage(msgId: string, revokedAt: string): Promise<{ found: boolean }> {
-  if (IS_SUPABASE()) {
+  if (IS_SUPABASE) {
     const { data: msg } = await getSupabase().from("chat_messages").select("userId").eq("id", msgId).single();
     if (!msg) return { found: false };
     await getSupabase().from("chat_messages")
@@ -950,7 +949,7 @@ export async function dbRevokeMessage(msgId: string, revokedAt: string): Promise
 
 export async function dbMarkRead(roomId: string, userId: string): Promise<void> {
   const now = new Date().toISOString();
-  if (IS_SUPABASE()) {
+  if (IS_SUPABASE) {
     await getSupabase().from("chat_read_receipts").upsert({ roomId, userId, lastReadAt: now }, { onConflict: "roomId,userId" });
     return;
   }
@@ -960,7 +959,7 @@ export async function dbMarkRead(roomId: string, userId: string): Promise<void> 
 }
 
 export async function dbGetReadReceipts(roomId: string): Promise<{ userId: string; lastReadAt: string }[]> {
-  if (IS_SUPABASE()) {
+  if (IS_SUPABASE) {
     const { data } = await getSupabase().from("chat_read_receipts").select("userId, lastReadAt").eq("roomId", roomId);
     return (data ?? []) as { userId: string; lastReadAt: string }[];
   }
@@ -972,7 +971,7 @@ export async function dbGetReadReceipts(roomId: string): Promise<{ userId: strin
 // ─── Notifications ────────────────────────────────────────────────────────────
 
 export async function dbGetNotifications(): Promise<DBNotification[]> {
-  if (IS_SUPABASE()) {
+  if (IS_SUPABASE) {
     const { data } = await getSupabase().from("notifications").select("*").eq("store_id", sid()).order("createdAt", { ascending: false }).limit(50);
     return (data ?? []) as DBNotification[];
   }
@@ -980,7 +979,7 @@ export async function dbGetNotifications(): Promise<DBNotification[]> {
 }
 
 export async function dbInsertNotification(n: DBNotification): Promise<void> {
-  if (IS_SUPABASE()) {
+  if (IS_SUPABASE) {
     await getSupabase().from("notifications").insert(n);
     return;
   }
@@ -990,7 +989,7 @@ export async function dbInsertNotification(n: DBNotification): Promise<void> {
 }
 
 export async function dbDeleteNotification(id: string): Promise<void> {
-  if (IS_SUPABASE()) {
+  if (IS_SUPABASE) {
     await getSupabase().from("notifications").delete().eq("store_id", sid()).eq("id", id);
     return;
   }
@@ -1000,7 +999,7 @@ export async function dbDeleteNotification(id: string): Promise<void> {
 // ─── Movements ────────────────────────────────────────────────────────────────
 
 export async function dbGetMovements(limit = 50): Promise<DBMovement[]> {
-  if (IS_SUPABASE()) {
+  if (IS_SUPABASE) {
     const { data } = await getSupabase().from("movements").select("*").eq("store_id", sid())
       .order("createdAt", { ascending: false }).limit(limit);
     return (data ?? []) as DBMovement[];
@@ -1009,7 +1008,7 @@ export async function dbGetMovements(limit = 50): Promise<DBMovement[]> {
 }
 
 export async function dbInsertMovement(m: DBMovement): Promise<void> {
-  if (IS_SUPABASE()) {
+  if (IS_SUPABASE) {
     await getSupabase().from("movements").insert(m);
     return;
   }
@@ -1022,7 +1021,7 @@ export async function dbInsertMovement(m: DBMovement): Promise<void> {
 // ─── Push Subscriptions ───────────────────────────────────────────────────────
 
 export async function dbGetPushSubs(): Promise<DBPushSub[]> {
-  if (IS_SUPABASE()) {
+  if (IS_SUPABASE) {
     const { data } = await getSupabase().from("push_subs").select("*");
     return (data ?? []) as DBPushSub[];
   }
@@ -1030,7 +1029,7 @@ export async function dbGetPushSubs(): Promise<DBPushSub[]> {
 }
 
 export async function dbUpsertPushSub(sub: DBPushSub): Promise<void> {
-  if (IS_SUPABASE()) {
+  if (IS_SUPABASE) {
     await getSupabase().from("push_subs").upsert(sub, { onConflict: "endpoint" });
     return;
   }
@@ -1041,7 +1040,7 @@ export async function dbUpsertPushSub(sub: DBPushSub): Promise<void> {
 }
 
 export async function dbDeletePushSub(endpoint: string): Promise<void> {
-  if (IS_SUPABASE()) {
+  if (IS_SUPABASE) {
     await getSupabase().from("push_subs").delete().eq("endpoint", endpoint);
     return;
   }
@@ -1056,7 +1055,7 @@ export type DBShelf = {
 };
 
 export async function dbGetAllShelves(): Promise<DBShelf[]> {
-  if (IS_SUPABASE()) {
+  if (IS_SUPABASE) {
     const { data } = await getSupabase().from("shelves").select("*").eq("store_id", sid()).order("sortOrder").order("name");
     return (data ?? []) as DBShelf[];
   }
@@ -1064,7 +1063,7 @@ export async function dbGetAllShelves(): Promise<DBShelf[]> {
 }
 
 export async function dbUpsertShelf(s: DBShelf): Promise<void> {
-  if (IS_SUPABASE()) {
+  if (IS_SUPABASE) {
     await getSupabase().from("shelves").upsert({ ...s, store_id: sid() }, { onConflict: "id" });
     return;
   }
@@ -1076,7 +1075,7 @@ export async function dbUpsertShelf(s: DBShelf): Promise<void> {
 }
 
 export async function dbDeleteShelf(shelfId: string): Promise<void> {
-  if (IS_SUPABASE()) {
+  if (IS_SUPABASE) {
     const sb = getSupabase();
     // placements and slots cascade from FK, but delete explicitly to be safe
     const { data: slots } = await sb.from("slots").select("id").eq("shelfId", shelfId);
@@ -1107,7 +1106,7 @@ export type DBSlot = {
 
 export async function dbGetOrCreateSlot(shelfId: string, tier: number, position: number, label = ""): Promise<string> {
   const slotId = `slot_${shelfId}_${tier}_${position}_${label}`.replace(/[^a-zA-Z0-9_]/g, "").slice(0, 64);
-  if (IS_SUPABASE()) {
+  if (IS_SUPABASE) {
     const sb = getSupabase();
     // Check if slot already exists
     const { data: existing } = await sb.from("slots")
@@ -1130,7 +1129,7 @@ export async function dbGetOrCreateSlot(shelfId: string, tier: number, position:
 // ─── Placements ───────────────────────────────────────────────────────────────
 
 export async function dbSetPlacement(slotId: string, productId: string | null): Promise<void> {
-  if (IS_SUPABASE()) {
+  if (IS_SUPABASE) {
     const sb = getSupabase();
     if (!productId) {
       await sb.from("placements").delete().eq("slotId", slotId);
@@ -1159,7 +1158,7 @@ export async function dbSetPlacement(slotId: string, productId: string | null): 
 }
 
 export async function dbGetWarehouseMap(): Promise<Record<string, (string | null)[][]>> {
-  if (IS_SUPABASE()) {
+  if (IS_SUPABASE) {
     const sb = getSupabase();
     const { data: shelves } = await sb.from("shelves").select("id").eq("store_id", sid()).eq("type", "WAREHOUSE").order("sortOrder");
     const result: Record<string, (string | null)[][]> = {};
@@ -1197,7 +1196,7 @@ export async function dbGetWarehouseMap(): Promise<Record<string, (string | null
 }
 
 export async function dbGetDisplayMap(): Promise<Record<string, Record<string, (string | null)[][]>>> {
-  if (IS_SUPABASE()) {
+  if (IS_SUPABASE) {
     const sb = getSupabase();
     const { data: shelves } = await sb.from("shelves").select("id").eq("store_id", sid()).eq("type", "DISPLAY").order("sortOrder");
     const result: Record<string, Record<string, (string | null)[][]>> = {};
@@ -1242,7 +1241,7 @@ export async function dbGetWarehouseShelvesForState(): Promise<{
   id: string; name: string; shelfType: "shoes" | "bags"; number: number;
   tiers: (string | null)[][]; notes: string;
 }[]> {
-  if (IS_SUPABASE()) {
+  if (IS_SUPABASE) {
     const sb = getSupabase();
     const { data: shelves } = await sb.from("shelves").select("*").eq("store_id", sid()).eq("type", "WAREHOUSE").order("sortOrder");
     const result = [];
@@ -1287,7 +1286,7 @@ export async function dbGetWarehouseShelvesForState(): Promise<{
 }
 
 export async function dbGetDisplayPlacements(): Promise<Record<string, Record<string, Record<number, Record<number, string>>>>> {
-  if (IS_SUPABASE()) {
+  if (IS_SUPABASE) {
     const sb = getSupabase();
     const { data: shelves } = await sb.from("shelves").select("id").eq("store_id", sid()).eq("type", "DISPLAY").order("sortOrder");
     const result: Record<string, Record<string, Record<number, Record<number, string>>>> = {};
@@ -1343,7 +1342,7 @@ const SETTINGS_DEFAULTS: AppSettings = {
 };
 
 export async function dbGetAppSettings(): Promise<AppSettings> {
-  if (IS_SUPABASE()) {
+  if (IS_SUPABASE) {
     const sb = getSupabase();
     const { data } = await sb.from("app_settings").select("key, value").eq("store_id", sid());
     const map: Record<string, string> = {};
@@ -1372,7 +1371,7 @@ export async function dbGetAppSettings(): Promise<AppSettings> {
 }
 
 export async function dbSetAppSettings(settings: Partial<AppSettings>): Promise<void> {
-  if (IS_SUPABASE()) {
+  if (IS_SUPABASE) {
     const sb = getSupabase();
     const rows = Object.entries(settings).map(([key, value]) => ({ key, value: value ?? "" }));
     await sb.from("app_settings").upsert(rows, { onConflict: "key" });
@@ -1392,7 +1391,7 @@ export async function dbSetAppSettings(settings: Partial<AppSettings>): Promise<
 
 export async function dbGetSectionRowOverrides(): Promise<Record<string, number>> {
   const key = "sectionRowOverrides";
-  if (IS_SUPABASE()) {
+  if (IS_SUPABASE) {
     const { data } = await getSupabase().from("app_settings").select("value").eq("store_id", sid()).eq("key", key).single();
     try { return JSON.parse((data as { value: string } | null)?.value ?? "{}"); } catch { return {}; }
   }
@@ -1407,7 +1406,7 @@ export async function dbSetSectionRowOverride(secId: string, subId: string, rowC
   const overrides = await dbGetSectionRowOverrides();
   overrides[`${secId}__${subId}`] = rowCount;
   const value = JSON.stringify(overrides);
-  if (IS_SUPABASE()) {
+  if (IS_SUPABASE) {
     await getSupabase().from("app_settings").upsert({ key, value, store_id: sid() }, { onConflict: "key" });
     return;
   }
@@ -1433,7 +1432,7 @@ export type DBCustomer = {
 };
 
 export async function dbGetCustomers(limit = 200): Promise<DBCustomer[]> {
-  if (IS_SUPABASE()) {
+  if (IS_SUPABASE) {
     const { data } = await getSupabase()
       .from("customers")
       .select("*")
@@ -1449,7 +1448,7 @@ export async function dbGetCustomers(limit = 200): Promise<DBCustomer[]> {
 
 export async function dbSearchCustomers(query: string): Promise<DBCustomer[]> {
   const q = `%${query}%`;
-  if (IS_SUPABASE()) {
+  if (IS_SUPABASE) {
     const { data } = await getSupabase()
       .from("customers")
       .select("*")
@@ -1466,7 +1465,7 @@ export async function dbSearchCustomers(query: string): Promise<DBCustomer[]> {
 
 export async function dbBulkUpsertCustomers(customers: DBCustomer[]): Promise<void> {
   if (!customers.length) return;
-  if (IS_SUPABASE()) {
+  if (IS_SUPABASE) {
     const CHUNK = 500;
     for (let i = 0; i < customers.length; i += CHUNK) {
       await getSupabase()
@@ -1528,7 +1527,7 @@ export type DBPosOrderLine = {
 
 export async function dbGetPosOrders(opts: { limit?: number; customerId?: string; dateFrom?: string } = {}): Promise<DBPosOrder[]> {
   const limit = opts.limit ?? 100;
-  if (IS_SUPABASE()) {
+  if (IS_SUPABASE) {
     let q = getSupabase()
       .from("pos_orders")
       .select("*")
@@ -1557,7 +1556,7 @@ export async function dbGetPosOrders(opts: { limit?: number; customerId?: string
 }
 
 export async function dbGetPosOrderLines(orderId: string): Promise<DBPosOrderLine[]> {
-  if (IS_SUPABASE()) {
+  if (IS_SUPABASE) {
     const { data } = await getSupabase()
       .from("pos_order_lines")
       .select("*")
@@ -1571,7 +1570,7 @@ export async function dbGetPosOrderLines(orderId: string): Promise<DBPosOrderLin
 
 export async function dbBulkUpsertPosOrders(orders: DBPosOrder[]): Promise<void> {
   if (!orders.length) return;
-  if (IS_SUPABASE()) {
+  if (IS_SUPABASE) {
     const CHUNK = 500;
     for (let i = 0; i < orders.length; i += CHUNK) {
       await getSupabase()
@@ -1611,7 +1610,7 @@ export type DBStaffSales = {
 };
 
 export async function dbGetStaffSales(dateFrom: string, dateTo: string): Promise<DBStaffSales[]> {
-  if (IS_SUPABASE()) {
+  if (IS_SUPABASE) {
     const { data } = await getSupabase()
       .from("pos_orders")
       .select("salesperson,amountTotal,lineCount")
@@ -1656,7 +1655,7 @@ export async function dbGetStaffSales(dateFrom: string, dateTo: string): Promise
 
 export async function dbBulkUpsertPosOrderLines(lines: DBPosOrderLine[]): Promise<void> {
   if (!lines.length) return;
-  if (IS_SUPABASE()) {
+  if (IS_SUPABASE) {
     const CHUNK = 500;
     for (let i = 0; i < lines.length; i += CHUNK) {
       await getSupabase()
@@ -1684,7 +1683,7 @@ export async function dbBulkUpsertPosOrderLines(lines: DBPosOrderLine[]): Promis
 export async function dbGetPosSummary(dateFrom: string, dateTo?: string): Promise<{
   totalRevenue: number; orderCount: number; avgOrderValue: number; qtyTotal: number;
 }> {
-  if (IS_SUPABASE()) {
+  if (IS_SUPABASE) {
     let q = getSupabase()
       .from("pos_orders")
       .select("amountTotal,lineCount")
@@ -1711,7 +1710,7 @@ export async function dbGetPosSummary(dateFrom: string, dateTo?: string): Promis
 export async function dbGetTopProducts(dateFrom: string, limit = 10, dateTo?: string): Promise<{
   productName: string; sku: string | null; totalQty: number; totalRevenue: number;
 }[]> {
-  if (IS_SUPABASE()) {
+  if (IS_SUPABASE) {
     // Supabase can't do GROUP BY via JS client easily — fetch lines and aggregate
     let oq = getSupabase()
       .from("pos_orders")
@@ -1783,7 +1782,7 @@ export type DBDailyReport = {
 };
 
 export async function dbGetDailyReports(limit = 60): Promise<DBDailyReport[]> {
-  if (IS_SUPABASE()) {
+  if (IS_SUPABASE) {
     const { data } = await getSupabase()
       .from("daily_reports")
       .select("*")
@@ -1799,7 +1798,7 @@ export async function dbGetDailyReports(limit = 60): Promise<DBDailyReport[]> {
 }
 
 export async function dbGetDailyReportByDate(date: string, shift: string): Promise<DBDailyReport | null> {
-  if (IS_SUPABASE()) {
+  if (IS_SUPABASE) {
     const { data } = await getSupabase()
       .from("daily_reports")
       .select("*")
@@ -1815,7 +1814,7 @@ export async function dbGetDailyReportByDate(date: string, shift: string): Promi
 }
 
 export async function dbUpsertDailyReport(r: DBDailyReport): Promise<void> {
-  if (IS_SUPABASE()) {
+  if (IS_SUPABASE) {
     await getSupabase()
       .from("daily_reports")
       .upsert({ ...r, store_id: sid() }, { onConflict: "id" });
@@ -1868,7 +1867,7 @@ export type DBShiftRegistration = {
 };
 
 async function ensureShiftTables() {
-  if (IS_SUPABASE()) return;
+  if (IS_SUPABASE) return;
   const db = getStoreDb();
   db.prepare(`CREATE TABLE IF NOT EXISTS shift_templates (id TEXT PRIMARY KEY, name TEXT NOT NULL, "startTime" TEXT NOT NULL, "endTime" TEXT NOT NULL, color TEXT NOT NULL DEFAULT '#0ea5e9', "maxStaff" INTEGER NOT NULL DEFAULT 3, "createdAt" TEXT NOT NULL)`).run();
   db.prepare(`CREATE TABLE IF NOT EXISTS shift_slots (id TEXT PRIMARY KEY, "templateId" TEXT, date TEXT NOT NULL, name TEXT NOT NULL, "startTime" TEXT NOT NULL, "endTime" TEXT NOT NULL, color TEXT NOT NULL DEFAULT '#0ea5e9', "maxStaff" INTEGER NOT NULL DEFAULT 3, note TEXT, "createdAt" TEXT NOT NULL, "updatedAt" TEXT NOT NULL DEFAULT '')`).run();
@@ -1881,7 +1880,7 @@ async function ensureShiftTables() {
 }
 
 export async function dbGetShiftTemplates(): Promise<DBShiftTemplate[]> {
-  if (IS_SUPABASE()) {
+  if (IS_SUPABASE) {
     const { data, error } = await getSupabase()
       .from("shift_templates").select("*").eq("store_id", sid()).order("startTime");
     if (error) throw new Error("dbGetShiftTemplates: " + error.message);
@@ -1892,7 +1891,7 @@ export async function dbGetShiftTemplates(): Promise<DBShiftTemplate[]> {
 }
 
 export async function dbUpsertShiftTemplate(t: DBShiftTemplate): Promise<void> {
-  if (IS_SUPABASE()) {
+  if (IS_SUPABASE) {
     const row: Record<string, unknown> = {
       id: t.id, name: t.name,
       "startTime": t.startTime, "endTime": t.endTime,
@@ -1913,7 +1912,7 @@ export async function dbUpsertShiftTemplate(t: DBShiftTemplate): Promise<void> {
 }
 
 export async function dbDeleteShiftTemplate(id: string): Promise<void> {
-  if (IS_SUPABASE()) {
+  if (IS_SUPABASE) {
     const { error } = await getSupabase().from("shift_templates").delete().eq("store_id", sid()).eq("id", id);
     if (error) throw new Error("dbDeleteShiftTemplate: " + error.message);
     return;
@@ -1923,7 +1922,7 @@ export async function dbDeleteShiftTemplate(id: string): Promise<void> {
 }
 
 export async function dbGetShiftSlots(dateFrom: string, dateTo: string): Promise<DBShiftSlot[]> {
-  if (IS_SUPABASE()) {
+  if (IS_SUPABASE) {
     const { data, error } = await getSupabase()
       .from("shift_slots").select("*").eq("store_id", sid())
       .gte("date", dateFrom).lte("date", dateTo)
@@ -1936,7 +1935,7 @@ export async function dbGetShiftSlots(dateFrom: string, dateTo: string): Promise
 }
 
 export async function dbUpsertShiftSlot(s: DBShiftSlot): Promise<void> {
-  if (IS_SUPABASE()) {
+  if (IS_SUPABASE) {
     const row: Record<string, unknown> = {
       id: s.id, "templateId": s.templateId, date: s.date, name: s.name,
       "startTime": s.startTime, "endTime": s.endTime,
@@ -1987,14 +1986,14 @@ function sbRowToSlot(r: any): DBShiftSlot {
 }
 
 export async function dbDeleteShiftSlot(id: string): Promise<void> {
-  if (IS_SUPABASE()) { await getSupabase().from("shift_slots").delete().eq("store_id", sid()).eq("id", id); return; }
+  if (IS_SUPABASE) { await getSupabase().from("shift_slots").delete().eq("store_id", sid()).eq("id", id); return; }
   await ensureShiftTables();
   getStoreDb().prepare("DELETE FROM shift_slots WHERE id=?").run(id);
 }
 
 export async function dbGetShiftRegistrations(slotIds: string[]): Promise<DBShiftRegistration[]> {
   if (!slotIds.length) return [];
-  if (IS_SUPABASE()) {
+  if (IS_SUPABASE) {
     const { data, error } = await getSupabase()
       .from("shift_registrations")
       .select("id, slotId:\"slotId\", userId:\"userId\", userName:\"userName\", status, note, createdAt:\"createdAt\", updatedAt:\"updatedAt\"")
@@ -2018,7 +2017,7 @@ export async function dbGetShiftRegistrations(slotIds: string[]): Promise<DBShif
 }
 
 export async function dbUpsertShiftRegistrationBySlotUser(r: DBShiftRegistration): Promise<void> {
-  if (IS_SUPABASE()) {
+  if (IS_SUPABASE) {
     const sb = getSupabase();
     const row = {
       id: r.id,
@@ -2053,7 +2052,7 @@ export async function dbUpsertShiftRegistrationBySlotUser(r: DBShiftRegistration
 }
 
 export async function dbDeleteShiftRegistration(id: string): Promise<void> {
-  if (IS_SUPABASE()) { await getSupabase().from("shift_registrations").delete().eq("store_id", sid()).eq("id", id); return; }
+  if (IS_SUPABASE) { await getSupabase().from("shift_registrations").delete().eq("store_id", sid()).eq("id", id); return; }
   await ensureShiftTables();
   getStoreDb().prepare("DELETE FROM shift_registrations WHERE id=?").run(id);
 }
@@ -2106,7 +2105,7 @@ function normalizeSR(row: Record<string, unknown>): DBShiftRequest {
 }
 
 export async function dbGetShiftRequests(userId?: string): Promise<DBShiftRequest[]> {
-  if (IS_SUPABASE()) {
+  if (IS_SUPABASE) {
     const sb = getSupabase();
     let q = sb.from("shift_requests").select("*").order("createdAt", { ascending: false }).limit(100);
     if (userId) q = q.eq("userId", userId);
@@ -2122,7 +2121,7 @@ export async function dbGetShiftRequests(userId?: string): Promise<DBShiftReques
 }
 
 export async function dbInsertShiftRequest(r: DBShiftRequest): Promise<void> {
-  if (IS_SUPABASE()) {
+  if (IS_SUPABASE) {
     const { error } = await getSupabase().from("shift_requests").insert({
       id: r.id, userId: r.userId, userName: r.userName,
       type: r.type, status: r.status, content: r.content,
@@ -2137,7 +2136,7 @@ export async function dbInsertShiftRequest(r: DBShiftRequest): Promise<void> {
 }
 
 export async function dbUpdateShiftRequest(id: string, fields: { status: string; adminNote?: string; updatedAt: string }): Promise<void> {
-  if (IS_SUPABASE()) {
+  if (IS_SUPABASE) {
     const { error } = await getSupabase().from("shift_requests").update({
       status: fields.status,
       adminNote: fields.adminNote || null,
