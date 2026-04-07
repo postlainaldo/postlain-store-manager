@@ -17,11 +17,13 @@ function getShiftCode(start: string, end: string): string {
   return SHIFT_CODES[key] ?? `${start.slice(0, 5)}-${end.slice(0, 5)}`;
 }
 
-const DAYS_VI = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
+const DAYS_EN = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
+const DAYS_VI = ["CN",  "T2",  "T3",  "T4",  "T5",  "T6",  "T7"];
+const MONTHS_SHORT = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 const MONTHS_VI = ["Tháng 1","Tháng 2","Tháng 3","Tháng 4","Tháng 5","Tháng 6",
                    "Tháng 7","Tháng 8","Tháng 9","Tháng 10","Tháng 11","Tháng 12"];
 
-type StaffRow = { id: string; name: string; role: string; username: string; phone: string | null };
+type StaffRow = { id: string; name: string; fullName?: string | null; role: string; username: string; phone: string | null };
 type SlotRow  = { id: string; date: string; startTime: string; endTime: string };
 type RegRow   = { slotId: string; userId: string; status: string };
 
@@ -30,7 +32,7 @@ async function fetchData(dateFrom: string, dateTo: string) {
     const sb = getSupabase();
     const sid = getActiveStoreId();
     const [staffRes, slotsRes, regsRes] = await Promise.all([
-      sb.from("users").select("id, name, role, username, phone")
+      sb.from("users").select("id, name, fullName, role, username, phone")
         .eq("active", true).eq("store_id", sid).order("role").order("name"),
       sb.from("shift_slots").select("id, date, startTime, endTime")
         .eq("store_id", sid).gte("date", dateFrom).lte("date", dateTo).order("date").order("startTime"),
@@ -44,7 +46,7 @@ async function fetchData(dateFrom: string, dateTo: string) {
   } else {
     const db = getDb(getActiveStoreId());
     const staff = db.prepare(
-      "SELECT id, name, role, username, phone FROM users WHERE active = 1 ORDER BY role, name"
+      "SELECT id, name, fullName, role, username, phone FROM users WHERE active = 1 ORDER BY role, name"
     ).all() as StaffRow[];
     const slots = db.prepare(
       "SELECT id, date, startTime, endTime FROM shift_slots WHERE date >= ? AND date <= ? ORDER BY date, startTime"
@@ -115,9 +117,9 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  // FT trước, PT sau, bỏ admin/manager
-  const ftStaff = staff.filter(u => !["admin", "manager", "staff_pt"].includes(u.role));
-  const ptStaff = staff.filter(u => u.role === "staff_pt");
+  // FT trước, PT sau — bao gồm tất cả active users (admin/manager cũng có lịch)
+  const ptStaff  = staff.filter(u => u.role === "staff_pt");
+  const ftStaff  = staff.filter(u => u.role !== "staff_pt");
   const allStaff = [...ftStaff, ...ptStaff];
 
   // ── Màu ──────────────────────────────────────────────────────────────────────
@@ -220,12 +222,17 @@ export async function GET(req: NextRequest) {
 
     group.forEach(u => {
       stt++;
-      const pos   = u.role === "staff_pt" ? "PT" : u.role === "staff_ft" ? "FT" : "SA";
+      const pos   = u.role === "staff_pt" ? "PT"
+                  : u.role === "staff_ft" ? "FT"
+                  : u.role === "admin"    ? "SL"
+                  : u.role === "manager"  ? "SL"
+                  : u.role === "staff"    ? "FT"
+                  : "SA";
       const rRow  = ws.addRow([]);
       rRow.height = 20;
 
       styleCell(rRow.getCell(1), stt,                 { fill: rowFill, fc: C.gray, sz: 9 });
-      styleCell(rRow.getCell(2), u.name,              { fill: rowFill, ha: "left" });
+      styleCell(rRow.getCell(2), u.fullName || u.name, { fill: rowFill, ha: "left" });
       styleCell(rRow.getCell(3), pos,                 { fill: rowFill, bold: true, sz: 9,
                                                         fc: pos === "PT" ? C.shPTtxt : C.navyMid });
       styleCell(rRow.getCell(4), u.username ?? "",    { fill: rowFill, sz: 9, fc: C.gray });

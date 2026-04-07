@@ -178,10 +178,10 @@ export const useStore = create<StoreState>()(
   persist(
     (set, get) => ({
       // ── Multi-tenant ───────────────────────────────────────────────────────
-      // null = chưa chọn store → AuthGuard sẽ redirect về /store-select
+      // Single-store: mặc định "postlain", không cần qua store-select
       currentStoreId: typeof window !== "undefined"
-        ? (localStorage.getItem("plsm_store_id") ?? null)
-        : null,
+        ? (localStorage.getItem("plsm_store_id") ?? "postlain")
+        : "postlain",
       setCurrentStoreId: (id) => {
         try { localStorage.setItem("plsm_store_id", id); document.cookie = `plsm_store_id=${id};path=/;max-age=31536000`; } catch {}
         set({ currentStoreId: id });
