@@ -485,6 +485,7 @@ export default function ChatPage() {
   const [newRoomName, setNewRoomName] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [connected, setConnected] = useState(false);
+  const chatReadKey = currentUser ? `chat_read_${currentUser.id}` : null;
   const [readCounts, setReadCounts] = useState<Record<string, number>>({});
   const [typingUsers, setTypingUsers] = useState<string[]>([]);
   const [replyTo, setReplyTo] = useState<Message | null>(null);
@@ -529,6 +530,19 @@ export default function ChatPage() {
   const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => { activeRoomRef.current = activeRoom; }, [activeRoom]);
+
+  // Persist readCounts to localStorage per user
+  useEffect(() => {
+    if (!chatReadKey) return;
+    try {
+      const saved = JSON.parse(localStorage.getItem(chatReadKey) ?? "{}");
+      if (saved && typeof saved === "object") setReadCounts(saved);
+    } catch {}
+  }, [chatReadKey]);
+  useEffect(() => {
+    if (!chatReadKey) return;
+    localStorage.setItem(chatReadKey, JSON.stringify(readCounts));
+  }, [readCounts, chatReadKey]);
 
   // Initial data
   useEffect(() => {
