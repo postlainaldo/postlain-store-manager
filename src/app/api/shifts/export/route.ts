@@ -33,15 +33,12 @@ async function fetchData(dateFrom: string, dateTo: string) {
     const sid = getActiveStoreId();
     const [staffRes, slotsRes, regsRes] = await Promise.all([
       sb.from("users").select("id, name, fullName, role, username, phone")
-        .eq("active", true).eq("store_id", sid).order("role").order("name"),
+        .eq("active", 1).eq("store_id", sid).order("role").order("name"),
       sb.from("shift_slots").select("id, date, startTime, endTime")
         .eq("store_id", sid).gte("date", dateFrom).lte("date", dateTo).order("date").order("startTime"),
       sb.from("shift_registrations").select("slotId, userId, status")
         .eq("store_id", sid).in("status", ["approved", "pending"]),
     ]);
-    if (staffRes.error) console.error("[export] staffRes error:", staffRes.error);
-    if (slotsRes.error) console.error("[export] slotsRes error:", slotsRes.error);
-    if (regsRes.error)  console.error("[export] regsRes error:", regsRes.error);
     const slots = (slotsRes.data ?? []) as SlotRow[];
     const slotIds = new Set(slots.map(s => s.id));
     const regs = ((regsRes.data ?? []) as RegRow[]).filter(r => slotIds.has(r.slotId));
@@ -98,8 +95,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "dateFrom and dateTo required" }, { status: 400 });
 
   const { staff, slots, regs } = await fetchData(dateFrom, dateTo);
-  console.log("[export] storeId:", getActiveStoreId(), "staff:", staff.length, "slots:", slots.length, "regs:", regs.length);
-  if (staff.length > 0) console.log("[export] first staff:", JSON.stringify(staff[0]));
 
   // Danh sách ngày
   const dates: string[] = [];
