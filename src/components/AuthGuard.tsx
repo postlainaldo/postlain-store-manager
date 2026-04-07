@@ -17,7 +17,14 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // Nếu chưa chọn store → về store-select (trừ các trang public)
     if (!isPublic && !currentStoreId) {
-      router.replace("/store-select");
+      // Thử fetch danh sách store — nếu chỉ có 1 store, tự chọn luôn
+      fetch("/api/stores").then(r => r.json()).then((stores: {id: string}[]) => {
+        if (stores.length === 1) {
+          useStore.getState().setCurrentStoreId(stores[0].id);
+        } else {
+          router.replace("/store-select");
+        }
+      }).catch(() => router.replace("/store-select"));
       return;
     }
     // Chưa đăng nhập → về login
