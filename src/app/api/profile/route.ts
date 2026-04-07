@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
 // PUT /api/profile — update profile fields
 export async function PUT(req: NextRequest) {
   setActiveStore(getStoreId(req));
-  const { id, name, fullName, bio, phone, avatar, status } = await req.json();
+  const { id, name, fullName, bio, phone, email, employeeCode, avatar, status } = await req.json();
   if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
 
   await dbUpdateUser(id, {
@@ -31,6 +31,8 @@ export async function PUT(req: NextRequest) {
     fullName: fullName ?? "",
     bio: bio ?? "",
     phone: phone ?? "",
+    ...(email !== undefined ? { email } : {}),
+    ...(employeeCode !== undefined ? { employeeCode } : {}),
     avatar: avatar ?? null,
     status: status ?? "online",
   });

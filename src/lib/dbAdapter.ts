@@ -33,6 +33,7 @@ export type DBUser = {
   status?: string | null;
   bio?: string | null;
   phone?: string | null;
+  email?: string | null;
   fullName?: string | null;
   employeeCode?: string | null;
 };
@@ -137,11 +138,13 @@ export async function ensureSupabaseSchema() {
       status       TEXT DEFAULT 'online',
       bio          TEXT DEFAULT '',
       phone        TEXT DEFAULT '',
+      email        TEXT DEFAULT '',
       "fullName"   TEXT DEFAULT '',
       "employeeCode" TEXT DEFAULT ''
     );
 
     ALTER TABLE users ADD COLUMN IF NOT EXISTS "employeeCode" TEXT DEFAULT '';
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS email TEXT DEFAULT '';
 
     INSERT INTO users (id, name, username, "passwordHash", role, active, "createdAt")
     VALUES ('user_admin', 'Admin', 'admin', 'Aldo@123', 'admin', 1, NOW()::TEXT)
@@ -405,11 +408,11 @@ export async function dbGetUsers(): Promise<DBUser[]> {
     const sb = getSupabase();
     const { data } = await sb
       .from("users")
-      .select("id, name, username, role, active, createdAt, avatar, status, bio, phone, fullName, employeeCode")
+      .select("id, name, username, role, active, createdAt, avatar, status, bio, phone, email, fullName, employeeCode")
       .order("createdAt");
     return (data ?? []) as DBUser[];
   }
-  return getStoreDb().prepare("SELECT id, name, username, role, active, createdAt, avatar, status, bio, phone, fullName, employeeCode FROM users ORDER BY createdAt").all() as DBUser[];
+  return getStoreDb().prepare("SELECT id, name, username, role, active, createdAt, avatar, status, bio, phone, email, fullName, employeeCode FROM users ORDER BY createdAt").all() as DBUser[];
 }
 
 export async function dbGetUserByCredentials(username: string, password: string): Promise<DBUser | null> {
@@ -460,7 +463,7 @@ export async function dbCreateUser(user: {
 
 export async function dbUpdateUser(id: string, fields: {
   name?: string; username?: string; password?: string; role?: string; active?: number;
-  avatar?: string; status?: string; bio?: string; phone?: string; fullName?: string; employeeCode?: string;
+  avatar?: string; status?: string; bio?: string; phone?: string; fullName?: string; employeeCode?: string; email?: string;
 }): Promise<void> {
   if (IS_SUPABASE) {
     const sb = getSupabase();
@@ -476,6 +479,7 @@ export async function dbUpdateUser(id: string, fields: {
     if (fields.phone !== undefined) update.phone = fields.phone;
     if (fields.fullName !== undefined) update.fullName = fields.fullName;
     if (fields.employeeCode !== undefined) update.employeeCode = fields.employeeCode;
+    if (fields.email !== undefined) update.email = fields.email;
     await sb.from("users").update(update).eq("id", id);
     return;
   }
@@ -496,6 +500,7 @@ export async function dbUpdateUser(id: string, fields: {
     if (fields.phone !== undefined) { sets.push("phone=?"); vals.push(fields.phone); }
     if (fields.fullName !== undefined) { sets.push("fullName=?"); vals.push(fields.fullName); }
     if (fields.employeeCode !== undefined) { sets.push("employeeCode=?"); vals.push(fields.employeeCode); }
+    if (fields.email !== undefined) { sets.push("email=?"); vals.push(fields.email); }
     if (sets.length) {
       vals.push(id);
       db.prepare(`UPDATE users SET ${sets.join(",")} WHERE id=?`).run(...vals);

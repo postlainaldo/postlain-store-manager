@@ -1310,7 +1310,8 @@ export default function ProfilePage() {
   const [activity, setActivity] = useState<Activity[]>([]);
   const [tab, setTab] = useState<"profile" | "team" | "leaderboard" | "settings">("profile");
   const [editing, setEditing] = useState(false);
-  const [form, setForm] = useState({ name: "", fullName: "", bio: "", phone: "", email: "", status: "working" as Status });
+  const [form, setForm] = useState({ name: "", fullName: "", bio: "", phone: "", email: "", employeeCode: "", status: "working" as Status });
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [showProfileRequired, setShowProfileRequired] = useState(false);
   const [saved, setSaved] = useState(false);
   const [pwOpen, setPwOpen] = useState(false);
@@ -1338,10 +1339,9 @@ export default function ProfilePage() {
     setProfile(p);
     setActivity(Array.isArray(a) ? a : []);
     const savedStatus = (p.status ?? "working") as Status;
-    setForm({ name: p.name ?? "", fullName: p.fullName ?? "", bio: p.bio ?? "", phone: p.phone ?? "", email: p.email ?? "", status: savedStatus });
-    if (!(p.fullName ?? "").trim() && !(p.phone ?? "").trim()) {
-      setShowProfileRequired(true);
-    }
+    setForm({ name: p.name ?? "", fullName: p.fullName ?? "", bio: p.bio ?? "", phone: p.phone ?? "", email: p.email ?? "", employeeCode: p.employeeCode ?? "", status: savedStatus });
+    const missing = !(p.fullName ?? "").trim() || !(p.phone ?? "").trim() || !(p.email ?? "").trim() || !(p.employeeCode ?? "").trim();
+    if (missing) setShowProfileRequired(true);
 
     // Compute schedule-based shift status for ALL members today
     try {
@@ -1473,10 +1473,30 @@ export default function ProfilePage() {
     load();
   };
 
+  const validateForm = () => {
+    const errs: Record<string, string> = {};
+    if (!form.fullName.trim()) errs.fullName = "Bắt buộc";
+    if (!form.phone.trim()) {
+      errs.phone = "Bắt buộc";
+    } else if (!/^(0|\+84)[0-9]{8,10}$/.test(form.phone.replace(/\s/g, ""))) {
+      errs.phone = "Sai định dạng (vd: 0901234567)";
+    }
+    if (!form.email.trim()) {
+      errs.email = "Bắt buộc";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
+      errs.email = "Sai định dạng email";
+    }
+    if (!form.employeeCode.trim()) errs.employeeCode = "Bắt buộc";
+    setFormErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
+
   const handleSave = async () => {
+    if (!validateForm()) return;
     await fetch("/api/profile", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: currentUser.id, ...form, avatar: profile?.avatar }) });
     setSaved(true);
-    if (form.fullName.trim() && form.phone.trim()) setShowProfileRequired(false);
+    const stillMissing = !form.fullName.trim() || !form.phone.trim() || !form.email.trim() || !form.employeeCode.trim();
+    if (!stillMissing) setShowProfileRequired(false);
     setTimeout(() => { setSaved(false); setEditing(false); }, 1200);
     load();
   };
@@ -1538,8 +1558,23 @@ export default function ProfilePage() {
               <User size={24} style={{ color: "#0ea5e9" }} />
             </div>
             <h3 style={{ fontSize: 17, fontWeight: 700, color: "var(--text-primary)", marginBottom: 8 }}>Hoàn thiện hồ sơ</h3>
-            <p style={{ fontSize: 13, color: "#64748b", lineHeight: 1.6, marginBottom: 20 }}>Vui lòng điền đầy đủ họ tên và số điện thoại để tiếp tục sử dụng ứng dụng.</p>
-            <button onClick={() => { setShowProfileRequired(false); setEditing(true); }}
+            <p style={{ fontSize: 13, color: "#64748b", lineHeight: 1.6, marginBottom: 12 }}>Vui lòng điền đầy đủ thông tin bắt buộc để tiếp tục sử dụng ứng dụng.</p>
+            <div style={{ textAlign: "left", marginBottom: 20, display: "flex", flexDirection: "column", gap: 6 }}>
+              {[
+                { label: "Họ và tên",     done: !!form.fullName.trim() },
+                { label: "Số điện thoại", done: !!form.phone.trim() },
+                { label: "Email",         done: !!form.email.trim() },
+                { label: "Mã nhân viên",  done: !!form.employeeCode.trim() },
+              ].map(item => (
+                <div key={item.label} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", borderRadius: 8, background: item.done ? "rgba(16,185,129,0.06)" : "rgba(239,68,68,0.06)", border: `1px solid ${item.done ? "rgba(16,185,129,0.2)" : "rgba(239,68,68,0.15)"}` }}>
+                  <div style={{ width: 16, height: 16, borderRadius: "50%", background: item.done ? "#10b981" : "#ef4444", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    {item.done ? <Check size={9} style={{ color: "#fff" }} /> : <X size={9} style={{ color: "#fff" }} />}
+                  </div>
+                  <span style={{ fontSize: 12, color: item.done ? "#10b981" : "#ef4444", fontWeight: 600 }}>{item.label}</span>
+                </div>
+              ))}
+            </div>
+            <button onClick={() => { setShowProfileRequired(false); setEditing(true); setTab("profile"); }}
               style={{ width: "100%", padding: "12px", borderRadius: 12, border: "none", background: "linear-gradient(135deg, #0ea5e9, #0284c7)", color: "white", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
               Điền thông tin ngay
             </button>
@@ -1811,28 +1846,38 @@ export default function ProfilePage() {
                     </div>
                   </div>
                   {[
-                    { label: "Họ và tên",     key: "fullName" as const, icon: User,     placeholder: "Nguyễn Văn A" },
-                    { label: "Số điện thoại", key: "phone" as const,    icon: Phone,    placeholder: "0901 234 567" },
-                    { label: "Email",         key: "email" as const,    icon: Mail,     placeholder: "ten@email.com" },
-                  ].map((f, i) => {
+                    { label: "Họ và tên",     key: "fullName" as const,      icon: User,     placeholder: "Nguyễn Văn A",      required: true },
+                    { label: "Số điện thoại", key: "phone" as const,         icon: Phone,    placeholder: "0901 234 567",       required: true },
+                    { label: "Email",         key: "email" as const,         icon: Mail,     placeholder: "ten@email.com",      required: true },
+                    { label: "Mã nhân viên",  key: "employeeCode" as const,  icon: Hash,     placeholder: "NTH260001",          required: true },
+                  ].map((f) => {
                     const FIcon = f.icon;
+                    const errMsg = formErrors[f.key];
                     return (
                       <div key={f.key}>
                         <div style={{ height: 1, background: "var(--border-subtle)", margin: "0 20px" }} />
-                        <div style={{ padding: "12px 20px", display: "flex", alignItems: "center", gap: 14 }}>
-                          <div style={{ width: 28, height: 28, borderRadius: 8, background: "rgba(14,165,233,0.08)", border: "1px solid rgba(14,165,233,0.15)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                            <FIcon size={12} style={{ color: "#0ea5e9" }} />
+                        <div style={{ padding: "10px 20px", display: "flex", alignItems: "center", gap: 14 }}>
+                          <div style={{ width: 28, height: 28, borderRadius: 8, background: errMsg ? "rgba(220,38,38,0.08)" : "rgba(14,165,233,0.08)", border: `1px solid ${errMsg ? "rgba(220,38,38,0.25)" : "rgba(14,165,233,0.15)"}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                            <FIcon size={12} style={{ color: errMsg ? "#dc2626" : "#0ea5e9" }} />
                           </div>
-                          <span style={{ fontSize: 10, color: "var(--text-muted)", width: 110, flexShrink: 0 }}>{f.label}</span>
-                          {editing
-                            ? <input value={form[f.key]} onChange={e => setForm(v => ({ ...v, [f.key]: e.target.value }))}
-                                placeholder={f.placeholder}
-                                className="input-glow"
-                                style={{ flex: 1, padding: "7px 11px", fontSize: 16 }} />
-                            : <span style={{ fontSize: 11, color: form[f.key] ? "var(--text-primary)" : "var(--border-strong)", fontStyle: form[f.key] ? "normal" : "italic", fontWeight: form[f.key] ? 500 : 400 }}>
-                                {form[f.key] || f.placeholder}
-                              </span>
-                          }
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: editing ? 4 : 0 }}>
+                              <span style={{ fontSize: 10, color: "var(--text-muted)" }}>{f.label}</span>
+                              {f.required && <span style={{ fontSize: 8, color: "#ef4444", fontWeight: 700 }}>*</span>}
+                            </div>
+                            {editing
+                              ? <div>
+                                  <input value={form[f.key]} onChange={e => { setForm(v => ({ ...v, [f.key]: e.target.value })); setFormErrors(v => ({ ...v, [f.key]: "" })); }}
+                                    placeholder={f.placeholder}
+                                    className="input-glow"
+                                    style={{ width: "100%", padding: "7px 11px", fontSize: 16, borderColor: errMsg ? "rgba(220,38,38,0.5)" : undefined }} />
+                                  {errMsg && <p style={{ fontSize: 9, color: "#dc2626", marginTop: 3, fontWeight: 600 }}>{errMsg}</p>}
+                                </div>
+                              : <span style={{ fontSize: 11, color: form[f.key] ? "var(--text-primary)" : "#ef4444", fontStyle: form[f.key] ? "normal" : "italic", fontWeight: form[f.key] ? 500 : 400 }}>
+                                  {form[f.key] || "Chưa điền ⚠"}
+                                </span>
+                            }
+                          </div>
                         </div>
                       </div>
                     );
