@@ -29,6 +29,7 @@ public/workbox-*.js
 
 # TypeScript build cache
 *.tsbuildinfo
+tsconfig.tsbuildinfo
 
 # Vercel
 .vercel
