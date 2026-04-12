@@ -1,3 +1,8 @@
+# Claude Code — private files (not for repo)
+.claude/CLAUDE.local.md
+.claude/settings.local.json
+.claude/memory.md
+
 # Python-generated files
 __pycache__/
 *.py[oc]
