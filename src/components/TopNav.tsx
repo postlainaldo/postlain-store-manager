@@ -52,11 +52,11 @@ export default function TopNav() {
       >
         <div style={{
           width: 30, height: 30, borderRadius: 8,
-          border: "1.5px solid rgba(181,242,61,0.35)",
+          border: "1.5px solid var(--accent-border)",
           background: "var(--bg-card)",
           display: "flex", alignItems: "center", justifyContent: "center",
         }}>
-          <span style={{ fontSize: 12, fontWeight: 800, color: "#b5f23d", letterSpacing: "0.06em" }}>P</span>
+          <span style={{ fontSize: 12, fontWeight: 800, color: "var(--accent-text)", letterSpacing: "0.06em" }}>P</span>
         </div>
         <div style={{ lineHeight: 1 }}>
           <p style={{ fontSize: 15, fontWeight: 900, color: t.textPrimary, letterSpacing: "0.14em" }}>POSTLAIN</p>
@@ -100,16 +100,18 @@ export default function TopNav() {
               <div style={{
                 display: "flex", alignItems: "center", gap: 7,
                 padding: "4px 10px 4px 6px", borderRadius: 20,
-                background: "var(--lime-subtle)",
-                border: "1px solid var(--lime-border)",
+                background: "var(--accent-subtle)",
+                border: "1px solid var(--accent-border)",
                 cursor: "pointer",
                 transition: "background 0.14s",
               }}
               onMouseEnter={e => {
-                (e.currentTarget as HTMLDivElement).style.background = "rgba(181,242,61,0.12)";
+                (e.currentTarget as HTMLDivElement).style.background = "var(--accent-subtle)";
+                (e.currentTarget as HTMLDivElement).style.opacity = "0.8";
               }}
               onMouseLeave={e => {
-                (e.currentTarget as HTMLDivElement).style.background = "var(--lime-subtle)";
+                (e.currentTarget as HTMLDivElement).style.background = "var(--accent-subtle)";
+                (e.currentTarget as HTMLDivElement).style.opacity = "1";
               }}
               >
                 {/* Avatar */}
@@ -133,7 +135,7 @@ export default function TopNav() {
                 </div>
                 <div style={{ lineHeight: 1 }}>
                   <p style={{ fontSize: 10, fontWeight: 600, color: t.textPrimary }}>{currentUser.name}</p>
-                  <p style={{ fontSize: 7.5, color: "rgba(181,242,61,0.80)", marginTop: 1.5, letterSpacing: "0.08em" }}>
+                  <p style={{ fontSize: 7.5, color: "var(--accent-text)", marginTop: 1.5, letterSpacing: "0.08em", opacity: 0.85 }}>
                     {currentUser.role === "admin" ? "ADMIN" : currentUser.role === "manager" ? "QUẢN LÝ" : "NHÂN VIÊN"}
                   </p>
                 </div>
@@ -169,11 +171,11 @@ export default function TopNav() {
             <div style={{
               display: "flex", alignItems: "center", gap: 6,
               padding: "6px 14px", borderRadius: 8,
-              background: "#b5f23d",
+              background: "var(--accent)",
               cursor: "pointer",
             }}>
-              <LogIn size={11} style={{ color: "#050505" }} />
-              <span style={{ fontSize: 9, fontWeight: 700, color: "#050505", letterSpacing: "0.12em" }}>ĐĂNG NHẬP</span>
+              <LogIn size={11} style={{ color: "var(--accent-inv)" }} />
+              <span style={{ fontSize: 9, fontWeight: 700, color: "var(--accent-inv)", letterSpacing: "0.12em" }}>ĐĂNG NHẬP</span>
             </div>
           </Link>
         )}

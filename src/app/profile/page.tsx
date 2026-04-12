@@ -66,7 +66,7 @@ const STATUS_CFG: Record<string, { label: string; color: string; group: string }
 };
 
 const ROLE_CFG: Record<string, { label: string; color: string; icon: typeof User }> = {
-  admin:    { label: "Admin",                   color: "#b5f23d", icon: Crown     },
+  admin:    { label: "Admin",                   color: "#8b5cf6", icon: Crown     },
   manager:  { label: "Quản Lý",                 color: "#0ea5e9", icon: UserCheck },
   staff:    { label: "Nhân Viên",               color: "#64748b", icon: User      },
   staff_ft: { label: "Nhân Viên (Full Time)",   color: "#10b981", icon: User      },
@@ -107,30 +107,23 @@ function Avatar({ src, name, size = 80, status, ring = false }: { src?: string |
   return (
     <div style={{ position: "relative", width: size, height: size, flexShrink: 0 }}>
       {ring && (
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
-          style={{
-            position: "absolute", inset: -4, borderRadius: "50%",
-            background: "conic-gradient(from 0deg, transparent 0%, #b5f23d 25%, transparent 50%, #0ea5e9 75%, transparent 100%)",
-            filter: "blur(2px)", opacity: 0.7,
-          }}
-        />
+        <div style={{
+          position: "absolute", inset: -3, borderRadius: "50%",
+          border: "1.5px solid var(--accent-border)",
+        }} />
       )}
       <div style={{
         position: "absolute", inset: ring ? -2 : 0, borderRadius: "50%",
-        background: src ? "transparent" : "linear-gradient(135deg, #0a0a0a, #1a1a1a)",
-        border: `${ring ? 2 : size > 40 ? 3 : 2}px solid rgba(181,242,61,${ring ? 0.6 : 0.5})`,
+        background: src ? "transparent" : "var(--bg-elevated)",
+        border: `${ring ? 2 : size > 40 ? 3 : 2}px solid var(--accent-border)`,
         overflow: "hidden",
         display: "flex", alignItems: "center", justifyContent: "center",
-        boxShadow: ring
-          ? "0 0 0 3px rgba(14,165,233,0.2), 0 0 20px rgba(181,242,61,0.2)"
-          : size > 40 ? "0 0 0 3px rgba(14,165,233,0.15), 0 8px 24px rgba(0,0,0,0.15)" : undefined,
+        boxShadow: size > 40 ? "var(--shadow-sm)" : undefined,
         zIndex: 1,
       }}>
         {src
           ? <img src={src} alt={name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-          : <span style={{ fontSize: size * 0.38, fontWeight: 700, color: "#b5f23d" }}>{name.slice(0, 1).toUpperCase()}</span>
+          : <span style={{ fontSize: size * 0.38, fontWeight: 700, color: "var(--accent-text)" }}>{name.slice(0, 1).toUpperCase()}</span>
         }
       </div>
       {status && (
@@ -155,32 +148,31 @@ function Avatar({ src, name, size = 80, status, ring = false }: { src?: string |
 // ─── PremiumCard ───────────────────────────────────────────────────────────────
 
 function PremiumCard({
-  title, icon: Icon, iconColor = "#0ea5e9", accentColor = "#0ea5e9", children,
+  title, icon: Icon, children,
 }: {
   title: string; icon: typeof User; iconColor?: string; accentColor?: string; children: React.ReactNode;
 }) {
   return (
     <div style={{
-      borderRadius: 16, border: "1px solid rgba(255,255,255,0.07)",
+      borderRadius: 16, border: "1px solid var(--border)",
       background: "var(--bg-card)",
-      backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)",
       overflow: "hidden",
-      boxShadow: "0 4px 24px rgba(0,0,0,0.40), inset 0 1px 0 rgba(255,255,255,0.05)",
+      boxShadow: "var(--shadow-sm)",
     }}>
       <div style={{
-        padding: "11px 20px", borderBottom: "1px solid rgba(255,255,255,0.06)",
-        background: `linear-gradient(90deg, ${accentColor}12, rgba(255,255,255,0.04))`,
+        padding: "11px 20px", borderBottom: "1px solid var(--border)",
+        background: "var(--accent-subtle)",
         display: "flex", alignItems: "center", gap: 10,
       }}>
         <div style={{
           width: 28, height: 28, borderRadius: 8, flexShrink: 0,
-          background: `${accentColor}12`,
-          border: `1px solid ${accentColor}28`,
+          background: "var(--accent-subtle)",
+          border: "1px solid var(--accent-border)",
           display: "flex", alignItems: "center", justifyContent: "center",
         }}>
-          <Icon size={13} style={{ color: iconColor }} />
+          <Icon size={13} style={{ color: "var(--accent-text)" }} />
         </div>
-        <div style={{ width: 3, height: 14, borderRadius: 2, background: accentColor, flexShrink: 0, boxShadow: `0 0 6px ${accentColor}60` }} />
+        <div style={{ width: 3, height: 14, borderRadius: 2, background: "var(--accent)", flexShrink: 0 }} />
         <p style={{ fontSize: 8.5, fontWeight: 700, color: "var(--text-muted)", letterSpacing: "0.18em", textTransform: "uppercase" }}>{title}</p>
       </div>
       <div style={{ padding: "4px 0" }}>{children}</div>
@@ -509,7 +501,7 @@ function StorePanel() {
     setSaved(true); setTimeout(() => setSaved(false), 1400);
   };
   return (
-    <PremiumCard title="THÔNG TIN CỬA HÀNG" icon={Store} iconColor="#0ea5e9" accentColor="#0ea5e9">
+    <PremiumCard title="THÔNG TIN CỬA HÀNG" icon={Store}>
       <SInputRow label="Tên cửa hàng" value={name} onChange={setName} />
       <SDivider />
       <SInputRow label="Địa chỉ" value={addr} onChange={setAddr} />
@@ -522,7 +514,7 @@ function StorePanel() {
         <motion.button
           whileTap={{ scale: 0.96 }}
           onClick={handleSave}
-          style={{ padding: "8px 20px", minHeight: 40, borderRadius: 9, border: "none", background: saved ? "#10b981" : "linear-gradient(135deg, #8bc42a, #b5f23d)", color: saved ? "#fff" : "#050505", fontSize: 9, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6, transition: "background 0.2s" }}>
+          style={{ padding: "8px 20px", minHeight: 40, borderRadius: 9, border: "none", background: saved ? "#10b981" : "var(--accent)", color: saved ? "#fff" : "var(--accent-inv)", fontSize: 9, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6, transition: "background 0.2s" }}>
           <Check size={10} /> {saved ? "ĐÃ LƯU" : "LƯU"}
         </motion.button>
       </div>
@@ -534,7 +526,7 @@ function DisplayPanel() {
   const uiAnimations = useStore(sel.uiAnimations);
   const setUISetting  = useStore(sel.setUISetting);
   return (
-    <PremiumCard title="GIAO DIỆN" icon={Zap} iconColor="#b5f23d" accentColor="#b5f23d">
+    <PremiumCard title="GIAO DIỆN" icon={Zap}>
       <AnimatedToggle label="Hiệu ứng chuyển động" desc="Bật/tắt animation toàn app" on={!!uiAnimations} set={v => setUISetting("uiAnimations", v)} />
     </PremiumCard>
   );
@@ -583,7 +575,7 @@ function NotifyPanel() {
             <div>
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                 <span style={{ fontSize: 11, fontWeight: 600, color: "var(--text-primary)" }}>{label}</span>
-                {important && <span style={{ fontSize: 8, padding: "1px 5px", borderRadius: 8, background: "rgba(181,242,61,0.15)", color: "#b5f23d", fontWeight: 700 }}>Quan trọng</span>}
+                {important && <span style={{ fontSize: 8, padding: "1px 5px", borderRadius: 8, background: "var(--accent-subtle)", color: "var(--accent-text)", fontWeight: 700 }}>Quan trọng</span>}
               </div>
               <span style={{ fontSize: 10, color: "var(--text-muted)" }}>{desc}</span>
             </div>
@@ -709,7 +701,7 @@ function UsersPanel() {
   };
 
   return (
-    <PremiumCard title="NGƯỜI DÙNG" icon={Users} iconColor="#b5f23d" accentColor="#b5f23d">
+    <PremiumCard title="NGƯỜI DÙNG" icon={Users}>
       <div style={{ padding: "4px 20px 12px" }}>
         {users.map(u => {
           const rcfg = ROLE_CFG[u.role] ?? ROLE_CFG.staff;
@@ -1120,8 +1112,8 @@ function VersionPanel() {
     <PremiumCard title="PHIÊN BẢN" icon={Info} iconColor="#0ea5e9" accentColor="#0ea5e9">
       <div style={{ padding: "14px 20px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(145deg, #0a0a0a, #111111)", border: "1.5px solid rgba(181,242,61,0.4)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 0 12px rgba(181,242,61,0.15)" }}>
-            <span style={{ fontSize: 10, fontWeight: 800, color: "#b5f23d", letterSpacing: "0.05em", fontFamily: "var(--font-montserrat), sans-serif" }}>ADL</span>
+          <div style={{ width: 36, height: 36, borderRadius: 10, background: "var(--bg-elevated)", border: "1.5px solid var(--accent-border)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <span style={{ fontSize: 10, fontWeight: 800, color: "var(--accent-text)", letterSpacing: "0.05em", fontFamily: "var(--font-montserrat), sans-serif" }}>ADL</span>
           </div>
           <div>
             <p style={{ fontSize: 12, color: "var(--text-primary)", fontWeight: 700 }}>Postlain Store Manager</p>
@@ -1130,7 +1122,7 @@ function VersionPanel() {
         </div>
         {updateReady ? (
           <motion.button whileTap={{ scale: 0.96 }} onClick={onUpdate}
-            style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", minHeight: 40, borderRadius: 8, border: "none", background: "linear-gradient(135deg, #8bc42a, #b5f23d)", color: "var(--text-primary)", fontSize: 9, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+            style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", minHeight: 40, borderRadius: 8, border: "none", background: "var(--accent)", color: "var(--accent-inv)", fontSize: 9, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
             <RefreshCw size={10} /> CẬP NHẬT
           </motion.button>
         ) : (
@@ -1211,12 +1203,12 @@ function KpiTargetPanel({ storeTarget, individualTargets, allUsers, onSetStoreTa
   }
 
   return (
-    <PremiumCard title="Target KPI" icon={TrendingUp} iconColor="#b5f23d" accentColor="#b5f23d">
+    <PremiumCard title="Target KPI" icon={TrendingUp}>
       <div style={{ padding: "14px 20px", display: "flex", flexDirection: "column", gap: 16 }}>
         {/* Store target */}
         <div>
           <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
-            <Store size={12} style={{ color: "#b5f23d" }} />
+            <Store size={12} style={{ color: "var(--accent-text)" }} />
             <span style={{ fontSize: 10, fontWeight: 700, color: "var(--text-muted)", letterSpacing: "0.1em", textTransform: "uppercase" }}>Target Cửa Hàng / Tháng</span>
           </div>
           <div style={{ position: "relative" }}>
@@ -1228,7 +1220,7 @@ function KpiTargetPanel({ storeTarget, individualTargets, allUsers, onSetStoreTa
               style={{ width: "100%", height: 40, padding: "0 12px", fontSize: 14, fontWeight: 700, color: "var(--text-primary)", boxSizing: "border-box" }}
             />
             {storeInput && parseTargetInput(storeInput) > 0 && (
-              <span style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", fontSize: 10, color: "#b5f23d", fontWeight: 700, pointerEvents: "none" }}>
+              <span style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", fontSize: 10, color: "var(--accent-text)", fontWeight: 700, pointerEvents: "none" }}>
                 = {fmtM(parseTargetInput(storeInput))} ₫
               </span>
             )}
@@ -1245,8 +1237,8 @@ function KpiTargetPanel({ storeTarget, individualTargets, allUsers, onSetStoreTa
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {activeUsers.map(u => (
                 <div key={u.id} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <div style={{ width: 30, height: 30, borderRadius: "50%", background: "linear-gradient(135deg, #0a0a0a, #1a1a1a)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, border: "1.5px solid rgba(181,242,61,0.3)" }}>
-                    <span style={{ fontSize: 11, fontWeight: 700, color: "#b5f23d" }}>{u.name.slice(0,1).toUpperCase()}</span>
+                  <div style={{ width: 30, height: 30, borderRadius: "50%", background: "var(--bg-elevated)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, border: "1.5px solid var(--accent-border)" }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: "var(--accent-text)" }}>{u.name.slice(0,1).toUpperCase()}</span>
                   </div>
                   <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-primary)", width: 90, flexShrink: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{u.name}</span>
                   <div style={{ flex: 1, position: "relative" }}>
@@ -1273,11 +1265,10 @@ function KpiTargetPanel({ storeTarget, individualTargets, allUsers, onSetStoreTa
           onClick={handleSave}
           style={{
             height: 40, borderRadius: 10, border: "none",
-            background: saved ? "#10b981" : "linear-gradient(135deg, #8bc42a, #b5f23d)",
+            background: saved ? "#10b981" : "var(--accent)",
             cursor: "pointer", fontFamily: "inherit",
-            fontSize: 12, fontWeight: 700, color: "#fff",
+            fontSize: 12, fontWeight: 700, color: saved ? "#fff" : "var(--accent-inv)",
             display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-            boxShadow: saved ? "none" : "0 4px 16px rgba(181,242,61,0.35)",
             transition: "background 0.2s",
           }}
         >
@@ -1601,7 +1592,7 @@ export default function ProfilePage() {
         <motion.div
           initial={{ opacity: 0, y: -16 }} animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-          style={{ borderRadius: 22, overflow: "hidden", boxShadow: "0 12px 48px rgba(0,0,0,0.22), 0 2px 0 rgba(181,242,61,0.18) inset", marginBottom: 16, border: "1px solid rgba(181,242,61,0.25)" }}
+          style={{ borderRadius: 22, overflow: "hidden", boxShadow: "var(--shadow-lg)", marginBottom: 16, border: "1px solid var(--border)" }}
         >
           {/* Cover */}
           <div style={{ height: 140, background: "linear-gradient(135deg, #050505 0%, #0a0a0a 50%, #111111 100%)", position: "relative", overflow: "hidden" }}>
@@ -1653,8 +1644,8 @@ export default function ProfilePage() {
                   whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.94 }}
                   onClick={() => fileRef.current?.click()}
                   title="Đổi ảnh đại diện"
-                  style={{ position: "absolute", bottom: 4, right: 4, width: 28, height: 28, borderRadius: "50%", background: "linear-gradient(135deg, #8bc42a, #b5f23d)", border: "3px solid #fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", zIndex: 3, boxShadow: "0 2px 8px rgba(181,242,61,0.4)" }}>
-                  <Camera size={12} style={{ color: "#fff" }} />
+                  style={{ position: "absolute", bottom: 4, right: 4, width: 28, height: 28, borderRadius: "50%", background: "var(--accent)", border: "3px solid var(--bg-card)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", zIndex: 3 }}>
+                  <Camera size={12} style={{ color: "var(--accent-inv)" }} />
                 </motion.button>
                 {/* Remove avatar button — only when avatar exists */}
                 {profile?.avatar && (
@@ -1762,9 +1753,8 @@ export default function ProfilePage() {
         <div style={{
           display: "flex", gap: 4,
           background: "var(--bg-card)",
-          backdropFilter: "blur(20px) saturate(1.8)", WebkitBackdropFilter: "blur(20px) saturate(1.8)",
-          borderRadius: 18, border: "1px solid rgba(181,242,61,0.22)", padding: 5, marginBottom: 16,
-          boxShadow: "0 4px 20px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.9)",
+          borderRadius: 18, border: "1px solid var(--border)", padding: 5, marginBottom: 16,
+          background: "var(--bg-elevated)",
           transition: "background 0.5s, border-color 0.5s",
         }}>
           {TABS.map(t => {
@@ -1778,12 +1768,12 @@ export default function ProfilePage() {
                 style={{
                   flex: 1, padding: "10px 4px", borderRadius: 13, border: "none", cursor: "pointer",
                   fontFamily: "inherit", position: "relative",
-                  background: active ? "linear-gradient(135deg, #8bc42a 0%, #b5f23d 60%, #d4ff6b 100%)" : "transparent",
-                  color: active ? "#fff" : "var(--text-muted)",
+                  background: active ? "var(--accent)" : "transparent",
+                  color: active ? "var(--accent-inv)" : "var(--text-muted)",
                   fontSize: 9.5, fontWeight: active ? 800 : 500,
                   transition: "all 0.2s",
                   display: "flex", flexDirection: "column", alignItems: "center", gap: 3,
-                  boxShadow: active ? "0 4px 14px rgba(181,242,61,0.4), inset 0 1px 0 rgba(255,255,255,0.25)" : "none",
+                  boxShadow: active ? "var(--shadow-sm)" : "none",
                   letterSpacing: active ? "0.02em" : "0",
                 }}
               >
@@ -1822,7 +1812,7 @@ export default function ProfilePage() {
                         </motion.button>
                       : <div style={{ display: "flex", gap: 6 }}>
                           <motion.button whileTap={{ scale: 0.96 }} onClick={handleSave}
-                            style={{ display: "flex", alignItems: "center", gap: 4, padding: "6px 16px", borderRadius: 9, border: "none", background: saved ? "#10b981" : "linear-gradient(135deg, #8bc42a 0%, #b5f23d 60%, #d4ff6b 100%)", color: "#fff", cursor: "pointer", fontFamily: "inherit", fontSize: 8.5, fontWeight: 800, boxShadow: saved ? "none" : "0 3px 12px rgba(181,242,61,0.4)", letterSpacing: "0.04em" }}>
+                            style={{ display: "flex", alignItems: "center", gap: 4, padding: "6px 16px", borderRadius: 9, border: "none", background: saved ? "#10b981" : "var(--accent)", color: saved ? "#fff" : "var(--accent-inv)", cursor: "pointer", fontFamily: "inherit", fontSize: 8.5, fontWeight: 800, letterSpacing: "0.04em" }}>
                             <Check size={9} /> {saved ? "ĐÃ LƯU" : "LƯU"}
                           </motion.button>
                           <button onClick={() => setEditing(false)}
@@ -2087,11 +2077,10 @@ export default function ProfilePage() {
                             initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
                             transition={{ delay: i * 0.04, ease: [0.16, 1, 0.3, 1] }}
                             style={{
-                              background: isMe ? "linear-gradient(135deg, rgba(181,242,61,0.10), rgba(59,130,246,0.06))" : "var(--bg-card)",
-                              border: isMe ? "1.5px solid rgba(181,242,61,0.35)" : "1px solid var(--border)",
+                              background: isMe ? "var(--accent-subtle)" : "var(--bg-card)",
+                              border: isMe ? "1.5px solid var(--accent-border)" : "1px solid var(--border)",
                               borderRadius: 14, padding: "14px 16px",
-                              boxShadow: isMe ? "0 6px 24px rgba(181,242,61,0.20), inset 0 1px 0 rgba(255,255,255,0.06)" : "0 2px 8px rgba(0,0,0,0.30)",
-                              backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)",
+                              boxShadow: isMe ? "var(--shadow-sm)" : "var(--shadow-xs)",
                             }}>
                             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                               <div style={{ width: 32, height: 32, borderRadius: 10, background: i < 3 ? `${pctColor}15` : "var(--bg-base)", border: `1.5px solid ${i < 3 ? pctColor : "var(--border)"}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>

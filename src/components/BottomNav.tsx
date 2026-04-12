@@ -152,17 +152,17 @@ export default function BottomNav() {
                   gap: 6,
                 }}
               >
-                {/* Button */}
+                {/* Button — always on dark backdrop, uses lime directly */}
                 <motion.button
                   onClick={() => handleNavigate(item.id, item.href)}
                   whileTap={{ scale: 0.88 }}
                   style={{
                     width: 54, height: 54,
                     borderRadius: "50%",
-                    border: `1.5px solid ${active ? "#b5f23d" : "rgba(255,255,255,0.12)"}`,
+                    border: active ? "1.5px solid #b5f23d" : "1.5px solid rgba(255,255,255,0.12)",
                     background: active ? "#161616" : "#111111",
                     boxShadow: active
-                      ? "0 0 0 3px rgba(181,242,61,0.16), 0 6px 20px rgba(0,0,0,0.70)"
+                      ? "0 4px 16px rgba(0,0,0,0.70)"
                       : "0 4px 16px rgba(0,0,0,0.60)",
                     cursor: "pointer",
                     display: "flex", alignItems: "center", justifyContent: "center",
@@ -177,7 +177,7 @@ export default function BottomNav() {
                       width: 26, height: 26, borderRadius: "50%",
                       background: active ? "#b5f23d" : "#1e1e1e",
                       display: "flex", alignItems: "center", justifyContent: "center",
-                      border: `1.5px solid ${active ? "rgba(181,242,61,0.70)" : "rgba(255,255,255,0.14)"}`,
+                      border: active ? "1.5px solid rgba(181,242,61,0.70)" : "1.5px solid rgba(255,255,255,0.14)",
                     }}>
                       <span style={{ fontSize: 11, fontWeight: 800, color: active ? "#050505" : "#b5f23d" }}>
                         {currentUser.name.slice(0, 1).toUpperCase()}
@@ -197,7 +197,7 @@ export default function BottomNav() {
                   padding: "2px 7px",
                   borderRadius: 8,
                   background: "#0a0a0a",
-                  border: `1px solid ${active ? "rgba(181,242,61,0.25)" : "rgba(255,255,255,0.07)"}`,
+                  border: active ? "1px solid rgba(181,242,61,0.25)" : "1px solid rgba(255,255,255,0.07)",
                 }}>
                   <span style={{
                     fontSize: 8.5,
