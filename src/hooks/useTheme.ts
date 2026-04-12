@@ -12,7 +12,7 @@ const LIGHT = {
   cardBgGlass:     "rgba(255,255,255,0.88)",
   cardBgElevated:  "#f2f2f7",
   cardBorder:      "rgba(0,0,0,0.07)",
-  cardBorderGold:  "rgba(201,165,90,0.22)",
+  cardBorderGold:  "rgba(181,242,61,0.20)",
   cardShadow:      "0 2px 16px rgba(0,0,0,0.08)",
   cardShadowLg:    "0 8px 32px rgba(0,0,0,0.12)",
 
@@ -58,48 +58,48 @@ const LIGHT = {
   iconBtnBorder:   "rgba(0,0,0,0.10)",
 } as const;
 
-// ─── Dark (Midnight Gold Glass) ────────────────────────────────────────────
+// ─── Dark (True Black × Lime) ──────────────────────────────────────────────
 const DARK = {
   isLight: false,
   isDark: true,
 
-  cardBg:          "rgba(15,23,42,0.85)",
-  cardBgGlass:     "rgba(15,23,42,0.85)",
-  cardBgElevated:  "rgba(20,32,52,0.95)",
+  cardBg:          "rgba(17,17,17,0.90)",
+  cardBgGlass:     "rgba(17,17,17,0.85)",
+  cardBgElevated:  "rgba(26,26,26,0.98)",
   cardBorder:      "rgba(255,255,255,0.07)",
-  cardBorderGold:  "rgba(201,165,90,0.22)",
-  cardShadow:      "0 4px 24px rgba(0,0,0,0.40)",
-  cardShadowLg:    "0 12px 40px rgba(0,0,0,0.55)",
+  cardBorderGold:  "rgba(181,242,61,0.18)",
+  cardShadow:      "0 4px 24px rgba(0,0,0,0.70)",
+  cardShadowLg:    "0 12px 40px rgba(0,0,0,0.85)",
 
-  headerBg:        "rgba(8,14,26,0.92)",
-  headerBorder:    "rgba(255,255,255,0.06)",
+  headerBg:        "rgba(5,5,5,0.94)",
+  headerBorder:    "rgba(255,255,255,0.05)",
 
-  inputBg:         "#0d1525",
-  inputBorder:     "rgba(255,255,255,0.10)",
+  inputBg:         "#0f0f0f",
+  inputBorder:     "rgba(255,255,255,0.08)",
 
-  textPrimary:     "#f0f4ff",
-  textSecondary:   "#94a3b8",
-  textMuted:       "#64748b",
+  textPrimary:     "#ffffff",
+  textSecondary:   "#a0a0a0",
+  textMuted:       "#555555",
 
-  surfaceBg:       "#0f1729",
-  surfaceBorder:   "rgba(255,255,255,0.05)",
+  surfaceBg:       "#0a0a0a",
+  surfaceBorder:   "rgba(255,255,255,0.04)",
 
-  rowHover:        "rgba(59,130,246,0.05)",
+  rowHover:        "rgba(181,242,61,0.04)",
 
-  avatarGradient:  "linear-gradient(135deg, #0c1a2e, #1e3a5f)",
-  avatarText:      "#C9A55A",
+  avatarGradient:  "linear-gradient(135deg, #111111, #1a1a1a)",
+  avatarText:      "#b5f23d",
 
-  overlayBg:       "rgba(0,0,0,0.65)",
+  overlayBg:       "rgba(0,0,0,0.80)",
 
-  bubbleBg:        "rgba(255,255,255,0.08)",
+  bubbleBg:        "rgba(255,255,255,0.07)",
 
-  labelBg:         "rgba(5,10,22,0.75)",
-  labelBorder:     "rgba(255,255,255,0.08)",
+  labelBg:         "rgba(0,0,0,0.85)",
+  labelBorder:     "rgba(255,255,255,0.07)",
 
-  statusDotBorder: "rgba(8,14,26,0.8)",
+  statusDotBorder: "rgba(5,5,5,0.9)",
 
-  iconBtnBg:       "rgba(255,255,255,0.08)",
-  iconBtnBorder:   "rgba(255,255,255,0.12)",
+  iconBtnBg:       "rgba(255,255,255,0.06)",
+  iconBtnBorder:   "rgba(255,255,255,0.10)",
 } as const;
 
 export type ThemeValues = typeof LIGHT;

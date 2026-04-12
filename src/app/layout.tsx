@@ -6,21 +6,21 @@ import "./globals.css";
 
 const montserrat = Montserrat({
   subsets: ["latin"],
-  weight: ["400", "600", "700", "800"],
+  weight: ["400", "500", "600", "700", "800", "900"],
   variable: "--font-montserrat",
   display: "swap",
 });
 
 export const viewport: Viewport = {
-  themeColor: "#f2f2f7",
+  themeColor: "#050505",
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
 };
 
 export const metadata: Metadata = {
-  title: "POSTLAIN — Store Manager",
-  description: "Hệ thống quản lý cửa hàng POSTLAIN",
+  title: "POSTLAIN · ALDO! GO ĐÀ LẠT",
+  description: "Hệ thống quản lý nội bộ POSTLAIN · ALDO! GO ĐÀ LẠT",
   applicationName: "POSTLAIN",
   icons: {
     icon: [
@@ -39,7 +39,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "POSTLAIN",
+    title: "POSTLAIN · ALDO! GO",
   },
   formatDetection: { telephone: false },
 };

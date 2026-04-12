@@ -47,8 +47,8 @@ function ScanLine() {
     <motion.div
       style={{
         position: "absolute", left: 0, right: 0, height: 2,
-        background: "linear-gradient(90deg, transparent 0%, rgba(14,165,233,0.0) 10%, rgba(14,165,233,0.45) 50%, rgba(14,165,233,0.0) 90%, transparent 100%)",
-        boxShadow: "0 0 12px rgba(14,165,233,0.5)",
+        background: "linear-gradient(90deg, transparent 0%, rgba(181,242,61,0.0) 10%, rgba(181,242,61,0.55) 50%, rgba(181,242,61,0.0) 90%, transparent 100%)",
+        boxShadow: "0 0 12px rgba(181,242,61,0.6)",
         pointerEvents: "none",
       }}
       initial={{ top: "10%", opacity: 0 }}
@@ -67,7 +67,7 @@ function DataStream({ x, delay }: { x: string; delay: number }) {
         position: "absolute", left: x, top: 0,
         display: "flex", flexDirection: "column", gap: 2,
         fontFamily: "monospace", fontSize: 8,
-        color: "rgba(14,165,233,0.18)",
+        color: "rgba(181,242,61,0.20)",
         letterSpacing: 0,
         pointerEvents: "none",
         userSelect: "none",
@@ -86,8 +86,8 @@ function HexGrid() {
     <div style={{
       position: "absolute", inset: 0, pointerEvents: "none",
       backgroundImage: `
-        linear-gradient(rgba(14,165,233,0.028) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(14,165,233,0.028) 1px, transparent 1px)
+        linear-gradient(rgba(181,242,61,0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(181,242,61,0.025) 1px, transparent 1px)
       `,
       backgroundSize: "36px 36px",
       maskImage: "radial-gradient(ellipse 80% 80% at 50% 50%, black 40%, transparent 100%)",
@@ -137,12 +137,12 @@ export default function SplashScreen() {
   }, []);
 
   const orbs = [
-    { x: "8%",  y: "12%", size: 260, color: "#0ea5e9", delay: 0,   blur: 55 },
-    { x: "65%", y: "8%",  size: 200, color: "#C9A55A", delay: 0.4, blur: 50 },
-    { x: "72%", y: "60%", size: 280, color: "#6366f1", delay: 0.7, blur: 60 },
-    { x: "-5%", y: "55%", size: 220, color: "#0ea5e9", delay: 1.1, blur: 52 },
-    { x: "40%", y: "78%", size: 180, color: "#C9A55A", delay: 0.3, blur: 45 },
-    { x: "50%", y: "30%", size: 150, color: "#10b981", delay: 0.9, blur: 48 },
+    { x: "8%",  y: "12%", size: 260, color: "#b5f23d", delay: 0,   blur: 55 },
+    { x: "65%", y: "8%",  size: 200, color: "#8bc42a", delay: 0.4, blur: 50 },
+    { x: "72%", y: "60%", size: 280, color: "#b5f23d", delay: 0.7, blur: 60 },
+    { x: "-5%", y: "55%", size: 220, color: "#d4ff6b", delay: 1.1, blur: 52 },
+    { x: "40%", y: "78%", size: 180, color: "#8bc42a", delay: 0.3, blur: 45 },
+    { x: "50%", y: "30%", size: 150, color: "#b5f23d", delay: 0.9, blur: 48 },
   ];
 
   return (
@@ -167,7 +167,7 @@ export default function SplashScreen() {
             display: "flex", flexDirection: "column",
             alignItems: "center", justifyContent: "center",
             overflow: "hidden", userSelect: "none",
-            background: "#03070f",
+            background: "#050505",
           }}
         >
           {/* Exit burst — white flash overlay */}
@@ -178,15 +178,15 @@ export default function SplashScreen() {
               transition={{ duration: 0.55, ease: "easeOut", times: [0, 0.25, 1] }}
               style={{
                 position: "absolute", inset: 0, zIndex: 100,
-                background: "radial-gradient(ellipse at 50% 50%, rgba(255,255,255,0.95) 0%, rgba(201,165,90,0.5) 40%, transparent 70%)",
+                background: "radial-gradient(ellipse at 50% 50%, rgba(181,242,61,0.90) 0%, rgba(181,242,61,0.3) 40%, transparent 70%)",
                 pointerEvents: "none",
               }}
             />
           )}
-          {/* ── Deep space gradient base ── */}
+          {/* ── Pure black base ── */}
           <div style={{
             position: "absolute", inset: 0,
-            background: "radial-gradient(ellipse 120% 80% at 50% 50%, #070f24 0%, #03070f 65%)",
+            background: "radial-gradient(ellipse 120% 80% at 50% 50%, #0d1008 0%, #050505 65%)",
           }} />
 
           {/* ── Floating orbs — fewer on mobile ── */}
@@ -207,10 +207,10 @@ export default function SplashScreen() {
 
           {/* ── Corner brackets ── */}
           {[
-            { style: { top: 24, left: 24,   borderTop: "2px solid rgba(201,165,90,0.55)", borderLeft:  "2px solid rgba(201,165,90,0.55)", borderRadius: "6px 0 0 0"   } },
-            { style: { top: 24, right: 24,  borderTop: "2px solid rgba(201,165,90,0.55)", borderRight: "2px solid rgba(201,165,90,0.55)", borderRadius: "0 6px 0 0"   } },
-            { style: { bottom: 24, left: 24,  borderBottom: "2px solid rgba(14,165,233,0.45)", borderLeft:  "2px solid rgba(14,165,233,0.45)", borderRadius: "0 0 0 6px"   } },
-            { style: { bottom: 24, right: 24, borderBottom: "2px solid rgba(14,165,233,0.45)", borderRight: "2px solid rgba(14,165,233,0.45)", borderRadius: "0 0 6px 0"   } },
+            { style: { top: 24, left: 24,   borderTop: "2px solid rgba(181,242,61,0.60)", borderLeft:  "2px solid rgba(181,242,61,0.60)", borderRadius: "6px 0 0 0"   } },
+            { style: { top: 24, right: 24,  borderTop: "2px solid rgba(181,242,61,0.60)", borderRight: "2px solid rgba(181,242,61,0.60)", borderRadius: "0 6px 0 0"   } },
+            { style: { bottom: 24, left: 24,  borderBottom: "2px solid rgba(181,242,61,0.40)", borderLeft:  "2px solid rgba(181,242,61,0.40)", borderRadius: "0 0 0 6px"   } },
+            { style: { bottom: 24, right: 24, borderBottom: "2px solid rgba(181,242,61,0.40)", borderRight: "2px solid rgba(181,242,61,0.40)", borderRadius: "0 0 6px 0"   } },
           ].map((c, i) => (
             <motion.div key={i}
               initial={{ opacity: 0, scale: 0.6 }}
@@ -238,7 +238,7 @@ export default function SplashScreen() {
                   position: "absolute", top: "50%", left: "50%",
                   width: ring.r, height: ring.r,
                   borderRadius: "50%",
-                  border: `${ring.sw}px solid rgba(201,165,90,${ring.opacity})`,
+                  border: `${ring.sw}px solid rgba(181,242,61,${ring.opacity})`,
                   transform: "translate(-50%, -50%)",
                 }}
                 initial={{ scale: 0.5, opacity: 0 }}
@@ -254,7 +254,7 @@ export default function SplashScreen() {
               style={{
                 position: "absolute", width: 152, height: 152,
                 borderRadius: "50%",
-                background: "conic-gradient(from 0deg, transparent 0%, rgba(201,165,90,0.55) 18%, transparent 35%, rgba(14,165,233,0.40) 65%, transparent 80%)",
+                background: "conic-gradient(from 0deg, transparent 0%, rgba(181,242,61,0.65) 18%, transparent 35%, rgba(139,196,42,0.45) 65%, transparent 80%)",
                 filter: mobile ? "none" : "blur(1.5px)",
                 top: "50%", left: "50%",
                 transform: "translate(-50%, -50%)",
@@ -269,7 +269,7 @@ export default function SplashScreen() {
               style={{
                 position: "absolute", width: 136, height: 136,
                 borderRadius: "50%",
-                background: "conic-gradient(from 90deg, transparent 0%, rgba(99,102,241,0.30) 20%, transparent 40%)",
+                background: "conic-gradient(from 90deg, transparent 0%, rgba(181,242,61,0.20) 20%, transparent 40%)",
                 filter: "blur(1px)",
                 top: "50%", left: "50%",
                 transform: "translate(-50%, -50%)",
@@ -281,20 +281,20 @@ export default function SplashScreen() {
             <div style={{
               position: "absolute", width: 124, height: 124,
               borderRadius: "50%",
-              border: "1px solid rgba(201,165,90,0.22)",
+              border: "1px solid rgba(181,242,61,0.25)",
               top: "50%", left: "50%",
               transform: "translate(-50%, -50%)",
-              boxShadow: "0 0 30px rgba(201,165,90,0.12), inset 0 0 30px rgba(14,165,233,0.06)",
+              boxShadow: "0 0 30px rgba(181,242,61,0.12), inset 0 0 30px rgba(181,242,61,0.04)",
             }} />
 
             {/* Logo disc */}
             <div style={{
               width: 114, height: 114,
               borderRadius: "50%",
-              background: "linear-gradient(145deg, #0d1f38 0%, #080f20 55%, #040a16 100%)",
-              border: "2px solid rgba(201,165,90,0.45)",
+              background: "linear-gradient(145deg, #111111 0%, #080808 55%, #050505 100%)",
+              border: "2px solid rgba(181,242,61,0.55)",
               display: "flex", alignItems: "center", justifyContent: "center",
-              boxShadow: "0 0 0 10px rgba(14,165,233,0.04), 0 24px 72px rgba(0,0,0,0.75), 0 0 50px rgba(201,165,90,0.14)",
+              boxShadow: "0 0 0 10px rgba(181,242,61,0.04), 0 24px 72px rgba(0,0,0,0.90), 0 0 50px rgba(181,242,61,0.18)",
               position: "relative", zIndex: 1,
               overflow: "hidden",
             }}>
@@ -305,7 +305,7 @@ export default function SplashScreen() {
                 style={{
                   position: "absolute", top: 0, bottom: 0, left: 0,
                   width: "45%",
-                  background: "linear-gradient(90deg, transparent, rgba(201,165,90,0.15), transparent)",
+                  background: "linear-gradient(90deg, transparent, rgba(181,242,61,0.15), transparent)",
                   pointerEvents: "none",
                 }}
               />
@@ -319,19 +319,19 @@ export default function SplashScreen() {
                 <motion.div
                   initial={{ scaleX: 0 }} animate={{ scaleX: 1 }}
                   transition={{ delay: 0.55, duration: 0.35 }}
-                  style={{ width: 28, height: 1.5, background: "linear-gradient(90deg, transparent, #C9A55A, transparent)", marginBottom: 5 }}
+                  style={{ width: 28, height: 1.5, background: "linear-gradient(90deg, transparent, #b5f23d, transparent)", marginBottom: 5 }}
                 />
                 <span style={{
-                  fontSize: 28, fontWeight: 900, color: "#C9A55A",
-                  letterSpacing: "0.12em",
+                  fontSize: 22, fontWeight: 900, color: "#b5f23d",
+                  letterSpacing: "0.08em",
                   fontFamily: "var(--font-montserrat), sans-serif",
-                  textShadow: "0 0 24px rgba(201,165,90,0.7), 0 0 8px rgba(201,165,90,0.4)",
+                  textShadow: "0 0 24px rgba(181,242,61,0.8), 0 0 8px rgba(181,242,61,0.5)",
                   lineHeight: 1,
                 }}>ADL</span>
                 <motion.div
                   initial={{ scaleX: 0 }} animate={{ scaleX: 1 }}
                   transition={{ delay: 0.6, duration: 0.35 }}
-                  style={{ width: 28, height: 1.5, background: "linear-gradient(90deg, transparent, #0ea5e9, transparent)", marginTop: 5 }}
+                  style={{ width: 28, height: 1.5, background: "linear-gradient(90deg, transparent, #8bc42a, transparent)", marginTop: 5 }}
                 />
               </motion.div>
             </div>
@@ -344,13 +344,13 @@ export default function SplashScreen() {
             transition={{ delay: 0.6, duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
             style={{ position: "relative", zIndex: 3, marginTop: 40, textAlign: "center" }}
           >
-            {/* POSTLAIN with letter-reveal */}
+            {/* POSTLAIN with shimmer */}
             <div style={{ position: "relative", display: "inline-block" }}>
               <motion.p style={{
-                fontSize: 32, fontWeight: 900, letterSpacing: "0.30em",
+                fontSize: 34, fontWeight: 900, letterSpacing: "0.28em",
                 fontFamily: "var(--font-montserrat), sans-serif",
                 lineHeight: 1,
-                background: "linear-gradient(135deg, #ffffff 0%, #e2e8f0 40%, #C9A55A 70%, #ffffff 100%)",
+                background: "linear-gradient(135deg, #ffffff 0%, #ffffff 30%, #b5f23d 55%, #d4ff6b 70%, #ffffff 100%)",
                 backgroundSize: "200% 100%",
                 WebkitBackgroundClip: "text",
                 WebkitTextFillColor: "transparent",
@@ -361,16 +361,16 @@ export default function SplashScreen() {
                 POSTLAIN
               </motion.p>
 
-              {/* Shimmer underline */}
+              {/* Lime underline */}
               <motion.div
                 initial={{ scaleX: 0, originX: 0 }}
                 animate={{ scaleX: 1 }}
                 transition={{ delay: 0.85, duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
                 style={{
-                  height: 1.5, marginTop: 7,
-                  background: "linear-gradient(90deg, transparent 0%, #C9A55A 30%, #0ea5e9 60%, #6366f1 80%, transparent 100%)",
+                  height: 2, marginTop: 7,
+                  background: "linear-gradient(90deg, transparent 0%, #8bc42a 20%, #b5f23d 50%, #d4ff6b 70%, transparent 100%)",
                   borderRadius: 2,
-                  boxShadow: "0 0 8px rgba(14,165,233,0.4)",
+                  boxShadow: "0 0 12px rgba(181,242,61,0.5)",
                 }}
               />
             </div>
@@ -380,13 +380,14 @@ export default function SplashScreen() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.95, duration: 0.4 }}
               style={{
-                marginTop: 10, fontSize: 11, letterSpacing: "0.42em",
+                marginTop: 10, fontSize: 10, letterSpacing: "0.38em",
                 fontFamily: "var(--font-montserrat), sans-serif",
-                color: "rgba(148,163,184,0.75)",
+                color: "#b5f23d",
                 textTransform: "uppercase",
+                fontWeight: 600,
               }}
             >
-              STORE MANAGER
+              ALDO! GO · ĐÀ LẠT
             </motion.p>
           </motion.div>
 
@@ -397,11 +398,11 @@ export default function SplashScreen() {
             transition={{ delay: 1.1 }}
             style={{ position: "relative", zIndex: 3, marginTop: 16, display: "flex", alignItems: "center", gap: 10 }}
           >
-            <div style={{ width: 18, height: 1, background: "rgba(201,165,90,0.30)" }} />
-            <span style={{ fontSize: 8, color: "rgba(201,165,90,0.50)", letterSpacing: "0.22em", fontFamily: "monospace" }}>
+            <div style={{ width: 18, height: 1, background: "rgba(181,242,61,0.30)" }} />
+            <span style={{ fontSize: 8, color: "rgba(181,242,61,0.55)", letterSpacing: "0.22em", fontFamily: "monospace" }}>
               SYSTEM READY
             </span>
-            <div style={{ width: 18, height: 1, background: "rgba(201,165,90,0.30)" }} />
+            <div style={{ width: 18, height: 1, background: "rgba(181,242,61,0.30)" }} />
           </motion.div>
 
           {/* ── Bottom: location + loading bar ── */}
@@ -423,18 +424,18 @@ export default function SplashScreen() {
               style={{
                 display: "inline-flex", alignItems: "center", gap: 7,
                 padding: "5px 14px", borderRadius: 20,
-                border: "1px solid rgba(14,165,233,0.28)",
-                background: "rgba(14,165,233,0.07)",
+                border: "1px solid rgba(181,242,61,0.30)",
+                background: "rgba(181,242,61,0.06)",
                 backdropFilter: "blur(8px)",
               }}
             >
               <motion.div
                 animate={{ opacity: [1, 0.3, 1], scale: [1, 1.3, 1] }}
                 transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
-                style={{ width: 5, height: 5, borderRadius: "50%", background: "#0ea5e9", boxShadow: "0 0 7px rgba(14,165,233,0.9)" }}
+                style={{ width: 5, height: 5, borderRadius: "50%", background: "#b5f23d", boxShadow: "0 0 7px rgba(181,242,61,0.9)" }}
               />
-              <span style={{ fontSize: 9, color: "rgba(14,165,233,0.85)", letterSpacing: "0.20em", fontWeight: 700, fontFamily: "var(--font-montserrat), sans-serif" }}>
-                ĐÀ LẠT • ALDO GO!
+              <span style={{ fontSize: 9, color: "rgba(181,242,61,0.90)", letterSpacing: "0.20em", fontWeight: 700, fontFamily: "var(--font-montserrat), sans-serif" }}>
+                ĐÀ LẠT · ALDO GO!
               </span>
             </motion.div>
 
@@ -450,8 +451,8 @@ export default function SplashScreen() {
                 transition={{ delay: 1.2, duration: 1.8, ease: [0.4, 0, 0.2, 1] }}
                 style={{
                   height: "100%", borderRadius: 3,
-                  background: "linear-gradient(90deg, #6366f1 0%, #0ea5e9 35%, #10b981 65%, #C9A55A 100%)",
-                  boxShadow: "0 0 10px rgba(14,165,233,0.7)",
+                  background: "linear-gradient(90deg, #8bc42a 0%, #b5f23d 50%, #d4ff6b 100%)",
+                  boxShadow: "0 0 10px rgba(181,242,61,0.7)",
                   position: "relative",
                 }}
               >
@@ -461,8 +462,8 @@ export default function SplashScreen() {
                     position: "absolute", right: -1, top: "50%",
                     transform: "translateY(-50%)",
                     width: 7, height: 7, borderRadius: "50%",
-                    background: "#C9A55A",
-                    boxShadow: "0 0 8px rgba(201,165,90,0.9)",
+                    background: "#b5f23d",
+                    boxShadow: "0 0 8px rgba(181,242,61,0.9)",
                   }}
                 />
               </motion.div>
