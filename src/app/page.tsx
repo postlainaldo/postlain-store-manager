@@ -57,30 +57,6 @@ function timeAgo(iso: string) {
   return `${Math.floor(h / 24)}d trước`;
 }
 
-// ─── Floating orb background ──────────────────────────────────────────────────
-
-function FloatingOrb({ x, y, size, color, delay }: {
-  x: string; y: string; size: number; color: string; delay: number;
-}) {
-  return (
-    <motion.div
-      style={{
-        position: "absolute", left: x, top: y,
-        width: size, height: size, borderRadius: "50%",
-        background: `radial-gradient(circle, ${color} 0%, transparent 70%)`,
-        filter: "blur(50px)", pointerEvents: "none",
-      }}
-      animate={{
-        y: [0, -28, 10, -15, 0],
-        x: [0, 12, -8, 5, 0],
-        scale: [1, 1.08, 0.96, 1.04, 1],
-        opacity: [0.18, 0.28, 0.16, 0.24, 0.18],
-      }}
-      transition={{ duration: 14 + delay * 2.5, repeat: Infinity, delay, ease: "easeInOut" }}
-    />
-  );
-}
-
 // ─── Mini SVG sparkline ───────────────────────────────────────────────────────
 
 function Sparkline({ data, color, height = 32 }: { data: number[]; color: string; height?: number }) {
@@ -191,8 +167,8 @@ function KpiWidget() {
           {/* Big store progress */}
           <div style={{
             padding: "14px 16px", borderRadius: 12,
-            background: `linear-gradient(135deg, ${storeBarColor}10 0%, ${storeBarColor}05 100%)`,
-            border: `1px solid ${storeBarColor}28`,
+            background: "var(--bg-elevated)",
+            border: "1px solid var(--border)",
           }}>
             <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: 8 }}>
               <div>
@@ -220,8 +196,7 @@ function KpiWidget() {
                 transition={{ duration: 1.0, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
                 style={{
                   height: "100%", borderRadius: 4,
-                  background: `linear-gradient(90deg, ${storeBarColor}cc, ${storeBarColor})`,
-                  boxShadow: `0 0 8px ${storeBarColor}60`,
+                  background: storeBarColor,
                 }}
               />
               {/* Time marker */}
@@ -286,7 +261,7 @@ function KpiWidget() {
                           initial={{ width: 0 }}
                           animate={{ width: `${Math.min(100, s.pct ?? (s.target > 0 ? 0 : 50))}%` }}
                           transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1], delay: 0.4 + i * 0.07 }}
-                          style={{ height: "100%", borderRadius: 2, background: `linear-gradient(90deg, ${c}99, ${c})` }}
+                          style={{ height: "100%", borderRadius: 2, background: c }}
                         />
                       </div>
                     </div>
@@ -404,16 +379,7 @@ export default function OverviewPage() {
   return (
     <div className="flex flex-col gap-6 md:gap-8" style={{ position: "relative" }}>
 
-      {/* ── Animated background ────────────────────────────────────── */}
-      <div style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 0, overflow: "hidden" }}>
-        <FloatingOrb x="0%"  y="5%"  size={360} color="rgba(181,242,61,0.14)"  delay={0}   />
-        <FloatingOrb x="65%" y="2%"  size={260} color="rgba(181,242,61,0.10)"  delay={2.5} />
-        <FloatingOrb x="55%" y="55%" size={300} color="rgba(139,196,42,0.08)"  delay={4}   />
-        <FloatingOrb x="10%" y="65%" size={220} color="rgba(181,242,61,0.07)"  delay={1.5} />
-        <FloatingOrb x="80%" y="75%" size={180} color="rgba(139,196,42,0.08)"  delay={3}   />
-      </div>
-
-      <div style={{ position: "relative", zIndex: 1, display: "flex", flexDirection: "column", gap: 24 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
 
         {/* ── Header ─────────────────────────────────────────────── */}
         <motion.div
@@ -455,24 +421,19 @@ export default function OverviewPage() {
             return (
               <motion.div
                 key={stat.id} custom={i} initial="hidden" animate="visible" variants={fadeUp}
-                whileHover={{ y: -3, transition: { type: "spring", stiffness: 400, damping: 20 } }}
                 className="relative overflow-hidden rounded-xl"
                 style={{
                   padding: "16px", cursor: "default",
                   background: cardBg,
-                  backdropFilter: "blur(12px)",
-                  WebkitBackdropFilter: "blur(12px)",
                   border: `1px solid ${cardBorder}`,
                   boxShadow: cardShadow,
                 }}
               >
-                {/* Top shimmer accent */}
-                <div className="absolute top-0 left-0 right-0 h-[2px]"
-                  style={{ background: `linear-gradient(90deg, transparent 0%, ${stat.color}60 50%, transparent 100%)` }} />
-                {/* Bg radial glow */}
+                {/* Left accent rule — flat Bauhaus style */}
                 <div style={{
-                  position: "absolute", inset: 0, borderRadius: 12, pointerEvents: "none",
-                  background: `radial-gradient(ellipse at top left, ${stat.color}0a 0%, transparent 55%)`,
+                  position: "absolute", top: 12, bottom: 12, left: 0,
+                  width: 2, borderRadius: "0 2px 2px 0",
+                  background: stat.color, opacity: 0.55,
                 }} />
 
                 <div className="flex items-start justify-between mb-3" style={{ position: "relative" }}>
@@ -517,8 +478,6 @@ export default function OverviewPage() {
             style={{
               padding: "18px 20px",
               background: cardBg,
-              backdropFilter: "blur(12px)",
-              WebkitBackdropFilter: "blur(12px)",
               border: `1px solid ${cardBorder}`,
               boxShadow: cardShadow,
             }}

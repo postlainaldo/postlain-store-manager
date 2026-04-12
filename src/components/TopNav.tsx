@@ -52,10 +52,9 @@ export default function TopNav() {
       >
         <div style={{
           width: 30, height: 30, borderRadius: 8,
-          border: "1.5px solid rgba(181,242,61,0.50)",
-          background: "linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%)",
+          border: "1.5px solid rgba(181,242,61,0.35)",
+          background: "var(--bg-card)",
           display: "flex", alignItems: "center", justifyContent: "center",
-          boxShadow: "0 2px 10px rgba(0,0,0,0.40), 0 0 12px rgba(181,242,61,0.08)",
         }}>
           <span style={{ fontSize: 12, fontWeight: 800, color: "#b5f23d", letterSpacing: "0.06em" }}>P</span>
         </div>
@@ -101,27 +100,25 @@ export default function TopNav() {
               <div style={{
                 display: "flex", alignItems: "center", gap: 7,
                 padding: "4px 10px 4px 6px", borderRadius: 20,
-                background: "rgba(181,242,61,0.06)",
-                border: "1px solid rgba(181,242,61,0.20)",
+                background: "var(--lime-subtle)",
+                border: "1px solid var(--lime-border)",
                 cursor: "pointer",
-                transition: "background 0.18s, box-shadow 0.18s",
+                transition: "background 0.14s",
               }}
               onMouseEnter={e => {
                 (e.currentTarget as HTMLDivElement).style.background = "rgba(181,242,61,0.12)";
-                (e.currentTarget as HTMLDivElement).style.boxShadow = "0 0 14px rgba(181,242,61,0.16)";
               }}
               onMouseLeave={e => {
-                (e.currentTarget as HTMLDivElement).style.background = "rgba(181,242,61,0.06)";
-                (e.currentTarget as HTMLDivElement).style.boxShadow = "none";
+                (e.currentTarget as HTMLDivElement).style.background = "var(--lime-subtle)";
               }}
               >
                 {/* Avatar */}
                 <div style={{ position: "relative", flexShrink: 0 }}>
                   <div style={{
                     width: 24, height: 24, borderRadius: "50%",
-                    background: t.avatarGradient,
+                    background: "var(--bg-elevated)",
                     display: "flex", alignItems: "center", justifyContent: "center",
-                    border: "1.5px solid rgba(181,242,61,0.40)",
+                    border: "1.5px solid var(--border)",
                   }}>
                     <span style={{ fontSize: 9, fontWeight: 700, color: t.avatarText }}>
                       {currentUser.name.slice(0, 1).toUpperCase()}
@@ -172,12 +169,11 @@ export default function TopNav() {
             <div style={{
               display: "flex", alignItems: "center", gap: 6,
               padding: "6px 14px", borderRadius: 8,
-              background: "linear-gradient(135deg, #0a0a0a, #1a1a1a)",
+              background: "#b5f23d",
               cursor: "pointer",
-              boxShadow: "0 2px 12px rgba(0,0,0,0.50)",
             }}>
-              <LogIn size={11} style={{ color: "#fff" }} />
-              <span style={{ fontSize: 9, fontWeight: 700, color: "#fff", letterSpacing: "0.12em" }}>ĐĂNG NHẬP</span>
+              <LogIn size={11} style={{ color: "#050505" }} />
+              <span style={{ fontSize: 9, fontWeight: 700, color: "#050505", letterSpacing: "0.12em" }}>ĐĂNG NHẬP</span>
             </div>
           </Link>
         )}
