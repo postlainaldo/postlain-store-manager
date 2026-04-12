@@ -50,7 +50,7 @@ function GridLines() {
       >
         <defs>
           <pattern id="grid" width="60" height="60" patternUnits="userSpaceOnUse">
-            <path d="M 60 0 L 0 0 0 60" fill="none" stroke="rgba(14,165,233,0.5)" strokeWidth="0.5" />
+            <path d="M 60 0 L 0 0 0 60" fill="none" stroke="rgba(181,242,61,0.25)" strokeWidth="0.5" />
           </pattern>
           <radialGradient id="gridFade" cx="50%" cy="50%" r="50%">
             <stop offset="0%" stopColor="white" stopOpacity="1" />
@@ -71,13 +71,13 @@ function GridLines() {
 function AuroraBackground() {
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 0, overflow: "hidden", pointerEvents: "none" }}>
-      {/* Base — very dark deep navy */}
+      {/* Base — true black */}
       <div style={{
         position: "absolute", inset: 0,
-        background: "linear-gradient(160deg, #040d1a 0%, #060d1e 40%, #050912 100%)",
+        background: "linear-gradient(160deg, #050505 0%, #080d05 40%, #050505 100%)",
       }} />
 
-      {/* Orb 1 — primary blue nebula */}
+      {/* Orb 1 — lime nebula top-left */}
       <motion.div
         animate={{ x: [0, 55, 20, 70, 0], y: [0, 35, 75, 15, 0], scale: [1, 1.12, 0.95, 1.08, 1] }}
         transition={{ duration: 28, repeat: Infinity, ease: "easeInOut" }}
@@ -86,12 +86,12 @@ function AuroraBackground() {
           width: 800, height: 800,
           borderRadius: "50%",
           top: -280, left: -200,
-          background: "radial-gradient(circle at 40% 40%, rgba(14,165,233,0.18) 0%, rgba(56,189,248,0.10) 40%, transparent 70%)",
+          background: "radial-gradient(circle at 40% 40%, rgba(181,242,61,0.12) 0%, rgba(139,196,42,0.06) 40%, transparent 70%)",
           filter: "blur(60px)",
         }}
       />
 
-      {/* Orb 2 — violet accent */}
+      {/* Orb 2 — dark lime accent bottom-right */}
       <motion.div
         animate={{ x: [0, -45, -70, -20, 0], y: [0, -50, -20, -65, 0], scale: [1, 0.92, 1.15, 0.98, 1] }}
         transition={{ duration: 34, repeat: Infinity, ease: "easeInOut" }}
@@ -100,12 +100,12 @@ function AuroraBackground() {
           width: 650, height: 650,
           borderRadius: "50%",
           bottom: -200, right: -160,
-          background: "radial-gradient(circle at 60% 60%, rgba(139,92,246,0.20) 0%, rgba(167,139,250,0.10) 45%, transparent 70%)",
+          background: "radial-gradient(circle at 60% 60%, rgba(139,196,42,0.15) 0%, rgba(181,242,61,0.07) 45%, transparent 70%)",
           filter: "blur(70px)",
         }}
       />
 
-      {/* Orb 3 — gold shimmer center */}
+      {/* Orb 3 — lime shimmer center */}
       <motion.div
         animate={{ scale: [1, 1.25, 0.88, 1.10, 1], opacity: [0.5, 0.8, 0.45, 0.70, 0.5] }}
         transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
@@ -115,12 +115,12 @@ function AuroraBackground() {
           borderRadius: "50%",
           top: "38%", left: "52%",
           transform: "translate(-50%,-50%)",
-          background: "radial-gradient(circle, rgba(201,165,90,0.14) 0%, rgba(251,191,36,0.07) 55%, transparent 75%)",
+          background: "radial-gradient(circle, rgba(181,242,61,0.10) 0%, rgba(212,255,107,0.05) 55%, transparent 75%)",
           filter: "blur(80px)",
         }}
       />
 
-      {/* Orb 4 — teal accent bottom-left */}
+      {/* Orb 4 — lime accent bottom-left */}
       <motion.div
         animate={{ x: [0, 40, 10, 50, 0], y: [0, -30, -55, -15, 0] }}
         transition={{ duration: 22, repeat: Infinity, ease: "easeInOut" }}
@@ -129,7 +129,7 @@ function AuroraBackground() {
           width: 420, height: 420,
           borderRadius: "50%",
           bottom: -100, left: -80,
-          background: "radial-gradient(circle, rgba(16,185,129,0.12) 0%, transparent 65%)",
+          background: "radial-gradient(circle, rgba(181,242,61,0.08) 0%, transparent 65%)",
           filter: "blur(65px)",
         }}
       />
@@ -144,26 +144,26 @@ function AuroraBackground() {
         style={{
           position: "absolute", left: 0, right: 0,
           height: 2,
-          background: "linear-gradient(90deg, transparent 0%, rgba(14,165,233,0.25) 30%, rgba(14,165,233,0.50) 50%, rgba(14,165,233,0.25) 70%, transparent 100%)",
+          background: "linear-gradient(90deg, transparent 0%, rgba(181,242,61,0.20) 30%, rgba(181,242,61,0.40) 50%, rgba(181,242,61,0.20) 70%, transparent 100%)",
           filter: "blur(1px)",
-          boxShadow: "0 0 12px rgba(14,165,233,0.30)",
+          boxShadow: "0 0 12px rgba(181,242,61,0.20)",
         }}
       />
 
       {/* Floating particles */}
       {[
-        { x: 80,  y: 520, size: 3, color: "rgba(14,165,233,0.55)",  delay: 0,   dur: 7  },
-        { x: 180, y: 450, size: 2, color: "rgba(139,92,246,0.55)",  delay: 1.2, dur: 9  },
-        { x: 320, y: 600, size: 4, color: "rgba(201,165,90,0.45)",  delay: 0.6, dur: 6  },
-        { x: 420, y: 480, size: 2, color: "rgba(16,185,129,0.50)",  delay: 2.1, dur: 8  },
-        { x: 60,  y: 350, size: 3, color: "rgba(56,189,248,0.50)",  delay: 3.5, dur: 7.5 },
-        { x: 290, y: 550, size: 2, color: "rgba(167,139,250,0.55)", delay: 1.8, dur: 10 },
-        { x: 480, y: 400, size: 3, color: "rgba(14,165,233,0.40)",  delay: 4.2, dur: 8.5 },
-        { x: 140, y: 620, size: 2, color: "rgba(201,165,90,0.50)",  delay: 0.9, dur: 9.5 },
-        { x: 380, y: 520, size: 4, color: "rgba(16,185,129,0.40)",  delay: 2.7, dur: 7.2 },
-        { x: 520, y: 560, size: 2, color: "rgba(139,92,246,0.45)",  delay: 5.1, dur: 8.8 },
-        { x: 220, y: 390, size: 3, color: "rgba(56,189,248,0.45)",  delay: 1.4, dur: 6.5 },
-        { x: 460, y: 300, size: 2, color: "rgba(251,191,36,0.40)",  delay: 3.0, dur: 9.2 },
+        { x: 80,  y: 520, size: 3, color: "rgba(181,242,61,0.50)",  delay: 0,   dur: 7  },
+        { x: 180, y: 450, size: 2, color: "rgba(139,196,42,0.45)",  delay: 1.2, dur: 9  },
+        { x: 320, y: 600, size: 4, color: "rgba(212,255,107,0.40)", delay: 0.6, dur: 6  },
+        { x: 420, y: 480, size: 2, color: "rgba(181,242,61,0.45)",  delay: 2.1, dur: 8  },
+        { x: 60,  y: 350, size: 3, color: "rgba(181,242,61,0.40)",  delay: 3.5, dur: 7.5 },
+        { x: 290, y: 550, size: 2, color: "rgba(139,196,42,0.50)",  delay: 1.8, dur: 10 },
+        { x: 480, y: 400, size: 3, color: "rgba(181,242,61,0.35)",  delay: 4.2, dur: 8.5 },
+        { x: 140, y: 620, size: 2, color: "rgba(212,255,107,0.45)", delay: 0.9, dur: 9.5 },
+        { x: 380, y: 520, size: 4, color: "rgba(181,242,61,0.35)",  delay: 2.7, dur: 7.2 },
+        { x: 520, y: 560, size: 2, color: "rgba(139,196,42,0.40)",  delay: 5.1, dur: 8.8 },
+        { x: 220, y: 390, size: 3, color: "rgba(181,242,61,0.40)",  delay: 1.4, dur: 6.5 },
+        { x: 460, y: 300, size: 2, color: "rgba(212,255,107,0.35)", delay: 3.0, dur: 9.2 },
       ].map((p, i) => (
         <Particle key={i} x={p.x} y={p.y} size={p.size} color={p.color} delay={p.delay} duration={p.dur} />
       ))}
@@ -266,7 +266,7 @@ function Field({
       backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)",
       border: `1px solid ${
         error ? "rgba(239,68,68,0.55)"
-        : focused ? "rgba(14,165,233,0.50)"
+        : focused ? "rgba(181,242,61,0.50)"
         : "rgba(255,255,255,0.08)"
       }`,
       borderRadius: 14, padding: "0 16px", height: 52,
@@ -274,7 +274,7 @@ function Field({
       boxShadow: error
         ? "0 0 0 3px rgba(239,68,68,0.10)"
         : focused
-          ? "0 0 0 3px rgba(14,165,233,0.10), 0 2px 12px rgba(14,165,233,0.08)"
+          ? "0 0 0 3px rgba(181,242,61,0.10), 0 2px 12px rgba(181,242,61,0.08)"
           : "none",
     }}>
       {/* Left accent line */}
@@ -283,13 +283,13 @@ function Field({
         style={{
           position: "absolute", left: 0, top: "50%", transform: "translateY(-50%)",
           width: 2.5, height: "55%", borderRadius: 2,
-          background: error ? "#ef4444" : "linear-gradient(180deg, #0ea5e9, #7c3aed)",
+          background: error ? "#ef4444" : "linear-gradient(180deg, #b5f23d, #8bc42a)",
         }}
       />
       <Icon
         size={14}
         style={{
-          color: error ? "#ef4444" : focused ? "#0ea5e9" : "rgba(255,255,255,0.30)",
+          color: error ? "#ef4444" : focused ? "#b5f23d" : "rgba(255,255,255,0.30)",
           flexShrink: 0,
           transition: "color 0.2s",
         }}
@@ -684,7 +684,7 @@ function LoginInner() {
             initial={{ opacity: 0 }}
             animate={{ opacity: [0, 0.7, 0] }}
             transition={{ duration: 0.6 }}
-            style={{ position: "fixed", inset: 0, background: "rgba(14,165,233,0.18)", zIndex: 200, pointerEvents: "none" }}
+            style={{ position: "fixed", inset: 0, background: "rgba(181,242,61,0.12)", zIndex: 200, pointerEvents: "none" }}
           />
         )}
       </AnimatePresence>
@@ -716,7 +716,7 @@ function LoginInner() {
               style={{
                 position: "absolute", inset: -6,
                 borderRadius: "50%",
-                background: "conic-gradient(from 0deg, transparent 0%, rgba(14,165,233,0.55) 25%, transparent 50%, rgba(139,92,246,0.45) 75%, transparent 100%)",
+                background: "conic-gradient(from 0deg, transparent 0%, rgba(181,242,61,0.55) 25%, transparent 50%, rgba(139,196,42,0.45) 75%, transparent 100%)",
                 filter: "blur(3px)",
               }}
             />
@@ -726,10 +726,10 @@ function LoginInner() {
               style={{
                 position: "relative",
                 width: 68, height: 68, borderRadius: 22,
-                background: "linear-gradient(135deg, #0a1628 0%, #0f2040 50%, #0a1628 100%)",
-                border: "1.5px solid rgba(14,165,233,0.28)",
+                background: "linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0a0a0a 100%)",
+                border: "1.5px solid rgba(181,242,61,0.30)",
                 display: "flex", alignItems: "center", justifyContent: "center",
-                boxShadow: "0 8px 40px rgba(14,165,233,0.18), inset 0 1px 0 rgba(255,255,255,0.06)",
+                boxShadow: "0 8px 40px rgba(181,242,61,0.12), inset 0 1px 0 rgba(255,255,255,0.06)",
                 overflow: "hidden",
               }}
             >
@@ -739,7 +739,7 @@ function LoginInner() {
                 transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut", repeatDelay: 2 }}
                 style={{
                   position: "absolute", inset: 0,
-                  background: "linear-gradient(90deg, transparent, rgba(14,165,233,0.15), transparent)",
+                  background: "linear-gradient(90deg, transparent, rgba(181,242,61,0.15), transparent)",
                   borderRadius: 22,
                   pointerEvents: "none",
                 }}
@@ -757,7 +757,7 @@ function LoginInner() {
                   <motion.span key="p"
                     initial={{ opacity: 1 }}
                     exit={{ opacity: 0, scale: 0.4, rotate: 90 }}
-                    style={{ fontSize: 28, fontWeight: 900, color: "#e0f2fe", letterSpacing: "-0.04em" }}
+                    style={{ fontSize: 28, fontWeight: 900, color: "#b5f23d", letterSpacing: "-0.04em" }}
                   >
                     P
                   </motion.span>
@@ -769,7 +769,7 @@ function LoginInner() {
           <motion.p
             animate={{ opacity: [0.6, 1, 0.6] }}
             transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-            style={{ fontSize: 13, fontWeight: 900, color: "#7dd3fc", letterSpacing: "0.42em" }}
+            style={{ fontSize: 13, fontWeight: 900, color: "#b5f23d", letterSpacing: "0.42em" }}
           >
             POSTLAIN
           </motion.p>
@@ -782,12 +782,12 @@ function LoginInner() {
             <div style={{ display: "flex", justifyContent: "center", marginTop: 12 }}>
               <div style={{
                 display: "flex", alignItems: "center", gap: 6,
-                background: "rgba(201,165,90,0.08)",
-                border: "1px solid rgba(201,165,90,0.22)",
+                background: "rgba(181,242,61,0.06)",
+                border: "1px solid rgba(181,242,61,0.22)",
                 borderRadius: 20, padding: "4px 12px 4px 8px",
               }}>
-                <Store size={9} style={{ color: "#c9a55a" }} />
-                <span style={{ fontSize: 9.5, color: "#c9a55a", fontWeight: 700, letterSpacing: "0.08em" }}>
+                <Store size={9} style={{ color: "#b5f23d" }} />
+                <span style={{ fontSize: 9.5, color: "#b5f23d", fontWeight: 700, letterSpacing: "0.08em" }}>
                   {storeName}
                 </span>
               </div>
@@ -813,12 +813,12 @@ function LoginInner() {
 
         {/* ── Main glass card ── */}
         <div style={{
-          background: "rgba(8,16,32,0.82)",
+          background: "rgba(11,11,11,0.90)",
           backdropFilter: "blur(32px) saturate(1.6)",
           WebkitBackdropFilter: "blur(32px) saturate(1.6)",
           borderRadius: 28,
           border: "1px solid rgba(255,255,255,0.06)",
-          boxShadow: "0 24px 80px rgba(0,0,0,0.55), 0 8px 32px rgba(14,165,233,0.06), inset 0 1px 0 rgba(255,255,255,0.05)",
+          boxShadow: "0 24px 80px rgba(0,0,0,0.70), 0 8px 32px rgba(181,242,61,0.06), inset 0 1px 0 rgba(255,255,255,0.05)",
           padding: "30px 26px 26px",
           position: "relative",
           overflow: "hidden",
@@ -826,14 +826,14 @@ function LoginInner() {
           {/* Topbar accent line */}
           <div style={{
             position: "absolute", top: 0, left: "10%", right: "10%", height: 1,
-            background: "linear-gradient(90deg, transparent, rgba(14,165,233,0.50), rgba(139,92,246,0.40), transparent)",
+            background: "linear-gradient(90deg, transparent, rgba(181,242,61,0.50), rgba(139,196,42,0.40), transparent)",
           }} />
 
           {/* Corner glint */}
           <div style={{
             position: "absolute", top: -30, right: -30,
             width: 120, height: 120, borderRadius: "50%",
-            background: "radial-gradient(circle, rgba(14,165,233,0.08) 0%, transparent 70%)",
+            background: "radial-gradient(circle, rgba(181,242,61,0.06) 0%, transparent 70%)",
             pointerEvents: "none",
           }} />
 
@@ -983,8 +983,8 @@ function LoginInner() {
               >
                 <div style={{
                   width: 16, height: 16, borderRadius: 5,
-                  border: `1.5px solid ${rememberMe ? "rgba(14,165,233,0.70)" : "rgba(255,255,255,0.15)"}`,
-                  background: rememberMe ? "rgba(14,165,233,0.18)" : "transparent",
+                  border: `1.5px solid ${rememberMe ? "rgba(181,242,61,0.70)" : "rgba(255,255,255,0.15)"}`,
+                  background: rememberMe ? "rgba(181,242,61,0.12)" : "transparent",
                   display: "flex", alignItems: "center", justifyContent: "center",
                   transition: "all 0.2s",
                   flexShrink: 0,
@@ -997,7 +997,7 @@ function LoginInner() {
                         exit={{ scale: 0, opacity: 0 }}
                         transition={{ type: "spring", stiffness: 480, damping: 20 }}
                       >
-                        <Check size={9} style={{ color: "#38bdf8" }} strokeWidth={3} />
+                        <Check size={9} style={{ color: "#b5f23d" }} strokeWidth={3} />
                       </motion.div>
                     )}
                   </AnimatePresence>
@@ -1031,8 +1031,8 @@ function LoginInner() {
                   ? "linear-gradient(135deg, #059669, #10b981)"
                   : locked
                     ? "rgba(255,255,255,0.04)"
-                    : "linear-gradient(135deg, #0284c7 0%, #0ea5e9 50%, #38bdf8 100%)",
-                color: locked ? "rgba(255,255,255,0.22)" : "#ffffff",
+                    : "linear-gradient(135deg, #8bc42a 0%, #b5f23d 50%, #d4ff6b 100%)",
+                color: locked ? "rgba(255,255,255,0.22)" : "#050505",
                 fontSize: 11, fontWeight: 800,
                 letterSpacing: "0.18em",
                 cursor: (loading || success || locked) ? "default" : "pointer",
@@ -1042,7 +1042,7 @@ function LoginInner() {
                   ? "0 4px 24px rgba(16,185,129,0.35)"
                   : locked
                     ? "none"
-                    : "0 4px 24px rgba(14,165,233,0.28), inset 0 1px 0 rgba(255,255,255,0.20)",
+                    : "0 4px 24px rgba(181,242,61,0.28), inset 0 1px 0 rgba(255,255,255,0.20)",
                 transition: "background 0.35s, box-shadow 0.35s, color 0.25s",
                 overflow: "hidden",
               }}

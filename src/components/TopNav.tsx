@@ -52,12 +52,12 @@ export default function TopNav() {
       >
         <div style={{
           width: 30, height: 30, borderRadius: 8,
-          border: "1.5px solid rgba(201,165,90,0.45)",
-          background: "linear-gradient(135deg, #0c1a2e 0%, #1e3a5f 100%)",
+          border: "1.5px solid rgba(181,242,61,0.50)",
+          background: "linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%)",
           display: "flex", alignItems: "center", justifyContent: "center",
-          boxShadow: "0 2px 10px rgba(12,26,46,0.22)",
+          boxShadow: "0 2px 10px rgba(0,0,0,0.40), 0 0 12px rgba(181,242,61,0.08)",
         }}>
-          <span style={{ fontSize: 12, fontWeight: 800, color: "#C9A55A", letterSpacing: "0.06em" }}>P</span>
+          <span style={{ fontSize: 12, fontWeight: 800, color: "#b5f23d", letterSpacing: "0.06em" }}>P</span>
         </div>
         <div style={{ lineHeight: 1 }}>
           <p style={{ fontSize: 15, fontWeight: 900, color: t.textPrimary, letterSpacing: "0.14em" }}>POSTLAIN</p>
@@ -101,17 +101,17 @@ export default function TopNav() {
               <div style={{
                 display: "flex", alignItems: "center", gap: 7,
                 padding: "4px 10px 4px 6px", borderRadius: 20,
-                background: "rgba(201,165,90,0.07)",
-                border: "1px solid rgba(201,165,90,0.22)",
+                background: "rgba(181,242,61,0.06)",
+                border: "1px solid rgba(181,242,61,0.20)",
                 cursor: "pointer",
                 transition: "background 0.18s, box-shadow 0.18s",
               }}
               onMouseEnter={e => {
-                (e.currentTarget as HTMLDivElement).style.background = "rgba(201,165,90,0.13)";
-                (e.currentTarget as HTMLDivElement).style.boxShadow = "0 0 14px rgba(201,165,90,0.16)";
+                (e.currentTarget as HTMLDivElement).style.background = "rgba(181,242,61,0.12)";
+                (e.currentTarget as HTMLDivElement).style.boxShadow = "0 0 14px rgba(181,242,61,0.16)";
               }}
               onMouseLeave={e => {
-                (e.currentTarget as HTMLDivElement).style.background = "rgba(201,165,90,0.07)";
+                (e.currentTarget as HTMLDivElement).style.background = "rgba(181,242,61,0.06)";
                 (e.currentTarget as HTMLDivElement).style.boxShadow = "none";
               }}
               >
@@ -121,7 +121,7 @@ export default function TopNav() {
                     width: 24, height: 24, borderRadius: "50%",
                     background: t.avatarGradient,
                     display: "flex", alignItems: "center", justifyContent: "center",
-                    border: "1.5px solid rgba(201,165,90,0.45)",
+                    border: "1.5px solid rgba(181,242,61,0.40)",
                   }}>
                     <span style={{ fontSize: 9, fontWeight: 700, color: t.avatarText }}>
                       {currentUser.name.slice(0, 1).toUpperCase()}
@@ -136,7 +136,7 @@ export default function TopNav() {
                 </div>
                 <div style={{ lineHeight: 1 }}>
                   <p style={{ fontSize: 10, fontWeight: 600, color: t.textPrimary }}>{currentUser.name}</p>
-                  <p style={{ fontSize: 7.5, color: "rgba(201,165,90,0.80)", marginTop: 1.5, letterSpacing: "0.08em" }}>
+                  <p style={{ fontSize: 7.5, color: "rgba(181,242,61,0.80)", marginTop: 1.5, letterSpacing: "0.08em" }}>
                     {currentUser.role === "admin" ? "ADMIN" : currentUser.role === "manager" ? "QUẢN LÝ" : "NHÂN VIÊN"}
                   </p>
                 </div>
@@ -172,9 +172,9 @@ export default function TopNav() {
             <div style={{
               display: "flex", alignItems: "center", gap: 6,
               padding: "6px 14px", borderRadius: 8,
-              background: "linear-gradient(135deg, #0c1a2e, #1e3a5f)",
+              background: "linear-gradient(135deg, #0a0a0a, #1a1a1a)",
               cursor: "pointer",
-              boxShadow: "0 2px 12px rgba(12,26,46,0.30)",
+              boxShadow: "0 2px 12px rgba(0,0,0,0.50)",
             }}>
               <LogIn size={11} style={{ color: "#fff" }} />
               <span style={{ fontSize: 9, fontWeight: 700, color: "#fff", letterSpacing: "0.12em" }}>ĐĂNG NHẬP</span>

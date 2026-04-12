@@ -142,7 +142,7 @@ export default function BottomNav() {
             onClick={() => setOpen(false)}
             style={{
               position: "fixed", inset: 0,
-              background: "rgba(2,6,23,0.65)",
+              background: "rgba(0,0,0,0.75)",
               backdropFilter: isMobile ? "none" : "blur(8px)",
               WebkitBackdropFilter: isMobile ? "none" : "blur(8px)",
               zIndex: 49,
@@ -235,15 +235,15 @@ export default function BottomNav() {
                     top: -4, left: "50%", transform: "translateX(-50%)",
                     width: 62, height: 62,
                     borderRadius: "50%",
-                    background: "linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(201,165,90,0.08) 40%, rgba(14,165,233,0.06) 60%, rgba(255,255,255,0.03) 100%)",
+                    background: "linear-gradient(135deg, rgba(255,255,255,0.03) 0%, rgba(181,242,61,0.07) 40%, rgba(139,196,42,0.05) 60%, rgba(255,255,255,0.02) 100%)",
                     backgroundSize: "300% 100%",
-                    border: `1px solid ${active ? "rgba(201,165,90,0.22)" : "rgba(255,255,255,0.06)"}`,
+                    border: `1px solid ${active ? "rgba(181,242,61,0.25)" : "rgba(255,255,255,0.06)"}`,
                     backdropFilter: isMobile ? "none" : "blur(12px)",
                     WebkitBackdropFilter: isMobile ? "none" : "blur(12px)",
                     pointerEvents: "none",
                     zIndex: 0,
                     boxShadow: isFlash
-                      ? `0 0 0 8px rgba(201,165,90,0.25), 0 0 24px rgba(201,165,90,0.40)`
+                      ? `0 0 0 8px rgba(181,242,61,0.22), 0 0 24px rgba(181,242,61,0.40)`
                       : "none",
                   }}
                 />
@@ -256,19 +256,19 @@ export default function BottomNav() {
                     position: "relative", zIndex: 1,
                     width: 54, height: 54,
                     borderRadius: "50%",
-                    border: `1.5px solid ${active ? "rgba(201,165,90,0.70)" : isFlash ? "rgba(201,165,90,0.70)" : "rgba(255,255,255,0.16)"}`,
+                    border: `1.5px solid ${active ? "rgba(181,242,61,0.70)" : isFlash ? "rgba(181,242,61,0.70)" : "rgba(255,255,255,0.10)"}`,
                     background: active
-                      ? "linear-gradient(135deg, #132238 0%, #1e3a5f 100%)"
+                      ? "linear-gradient(135deg, #1a1a1a 0%, #111111 100%)"
                       : isFlash
-                        ? "linear-gradient(135deg, #1e3a5f 0%, #0c1a2e 100%)"
-                        : "rgba(10,15,30,0.88)",
+                        ? "linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%)"
+                        : "rgba(10,10,10,0.92)",
                     backdropFilter: isMobile ? "none" : "blur(20px)",
                     WebkitBackdropFilter: isMobile ? "none" : "blur(20px)",
                     boxShadow: active
-                      ? "0 0 0 3px rgba(201,165,90,0.22), 0 8px 24px rgba(0,0,0,0.50)"
+                      ? "0 0 0 3px rgba(181,242,61,0.20), 0 8px 24px rgba(0,0,0,0.70)"
                       : isFlash
-                        ? "0 0 0 4px rgba(201,165,90,0.30), 0 0 20px rgba(201,165,90,0.50)"
-                        : "0 4px 18px rgba(0,0,0,0.40), inset 0 1px 0 rgba(255,255,255,0.08)",
+                        ? "0 0 0 4px rgba(181,242,61,0.28), 0 0 20px rgba(181,242,61,0.45)"
+                        : "0 4px 18px rgba(0,0,0,0.60), inset 0 1px 0 rgba(255,255,255,0.06)",
                     cursor: "pointer",
                     display: "flex", alignItems: "center", justifyContent: "center",
                     padding: 0, flexShrink: 0,
@@ -279,12 +279,12 @@ export default function BottomNav() {
                     <div style={{
                       width: 26, height: 26, borderRadius: "50%",
                       background: active || isFlash
-                        ? "linear-gradient(135deg, #C9A55A, #E2C07A)"
-                        : "linear-gradient(135deg, #1e3a5f, #2d4a7a)",
+                        ? "#b5f23d"
+                        : "linear-gradient(135deg, #1a1a1a, #111111)",
                       display: "flex", alignItems: "center", justifyContent: "center",
-                      border: `1.5px solid ${active || isFlash ? "rgba(201,165,90,0.65)" : "rgba(255,255,255,0.18)"}`,
+                      border: `1.5px solid ${active || isFlash ? "rgba(181,242,61,0.80)" : "rgba(255,255,255,0.14)"}`,
                     }}>
-                      <span style={{ fontSize: 11, fontWeight: 800, color: active || isFlash ? "#0c1a2e" : "#C9A55A" }}>
+                      <span style={{ fontSize: 11, fontWeight: 800, color: active || isFlash ? "#050505" : "#b5f23d" }}>
                         {currentUser.name.slice(0, 1).toUpperCase()}
                       </span>
                     </div>
@@ -293,7 +293,7 @@ export default function BottomNav() {
                       size={20}
                       strokeWidth={active || isFlash ? 2.2 : 1.6}
                       style={{
-                        color: active || isFlash ? "#C9A55A" : "rgba(255,255,255,0.75)",
+                        color: active || isFlash ? "#b5f23d" : "rgba(255,255,255,0.65)",
                         transition: "color 0.15s",
                       }}
                     />
@@ -305,15 +305,15 @@ export default function BottomNav() {
                   position: "relative", zIndex: 1,
                   padding: "2px 7px",
                   borderRadius: 10,
-                  background: "rgba(5,10,22,0.75)",
-                  border: `1px solid ${active ? "rgba(201,165,90,0.30)" : "rgba(255,255,255,0.08)"}`,
+                  background: "rgba(0,0,0,0.85)",
+                  border: `1px solid ${active ? "rgba(181,242,61,0.30)" : "rgba(255,255,255,0.07)"}`,
                   backdropFilter: isMobile ? "none" : "blur(8px)",
                   WebkitBackdropFilter: isMobile ? "none" : "blur(8px)",
                 }}>
                   <span style={{
                     fontSize: 8.5,
                     fontWeight: 700,
-                    color: active ? "#C9A55A" : "rgba(255,255,255,0.80)",
+                    color: active ? "#b5f23d" : "rgba(255,255,255,0.75)",
                     whiteSpace: "nowrap",
                     letterSpacing: "0.04em",
                     textShadow: "0 1px 3px rgba(0,0,0,0.95)",
@@ -361,8 +361,8 @@ export default function BottomNav() {
             position: "absolute", inset: -8,
             borderRadius: "50%",
             background: open
-              ? "radial-gradient(circle, rgba(201,165,90,0.22) 0%, rgba(59,130,246,0.12) 60%, transparent 75%)"
-              : "radial-gradient(circle, rgba(201,165,90,0.14) 0%, rgba(59,130,246,0.06) 60%, transparent 75%)",
+              ? "radial-gradient(circle, rgba(181,242,61,0.28) 0%, rgba(139,196,42,0.12) 60%, transparent 75%)"
+              : "radial-gradient(circle, rgba(181,242,61,0.18) 0%, rgba(139,196,42,0.06) 60%, transparent 75%)",
             transition: "background 0.35s",
             pointerEvents: "none",
           }} />
@@ -376,8 +376,8 @@ export default function BottomNav() {
                 position: "absolute", inset: -4,
                 borderRadius: "50%",
                 background: open
-                  ? "conic-gradient(from 0deg, transparent 0%, rgba(201,165,90,0.55) 20%, rgba(59,130,246,0.35) 40%, transparent 55%, rgba(201,165,90,0.40) 75%, transparent 100%)"
-                  : "conic-gradient(from 0deg, transparent 0%, rgba(201,165,90,0.40) 25%, transparent 50%, rgba(59,130,246,0.25) 75%, transparent 100%)",
+                  ? "conic-gradient(from 0deg, transparent 0%, rgba(181,242,61,0.65) 20%, rgba(139,196,42,0.40) 40%, transparent 55%, rgba(181,242,61,0.50) 75%, transparent 100%)"
+                  : "conic-gradient(from 0deg, transparent 0%, rgba(181,242,61,0.45) 25%, transparent 50%, rgba(139,196,42,0.28) 75%, transparent 100%)",
                 filter: "blur(1.5px)",
                 opacity: open ? 1 : 0.65,
                 transition: "opacity 0.3s, background 0.3s",
@@ -393,7 +393,7 @@ export default function BottomNav() {
             style={{
               position: "absolute", inset: -9,
               borderRadius: "50%",
-              border: "1.5px solid rgba(201,165,90,0.40)",
+              border: "1.5px solid rgba(181,242,61,0.40)",
               pointerEvents: "none",
             }}
           />
@@ -403,7 +403,7 @@ export default function BottomNav() {
             style={{
               position: "absolute", inset: -9,
               borderRadius: "50%",
-              border: "1px solid rgba(59,130,246,0.28)",
+              border: "1px solid rgba(181,242,61,0.22)",
               pointerEvents: "none",
             }}
           />
@@ -413,12 +413,12 @@ export default function BottomNav() {
             width: "100%", height: "100%",
             borderRadius: "50%",
             background: open
-              ? "linear-gradient(135deg, #1a3050 0%, #0d1e38 50%, #0c1a2e 100%)"
-              : "linear-gradient(145deg, #122040 0%, #0c1a2e 45%, #071020 100%)",
-            border: "1.5px solid rgba(201,165,90,0.65)",
+              ? "linear-gradient(135deg, #1a1a1a 0%, #0f0f0f 50%, #050505 100%)"
+              : "linear-gradient(145deg, #151515 0%, #0a0a0a 45%, #050505 100%)",
+            border: "1.5px solid rgba(181,242,61,0.70)",
             boxShadow: open
-              ? "0 0 0 3px rgba(201,165,90,0.22), 0 0 30px rgba(201,165,90,0.35), 0 10px 40px rgba(0,0,0,0.60), inset 0 1px 0 rgba(201,165,90,0.28)"
-              : "0 0 0 2px rgba(201,165,90,0.15), 0 0 18px rgba(201,165,90,0.22), 0 8px 28px rgba(0,0,0,0.55), inset 0 1px 0 rgba(201,165,90,0.20)",
+              ? "0 0 0 3px rgba(181,242,61,0.20), 0 0 30px rgba(181,242,61,0.35), 0 10px 40px rgba(0,0,0,0.85), inset 0 1px 0 rgba(181,242,61,0.20)"
+              : "0 0 0 2px rgba(181,242,61,0.12), 0 0 18px rgba(181,242,61,0.25), 0 8px 28px rgba(0,0,0,0.80), inset 0 1px 0 rgba(181,242,61,0.15)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -435,7 +435,7 @@ export default function BottomNav() {
                   position: "absolute",
                   top: "-10%", bottom: "-10%", left: 0,
                   width: "45%",
-                  background: "linear-gradient(90deg, transparent, rgba(201,165,90,0.22), rgba(255,255,255,0.08), transparent)",
+                  background: "linear-gradient(90deg, transparent, rgba(181,242,61,0.18), rgba(255,255,255,0.06), transparent)",
                   pointerEvents: "none",
                   transform: "skewX(-15deg)",
                 }}
@@ -455,8 +455,8 @@ export default function BottomNav() {
                 >
                   <div style={{ position: "relative", width: 18, height: 18 }}>
                     <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <div style={{ width: 18, height: 2, background: "rgba(201,165,90,0.95)", borderRadius: 2, transform: "rotate(45deg)", position: "absolute", boxShadow: "0 0 6px rgba(201,165,90,0.6)" }} />
-                      <div style={{ width: 18, height: 2, background: "rgba(201,165,90,0.95)", borderRadius: 2, transform: "rotate(-45deg)", position: "absolute", boxShadow: "0 0 6px rgba(201,165,90,0.6)" }} />
+                      <div style={{ width: 18, height: 2, background: "rgba(181,242,61,0.95)", borderRadius: 2, transform: "rotate(45deg)", position: "absolute", boxShadow: "0 0 6px rgba(181,242,61,0.6)" }} />
+                      <div style={{ width: 18, height: 2, background: "rgba(181,242,61,0.95)", borderRadius: 2, transform: "rotate(-45deg)", position: "absolute", boxShadow: "0 0 6px rgba(181,242,61,0.6)" }} />
                     </div>
                   </div>
                 </motion.div>
@@ -472,9 +472,9 @@ export default function BottomNav() {
                   {isProfile && currentUser ? (
                     <div style={{
                       width: 26, height: 26, borderRadius: "50%",
-                      background: "linear-gradient(135deg, #C9A55A, #E2C07A)",
+                      background: "linear-gradient(135deg, #b5f23d, #8bc42a)",
                       display: "flex", alignItems: "center", justifyContent: "center",
-                      boxShadow: "0 0 10px rgba(201,165,90,0.55)",
+                      boxShadow: "0 0 10px rgba(181,242,61,0.55)",
                     }}>
                       <span style={{ fontSize: 11, fontWeight: 800, color: "var(--text-primary)" }}>
                         {currentUser.name.slice(0, 1).toUpperCase()}
@@ -484,7 +484,7 @@ export default function BottomNav() {
                     <ActiveIcon
                       size={22}
                       strokeWidth={2}
-                      style={{ color: "#C9A55A", filter: "drop-shadow(0 0 8px rgba(201,165,90,0.70))" }}
+                      style={{ color: "#b5f23d", filter: "drop-shadow(0 0 8px rgba(181,242,61,0.70))" }}
                     />
                   )}
                 </motion.div>
@@ -500,9 +500,9 @@ export default function BottomNav() {
               style={{
                 position: "absolute", bottom: -2, left: "50%", transform: "translateX(-50%)",
                 width: 6, height: 6, borderRadius: "50%",
-                background: "linear-gradient(135deg, #C9A55A, #E2C07A)",
-                boxShadow: "0 0 8px rgba(201,165,90,0.80)",
-                border: "1.5px solid rgba(7,16,32,0.9)",
+                background: "linear-gradient(135deg, #b5f23d, #8bc42a)",
+                boxShadow: "0 0 8px rgba(181,242,61,0.80)",
+                border: "1.5px solid rgba(0,0,0,0.9)",
               }}
             />
           )}
