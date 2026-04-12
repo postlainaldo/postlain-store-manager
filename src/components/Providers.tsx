@@ -32,7 +32,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     document.documentElement.setAttribute("data-theme", theme);
     document.documentElement.style.colorScheme = theme;
     const metaTheme = document.querySelector('meta[name="theme-color"]');
-    if (metaTheme) metaTheme.setAttribute("content", theme === "light" ? "#f2f2f7" : "#0c1a2e");
+    if (metaTheme) metaTheme.setAttribute("content", theme === "light" ? "#f2f2f7" : "#050505");
   }, [theme]);
   // "justUpdated" = true khi vừa reload sau auto-update → hiện toast "Đã cập nhật"
   const [justUpdated, setJustUpdated] = useState(false);
@@ -192,7 +192,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
               left: "50%", transform: "translateX(-50%)",
               zIndex: 9999,
               width: "min(320px, calc(100vw - 32px))",
-              background: "linear-gradient(135deg, #0c1a2e, #0f2540)",
+              background: "linear-gradient(135deg, #050505, #0f2540)",
               border: "1px solid rgba(16,185,129,0.40)",
               borderRadius: 16,
               padding: "12px 16px",

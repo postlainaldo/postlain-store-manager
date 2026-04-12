@@ -146,7 +146,7 @@ export default function GlobalSearch() {
   const iconFor = (type: Result["type"]) => {
     if (type === "product")      return <Package size={12} style={{ color: "#0ea5e9" }} />;
     if (type === "user")         return <Users size={12} style={{ color: "#16a34a" }} />;
-    if (type === "notification") return <Bell size={12} style={{ color: "#C9A55A" }} />;
+    if (type === "notification") return <Bell size={12} style={{ color: "#b5f23d" }} />;
     return <Hash size={12} style={{ color: "#94a3b8" }} />;
   };
 

@@ -88,7 +88,7 @@ function SearchScanner({ onResult, onClose }: { onResult: (code: string) => void
       onClick={e => { if (e.target === e.currentTarget) { stop(); onClose(); } }}
     >
       <motion.div initial={{ y: 60, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 60, opacity: 0 }}
-        style={{ width: "100%", maxWidth: 480, background: "#0c1a2e", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: "20px 20px 36px", display: "flex", flexDirection: "column", gap: 12 }}
+        style={{ width: "100%", maxWidth: 480, background: "#050505", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: "20px 20px 36px", display: "flex", flexDirection: "column", gap: 12 }}
       >
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div>
@@ -105,9 +105,9 @@ function SearchScanner({ onResult, onClose }: { onResult: (code: string) => void
           <video ref={videoRef} muted playsInline style={{ width: "100%", height: "100%", objectFit: "cover" }} />
           {scanning && (
             <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}>
-              <div style={{ width: "65%", aspectRatio: "2/1", border: "2px solid rgba(201,165,90,0.85)", borderRadius: 10, boxShadow: "0 0 0 1000px rgba(0,0,0,0.35)" }}>
+              <div style={{ width: "65%", aspectRatio: "2/1", border: "2px solid rgba(181,242,61,0.85)", borderRadius: 10, boxShadow: "0 0 0 1000px rgba(0,0,0,0.35)" }}>
                 <motion.div animate={{ top: ["4px","calc(100% - 4px)","4px"] }} transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
-                  style={{ position: "absolute", left: 4, right: 4, height: 2, background: "linear-gradient(90deg,transparent,rgba(14,165,233,0.9),transparent)", borderRadius: 2 }} />
+                  style={{ position: "absolute", left: 4, right: 4, height: 2, background: "linear-gradient(90deg,transparent,rgba(181,242,61,0.9),transparent)", borderRadius: 2 }} />
               </div>
             </div>
           )}
@@ -126,7 +126,7 @@ function SearchScanner({ onResult, onClose }: { onResult: (code: string) => void
         {scanning && (
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
             <motion.div animate={{ opacity: [1, 0.3, 1] }} transition={{ duration: 1.2, repeat: Infinity }}
-              style={{ width: 6, height: 6, borderRadius: "50%", background: "#C9A55A" }} />
+              style={{ width: 6, height: 6, borderRadius: "50%", background: "#b5f23d" }} />
             <span style={{ fontSize: 10, color: "#94a3b8" }}>Đang quét...</span>
           </div>
         )}
@@ -155,8 +155,8 @@ function navigateToBoard(
 // ─── Qty pill ────────────────────────────────────────────────────────────────
 
 function QtyPill({ qty }: { qty: number }) {
-  const color = qty === 0 ? "#dc2626" : qty <= 3 ? "#ea580c" : qty <= 5 ? "#C9A55A" : "#16a34a";
-  const bg    = qty === 0 ? "rgba(220,38,38,0.08)" : qty <= 3 ? "rgba(234,88,12,0.08)" : qty <= 5 ? "rgba(201,165,90,0.1)" : "rgba(22,163,74,0.07)";
+  const color = qty === 0 ? "#dc2626" : qty <= 3 ? "#ea580c" : qty <= 5 ? "#f59e0b" : "#16a34a";
+  const bg    = qty === 0 ? "rgba(220,38,38,0.08)" : qty <= 3 ? "rgba(234,88,12,0.08)" : qty <= 5 ? "rgba(245,158,11,0.10)" : "rgba(22,163,74,0.07)";
   return (
     <div style={{
       display: "inline-flex", alignItems: "center", justifyContent: "center",
@@ -505,10 +505,10 @@ function ListView() {
                     padding: "4px 12px", borderRadius: 20, fontSize: 11, cursor: "pointer",
                     fontFamily: "inherit", fontWeight: filterStock === v ? 700 : 500,
                     background: filterStock === v
-                      ? v === "out" ? "rgba(220,38,38,0.10)" : v === "low" ? "rgba(201,165,90,0.10)" : "rgba(14,165,233,0.10)"
+                      ? v === "out" ? "rgba(220,38,38,0.10)" : v === "low" ? "rgba(245,158,11,0.10)" : "rgba(14,165,233,0.10)"
                       : "rgba(255,255,255,0.6)",
                     border: `1px solid ${filterStock === v
-                      ? v === "out" ? "rgba(220,38,38,0.35)" : v === "low" ? "rgba(201,165,90,0.35)" : "rgba(14,165,233,0.35)"
+                      ? v === "out" ? "rgba(220,38,38,0.35)" : v === "low" ? "rgba(245,158,11,0.35)" : "rgba(14,165,233,0.35)"
                       : "var(--border)"}`,
                     color: filterStock === v
                       ? v === "out" ? "#dc2626" : v === "low" ? "#b45309" : "var(--blue)"
@@ -844,11 +844,11 @@ function ListView() {
                       style={{
                         width: 26, height: 26, borderRadius: 8,
                         display: "flex", alignItems: "center", justifyContent: "center",
-                        border: "1px solid rgba(201,165,90,0.4)",
-                        background: "rgba(201,165,90,0.08)",
+                        border: "1px solid rgba(181,242,61,0.35)",
+                        background: "rgba(181,242,61,0.06)",
                         cursor: "pointer",
                       }}>
-                      <Eye size={10} style={{ color: "#C9A55A" }} />
+                      <Eye size={10} style={{ color: "#b5f23d" }} />
                     </button>
                   )}
                   {inWh && (
@@ -954,8 +954,8 @@ function ListView() {
                   <div style={{
                     minWidth: 44, height: 44, borderRadius: 12, padding: "0 8px",
                     display: "flex", alignItems: "center", justifyContent: "center",
-                    background: isOut ? "rgba(220,38,38,0.08)" : isLow ? "rgba(234,88,12,0.08)" : p.quantity <= 5 ? "rgba(201,165,90,0.10)" : "rgba(22,163,74,0.07)",
-                    border: `1.5px solid ${isOut ? "rgba(220,38,38,0.25)" : isLow ? "rgba(234,88,12,0.25)" : p.quantity <= 5 ? "rgba(201,165,90,0.25)" : "rgba(22,163,74,0.20)"}`,
+                    background: isOut ? "rgba(220,38,38,0.08)" : isLow ? "rgba(234,88,12,0.08)" : p.quantity <= 5 ? "rgba(245,158,11,0.10)" : "rgba(22,163,74,0.07)",
+                    border: `1.5px solid ${isOut ? "rgba(220,38,38,0.25)" : isLow ? "rgba(234,88,12,0.25)" : p.quantity <= 5 ? "rgba(245,158,11,0.25)" : "rgba(22,163,74,0.20)"}`,
                   }}>
                     <span style={{
                       fontSize: 18, fontWeight: 800, fontVariantNumeric: "tabular-nums",
@@ -1003,8 +1003,8 @@ function ListView() {
                     background: "transparent", cursor: "pointer",
                     display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
                   }}>
-                    <Eye size={13} style={{ color: "#C9A55A" }} />
-                    <span style={{ fontSize: 11, color: "#C9A55A", fontWeight: 600 }}>Trưng bày</span>
+                    <Eye size={13} style={{ color: "#b5f23d" }} />
+                    <span style={{ fontSize: 11, color: "#b5f23d", fontWeight: 600 }}>Trưng bày</span>
                   </button>
                 )}
                 {inWh && (

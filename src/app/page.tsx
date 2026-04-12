@@ -31,7 +31,7 @@ type Movement = {
 const MOVEMENT_CFG: Record<string, { label: string; color: string; bg: string }> = {
   TRANSFER:   { label: "CHUYỂN",     color: "#0ea5e9", bg: "rgba(14,165,233,0.08)"  },
   RECEIVE:    { label: "NHẬP KHO",   color: "#16a34a", bg: "rgba(22,163,74,0.08)"   },
-  SALE:       { label: "BÁN RA",     color: "#C9A55A", bg: "rgba(201,165,90,0.10)"  },
+  SALE:       { label: "BÁN RA",     color: "#b5f23d", bg: "rgba(181,242,61,0.08)"  },
   ADJUSTMENT: { label: "ĐIỀU CHỈNH", color: "#7c3aed", bg: "rgba(124,58,237,0.08)" },
   MARKDOWN:   { label: "MARKDOWN",   color: "#dc2626", bg: "rgba(220,38,38,0.08)"   },
   RETURN:     { label: "TRẢ HÀNG",   color: "#64748b", bg: "rgba(100,116,139,0.08)" },
@@ -152,10 +152,10 @@ function KpiWidget() {
   }).sort((a, b) => (b.pct ?? -1) - (a.pct ?? -1));
 
   const pctColor = (p: number | null) =>
-    p == null ? "#64748b" : p >= 100 ? "#C9A55A" : p >= 80 ? "#10b981" : p >= 60 ? "#0ea5e9" : p >= 40 ? "#f59e0b" : "#ef4444";
+    p == null ? "#64748b" : p >= 100 ? "#b5f23d" : p >= 80 ? "#10b981" : p >= 60 ? "#0ea5e9" : p >= 40 ? "#f59e0b" : "#ef4444";
 
-  const storeBarColor = storePct == null ? "#0ea5e9"
-    : storePct >= 100 ? "#C9A55A" : storePct >= 80 ? "#10b981" : storePct >= 60 ? "#0ea5e9" : "#f59e0b";
+  const storeBarColor = storePct == null ? "#b5f23d"
+    : storePct >= 100 ? "#b5f23d" : storePct >= 80 ? "#10b981" : storePct >= 60 ? "#0ea5e9" : "#f59e0b";
 
   const [mn, yr] = [new Date().getMonth() + 1, new Date().getFullYear()];
   const daysInMonth = new Date(yr, mn, 0).getDate();
@@ -175,7 +175,7 @@ function KpiWidget() {
             Tháng {mn}/{yr} · Ngày {dayOfMonth}/{daysInMonth}
           </p>
         </div>
-        <Target size={15} color="#C9A55A" strokeWidth={1.5} />
+        <Target size={15} color="#b5f23d" strokeWidth={1.5} />
       </div>
 
       {loading ? (
@@ -302,7 +302,7 @@ function KpiWidget() {
           {/* Summary chips */}
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: -4 }}>
             {[
-              { icon: Trophy, label: `${rows.filter((_,i) => (staffWithTarget[i]?.pct ?? 0) >= 100).length} đạt 100%`, color: "#C9A55A" },
+              { icon: Trophy, label: `${rows.filter((_,i) => (staffWithTarget[i]?.pct ?? 0) >= 100).length} đạt 100%`, color: "#b5f23d" },
               { icon: Users, label: `${rows.length} NV`, color: "#0ea5e9" },
               { icon: TrendingUp, label: `${fmtM(totalRev / Math.max(1, rows.length))}/NV`, color: "#10b981" },
             ].map((chip, i) => (
@@ -380,7 +380,7 @@ export default function OverviewPage() {
       value: totalValue >= 1e9 ? `${(totalValue/1e9).toFixed(2)} Tỷ`
            : totalValue >= 1e6 ? `${fmt(Math.round(totalValue/1000))}K`
            : fmt(Math.round(totalValue)),
-      unit: "VND", icon: DollarSign, color: "#C9A55A",
+      unit: "VND", icon: DollarSign, color: "#b5f23d",
     },
     {
       id: "on-display", label: "Đang Trưng Bày",
@@ -406,11 +406,11 @@ export default function OverviewPage() {
 
       {/* ── Animated background ────────────────────────────────────── */}
       <div style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 0, overflow: "hidden" }}>
-        <FloatingOrb x="0%"  y="5%"  size={360} color="rgba(14,165,233,0.25)"  delay={0}   />
-        <FloatingOrb x="65%" y="2%"  size={260} color="rgba(201,165,90,0.18)"  delay={2.5} />
-        <FloatingOrb x="55%" y="55%" size={300} color="rgba(14,165,233,0.12)"  delay={4}   />
-        <FloatingOrb x="10%" y="65%" size={220} color="rgba(124,58,237,0.12)"  delay={1.5} />
-        <FloatingOrb x="80%" y="75%" size={180} color="rgba(201,165,90,0.12)"  delay={3}   />
+        <FloatingOrb x="0%"  y="5%"  size={360} color="rgba(181,242,61,0.14)"  delay={0}   />
+        <FloatingOrb x="65%" y="2%"  size={260} color="rgba(181,242,61,0.10)"  delay={2.5} />
+        <FloatingOrb x="55%" y="55%" size={300} color="rgba(139,196,42,0.08)"  delay={4}   />
+        <FloatingOrb x="10%" y="65%" size={220} color="rgba(181,242,61,0.07)"  delay={1.5} />
+        <FloatingOrb x="80%" y="75%" size={180} color="rgba(139,196,42,0.08)"  delay={3}   />
       </div>
 
       <div style={{ position: "relative", zIndex: 1, display: "flex", flexDirection: "column", gap: 24 }}>
@@ -547,7 +547,7 @@ export default function OverviewPage() {
               </p>
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 {[
-                  { href: "/report", label: "Báo Cáo Hôm Nay", icon: TrendingUp, color: "#C9A55A" },
+                  { href: "/report", label: "Báo Cáo Hôm Nay", icon: TrendingUp, color: "#b5f23d" },
                   { href: "/inventory", label: "Kho Hàng", icon: Package, color: "#7c3aed" },
                 ].map(item => (
                   <Link key={item.href} href={item.href} style={{ textDecoration: "none" }}>

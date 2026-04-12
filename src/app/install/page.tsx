@@ -116,7 +116,7 @@ function StepCard({ num, icon, text, sub }: { num: number; icon: React.ReactNode
       <div style={{ flex: 1, paddingTop: 3 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
           <span style={{ color: "#0ea5e9" }}>{icon}</span>
-          <p style={{ fontSize: 12, color: "#0c1a2e", fontWeight: 600 }}>{text}</p>
+          <p style={{ fontSize: 12, color: "var(--text-primary)", fontWeight: 600 }}>{text}</p>
         </div>
         {sub && <p style={{ fontSize: 10, color: "#64748b", lineHeight: 1.55 }}>{sub}</p>}
       </div>
@@ -133,7 +133,7 @@ function IOSGuide() {
   ];
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      <div style={{ padding: "10px 14px", borderRadius: 12, background: "rgba(251,191,36,0.08)", border: "1px solid rgba(251,191,36,0.28)", fontSize: 10, color: "#92712a" }}>
+      <div style={{ padding: "10px 14px", borderRadius: 12, background: "rgba(181,242,61,0.08)", border: "1px solid rgba(181,242,61,0.28)", fontSize: 10, color: "#92712a" }}>
         ⚠️ Chỉ hoạt động trên <b>Safari</b>. Nếu đang dùng Chrome/Firefox, mở bằng Safari.
       </div>
       {steps.map((s, i) => <StepCard key={i} num={i + 1} icon={s.icon} text={s.text} sub={s.sub} />)}
@@ -197,7 +197,7 @@ function QRBlock({ url }: { url: string }) {
           borderRadius: 10, padding: "7px 10px",
           display: "flex", alignItems: "center", gap: 8,
         }}>
-          <p style={{ fontSize: 10, color: "#0c1a2e", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{url}</p>
+          <p style={{ fontSize: 10, color: "var(--text-primary)", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{url}</p>
           <button onClick={copy} style={{ background: "none", border: "none", cursor: "pointer", padding: 2, display: "flex", flexShrink: 0 }}>
             {copied ? <Check size={13} style={{ color: "#10b981" }} /> : <Copy size={13} style={{ color: "#94a3b8" }} />}
           </button>
@@ -229,7 +229,7 @@ function FAQ() {
           <button
             onClick={() => setOpen(open === i ? null : i)}
             style={{ width: "100%", padding: "12px 0", background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, fontFamily: "inherit", textAlign: "left" }}>
-            <p style={{ fontSize: 11, color: "#0c1a2e", fontWeight: 600 }}>{item.q}</p>
+            <p style={{ fontSize: 11, color: "var(--text-primary)", fontWeight: 600 }}>{item.q}</p>
             {open === i
               ? <ChevronUp size={13} style={{ color: "#94a3b8", flexShrink: 0 }} />
               : <ChevronDown size={13} style={{ color: "#94a3b8", flexShrink: 0 }} />}
@@ -425,7 +425,7 @@ export default function InstallPage() {
                   ].map(row => (
                     <div key={row.label} style={{ display: "flex", gap: 8, alignItems: "baseline" }}>
                       <span style={{ fontSize: 9, color: "#94a3b8", width: 90, flexShrink: 0 }}>{row.label}</span>
-                      <span style={{ fontSize: 10, color: "#0c1a2e", fontFamily: "monospace", wordBreak: "break-all" }}>{row.value}</span>
+                      <span style={{ fontSize: 10, color: "var(--text-primary)", fontFamily: "monospace", wordBreak: "break-all" }}>{row.value}</span>
                     </div>
                   ))}
                 </div>
@@ -440,7 +440,7 @@ export default function InstallPage() {
             {benefits.map((b, i) => (
               <div key={i} style={{ display: "flex", alignItems: "center", gap: 12 }}>
                 <span style={{ fontSize: 16 }}>{b.icon}</span>
-                <p style={{ fontSize: 11, color: "#0c1a2e" }}>{b.text}</p>
+                <p style={{ fontSize: 11, color: "var(--text-primary)" }}>{b.text}</p>
               </div>
             ))}
           </div>

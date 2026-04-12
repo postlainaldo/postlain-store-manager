@@ -166,7 +166,7 @@ export default function NotificationBanner() {
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                             <p style={{ fontSize: 11, fontWeight: 700, color: "var(--text-primary)" }}>{n.title}</p>
-                            {n.pinned === 1 && <Pin size={9} style={{ color: "#C9A55A" }} />}
+                            {n.pinned === 1 && <Pin size={9} style={{ color: "#b5f23d" }} />}
                             {!isRead && <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#0ea5e9", marginLeft: "auto", flexShrink: 0 }} />}
                           </div>
                           <p style={{ fontSize: 10, color: "#64748b", marginTop: 2, lineHeight: 1.5 }}>{n.body}</p>

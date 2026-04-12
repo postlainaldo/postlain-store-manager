@@ -40,7 +40,7 @@ function AuroraBackground() {
         style={{
           position: "absolute", width: 350, height: 350, borderRadius: "50%",
           top: "38%", left: "52%", transform: "translate(-50%,-50%)",
-          background: "radial-gradient(circle, rgba(201,165,90,0.14) 0%, rgba(251,191,36,0.07) 55%, transparent 75%)",
+          background: "radial-gradient(circle, rgba(181,242,61,0.14) 0%, rgba(181,242,61,0.07) 55%, transparent 75%)",
           filter: "blur(80px)",
         }}
       />
@@ -65,12 +65,12 @@ function StoreCard({ store, onSelect }: { store: StoreConfig; onSelect: () => vo
         width: "100%", maxWidth: 360,
         background: hovered ? "rgba(255,255,255,0.07)" : "rgba(255,255,255,0.04)",
         backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)",
-        border: `1px solid ${hovered ? "rgba(201,165,90,0.45)" : "rgba(255,255,255,0.10)"}`,
+        border: `1px solid ${hovered ? "rgba(181,242,61,0.45)" : "rgba(255,255,255,0.10)"}`,
         borderRadius: 20, padding: "24px 28px",
         cursor: "pointer", textAlign: "left",
         transition: "border-color 0.2s, background 0.2s, box-shadow 0.2s",
         boxShadow: hovered
-          ? "0 0 0 3px rgba(201,165,90,0.12), 0 8px 40px rgba(0,0,0,0.30)"
+          ? "0 0 0 3px rgba(181,242,61,0.12), 0 8px 40px rgba(0,0,0,0.30)"
           : "0 4px 24px rgba(0,0,0,0.20)",
         display: "flex", alignItems: "center", gap: 18,
       }}
@@ -142,7 +142,7 @@ export default function StoreSelectPage() {
         >
           <div style={{
             fontSize: 11, fontWeight: 700, letterSpacing: "0.22em",
-            color: "rgba(201,165,90,0.85)", marginBottom: 10,
+            color: "rgba(181,242,61,0.85)", marginBottom: 10,
             textTransform: "uppercase",
           }}>
             Store Manager

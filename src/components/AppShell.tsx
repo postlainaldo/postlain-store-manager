@@ -72,8 +72,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             : (isMobileDevice ? "rgba(8,14,26,0.98)" : "rgba(8,14,26,0.92)"),
           backdropFilter: isMobileDevice ? "none" : "blur(24px) saturate(1.6)",
           WebkitBackdropFilter: isMobileDevice ? "none" : "blur(24px) saturate(1.6)",
-          borderBottom: t.isLight ? "1px solid rgba(0,0,0,0.07)" : "1px solid rgba(201,165,90,0.10)",
-          boxShadow: t.isLight ? "0 1px 0 rgba(0,0,0,0.06), 0 2px 8px rgba(0,0,0,0.08)" : "0 1px 0 rgba(201,165,90,0.08), 0 2px 12px rgba(0,0,0,0.40)",
+          borderBottom: t.isLight ? "1px solid rgba(0,0,0,0.07)" : "1px solid rgba(181,242,61,0.10)",
+          boxShadow: t.isLight ? "0 1px 0 rgba(0,0,0,0.06), 0 2px 8px rgba(0,0,0,0.08)" : "0 1px 0 rgba(181,242,61,0.08), 0 2px 12px rgba(0,0,0,0.40)",
           minHeight: 52,
           zIndex: 10,
         }}>

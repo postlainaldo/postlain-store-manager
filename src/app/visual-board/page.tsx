@@ -30,7 +30,7 @@ const ZONE_CFG: Record<string, { color: string; bg: string }> = {
   center_woman: { color: "#38bdf8", bg: "rgba(56,189,248,0.08)"   },
   center_man:   { color: "#075985", bg: "rgba(7,89,133,0.08)"     },
   acc:          { color: "#10b981", bg: "rgba(16,185,129,0.08)"   },
-  window:       { color: "#C9A55A", bg: "rgba(201,165,90,0.08)"   },
+  window:       { color: "#b5f23d", bg: "rgba(181,242,61,0.08)"   },
 };
 
 const CAT_COLOR: Record<string, string> = {
@@ -38,7 +38,7 @@ const CAT_COLOR: Record<string, string> = {
   "Bốt nữ": "#38bdf8",  "Bốt nam": "#075985",
   "Sandal nữ": "#7dd3fc","Sandal nam":"#0369a1",
   "Túi nữ": "#10b981",   "Túi nam": "#059669",
-  "Phụ kiện": "#C9A55A",
+  "Phụ kiện": "#b5f23d",
 };
 function catColor(cat: string) { return CAT_COLOR[cat] ?? "#64748b"; }
 
@@ -98,8 +98,8 @@ const ProductCard = memo(function ProductCard({
         style={{
           width: 92, minHeight: 52, borderRadius: 9, overflow: "visible",
           position: "relative", cursor: onRemove ? "pointer" : "default",
-          border: `1.5px solid ${highlight ? "#C9A55A" : `${cc}55`}`,
-          boxShadow: highlight ? "0 0 0 2px rgba(201,165,90,0.3)" : "0 1px 4px rgba(0,0,0,0.06)",
+          border: `1.5px solid ${highlight ? "#b5f23d" : `${cc}55`}`,
+          boxShadow: highlight ? "0 0 0 2px rgba(181,242,61,0.3)" : "0 1px 4px rgba(0,0,0,0.06)",
           background: product.color ? `${product.color}18` : `${cc}12`,
           transition: "box-shadow 0.12s",
           flexShrink: 0,
@@ -107,7 +107,7 @@ const ProductCard = memo(function ProductCard({
         }}
       >
         {/* Top color accent */}
-        <div style={{ height: 3, background: highlight ? "#C9A55A" : cc, borderRadius: "7px 7px 0 0", flexShrink: 0 }} />
+        <div style={{ height: 3, background: highlight ? "#b5f23d" : cc, borderRadius: "7px 7px 0 0", flexShrink: 0 }} />
 
         <div style={{ padding: "5px 6px 5px", display: "flex", flexDirection: "column", gap: 2, flex: 1 }}>
           {/* TÊN */}
@@ -188,8 +188,8 @@ const ProductCard = memo(function ProductCard({
       style={{
         width: size, height: size, borderRadius: isSmall ? 8 : 10, overflow: "hidden",
         position: "relative", cursor: onRemove ? "pointer" : "default",
-        border: `1.5px solid ${highlight ? "#C9A55A" : `${cc}55`}`,
-        boxShadow: highlight ? "0 0 0 2px rgba(201,165,90,0.3)" : "0 1px 4px rgba(0,0,0,0.06)",
+        border: `1.5px solid ${highlight ? "#b5f23d" : `${cc}55`}`,
+        boxShadow: highlight ? "0 0 0 2px rgba(181,242,61,0.3)" : "0 1px 4px rgba(0,0,0,0.06)",
         background: product.imagePath ? "transparent" : colorHex ? `${colorHex}22` : `${cc}18`,
         transition: "all 0.12s",
         flexShrink: 0,
@@ -234,7 +234,7 @@ const ProductCard = memo(function ProductCard({
         </div>
       )}
 
-      <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 3, background: highlight ? "#C9A55A" : cc }} />
+      <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 3, background: highlight ? "#b5f23d" : cc }} />
 
       {(product.quantity ?? 0) > 1 && !isSmall && (
         <div style={{ position: "absolute", top: 2, right: 2, background: "rgba(12,26,46,0.8)", borderRadius: 4, padding: "0 3px", lineHeight: "12px", fontSize: 9, fontWeight: 700, color: "#fff" }}>
@@ -258,7 +258,7 @@ const ProductCard = memo(function ProductCard({
               initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
               style={{ position: "absolute", bottom: "calc(100% + 6px)", left: "50%", transform: "translateX(-50%)", zIndex: 100, pointerEvents: "none", whiteSpace: "nowrap" }}
             >
-              <div style={{ background: "#0c1a2e", borderRadius: 8, padding: "5px 10px", boxShadow: "0 4px 16px rgba(0,0,0,0.2)" }}>
+              <div style={{ background: "#050505", borderRadius: 8, padding: "5px 10px", boxShadow: "0 4px 16px rgba(0,0,0,0.2)" }}>
                 <p style={{ fontSize: 10, color: "#fff", fontWeight: 600 }}>{product.name}</p>
                 <div style={{ display: "flex", gap: 8, marginTop: 3, flexWrap: "wrap" }}>
                   {product.color && <p style={{ fontSize: 8, color: "#7dd3fc" }}>Màu: <b>{product.color}</b></p>}
@@ -296,8 +296,8 @@ function EmptySlot({
       onClick={() => { if (canPlace) onPlace?.(); else if (canScan) onScan?.(); }}
       style={{
         width: size, height: size, borderRadius: isSmall ? 8 : 10,
-        border: `1.5px dashed ${canPlace && hov ? "#C9A55A" : canPlace ? "#0ea5e9" : canScan && hov ? "#C9A55A" : "#e0f2fe"}`,
-        background: canPlace && hov ? "rgba(201,165,90,0.1)" : canPlace ? "rgba(14,165,233,0.05)" : canScan && hov ? "rgba(201,165,90,0.06)" : "#f8fafc",
+        border: `1.5px dashed ${canPlace && hov ? "#b5f23d" : canPlace ? "#0ea5e9" : canScan && hov ? "#b5f23d" : "#e0f2fe"}`,
+        background: canPlace && hov ? "rgba(181,242,61,0.1)" : canPlace ? "rgba(14,165,233,0.05)" : canScan && hov ? "rgba(181,242,61,0.06)" : "#f8fafc",
         display: "flex", alignItems: "center", justifyContent: "center",
         cursor: canPlace || canScan ? "pointer" : "default",
         transition: "all 0.12s",
@@ -305,9 +305,9 @@ function EmptySlot({
       }}
     >
       {canPlace ? (
-        <div style={{ width: 8, height: 8, borderRadius: "50%", background: hov ? "#C9A55A" : "#0ea5e9", opacity: 0.7 }} />
+        <div style={{ width: 8, height: 8, borderRadius: "50%", background: hov ? "#b5f23d" : "#0ea5e9", opacity: 0.7 }} />
       ) : canScan && hov ? (
-        <ScanLine size={isSmall ? 10 : 14} style={{ color: "#C9A55A" }} />
+        <ScanLine size={isSmall ? 10 : 14} style={{ color: "#b5f23d" }} />
       ) : (
         <Package size={isSmall ? 8 : 10} style={{ color: "#cbd5e1" }} />
       )}
@@ -542,7 +542,7 @@ function QRScanner({
     >
       <motion.div
         initial={{ y: 80, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 80, opacity: 0 }}
-        style={{ width: "100%", maxWidth: 420, background: "#0c1a2e", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, display: "flex", flexDirection: "column", gap: 12 }}
+        style={{ width: "100%", maxWidth: 420, background: "#050505", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, display: "flex", flexDirection: "column", gap: 12 }}
       >
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div>
@@ -561,7 +561,7 @@ function QRScanner({
           <canvas ref={canvasRef} style={{ display: "none" }} />
           {scanning && (
             <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}>
-              <div style={{ width: "60%", aspectRatio: "3/2", border: "2px solid rgba(201,165,90,0.8)", borderRadius: 12, boxShadow: "0 0 0 1000px rgba(0,0,0,0.4)" }} />
+              <div style={{ width: "60%", aspectRatio: "3/2", border: "2px solid rgba(181,242,61,0.8)", borderRadius: 12, boxShadow: "0 0 0 1000px rgba(0,0,0,0.4)" }} />
             </div>
           )}
           {!scanning && !camError && (
@@ -580,10 +580,10 @@ function QRScanner({
         )}
 
         {notFound && (
-          <div style={{ display: "flex", gap: 8, alignItems: "center", padding: "10px 14px", borderRadius: 10, background: "rgba(201,165,90,0.12)", border: "1px solid rgba(201,165,90,0.35)" }}>
-            <QrCode size={13} style={{ color: "#C9A55A", flexShrink: 0 }} />
+          <div style={{ display: "flex", gap: 8, alignItems: "center", padding: "10px 14px", borderRadius: 10, background: "rgba(181,242,61,0.12)", border: "1px solid rgba(181,242,61,0.35)" }}>
+            <QrCode size={13} style={{ color: "#b5f23d", flexShrink: 0 }} />
             <div>
-              <p style={{ fontSize: 10, color: "#C9A55A", fontWeight: 600 }}>Không tìm thấy</p>
+              <p style={{ fontSize: 10, color: "#b5f23d", fontWeight: 600 }}>Không tìm thấy</p>
               <p style={{ fontSize: 9, color: "#94a3b8", marginTop: 1 }}>Mã: {notFound}</p>
             </div>
           </div>
@@ -598,7 +598,7 @@ function QRScanner({
 
         {scanning && (
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
-            <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#C9A55A", animation: "pulse 1.2s ease-in-out infinite" }} />
+            <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#b5f23d", animation: "pulse 1.2s ease-in-out infinite" }} />
             <span style={{ fontSize: 10, color: "#94a3b8" }}>Đang quét...</span>
           </div>
         )}
@@ -634,7 +634,7 @@ function ProductPicker({
       });
   }, [products, cat, search, assignedIds]);
 
-  const accentColor = mode === "display" ? "#C9A55A" : "#10b981";
+  const accentColor = mode === "display" ? "#b5f23d" : "#10b981";
   const placed = assignedIds.size;
 
   return (
@@ -752,10 +752,10 @@ function PickerContent({
         {selectedPid && (
           <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}
             style={{ flexShrink: 0, overflow: "hidden", margin: onClose ? "0 16px" : 0 }}>
-            <div style={{ padding: "6px 10px", background: "rgba(201,165,90,0.1)", borderRadius: 10, border: "1px solid rgba(201,165,90,0.35)", display: "flex", alignItems: "center", gap: 6 }}>
-              <Check size={10} style={{ color: "#C9A55A" }} />
-              <span style={{ fontSize: 9, color: "#C9A55A", fontWeight: 600 }}>Đã chọn · Nhấn vào ô trống để đặt</span>
-              <button onClick={() => onSelect(null)} style={{ background: "none", border: "none", cursor: "pointer", marginLeft: "auto" }}><X size={9} style={{ color: "#C9A55A" }} /></button>
+            <div style={{ padding: "6px 10px", background: "rgba(181,242,61,0.1)", borderRadius: 10, border: "1px solid rgba(181,242,61,0.35)", display: "flex", alignItems: "center", gap: 6 }}>
+              <Check size={10} style={{ color: "#b5f23d" }} />
+              <span style={{ fontSize: 9, color: "#b5f23d", fontWeight: 600 }}>Đã chọn · Nhấn vào ô trống để đặt</span>
+              <button onClick={() => onSelect(null)} style={{ background: "none", border: "none", cursor: "pointer", marginLeft: "auto" }}><X size={9} style={{ color: "#b5f23d" }} /></button>
             </div>
           </motion.div>
         )}
@@ -778,15 +778,15 @@ function PickerContent({
               style={{
                 display: "flex", alignItems: "center", gap: 8, padding: "8px 10px",
                 borderRadius: 12, cursor: "pointer",
-                border: isSelected ? `2px solid #C9A55A` : `1px solid ${isPlaced ? "rgba(22,163,74,0.2)" : "var(--border)"}`,
-                background: isSelected ? "rgba(201,165,90,0.10)" : isPlaced ? "rgba(22,163,74,0.04)" : "var(--bg-card)",
+                border: isSelected ? `2px solid #b5f23d` : `1px solid ${isPlaced ? "rgba(22,163,74,0.2)" : "var(--border)"}`,
+                background: isSelected ? "rgba(181,242,61,0.10)" : isPlaced ? "rgba(22,163,74,0.04)" : "var(--bg-card)",
                 fontFamily: "inherit", textAlign: "left",
-                boxShadow: isSelected ? "0 0 0 3px rgba(201,165,90,0.15), 0 2px 8px rgba(201,165,90,0.12)" : "0 1px 3px rgba(0,0,0,0.04)",
+                boxShadow: isSelected ? "0 0 0 3px rgba(181,242,61,0.15), 0 2px 8px rgba(181,242,61,0.12)" : "0 1px 3px rgba(0,0,0,0.04)",
                 transition: "all 0.12s", flexShrink: 0,
               }}>
               <div style={{
                 width: 38, height: 38, borderRadius: 9, flexShrink: 0, overflow: "hidden",
-                border: `1.5px solid ${isSelected ? "#C9A55A88" : `${cc}44`}`,
+                border: `1.5px solid ${isSelected ? "#b5f23d88" : `${cc}44`}`,
                 background: pColorHex ? `${pColorHex}33` : `${cc}22`,
                 display: "flex", alignItems: "center", justifyContent: "center", position: "relative",
                 boxShadow: pColorHex ? `0 0 0 2px ${pColorHex}18` : "none",
@@ -800,7 +800,7 @@ function PickerContent({
                 <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 2, background: cc }} />
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ fontSize: 11, fontWeight: 600, color: isSelected ? "#C9A55A" : "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</p>
+                <p style={{ fontSize: 11, fontWeight: 600, color: isSelected ? "#b5f23d" : "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</p>
                 <div style={{ display: "flex", gap: 5, alignItems: "center", marginTop: 2, flexWrap: "wrap" }}>
                   {parseMCFromNotes(p.notes) && (
                     <span style={{ fontSize: 8, color: "var(--blue)", fontWeight: 700, background: "rgba(14,165,233,0.08)", padding: "1px 4px", borderRadius: 4 }}>
@@ -819,7 +819,7 @@ function PickerContent({
                   </span>
                 )}
                 {isPlaced && <span style={{ fontSize: 7, fontWeight: 700, padding: "1px 4px", borderRadius: 5, background: `${accentColor}18`, color: accentColor, border: `1px solid ${accentColor}30` }}>Đã xếp</span>}
-                {isSelected && <Check size={10} style={{ color: "#C9A55A" }} />}
+                {isSelected && <Check size={10} style={{ color: "#b5f23d" }} />}
               </div>
             </motion.button>
           );
@@ -900,7 +900,7 @@ function DisplayTab({ products, storeSections, placeInSection, highlightPid, can
         {/* Stats — desktop full, mobile compact */}
         <div className="hidden md:flex" style={{ flexShrink: 0, alignItems: "center", gap: 8 }}>
           {[
-            { icon: Eye, val: displayIds.size, unit: "đang trưng bày", color: "#C9A55A" },
+            { icon: Eye, val: displayIds.size, unit: "đang trưng bày", color: "#b5f23d" },
             { icon: LayoutGrid, val: totalSlots, unit: "tổng ô", color: "#94a3b8" },
             { icon: Layers, val: `${totalSlots > 0 ? Math.round((displayIds.size / totalSlots) * 100) : 0}%`, unit: "lấp đầy", color: "#0ea5e9" },
           ].map((c, i) => {
@@ -922,9 +922,9 @@ function DisplayTab({ products, storeSections, placeInSection, highlightPid, can
         </div>
         {/* Mobile compact stats */}
         <div className="flex md:hidden" style={{ flexShrink: 0, alignItems: "center", gap: 6 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 10px", borderRadius: 8, background: "rgba(201,165,90,0.08)", border: "1px solid rgba(201,165,90,0.25)" }}>
-            <Eye size={10} style={{ color: "#C9A55A" }} />
-            <span style={{ fontSize: 11, fontWeight: 700, color: "#C9A55A" }}>{displayIds.size}</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 10px", borderRadius: 8, background: "rgba(181,242,61,0.08)", border: "1px solid rgba(181,242,61,0.25)" }}>
+            <Eye size={10} style={{ color: "#b5f23d" }} />
+            <span style={{ fontSize: 11, fontWeight: 700, color: "#b5f23d" }}>{displayIds.size}</span>
             <span style={{ fontSize: 9, color: "var(--text-muted)" }}>trưng bày</span>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 10px", borderRadius: 8, background: "rgba(14,165,233,0.06)", border: "1px solid rgba(14,165,233,0.2)" }}>
@@ -938,12 +938,12 @@ function DisplayTab({ products, storeSections, placeInSection, highlightPid, can
         <AnimatePresence>
           {selectedPid && canEdit && (
             <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }}
-              style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", borderRadius: 12, background: "rgba(201,165,90,0.10)", border: "1px solid rgba(201,165,90,0.4)" }}>
+              style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", borderRadius: 12, background: "rgba(181,242,61,0.10)", border: "1px solid rgba(181,242,61,0.4)" }}>
               {(() => { const p = products.find(x => x.id === selectedPid); return p ? <ProductCard product={p} size={32} /> : null; })()}
-              <span style={{ fontSize: 10, color: "#C9A55A", fontWeight: 600, flex: 1 }}>
+              <span style={{ fontSize: 10, color: "#b5f23d", fontWeight: 600, flex: 1 }}>
                 {products.find(p => p.id === selectedPid)?.name ?? "..."} · Nhấn ô trống để đặt
               </span>
-              <button onClick={() => setSelectedPid(null)} style={{ background: "none", border: "none", cursor: "pointer" }}><X size={10} style={{ color: "#C9A55A" }} /></button>
+              <button onClick={() => setSelectedPid(null)} style={{ background: "none", border: "none", cursor: "pointer" }}><X size={10} style={{ color: "#b5f23d" }} /></button>
             </motion.div>
           )}
         </AnimatePresence>
@@ -1001,7 +1001,7 @@ function DisplayTab({ products, storeSections, placeInSection, highlightPid, can
       {canEdit && (
         <div className="flex md:hidden" style={{ position: "fixed", bottom: "calc(68px + env(safe-area-inset-bottom, 0px))", right: 16, zIndex: 200 }}>
           <button onClick={() => setPickerOpen(true)}
-            style={{ width: 52, height: 52, borderRadius: 26, background: "linear-gradient(135deg, #C9A55A, #e6c474)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 20px rgba(201,165,90,0.45)", position: "relative" }}>
+            style={{ width: 52, height: 52, borderRadius: 26, background: "linear-gradient(135deg, #b5f23d, #e6c474)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 20px rgba(181,242,61,0.45)", position: "relative" }}>
             <Package size={20} color="#fff" />
             {selectedPid && <span style={{ position: "absolute", top: -2, right: -2, width: 14, height: 14, borderRadius: "50%", background: "#10b981", border: "2px solid #fff" }} />}
           </button>
@@ -1244,12 +1244,12 @@ function WarehouseTab({ products, warehouseShelves, placeInWarehouse, highlightP
         <AnimatePresence>
           {selectedPid && canEdit && (
             <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }}
-              style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", borderRadius: 12, background: "rgba(201,165,90,0.10)", border: "1px solid rgba(201,165,90,0.4)" }}>
+              style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", borderRadius: 12, background: "rgba(181,242,61,0.10)", border: "1px solid rgba(181,242,61,0.4)" }}>
               {(() => { const p = products.find(x => x.id === selectedPid); return p ? <ProductCard product={p} size={32} /> : null; })()}
-              <span style={{ fontSize: 10, color: "#C9A55A", fontWeight: 600, flex: 1 }}>
+              <span style={{ fontSize: 10, color: "#b5f23d", fontWeight: 600, flex: 1 }}>
                 {products.find(p => p.id === selectedPid)?.name ?? "..."} · Nhấn ô trống để xếp
               </span>
-              <button onClick={() => setSelectedPid(null)} style={{ background: "none", border: "none", cursor: "pointer" }}><X size={10} style={{ color: "#C9A55A" }} /></button>
+              <button onClick={() => setSelectedPid(null)} style={{ background: "none", border: "none", cursor: "pointer" }}><X size={10} style={{ color: "#b5f23d" }} /></button>
             </motion.div>
           )}
         </AnimatePresence>
@@ -1258,10 +1258,10 @@ function WarehouseTab({ products, warehouseShelves, placeInWarehouse, highlightP
         <AnimatePresence>
           {effectiveHighlight && (
             <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-              style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 8, padding: "10px 16px", borderRadius: 12, background: highlightShelf ? "rgba(201,165,90,0.08)" : "#f0f9ff", border: `1px solid ${highlightShelf ? "rgba(201,165,90,0.5)" : "#bae6fd"}` }}>
-              <Package size={12} style={{ color: highlightShelf ? "#C9A55A" : "#94a3b8" }} />
+              style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 8, padding: "10px 16px", borderRadius: 12, background: highlightShelf ? "rgba(181,242,61,0.08)" : "#f0f9ff", border: `1px solid ${highlightShelf ? "rgba(181,242,61,0.5)" : "#bae6fd"}` }}>
+              <Package size={12} style={{ color: highlightShelf ? "#b5f23d" : "#94a3b8" }} />
               {highlightShelf
-                ? <p style={{ fontSize: 11, color: "var(--text-primary)" }}>Tìm thấy tại <strong style={{ color: "#C9A55A" }}>{highlightShelf.shelf}</strong> · {highlightShelf.tier}, Ô {highlightShelf.slot}</p>
+                ? <p style={{ fontSize: 11, color: "var(--text-primary)" }}>Tìm thấy tại <strong style={{ color: "#b5f23d" }}>{highlightShelf.shelf}</strong> · {highlightShelf.tier}, Ô {highlightShelf.slot}</p>
                 : <p style={{ fontSize: 11, color: "#94a3b8" }}>Không tìm thấy trong kho</p>
               }
             </motion.div>
@@ -1322,7 +1322,7 @@ function WarehouseTab({ products, warehouseShelves, placeInWarehouse, highlightP
           <button onClick={() => setPickerOpen(true)}
             style={{ width: 52, height: 52, borderRadius: 26, background: "linear-gradient(135deg, #10b981, #34d399)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 20px rgba(16,185,129,0.4)", position: "relative" }}>
             <Package size={20} color="#fff" />
-            {selectedPid && <span style={{ position: "absolute", top: -2, right: -2, width: 14, height: 14, borderRadius: "50%", background: "#C9A55A", border: "2px solid #fff" }} />}
+            {selectedPid && <span style={{ position: "absolute", top: -2, right: -2, width: 14, height: 14, borderRadius: "50%", background: "#b5f23d", border: "2px solid #fff" }} />}
           </button>
         </div>
       )}
@@ -1344,7 +1344,7 @@ function ShelfView({ shelf, products, selectedPid, highlightPid, canEdit, onPlac
   const filled = shelf.tiers.reduce((s, t) => s + t.filter(Boolean).length, 0);
   const total = shelf.tiers.reduce((s, t) => s + t.length, 0);
   const density = total > 0 ? filled / total : 0;
-  const densityColor = density >= 0.85 ? "#dc2626" : density >= 0.6 ? "#C9A55A" : "#10b981";
+  const densityColor = density >= 0.85 ? "#dc2626" : density >= 0.6 ? "#b5f23d" : "#10b981";
 
   return (
     <div style={{ background: "var(--bg-card)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", borderRadius: 16, border: "1px solid rgba(186,230,253,0.55)", overflow: "hidden", boxShadow: "0 2px 12px rgba(14,165,233,0.06)" }}>
@@ -1636,8 +1636,8 @@ function PlacementsBackupRestore() {
       <input ref={fileRef} type="file" accept=".json" onChange={handleRestore} style={{ display: "none" }} />
       <motion.button onClick={handleDownload} title="Backup vị trí"
         whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.93 }}
-        style={{ width: 36, height: 36, borderRadius: 11, border: "1px solid rgba(201,165,90,0.35)", background: "rgba(201,165,90,0.07)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
-        <Download size={13} style={{ color: "#C9A55A" }} />
+        style={{ width: 36, height: 36, borderRadius: 11, border: "1px solid rgba(181,242,61,0.35)", background: "rgba(181,242,61,0.07)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+        <Download size={13} style={{ color: "#b5f23d" }} />
       </motion.button>
       <motion.button onClick={() => fileRef.current?.click()} title="Restore vị trí"
         whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.93 }}

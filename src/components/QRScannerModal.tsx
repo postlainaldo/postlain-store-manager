@@ -458,7 +458,7 @@ export default function QRScannerModal({ open, onClose }: Props) {
 
             {/* Video stream barcode scan (all platforms — iOS uses BarcodeDetector polyfill) */}
             {mode === "scan" && (
-              <div style={{ position: "relative", borderRadius: 12, overflow: "hidden", background: "#0c1a2e", aspectRatio: "4/3" }}>
+              <div style={{ position: "relative", borderRadius: 12, overflow: "hidden", background: "#050505", aspectRatio: "4/3" }}>
                 <video
                   ref={videoRef}
                   style={{ width: "100%", height: "100%", objectFit: "cover" }}
@@ -471,10 +471,10 @@ export default function QRScannerModal({ open, onClose }: Props) {
                   <div style={{ width: 200, height: 160, position: "relative" }}>
                     {/* Corner brackets */}
                     {[
-                      { top: 0, left: 0, borderTop: "2.5px solid #C9A55A", borderLeft: "2.5px solid #C9A55A" },
-                      { top: 0, right: 0, borderTop: "2.5px solid #C9A55A", borderRight: "2.5px solid #C9A55A" },
-                      { bottom: 0, left: 0, borderBottom: "2.5px solid #C9A55A", borderLeft: "2.5px solid #C9A55A" },
-                      { bottom: 0, right: 0, borderBottom: "2.5px solid #C9A55A", borderRight: "2.5px solid #C9A55A" },
+                      { top: 0, left: 0, borderTop: "2.5px solid #b5f23d", borderLeft: "2.5px solid #b5f23d" },
+                      { top: 0, right: 0, borderTop: "2.5px solid #b5f23d", borderRight: "2.5px solid #b5f23d" },
+                      { bottom: 0, left: 0, borderBottom: "2.5px solid #b5f23d", borderLeft: "2.5px solid #b5f23d" },
+                      { bottom: 0, right: 0, borderBottom: "2.5px solid #b5f23d", borderRight: "2.5px solid #b5f23d" },
                     ].map((s, i) => (
                       <div key={i} style={{ position: "absolute", width: 24, height: 24, ...s }} />
                     ))}
@@ -620,7 +620,7 @@ export default function QRScannerModal({ open, onClose }: Props) {
                   <div style={{ textAlign: "right", flexShrink: 0 }}>
                     <p style={{
                       fontSize: 20, fontWeight: 700, lineHeight: 1,
-                      color: found.quantity === 0 ? "#dc2626" : found.quantity <= 5 ? "#C9A55A" : "#0c1a2e",
+                      color: found.quantity === 0 ? "#dc2626" : found.quantity <= 5 ? "#b5f23d" : "#050505",
                     }}>{found.quantity}</p>
                     <p style={{ fontSize: 8, color: "#94a3b8", marginTop: 2 }}>tồn kho</p>
                   </div>

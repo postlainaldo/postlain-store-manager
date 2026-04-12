@@ -82,10 +82,10 @@ function Card({ children, gold }: { children: React.ReactNode; gold?: boolean })
     <div className="card-float" style={{
       background: gold
         ? t.isLight
-          ? "linear-gradient(135deg, rgba(201,165,90,0.10) 0%, rgba(255,255,255,0.95) 100%)"
-          : "linear-gradient(135deg, rgba(201,165,90,0.14) 0%, rgba(15,23,42,0.90) 100%)"
+          ? "linear-gradient(135deg, rgba(181,242,61,0.10) 0%, rgba(255,255,255,0.95) 100%)"
+          : "linear-gradient(135deg, rgba(181,242,61,0.14) 0%, rgba(15,23,42,0.90) 100%)"
         : t.cardBg,
-      border: `1px solid ${gold ? "rgba(201,165,90,0.28)" : t.cardBorder}`,
+      border: `1px solid ${gold ? "rgba(181,242,61,0.28)" : t.cardBorder}`,
       padding: "14px 16px",
     }}>{children}</div>
   );
@@ -567,10 +567,10 @@ export default function ReportPage() {
         >
           <div style={{
             width: 42, height: 42, borderRadius: 13,
-            background: "linear-gradient(135deg, rgba(201,165,90,0.18) 0%, rgba(201,165,90,0.06) 100%)",
-            border: "1px solid rgba(201,165,90,0.35)",
+            background: "linear-gradient(135deg, rgba(181,242,61,0.18) 0%, rgba(181,242,61,0.06) 100%)",
+            border: "1px solid rgba(181,242,61,0.35)",
             display: "flex", alignItems: "center", justifyContent: "center",
-            boxShadow: "0 4px 16px rgba(201,165,90,0.16)",
+            boxShadow: "0 4px 16px rgba(181,242,61,0.16)",
           }}>
             <ClipboardList size={18} color="var(--gold)" />
           </div>
@@ -593,13 +593,13 @@ export default function ReportPage() {
                 display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
                 padding: "12px 8px", cursor: "pointer", borderRadius: 14,
                 background: tab === t.key
-                  ? "linear-gradient(135deg, rgba(201,165,90,0.16) 0%, rgba(201,165,90,0.06) 100%)"
+                  ? "linear-gradient(135deg, rgba(181,242,61,0.16) 0%, rgba(181,242,61,0.06) 100%)"
                   : "rgba(255,255,255,0.82)",
                 backdropFilter: "blur(12px)",
                 WebkitBackdropFilter: "blur(12px)",
-                border: tab === t.key ? "1px solid rgba(201,165,90,0.42)" : "1px solid rgba(186,230,253,0.65)",
+                border: tab === t.key ? "1px solid rgba(181,242,61,0.42)" : "1px solid rgba(186,230,253,0.65)",
                 color: tab === t.key ? "var(--gold)" : "var(--text-secondary)",
-                boxShadow: tab === t.key ? "0 4px 20px rgba(201,165,90,0.16), inset 0 1px 0 rgba(255,255,255,0.8)" : "0 2px 8px rgba(12,26,46,0.05), inset 0 1px 0 rgba(255,255,255,0.7)",
+                boxShadow: tab === t.key ? "0 4px 20px rgba(181,242,61,0.16), inset 0 1px 0 rgba(255,255,255,0.8)" : "0 2px 8px rgba(12,26,46,0.05), inset 0 1px 0 rgba(255,255,255,0.7)",
                 fontFamily: "inherit",
               }}>
               <div style={{ display: "flex", alignItems: "center", gap: 5, fontWeight: 700, fontSize: 12 }}>

@@ -28,13 +28,13 @@ const STATUS_ORDER = [
 const STATUS_CFG: Record<CollectionStatus, { color: string; bg: string; icon: typeof CheckCircle2; vi: string }> = {
   [CollectionStatus.SKETCH]:     { color: "#9B88C4", bg: "rgba(155,136,196,0.10)", icon: Pencil,       vi: "Bản Thảo"  },
   [CollectionStatus.SAMPLING]:   { color: "#7A9EC0", bg: "rgba(122,158,192,0.10)", icon: Sparkles,     vi: "Đang Mẫu"  },
-  [CollectionStatus.PRODUCTION]: { color: "#C9A55A", bg: "rgba(201,165,90,0.10)",  icon: Clock,        vi: "Sản Xuất"  },
+  [CollectionStatus.PRODUCTION]: { color: "#b5f23d", bg: "rgba(181,242,61,0.10)",  icon: Clock,        vi: "Sản Xuất"  },
   [CollectionStatus.RELEASED]:   { color: "#7BAF6A", bg: "rgba(123,175,106,0.10)", icon: CheckCircle2, vi: "Đã Ra Mắt" },
   [CollectionStatus.ARCHIVED]:   { color: "#555",    bg: "rgba(85,85,85,0.10)",    icon: Archive,      vi: "Kết Thúc"  },
 };
 
 const GENDER_COLOR: Record<Gender, string> = {
-  [Gender.WOMEN]: "#C9A55A", [Gender.MEN]: "#7A9EC0", [Gender.KIDS]: "#7BAF6A", [Gender.UNISEX]: "#9B88C4",
+  [Gender.WOMEN]: "#b5f23d", [Gender.MEN]: "#7A9EC0", [Gender.KIDS]: "#7BAF6A", [Gender.UNISEX]: "#9B88C4",
 };
 
 function fmtDate(iso: string) {
@@ -66,10 +66,10 @@ export default function CollectionsPage() {
       <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.28 }} style={{ display: "flex", alignItems: "center", gap: 12 }}>
         <div style={{
           width: 42, height: 42, borderRadius: 13,
-          background: "linear-gradient(135deg, rgba(201,165,90,0.18) 0%, rgba(201,165,90,0.06) 100%)",
-          border: "1px solid rgba(201,165,90,0.35)",
+          background: "linear-gradient(135deg, rgba(181,242,61,0.18) 0%, rgba(181,242,61,0.06) 100%)",
+          border: "1px solid rgba(181,242,61,0.35)",
           display: "flex", alignItems: "center", justifyContent: "center",
-          boxShadow: "0 4px 16px rgba(201,165,90,0.16)",
+          boxShadow: "0 4px 16px rgba(181,242,61,0.16)",
           flexShrink: 0,
         }}>
           <Sparkles size={18} color="var(--gold)" />
@@ -106,7 +106,7 @@ export default function CollectionsPage() {
 
       {/* Filter pills */}
       <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
-        <button onClick={() => setFilter("all")} style={{ padding: "4px 12px", borderRadius: 6, border: "1px solid", borderColor: filter === "all" ? "rgba(201,165,90,0.4)" : "var(--border)", background: filter === "all" ? "rgba(201,165,90,0.10)" : "var(--bg-surface)", color: filter === "all" ? "var(--gold)" : "var(--text-muted)", fontSize: 9, letterSpacing: "0.12em", cursor: "pointer", fontFamily: "inherit" }}>Tất Cả</button>
+        <button onClick={() => setFilter("all")} style={{ padding: "4px 12px", borderRadius: 6, border: "1px solid", borderColor: filter === "all" ? "rgba(181,242,61,0.4)" : "var(--border)", background: filter === "all" ? "rgba(181,242,61,0.10)" : "var(--bg-surface)", color: filter === "all" ? "var(--gold)" : "var(--text-muted)", fontSize: 9, letterSpacing: "0.12em", cursor: "pointer", fontFamily: "inherit" }}>Tất Cả</button>
         {STATUS_ORDER.map(s => {
           const cfg = STATUS_CFG[s];
           const isA = filter === s;

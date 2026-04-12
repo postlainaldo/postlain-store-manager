@@ -35,7 +35,7 @@ export default function ThemeToggle({ size = 18 }: { size?: number }) {
     >
       {isLight
         ? <Moon size={size} style={{ color: "#1c1c1e" }} />
-        : <Sun  size={size} style={{ color: "#C9A55A" }} />
+        : <Sun  size={size} style={{ color: "#b5f23d" }} />
       }
     </button>
   );

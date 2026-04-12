@@ -207,7 +207,7 @@ function TemplateForm({ initial, onSave, onClose }: {
           <div style={{ display:"flex", gap:5, flexWrap:"wrap" }}>
             {PRESET_COLORS.map(c => (
               <button key={c} onClick={()=>setColor(c)}
-                style={{ width:22, height:22, borderRadius:6, background:c, border:`2px solid ${color===c?"#0c1a2e":"transparent"}`, cursor:"pointer" }} />
+                style={{ width:22, height:22, borderRadius:6, background:c, border:`2px solid ${color===c?"#b5f23d":"transparent"}`, cursor:"pointer" }} />
             ))}
           </div>
         </div>
@@ -529,7 +529,7 @@ function AddSlotModal({ templates, date, onSave, onClose }: {
             <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
               {PRESET_COLORS.map(c => (
                 <button key={c} onClick={()=>setColor(c)}
-                  style={{ width:22, height:22, borderRadius:6, background:c, border:`2px solid ${color===c?"#0c1a2e":"transparent"}`, cursor:"pointer" }} />
+                  style={{ width:22, height:22, borderRadius:6, background:c, border:`2px solid ${color===c?"#b5f23d":"transparent"}`, cursor:"pointer" }} />
               ))}
             </div>
             <div style={{ display:"flex", alignItems:"center", gap:6 }}>
@@ -752,16 +752,16 @@ function ShiftNoteWidget({ currentUser, isAdmin }: { currentUser: AppUser | null
           position: "fixed",
           bottom: "calc(72px + env(safe-area-inset-bottom, 0px))",
           right: 16, width: 46, height: 46, borderRadius: "50%",
-          background: "linear-gradient(135deg,#0c1a2e,#1e3a5f)",
-          border: "2px solid #C9A55A", cursor: "pointer",
+          background: "linear-gradient(135deg,#0a0a0a,#1a1a1a)",
+          border: "2px solid #b5f23d", cursor: "pointer",
           display: "flex", alignItems: "center", justifyContent: "center",
-          boxShadow: "0 4px 16px rgba(12,26,46,0.30)", zIndex: 180,
+          boxShadow: "0 4px 16px rgba(0,0,0,0.50), 0 0 12px rgba(181,242,61,0.15)", zIndex: 180,
           transition: "transform 0.18s",
         }}
         onMouseEnter={e => (e.currentTarget.style.transform = "scale(1.08)")}
         onMouseLeave={e => (e.currentTarget.style.transform = "scale(1)")}
       >
-        <MessageCircle size={18} style={{ color: "#C9A55A" }} />
+        <MessageCircle size={18} style={{ color: "#b5f23d" }} />
         {totalBadge > 0 && (
           <div style={{
             position: "absolute", top: -4, right: -4,
@@ -790,19 +790,19 @@ function ShiftNoteWidget({ currentUser, isAdmin }: { currentUser: AppUser | null
               height: 460,
               borderRadius: 18,
               background: "var(--bg-card)",
-              boxShadow: "0 16px 48px rgba(12,26,46,0.22), 0 2px 8px rgba(12,26,46,0.08)",
-              border: "1px solid rgba(201,165,90,0.3)",
+              boxShadow: "0 16px 48px rgba(0,0,0,0.50), 0 0 20px rgba(181,242,61,0.06)",
+              border: "1px solid rgba(181,242,61,0.22)",
               display: "flex", flexDirection: "column",
               zIndex: 179, overflow: "hidden",
             }}
           >
             {/* Header */}
-            <div style={{ padding: "12px 14px 0", background: "linear-gradient(135deg,#0c1a2e,#1e3a5f)", flexShrink: 0 }}>
+            <div style={{ padding: "12px 14px 0", background: "linear-gradient(135deg,#0a0a0a,#111111)", flexShrink: 0 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-                <MessageCircle size={14} style={{ color: "#C9A55A", flexShrink: 0 }} />
+                <MessageCircle size={14} style={{ color: "#b5f23d", flexShrink: 0 }} />
                 <div style={{ flex: 1 }}>
                   <p style={{ fontSize: 12, fontWeight: 700, color: "#fff", margin: 0 }}>Ghi chú & Yêu cầu</p>
-                  <p style={{ fontSize: 9, color: "rgba(201,165,90,0.6)", margin: 0 }}>Lịch làm việc · POSTLAIN</p>
+                  <p style={{ fontSize: 9, color: "rgba(181,242,61,0.55)", margin: 0 }}>Lịch làm việc · POSTLAIN</p>
                 </div>
                 <button onClick={() => setOpen(false)} style={{ background: "none", border: "none", cursor: "pointer", padding: 2 }}>
                   <X size={14} style={{ color: "#64748b" }} />
@@ -814,13 +814,13 @@ function ShiftNoteWidget({ currentUser, isAdmin }: { currentUser: AppUser | null
                   <button key={key} onClick={() => setTab(key)}
                     style={{
                       flex: 1, height: 30, borderRadius: 8, border: "none",
-                      background: tab === key ? "rgba(201,165,90,0.18)" : "rgba(255,255,255,0.06)",
+                      background: tab === key ? "rgba(181,242,61,0.12)" : "rgba(255,255,255,0.06)",
                       cursor: "pointer", fontFamily: "inherit",
                       display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
                       transition: "all 0.15s",
                     }}>
-                    <Icon size={11} style={{ color: tab === key ? "#C9A55A" : "#64748b" }} />
-                    <span style={{ fontSize: 10, fontWeight: 700, color: tab === key ? "#C9A55A" : "#64748b" }}>{label}</span>
+                    <Icon size={11} style={{ color: tab === key ? "#b5f23d" : "#64748b" }} />
+                    <span style={{ fontSize: 10, fontWeight: 700, color: tab === key ? "#b5f23d" : "#64748b" }}>{label}</span>
                     {key === "requests" && isAdmin && pendingCount > 0 && (
                       <span style={{ fontSize: 7, fontWeight: 800, color: "#fff", background: "#d97706", padding: "1px 5px", borderRadius: 10 }}>{pendingCount}</span>
                     )}
@@ -850,8 +850,8 @@ function ShiftNoteWidget({ currentUser, isAdmin }: { currentUser: AppUser | null
                       <div key={m.id} style={{ display: "flex", flexDirection: "column", alignItems: isMine ? "flex-end" : "flex-start" }}>
                         {!isMine && (
                           <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 3 }}>
-                            <div style={{ width: 18, height: 18, borderRadius: "50%", background: "linear-gradient(135deg,#0c1a2e,#1e3a5f)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                              <span style={{ fontSize: 7, fontWeight: 700, color: "#C9A55A" }}>{m.userName[0]?.toUpperCase()}</span>
+                            <div style={{ width: 18, height: 18, borderRadius: "50%", background: "linear-gradient(135deg,#0a0a0a,#1a1a1a)", border: "1px solid rgba(181,242,61,0.30)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                              <span style={{ fontSize: 7, fontWeight: 700, color: "#b5f23d" }}>{m.userName[0]?.toUpperCase()}</span>
                             </div>
                             <span style={{ fontSize: 9, fontWeight: 600, color: "#64748b" }}>{m.userName}</span>
                           </div>
@@ -859,7 +859,7 @@ function ShiftNoteWidget({ currentUser, isAdmin }: { currentUser: AppUser | null
                         <div style={{
                           maxWidth: "85%", padding: "7px 11px",
                           borderRadius: isMine ? "12px 12px 4px 12px" : "12px 12px 12px 4px",
-                          background: isMine ? "linear-gradient(135deg,#0c1a2e,#1e3a5f)" : "#f1f5f9",
+                          background: isMine ? "linear-gradient(135deg,#111111,#1a1a1a)" : "var(--bg-elevated)",
                           color: isMine ? "#fff" : "var(--text-primary)", fontSize: 11, lineHeight: 1.4, wordBreak: "break-word",
                         }}>{m.content}</div>
                         <span style={{ fontSize: 8, color: "#cbd5e1", marginTop: 2 }}>{formatTime(m.createdAt)}</span>
@@ -874,8 +874,8 @@ function ShiftNoteWidget({ currentUser, isAdmin }: { currentUser: AppUser | null
                     placeholder={isAdmin ? "Phản hồi nhân viên..." : "Trao đổi nhanh với admin..."}
                     rows={2} style={{ flex: 1, borderRadius: 10, border: "1px solid #e2e8f0", padding: "8px 10px", fontSize: 16, fontFamily: "inherit", outline: "none", resize: "none", color: "var(--text-primary)", background: "var(--bg-card)", lineHeight: 1.4 }} />
                   <button onClick={handleSend} disabled={!text.trim() || sending}
-                    style={{ width: 36, height: 36, borderRadius: 10, border: "none", flexShrink: 0, background: text.trim() ? "linear-gradient(135deg,#0c1a2e,#1e3a5f)" : "#f1f5f9", cursor: text.trim() ? "pointer" : "default", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <Send size={14} style={{ color: text.trim() ? "#C9A55A" : "#cbd5e1" }} />
+                    style={{ width: 36, height: 36, borderRadius: 10, border: "none", flexShrink: 0, background: text.trim() ? "#b5f23d" : "rgba(255,255,255,0.06)", cursor: text.trim() ? "pointer" : "default", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <Send size={14} style={{ color: text.trim() ? "#050505" : "#64748b" }} />
                   </button>
                 </div>
               </>
@@ -901,7 +901,7 @@ function ShiftNoteWidget({ currentUser, isAdmin }: { currentUser: AppUser | null
                       placeholder="Mô tả yêu cầu của bạn..." rows={2}
                       style={{ borderRadius: 8, border: "1px solid #bae6fd", padding: "7px 9px", fontSize: 16, fontFamily: "inherit", resize: "none", color: "var(--text-primary)", background: "var(--bg-card)", outline: "none", lineHeight: 1.4 }} />
                     <button onClick={handleSubmitRequest} disabled={!reqContent.trim() || submitting}
-                      style={{ height: 32, borderRadius: 8, border: "none", background: reqContent.trim() ? "linear-gradient(135deg,#0c1a2e,#1e3a5f)" : "rgba(255,255,255,0.10)", color: reqContent.trim() ? "#C9A55A" : "#94a3b8", fontSize: 11, fontWeight: 700, cursor: reqContent.trim() ? "pointer" : "default", fontFamily: "inherit" }}>
+                      style={{ height: 32, borderRadius: 8, border: "none", background: reqContent.trim() ? "#b5f23d" : "rgba(255,255,255,0.06)", color: reqContent.trim() ? "#050505" : "#64748b", fontSize: 11, fontWeight: 700, cursor: reqContent.trim() ? "pointer" : "default", fontFamily: "inherit" }}>
                       {submitting ? "Đang gửi..." : "Gửi yêu cầu"}
                     </button>
                   </div>
@@ -990,7 +990,7 @@ function ShiftNoteWidget({ currentUser, isAdmin }: { currentUser: AppUser | null
                             style={{ borderRadius: 6, border: "1px solid #e2e8f0", padding: "5px 8px", fontSize: 16, fontFamily: "inherit", outline: "none", color: "var(--text-primary)" }} />
                           <div style={{ display: "flex", gap: 5 }}>
                             <button onClick={saveEditReq}
-                              style={{ flex: 1, height: 40, borderRadius: 6, border: "none", background: "linear-gradient(135deg,#0c1a2e,#1e3a5f)", color: "#C9A55A", fontSize: 10, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                              style={{ flex: 1, height: 40, borderRadius: 6, border: "none", background: "#b5f23d", color: "#050505", fontSize: 10, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
                               Lưu
                             </button>
                             <button onClick={() => setEditingReqId(null)}
@@ -1318,7 +1318,7 @@ export default function SchedulePage() {
           <div>
             <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:2 }}>
               <p style={{ fontSize:9, fontWeight:700, color:"#94a3b8", letterSpacing:"0.2em" }}>LỊCH LÀM · POSTLAIN</p>
-              <span style={{ fontSize:9, fontWeight:800, color:"#fff", background:"#0c1a2e", padding:"1px 7px", borderRadius:5, letterSpacing:"0.08em" }}>
+              <span style={{ fontSize:9, fontWeight:800, color:"#050505", background:"#b5f23d", padding:"1px 7px", borderRadius:5, letterSpacing:"0.08em" }}>
                 W{String(weekNum).padStart(3,"0")}
               </span>
             </div>
@@ -1699,8 +1699,8 @@ export default function SchedulePage() {
               {staffSchedule.map(({ uid, name, role, slots: mySlots }) => (
                 <div key={uid} style={{ background: "var(--bg-card)", borderRadius:12, border:"1px solid #e0f2fe", padding:"10px 14px" }}>
                   <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom: mySlots.length > 0 ? 8 : 0 }}>
-                    <div style={{ width:32, height:32, borderRadius:"50%", background:"linear-gradient(135deg,#0c1a2e,#1e3a5f)", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
-                      <span style={{ fontSize:11, fontWeight:700, color:"#C9A55A" }}>{name[0]?.toUpperCase()}</span>
+                    <div style={{ width:32, height:32, borderRadius:"50%", background:"linear-gradient(135deg,#0a0a0a,#1a1a1a)", border:"1.5px solid rgba(181,242,61,0.35)", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+                      <span style={{ fontSize:11, fontWeight:700, color:"#b5f23d" }}>{name[0]?.toUpperCase()}</span>
                     </div>
                     <div style={{ flex:1 }}>
                       <p style={{ fontSize:12, fontWeight:600, color: "var(--text-primary)" }}>{name}</p>
@@ -1751,8 +1751,8 @@ export default function SchedulePage() {
                   <div key={uid} style={{ display:"grid", gridTemplateColumns:"150px repeat(7,minmax(60px,1fr))", gap:4, alignItems:"start", padding:"6px 0", borderBottom:"1px solid #f1f5f9" }}>
                     <div style={{ display:"flex", alignItems:"center", gap:7, paddingRight:8 }}>
                       <div style={{ position:"relative", flexShrink:0 }}>
-                        <div style={{ width:28,height:28,borderRadius:"50%",background:"linear-gradient(135deg,#0c1a2e,#1e3a5f)",display:"flex",alignItems:"center",justifyContent:"center" }}>
-                          <span style={{ fontSize:10,fontWeight:700,color:"#C9A55A" }}>{name.slice(0,1).toUpperCase()}</span>
+                        <div style={{ width:28,height:28,borderRadius:"50%",background:"linear-gradient(135deg,#0a0a0a,#1a1a1a)",border:"1.5px solid rgba(181,242,61,0.30)",display:"flex",alignItems:"center",justifyContent:"center" }}>
+                          <span style={{ fontSize:10,fontWeight:700,color:"#b5f23d" }}>{name.slice(0,1).toUpperCase()}</span>
                         </div>
                         {shiftCount > 0 && (
                           <div style={{ position:"absolute",bottom:-2,right:-2,width:14,height:14,borderRadius:"50%",background:"#10b981",border:"1.5px solid #fff",display:"flex",alignItems:"center",justifyContent:"center" }}>
@@ -1803,7 +1803,7 @@ export default function SchedulePage() {
             { code:"PCU",  label:"Paternity Leave",         color:"#8b5cf6" },
             { code:"UL",   label:"Nghỉ không lương",       color:"#ef4444" },
             { code:"OIL",  label:"Nghỉ bù",                color:"#06b6d4" },
-            { code:"BT",   label:"Đi công tác",            color:"#C9A55A" },
+            { code:"BT",   label:"Đi công tác",            color:"#b5f23d" },
             { code:"MML",  label:"Thai sản (nam)",          color:"#10b981" },
             { code:"CSL",  label:"Nghỉ con bệnh",          color:"#f97316" },
             { code:"CML",  label:"Nghỉ cưới con",          color:"#ec4899" },
@@ -1867,7 +1867,7 @@ export default function SchedulePage() {
                 }
                 playSound("tap");
               }}
-              style={{ height: 34, padding: "0 12px", borderRadius: 9, border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.06)", cursor: "pointer", fontSize: 11, fontWeight: 600, color: selectedSlotIds.size === filteredSlots.length ? "#C9A55A" : "#94a3b8", fontFamily: "inherit", whiteSpace: "nowrap" }}>
+              style={{ height: 34, padding: "0 12px", borderRadius: 9, border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.06)", cursor: "pointer", fontSize: 11, fontWeight: 600, color: selectedSlotIds.size === filteredSlots.length ? "#b5f23d" : "#94a3b8", fontFamily: "inherit", whiteSpace: "nowrap" }}>
               {selectedSlotIds.size === filteredSlots.length ? "Bỏ tất cả" : "Chọn tất cả"}
             </button>
             {selectedSlotIds.size > 0 && selectedSlotIds.size < filteredSlots.length && (

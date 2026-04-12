@@ -101,7 +101,7 @@ export default function AdminNotifyPanel() {
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 10 }}>
           <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", fontSize: 10, color: "#64748b" }}>
             <input type="checkbox" checked={form.pinned} onChange={e => setForm(v => ({ ...v, pinned: e.target.checked }))} />
-            <Pin size={10} style={{ color: "#C9A55A" }} />
+            <Pin size={10} style={{ color: "#b5f23d" }} />
             Ghim thông báo
           </label>
 
@@ -133,14 +133,14 @@ export default function AdminNotifyPanel() {
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                   <p style={{ fontSize: 11, fontWeight: 700, color: "var(--text-primary)" }}>{n.title}</p>
-                  {n.pinned === 1 && <Pin size={8} style={{ color: "#C9A55A" }} />}
+                  {n.pinned === 1 && <Pin size={8} style={{ color: "#b5f23d" }} />}
                 </div>
                 <p style={{ fontSize: 11, color: "#64748b", marginTop: 2, lineHeight: 1.4 }}>{n.body}</p>
               </div>
               <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
                 <button onClick={() => handlePin(n.id, n.pinned)}
-                  style={{ width: 36, height: 36, borderRadius: 8, border: `1px solid ${n.pinned ? "rgba(201,165,90,0.45)" : "var(--border)"}`, background: n.pinned ? "rgba(201,165,90,0.10)" : "rgba(255,255,255,0.06)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
-                  <Pin size={12} style={{ color: n.pinned ? "#C9A55A" : "var(--text-muted)" }} />
+                  style={{ width: 36, height: 36, borderRadius: 8, border: `1px solid ${n.pinned ? "rgba(181,242,61,0.45)" : "var(--border)"}`, background: n.pinned ? "rgba(181,242,61,0.10)" : "rgba(255,255,255,0.06)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+                  <Pin size={12} style={{ color: n.pinned ? "#b5f23d" : "var(--text-muted)" }} />
                 </button>
                 <button onClick={() => handleDelete(n.id)}
                   style={{ width: 36, height: 36, borderRadius: 8, border: "1px solid rgba(220,38,38,0.2)", background: "rgba(220,38,38,0.04)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>

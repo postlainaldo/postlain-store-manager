@@ -47,7 +47,7 @@ type Member = {
 type ChatToast = { id: string; roomName: string; msgPreview: string };
 
 const ROLE_CFG: Record<string, { color: string; icon: typeof User }> = {
-  admin:   { color: "#C9A55A", icon: Crown },
+  admin:   { color: "#b5f23d", icon: Crown },
   manager: { color: "#0ea5e9", icon: UserCheck },
   staff:   { color: "#64748b", icon: User },
 };
@@ -314,7 +314,7 @@ function MsgBubble({ msg, isMe, showHeader, members, onDelete, onRevoke, onReply
                   {hoveredReaction === emoji && (
                     <div style={{
                       position: "absolute", bottom: "calc(100% + 4px)", left: 0,
-                      background: "#0c1a2e", color: "#fff", borderRadius: 8, padding: "5px 8px",
+                      background: "#050505", color: "#fff", borderRadius: 8, padding: "5px 8px",
                       fontSize: 9.5, whiteSpace: "nowrap", zIndex: 20,
                       boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
                       pointerEvents: "none",
@@ -1132,12 +1132,12 @@ export default function ChatPage() {
                       margin: "1px 8px", padding: isMobile ? "10px 10px" : "6px 8px",
                       cursor: "pointer", display: "flex", alignItems: "center", gap: 8,
                       borderRadius: 6,
-                      background: isActive ? "rgba(201,165,90,0.08)" : "transparent",
-                      borderLeft: isActive ? "2px solid #C9A55A" : "2px solid transparent",
+                      background: isActive ? "rgba(181,242,61,0.08)" : "transparent",
+                      borderLeft: isActive ? "2px solid #b5f23d" : "2px solid transparent",
                       transition: "background 0.1s, border-color 0.1s",
                     }}
-                    onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = "rgba(201,165,90,0.05)"; }}
-                    onMouseLeave={e => { e.currentTarget.style.background = isActive ? "rgba(201,165,90,0.08)" : "transparent"; }}
+                    onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = "rgba(181,242,61,0.05)"; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = isActive ? "rgba(181,242,61,0.08)" : "transparent"; }}
                   >
                     {isMobile
                       ? <div style={{ width: 38, height: 38, borderRadius: "50%", background: isDM ? "linear-gradient(135deg,#6366f1,#818cf8)" : "rgba(99,102,241,0.25)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
@@ -1146,17 +1146,17 @@ export default function ChatPage() {
                       : <>
                           {room.icon
                             ? <span style={{ fontSize: 14, flexShrink: 0 }}>{room.icon}</span>
-                            : <Icon size={16} style={{ color: isActive ? "#C9A55A" : "#94a3b8", flexShrink: 0 }} />
+                            : <Icon size={16} style={{ color: isActive ? "#b5f23d" : "#94a3b8", flexShrink: 0 }} />
                           }
                         </>
                     }
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ fontSize: 13, color: isActive ? "#0c1a2e" : "var(--text-secondary)", fontWeight: isActive || unread > 0 ? 600 : 400, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", transition: "color 0.1s" }}>
+                      <p style={{ fontSize: 13, color: isActive ? "#050505" : "var(--text-secondary)", fontWeight: isActive || unread > 0 ? 600 : 400, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", transition: "color 0.1s" }}>
                         {room.name}
                       </p>
                     </div>
                     {unread > 0 && (
-                      <div style={{ minWidth: 18, height: 18, borderRadius: 9, background: "#C9A55A", display: "flex", alignItems: "center", justifyContent: "center", padding: "0 4px", flexShrink: 0 }}>
+                      <div style={{ minWidth: 18, height: 18, borderRadius: 9, background: "#b5f23d", display: "flex", alignItems: "center", justifyContent: "center", padding: "0 4px", flexShrink: 0 }}>
                         <span style={{ fontSize: 8, fontWeight: 800, color: "#fff" }}>{unread > 99 ? "99+" : unread}</span>
                       </div>
                     )}
@@ -1410,9 +1410,9 @@ export default function ChatPage() {
             boxShadow: "0 4px 20px rgba(12,26,46,0.08), inset 0 1px 0 rgba(255,255,255,0.9)",
           }}>
             {replyTo && (
-              <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: "rgba(201,165,90,0.06)", borderBottom: "1px solid rgba(201,165,90,0.2)" }}>
-                <Reply size={11} style={{ color: "#C9A55A", flexShrink: 0 }} />
-                <span style={{ fontSize: 10, fontWeight: 700, color: "#C9A55A" }}>Trả lời</span>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: "rgba(181,242,61,0.06)", borderBottom: "1px solid rgba(181,242,61,0.2)" }}>
+                <Reply size={11} style={{ color: "#b5f23d", flexShrink: 0 }} />
+                <span style={{ fontSize: 10, fontWeight: 700, color: "#b5f23d" }}>Trả lời</span>
                 <span style={{ fontSize: 10, fontWeight: 600, color: "var(--text-primary)" }}>{replyTo.userName}</span>
                 <span style={{ fontSize: 10, color: "#64748b", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {replyTo.mediaType === "image" ? "📷 Ảnh" : replyTo.mediaType === "file" ? "📎 File" : replyTo.content}
@@ -1450,7 +1450,7 @@ export default function ChatPage() {
                 onClick={handleSend}
                 disabled={(!input.trim() && !pendingFile) || sending || uploading || !activeRoom}
                 title="Gửi (Enter)"
-                style={{ width: 34, height: 34, borderRadius: 7, border: "none", flexShrink: 0, marginBottom: 2, background: (input.trim() || pendingFile) && activeRoom ? "linear-gradient(135deg,#C9A55A,#e8c97a)" : "transparent", boxShadow: (input.trim() || pendingFile) && activeRoom ? "0 2px 12px rgba(201,165,90,0.45)" : "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: (input.trim() || pendingFile) && activeRoom ? "pointer" : "default", transition: "background 0.1s, box-shadow 0.1s" }}
+                style={{ width: 34, height: 34, borderRadius: 7, border: "none", flexShrink: 0, marginBottom: 2, background: (input.trim() || pendingFile) && activeRoom ? "#b5f23d" : "transparent", boxShadow: (input.trim() || pendingFile) && activeRoom ? "0 2px 12px rgba(181,242,61,0.45)" : "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: (input.trim() || pendingFile) && activeRoom ? "pointer" : "default", transition: "background 0.1s, box-shadow 0.1s" }}
               >
                 {uploading
                   ? <div style={{ width: 13, height: 13, borderRadius: "50%", border: "2px solid #fff", borderTopColor: "transparent", animation: "spin 0.6s linear infinite" }} />
@@ -1491,7 +1491,7 @@ export default function ChatPage() {
                   {activeRoom.icon
                     ? <span style={{ fontSize: 28 }}>{activeRoom.icon}</span>
                     : activeRoom.type === "announce"
-                      ? <Megaphone size={26} style={{ color: "#C9A55A" }} />
+                      ? <Megaphone size={26} style={{ color: "#b5f23d" }} />
                       : <Hash size={26} style={{ color: "#6366f1" }} />
                   }
                 </div>
@@ -1516,9 +1516,9 @@ export default function ChatPage() {
                   <div style={{ marginBottom: 10 }}>
                     <p style={{ fontSize: 9, color: "#94a3b8", marginBottom: 6 }}>Màu nền (tin nhắn admin)</p>
                     <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                      {["", "#0ea5e9", "#8b5cf6", "#10b981", "#f59e0b", "#ef4444", "#ec4899", "#0c1a2e"].map(c => (
+                      {["", "#0ea5e9", "#8b5cf6", "#10b981", "#f59e0b", "#ef4444", "#ec4899", "#050505"].map(c => (
                         <button key={c || "none"} onClick={() => setRoomSettingsColor(c)}
-                          style={{ width: 24, height: 24, borderRadius: "50%", border: roomSettingsColor === c ? "2.5px solid #C9A55A" : "1.5px solid rgba(186,230,253,0.6)", background: c || "var(--bg-base)", cursor: "pointer", flexShrink: 0 }} />
+                          style={{ width: 24, height: 24, borderRadius: "50%", border: roomSettingsColor === c ? "2.5px solid #b5f23d" : "1.5px solid rgba(186,230,253,0.6)", background: c || "var(--bg-base)", cursor: "pointer", flexShrink: 0 }} />
                       ))}
                     </div>
                   </div>

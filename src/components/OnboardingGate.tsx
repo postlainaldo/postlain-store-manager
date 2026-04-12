@@ -35,7 +35,7 @@ function ProfileField({ label, value, onChange, placeholder, type = "text" }: {
           outline: "none", fontFamily: "inherit", color: "#0f172a",
           transition: "border-color 0.15s, background 0.15s",
         }}
-        onFocus={e => { e.currentTarget.style.borderColor = "#C9A55A"; e.currentTarget.style.background = "#fff"; }}
+        onFocus={e => { e.currentTarget.style.borderColor = "#b5f23d"; e.currentTarget.style.background = "#fff"; }}
         onBlur={e => {
           e.currentTarget.style.borderColor = e.currentTarget.value.trim() ? "#e2e8f0" : "#fca5a5";
           e.currentTarget.style.background = e.currentTarget.value.trim() ? "#f8fafc" : "#fff5f5";
@@ -108,7 +108,7 @@ function StepProfile({ user, onDone }: { user: AppUser; onDone: (updated: Partia
         disabled={hasAnyMissing || saving}
         style={{
           padding: "13px", borderRadius: 12, border: "none",
-          background: !hasAnyMissing ? "linear-gradient(135deg, #C9A55A, #a07c3a)" : "#e2e8f0",
+          background: !hasAnyMissing ? "linear-gradient(135deg, #b5f23d, #a07c3a)" : "#e2e8f0",
           color: !hasAnyMissing ? "#fff" : "#94a3b8",
           fontSize: 12, fontWeight: 800,
           cursor: !hasAnyMissing && !saving ? "pointer" : "not-allowed",
@@ -185,9 +185,9 @@ function StepInstall({ onDone }: { onDone: () => void }) {
           <button key={p} onClick={() => setPlatform(p)}
             style={{
               flex: 1, padding: "8px 4px", borderRadius: 10,
-              border: `1.5px solid ${platform === p ? "#C9A55A" : "#e2e8f0"}`,
-              background: platform === p ? "rgba(201,165,90,0.08)" : "#f8fafc",
-              color: platform === p ? "#C9A55A" : "#64748b",
+              border: `1.5px solid ${platform === p ? "#b5f23d" : "#e2e8f0"}`,
+              background: platform === p ? "rgba(181,242,61,0.08)" : "#f8fafc",
+              color: platform === p ? "#b5f23d" : "#64748b",
               fontSize: 10, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
             }}>
             {p === "android" ? "Android" : p === "ios" ? "iOS" : "Máy tính"}
@@ -202,10 +202,10 @@ function StepInstall({ onDone }: { onDone: () => void }) {
             <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
               <div style={{
                 width: 22, height: 22, borderRadius: "50%", flexShrink: 0,
-                background: "rgba(201,165,90,0.12)", border: "1.5px solid rgba(201,165,90,0.3)",
+                background: "rgba(181,242,61,0.12)", border: "1.5px solid rgba(181,242,61,0.3)",
                 display: "flex", alignItems: "center", justifyContent: "center",
               }}>
-                <span style={{ fontSize: 10, fontWeight: 800, color: "#C9A55A" }}>{i + 1}</span>
+                <span style={{ fontSize: 10, fontWeight: 800, color: "#b5f23d" }}>{i + 1}</span>
               </div>
               <p style={{ fontSize: 11, color: "#334155", margin: 0, lineHeight: 1.6, paddingTop: 2 }}>{s}</p>
             </div>
@@ -263,7 +263,7 @@ function StepInstall({ onDone }: { onDone: () => void }) {
           disabled={!installed}
           style={{
             padding: "13px", borderRadius: 12, border: "none",
-            background: installed ? "linear-gradient(135deg, #C9A55A, #a07c3a)" : "#e2e8f0",
+            background: installed ? "linear-gradient(135deg, #b5f23d, #a07c3a)" : "#e2e8f0",
             color: installed ? "#fff" : "#94a3b8",
             fontSize: 12, fontWeight: 800,
             cursor: installed ? "pointer" : "not-allowed",
@@ -423,7 +423,7 @@ function StepNotify({ userId, onDone }: { userId: string; onDone: () => void }) 
         <motion.button whileTap={{ scale: 0.97 }} onClick={onDone}
           style={{
             padding: "13px", borderRadius: 12, border: "none",
-            background: "linear-gradient(135deg, #C9A55A, #a07c3a)",
+            background: "linear-gradient(135deg, #b5f23d, #a07c3a)",
             color: "#fff", fontSize: 12, fontWeight: 800,
             cursor: "pointer", fontFamily: "inherit",
             display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
@@ -511,7 +511,7 @@ export default function OnboardingGate({ children }: { children: React.ReactNode
 
   const STEP_META: Record<NonNullable<GateStep>, { label: string; icon: React.ReactNode; color: string; num: number; total: number }> = {
     profile: { label: "Thông tin cá nhân", icon: <UserCircle size={20} style={{ color: "#0ea5e9" }} />, color: "#0ea5e9", num: 1, total: 3 },
-    install: { label: "Cài ứng dụng",      icon: <Smartphone size={20} style={{ color: "#C9A55A" }} />, color: "#C9A55A", num: 2, total: 3 },
+    install: { label: "Cài ứng dụng",      icon: <Smartphone size={20} style={{ color: "#b5f23d" }} />, color: "#b5f23d", num: 2, total: 3 },
     notify:  { label: "Bật thông báo",     icon: <Bell size={20} style={{ color: "#7c3aed" }} />,        color: "#7c3aed", num: 3, total: 3 },
   };
   const meta = STEP_META[step];
@@ -565,7 +565,7 @@ export default function OnboardingGate({ children }: { children: React.ReactNode
                   <p style={{ fontSize: 9, fontWeight: 700, color: "#94a3b8", margin: 0, letterSpacing: 1, textTransform: "uppercase" }}>
                     Bắt buộc · Bước {meta.num}/{meta.total}
                   </p>
-                  <p style={{ fontSize: 15, fontWeight: 800, color: "#0c1a2e", margin: 0 }}>{meta.label}</p>
+                  <p style={{ fontSize: 15, fontWeight: 800, color: "#050505", margin: 0 }}>{meta.label}</p>
                 </div>
               </div>
             </div>

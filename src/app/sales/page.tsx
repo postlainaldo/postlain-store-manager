@@ -85,10 +85,10 @@ export default function SalesPage() {
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <div style={{
               width: 42, height: 42, borderRadius: 13,
-              background: "linear-gradient(135deg, rgba(201,165,90,0.18) 0%, rgba(201,165,90,0.06) 100%)",
-              border: "1px solid rgba(201,165,90,0.35)",
+              background: "linear-gradient(135deg, rgba(181,242,61,0.18) 0%, rgba(181,242,61,0.06) 100%)",
+              border: "1px solid rgba(181,242,61,0.35)",
               display: "flex", alignItems: "center", justifyContent: "center",
-              boxShadow: "0 4px 16px rgba(201,165,90,0.16)",
+              boxShadow: "0 4px 16px rgba(181,242,61,0.16)",
               flexShrink: 0,
             }}>
               <ShoppingBag size={18} color="var(--gold)" />
@@ -102,8 +102,8 @@ export default function SalesPage() {
 
             <button onClick={syncPos} disabled={syncing} style={{
               display: "flex", alignItems: "center", gap: 6, padding: "7px 14px",
-              borderRadius: 8, background: "rgba(201,165,90,0.08)",
-              border: "1px solid rgba(201,165,90,0.3)",
+              borderRadius: 8, background: "rgba(181,242,61,0.08)",
+              border: "1px solid rgba(181,242,61,0.3)",
               color: "var(--gold)", fontSize: 13, cursor: syncing ? "default" : "pointer",
               opacity: syncing ? 0.7 : 1,
             }}>
@@ -135,7 +135,7 @@ export default function SalesPage() {
         {/* Stats row */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(100px, 1fr))", gap: 8, marginBottom: 28 }}>
           {[
-            { label: "Doanh thu", value: cur ? `${fmt(cur.totalRevenue)} ₫` : "—", icon: TrendingUp, color: "#C9A55A", accent: "linear-gradient(90deg,#C9A55A,#E2C07A)" },
+            { label: "Doanh thu", value: cur ? `${fmt(cur.totalRevenue)} ₫` : "—", icon: TrendingUp, color: "#b5f23d", accent: "linear-gradient(90deg,#b5f23d,#E2C07A)" },
             { label: "Số đơn", value: cur ? String(cur.orderCount) : "—", icon: Receipt, color: "#0ea5e9", accent: "linear-gradient(90deg,#0ea5e9,#38bdf8)" },
             { label: "Trung bình", value: cur ? `${fmt(cur.avgOrderValue)} ₫` : "—", icon: BarChart2, color: "#7c3aed", accent: "linear-gradient(90deg,#7c3aed,#a78bfa)" },
           ].map(({ label, value, icon: Icon, color, accent }) => (
@@ -235,8 +235,8 @@ export default function SalesPage() {
                     <div key={p.productName} style={{
                       display: "flex", alignItems: "center", gap: 10,
                       padding: "8px 14px", borderRadius: 8,
-                      background: i < 3 ? "rgba(201,165,90,0.06)" : "var(--bg-surface)",
-                      border: i < 3 ? "1px solid rgba(201,165,90,0.2)" : "1px solid var(--border)",
+                      background: i < 3 ? "rgba(181,242,61,0.06)" : "var(--bg-surface)",
+                      border: i < 3 ? "1px solid rgba(181,242,61,0.2)" : "1px solid var(--border)",
                     }}>
                       <span style={{ fontSize: 12, fontWeight: 700, color: i < 3 ? "var(--gold)" : "var(--text-muted)", width: 24, flexShrink: 0, textAlign: "center" }}>
                         #{i + 1}

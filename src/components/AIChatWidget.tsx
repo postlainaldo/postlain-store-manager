@@ -107,16 +107,16 @@ export default function AIChatWidget({ currentUser }: AIChatWidgetProps) {
           style={{
             width: 48, height: 48,
             borderRadius: "0 24px 24px 0",
-            border: "1.5px solid rgba(201,165,90,0.45)",
+            border: "1.5px solid rgba(181,242,61,0.45)",
             borderLeft: "none",
-            background: "linear-gradient(135deg, #0c1a2e 0%, #1a2e4a 100%)",
+            background: "linear-gradient(135deg, #050505 0%, #1a2e4a 100%)",
             boxShadow: "2px 4px 16px rgba(0,0,0,0.40)",
             cursor: "pointer",
             display: "flex", alignItems: "center", justifyContent: "center",
             WebkitTapHighlightColor: "transparent",
           }}
         >
-          <Sparkles size={18} style={{ color: "#C9A55A", filter: "drop-shadow(0 0 5px rgba(201,165,90,0.5))" }} />
+          <Sparkles size={18} style={{ color: "#b5f23d", filter: "drop-shadow(0 0 5px rgba(181,242,61,0.5))" }} />
         </button>
       </div>
 
@@ -135,8 +135,8 @@ export default function AIChatWidget({ currentUser }: AIChatWidgetProps) {
             width: "min(360px, calc(100vw - 24px))",
             height: "min(500px, calc(100dvh - 160px))",
             background: "linear-gradient(180deg, #0a0f1e 0%, #0c1220 100%)",
-            border: "1px solid rgba(201,165,90,0.20)",
-            boxShadow: "0 24px 64px rgba(0,0,0,0.65), inset 0 1px 0 rgba(201,165,90,0.12)",
+            border: "1px solid rgba(181,242,61,0.20)",
+            boxShadow: "0 24px 64px rgba(0,0,0,0.65), inset 0 1px 0 rgba(181,242,61,0.12)",
             animation: "slideInLeft 0.28s cubic-bezier(0.34,1.56,0.64,1)",
           }}
           className="md:bottom-6 md:left-6"
@@ -145,22 +145,22 @@ export default function AIChatWidget({ currentUser }: AIChatWidgetProps) {
           <div style={{
             display: "flex", alignItems: "center", justifyContent: "space-between",
             padding: "12px 14px",
-            borderBottom: "1px solid rgba(201,165,90,0.12)",
-            background: "rgba(201,165,90,0.04)",
+            borderBottom: "1px solid rgba(181,242,61,0.12)",
+            background: "rgba(181,242,61,0.04)",
             flexShrink: 0,
           }}>
             <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
               <div style={{
                 width: 30, height: 30, borderRadius: "50%",
-                background: "linear-gradient(135deg, #1a2e4a, #0c1a2e)",
-                border: "1.5px solid rgba(201,165,90,0.40)",
+                background: "linear-gradient(135deg, #1a2e4a, #050505)",
+                border: "1.5px solid rgba(181,242,61,0.40)",
                 display: "flex", alignItems: "center", justifyContent: "center",
               }}>
-                <Sparkles size={14} style={{ color: "#C9A55A" }} />
+                <Sparkles size={14} style={{ color: "#b5f23d" }} />
               </div>
               <div>
                 <div style={{ fontSize: 12, fontWeight: 700, color: "#e8d5a3" }}>Trợ lý AI</div>
-                <div style={{ fontSize: 9, color: "rgba(201,165,90,0.55)", marginTop: 1 }}>
+                <div style={{ fontSize: 9, color: "rgba(181,242,61,0.55)", marginTop: 1 }}>
                   POSTLAIN · {loading ? "Đang trả lời..." : "Sẵn sàng"}
                 </div>
               </div>
@@ -182,8 +182,8 @@ export default function AIChatWidget({ currentUser }: AIChatWidgetProps) {
             {messages.map((msg, i) => (
               <div key={i} style={{ display: "flex", justifyContent: msg.role === "user" ? "flex-end" : "flex-start", alignItems: "flex-end", gap: 7 }}>
                 {msg.role === "assistant" && (
-                  <div style={{ width: 22, height: 22, borderRadius: "50%", flexShrink: 0, background: "linear-gradient(135deg, #1a2e4a, #0c1a2e)", border: "1px solid rgba(201,165,90,0.35)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 2 }}>
-                    <Sparkles size={10} style={{ color: "#C9A55A" }} />
+                  <div style={{ width: 22, height: 22, borderRadius: "50%", flexShrink: 0, background: "linear-gradient(135deg, #1a2e4a, #050505)", border: "1px solid rgba(181,242,61,0.35)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 2 }}>
+                    <Sparkles size={10} style={{ color: "#b5f23d" }} />
                   </div>
                 )}
                 <div style={{
@@ -192,7 +192,7 @@ export default function AIChatWidget({ currentUser }: AIChatWidgetProps) {
                   fontSize: 12, lineHeight: 1.55, whiteSpace: "pre-wrap", wordBreak: "break-word",
                   ...(msg.role === "user"
                     ? { background: "linear-gradient(135deg,#1a3050,#0f2040)", color: "#d4e8ff", border: "1px solid rgba(100,160,255,0.20)" }
-                    : { background: "rgba(201,165,90,0.07)", color: "rgba(255,255,255,0.88)", border: "1px solid rgba(201,165,90,0.14)" }),
+                    : { background: "rgba(181,242,61,0.07)", color: "rgba(255,255,255,0.88)", border: "1px solid rgba(181,242,61,0.14)" }),
                 }}>
                   {msg.content}
                 </div>
@@ -200,12 +200,12 @@ export default function AIChatWidget({ currentUser }: AIChatWidgetProps) {
             ))}
             {loading && (
               <div style={{ display: "flex", alignItems: "flex-end", gap: 7 }}>
-                <div style={{ width: 22, height: 22, borderRadius: "50%", flexShrink: 0, background: "linear-gradient(135deg,#1a2e4a,#0c1a2e)", border: "1px solid rgba(201,165,90,0.35)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <Sparkles size={10} style={{ color: "#C9A55A" }} />
+                <div style={{ width: 22, height: 22, borderRadius: "50%", flexShrink: 0, background: "linear-gradient(135deg,#1a2e4a,#050505)", border: "1px solid rgba(181,242,61,0.35)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <Sparkles size={10} style={{ color: "#b5f23d" }} />
                 </div>
-                <div style={{ padding: "9px 13px", borderRadius: "14px 14px 14px 4px", background: "rgba(201,165,90,0.07)", border: "1px solid rgba(201,165,90,0.14)", display: "flex", gap: 4, alignItems: "center" }}>
+                <div style={{ padding: "9px 13px", borderRadius: "14px 14px 14px 4px", background: "rgba(181,242,61,0.07)", border: "1px solid rgba(181,242,61,0.14)", display: "flex", gap: 4, alignItems: "center" }}>
                   {[0,1,2].map(i => (
-                    <div key={i} style={{ width: 5, height: 5, borderRadius: "50%", background: "rgba(201,165,90,0.60)", animation: `dotBounce 1.2s ease-in-out ${i*0.2}s infinite` }} />
+                    <div key={i} style={{ width: 5, height: 5, borderRadius: "50%", background: "rgba(181,242,61,0.60)", animation: `dotBounce 1.2s ease-in-out ${i*0.2}s infinite` }} />
                   ))}
                 </div>
               </div>
@@ -223,14 +223,14 @@ export default function AIChatWidget({ currentUser }: AIChatWidgetProps) {
               placeholder="Nhập câu hỏi..."
               disabled={loading}
               style={{ flex: 1, fontSize: 12, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.10)", borderRadius: 10, padding: "8px 12px", color: "rgba(255,255,255,0.88)", outline: "none" }}
-              onFocus={e => (e.currentTarget.style.borderColor = "rgba(201,165,90,0.40)")}
+              onFocus={e => (e.currentTarget.style.borderColor = "rgba(181,242,61,0.40)")}
               onBlur={e => (e.currentTarget.style.borderColor = "rgba(255,255,255,0.10)")}
             />
             <button onClick={send} disabled={!input.trim() || loading}
-              style={{ width: 35, height: 35, borderRadius: "50%", flexShrink: 0, background: input.trim() && !loading ? "linear-gradient(135deg,#C9A55A,#a07830)" : "rgba(255,255,255,0.06)", border: "1px solid rgba(201,165,90,0.25)", cursor: input.trim() && !loading ? "pointer" : "default", display: "flex", alignItems: "center", justifyContent: "center", opacity: input.trim() && !loading ? 1 : 0.4 }}>
+              style={{ width: 35, height: 35, borderRadius: "50%", flexShrink: 0, background: input.trim() && !loading ? "linear-gradient(135deg,#b5f23d,#a07830)" : "rgba(255,255,255,0.06)", border: "1px solid rgba(181,242,61,0.25)", cursor: input.trim() && !loading ? "pointer" : "default", display: "flex", alignItems: "center", justifyContent: "center", opacity: input.trim() && !loading ? 1 : 0.4 }}>
               {loading
-                ? <Loader2 size={14} style={{ color: "#C9A55A", animation: "spin 1s linear infinite" }} />
-                : <Send size={13} style={{ color: input.trim() ? "#0c1a2e" : "rgba(255,255,255,0.4)" }} />
+                ? <Loader2 size={14} style={{ color: "#b5f23d", animation: "spin 1s linear infinite" }} />
+                : <Send size={13} style={{ color: input.trim() ? "#050505" : "rgba(255,255,255,0.4)" }} />
               }
             </button>
           </div>

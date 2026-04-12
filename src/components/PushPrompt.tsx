@@ -142,7 +142,7 @@ export default function PushPrompt() {
                   }}>
                     <Bell size={22} style={{ color: "#10b981" }} />
                   </div>
-                  <p style={{ fontSize: 13, fontWeight: 700, color: "#0c1a2e", textAlign: "center" }}>Đã bật thông báo!</p>
+                  <p style={{ fontSize: 13, fontWeight: 700, color: "#050505", textAlign: "center" }}>Đã bật thông báo!</p>
                   <p style={{ fontSize: 11, color: "#64748b", textAlign: "center" }}>Bạn sẽ nhận được cập nhật quan trọng từ POSTLAIN.</p>
                 </motion.div>
               ) : (
@@ -166,7 +166,7 @@ export default function PushPrompt() {
                       <Smartphone size={22} style={{ color: "#0ea5e9" }} />
                     </div>
                     <div>
-                      <p style={{ fontSize: 14, fontWeight: 800, color: "#0c1a2e", marginBottom: 5 }}>
+                      <p style={{ fontSize: 14, fontWeight: 800, color: "#050505", marginBottom: 5 }}>
                         Bật thông báo đẩy
                       </p>
                       <p style={{ fontSize: 11, color: "#64748b", lineHeight: 1.6 }}>

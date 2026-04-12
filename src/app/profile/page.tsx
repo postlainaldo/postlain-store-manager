@@ -53,7 +53,7 @@ const STATUS_CFG: Record<string, { label: string; color: string; group: string }
   PCU: { label: "PCU – Paternity Leave",       color: "#8b5cf6", group: "leave" },
   UL:  { label: "UL – Nghỉ không lương",       color: "#ef4444", group: "leave" },
   OIL: { label: "OIL – Nghỉ bù",              color: "#06b6d4", group: "leave" },
-  BT:  { label: "BT – Đi công tác",            color: "#C9A55A", group: "leave" },
+  BT:  { label: "BT – Đi công tác",            color: "#b5f23d", group: "leave" },
   MML: { label: "MML – Thai sản (nam)",        color: "#10b981", group: "leave" },
   CSL: { label: "CSL – Nghỉ con bệnh",         color: "#f97316", group: "leave" },
   CML: { label: "CML – Nghỉ cưới con",         color: "#ec4899", group: "leave" },
@@ -66,7 +66,7 @@ const STATUS_CFG: Record<string, { label: string; color: string; group: string }
 };
 
 const ROLE_CFG: Record<string, { label: string; color: string; icon: typeof User }> = {
-  admin:    { label: "Admin",                   color: "#C9A55A", icon: Crown     },
+  admin:    { label: "Admin",                   color: "#b5f23d", icon: Crown     },
   manager:  { label: "Quản Lý",                 color: "#0ea5e9", icon: UserCheck },
   staff:    { label: "Nhân Viên",               color: "#64748b", icon: User      },
   staff_ft: { label: "Nhân Viên (Full Time)",   color: "#10b981", icon: User      },
@@ -112,25 +112,25 @@ function Avatar({ src, name, size = 80, status, ring = false }: { src?: string |
           transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
           style={{
             position: "absolute", inset: -4, borderRadius: "50%",
-            background: "conic-gradient(from 0deg, transparent 0%, #C9A55A 25%, transparent 50%, #0ea5e9 75%, transparent 100%)",
+            background: "conic-gradient(from 0deg, transparent 0%, #b5f23d 25%, transparent 50%, #0ea5e9 75%, transparent 100%)",
             filter: "blur(2px)", opacity: 0.7,
           }}
         />
       )}
       <div style={{
         position: "absolute", inset: ring ? -2 : 0, borderRadius: "50%",
-        background: src ? "transparent" : "linear-gradient(135deg, #0c1a2e, #1e3a5f)",
-        border: `${ring ? 2 : size > 40 ? 3 : 2}px solid rgba(201,165,90,${ring ? 0.6 : 0.5})`,
+        background: src ? "transparent" : "linear-gradient(135deg, #0a0a0a, #1a1a1a)",
+        border: `${ring ? 2 : size > 40 ? 3 : 2}px solid rgba(181,242,61,${ring ? 0.6 : 0.5})`,
         overflow: "hidden",
         display: "flex", alignItems: "center", justifyContent: "center",
         boxShadow: ring
-          ? "0 0 0 3px rgba(14,165,233,0.2), 0 0 20px rgba(201,165,90,0.2)"
+          ? "0 0 0 3px rgba(14,165,233,0.2), 0 0 20px rgba(181,242,61,0.2)"
           : size > 40 ? "0 0 0 3px rgba(14,165,233,0.15), 0 8px 24px rgba(0,0,0,0.15)" : undefined,
         zIndex: 1,
       }}>
         {src
           ? <img src={src} alt={name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-          : <span style={{ fontSize: size * 0.38, fontWeight: 700, color: "#C9A55A" }}>{name.slice(0, 1).toUpperCase()}</span>
+          : <span style={{ fontSize: size * 0.38, fontWeight: 700, color: "#b5f23d" }}>{name.slice(0, 1).toUpperCase()}</span>
         }
       </div>
       {status && (
@@ -203,10 +203,10 @@ function AnimatedToggle({ on, set, label, desc }: { on: boolean; set: (v: boolea
       </div>
       <div style={{
         width: 40, height: 22, borderRadius: 11,
-        background: on ? "#C9A55A" : "#bae6fd",
+        background: on ? "#b5f23d" : "#bae6fd",
         position: "relative", flexShrink: 0,
         transition: "background 0.22s ease",
-        boxShadow: on ? "0 0 8px rgba(201,165,90,0.4)" : "none",
+        boxShadow: on ? "0 0 8px rgba(181,242,61,0.4)" : "none",
       }}>
         <motion.div
           animate={{ x: on ? 20 : 2 }}
@@ -300,7 +300,7 @@ function StaffProfileModal({ member, onClose }: { member: TeamMember; onClose: (
       style={{ position: "fixed", inset: 0, zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 16px" }}
       onClick={onClose}
     >
-      <div style={{ position: "absolute", inset: 0, background: "rgba(12,26,46,0.55)", backdropFilter: "blur(4px)" }} />
+      <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.55)", backdropFilter: "blur(4px)" }} />
       <motion.div
         initial={{ opacity: 0, y: 24, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 24, scale: 0.96 }}
         transition={{ type: "spring", stiffness: 320, damping: 28 }}
@@ -308,7 +308,7 @@ function StaffProfileModal({ member, onClose }: { member: TeamMember; onClose: (
         style={{
           position: "relative", zIndex: 1, width: "100%", maxWidth: 360,
           borderRadius: 20, overflow: "hidden",
-          boxShadow: "0 24px 80px rgba(12,26,46,0.28)",
+          boxShadow: "0 24px 80px rgba(0,0,0,0.28)",
           border: "1px solid rgba(14,165,233,0.2)",
         }}
       >
@@ -326,10 +326,10 @@ function StaffProfileModal({ member, onClose }: { member: TeamMember; onClose: (
           {/* Avatar row */}
           <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginTop: -28, marginBottom: 14 }}>
             <div style={{ position: "relative" }}>
-              <div style={{ width: 64, height: 64, borderRadius: "50%", background: member.avatar ? "transparent" : "linear-gradient(135deg,#0c1a2e,#1e3a5f)", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", border: `3px solid ${rcfg.color}`, boxShadow: `0 0 0 3px #fff, 0 4px 16px ${rcfg.color}40` }}>
+              <div style={{ width: 64, height: 64, borderRadius: "50%", background: member.avatar ? "transparent" : "linear-gradient(135deg,#0a0a0a,#1a1a1a)", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", border: `3px solid ${rcfg.color}`, boxShadow: `0 0 0 3px #fff, 0 4px 16px ${rcfg.color}40` }}>
                 {member.avatar
                   ? <img src={member.avatar} alt={member.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                  : <span style={{ fontSize: 22, fontWeight: 700, color: "#C9A55A" }}>{member.name.slice(0,1).toUpperCase()}</span>
+                  : <span style={{ fontSize: 22, fontWeight: 700, color: "#b5f23d" }}>{member.name.slice(0,1).toUpperCase()}</span>
                 }
               </div>
               <div style={{ position: "absolute", bottom: 2, right: 2, width: 14, height: 14, borderRadius: "50%", background: scfg.color, border: "2px solid #fff", boxShadow: `0 0 6px ${scfg.color}` }} />
@@ -394,15 +394,15 @@ function TeamCard({ member, isMe, onView, canView, kpiTarget, revenue }: {
   const scfg = STATUS_CFG[member.status] ?? STATUS_CFG.off_shift;
   const RIcon = rcfg.icon;
   const pct = (kpiTarget && kpiTarget > 0 && revenue != null) ? Math.min(Math.round(revenue / kpiTarget * 100), 999) : null;
-  const pctColor = pct == null ? "#94a3b8" : pct >= 100 ? "#C9A55A" : pct >= 80 ? "#10b981" : pct >= 60 ? "#0ea5e9" : pct >= 40 ? "#f59e0b" : "#ef4444";
+  const pctColor = pct == null ? "#94a3b8" : pct >= 100 ? "#b5f23d" : pct >= 80 ? "#10b981" : pct >= 60 ? "#0ea5e9" : pct >= 40 ? "#f59e0b" : "#ef4444";
   return (
     <motion.div
       initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
-      whileHover={{ y: -3, boxShadow: `0 8px 32px rgba(12,26,46,0.1)` }}
+      whileHover={{ y: -3, boxShadow: `0 8px 32px rgba(0,0,0,0.1)` }}
       onClick={canView && !isMe ? onView : undefined}
       style={{
         padding: "16px", borderRadius: 16,
-        border: `1px solid ${isMe ? "rgba(201,165,90,0.35)" : "var(--border)"}`,
+        border: `1px solid ${isMe ? "rgba(181,242,61,0.35)" : "var(--border)"}`,
         background: "var(--bg-card)", display: "flex", gap: 14, alignItems: "center",
         boxShadow: "0 2px 8px rgba(14,165,233,0.05)",
         position: "relative", overflow: "hidden",
@@ -412,7 +412,7 @@ function TeamCard({ member, isMe, onView, canView, kpiTarget, revenue }: {
     >
       {/* Accent bar */}
       {isMe && (
-        <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: "linear-gradient(90deg, #C9A55A, #e6c474, #C9A55A)" }} />
+        <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: "linear-gradient(90deg, #b5f23d, #e6c474, #b5f23d)" }} />
       )}
       {/* Role glow */}
       <div style={{ position: "absolute", top: 0, left: 0, width: 80, height: 80, borderRadius: "50%", background: `radial-gradient(circle, ${rcfg.color}10 0%, transparent 70%)`, pointerEvents: "none" }} />
@@ -464,7 +464,7 @@ function TeamCard({ member, isMe, onView, canView, kpiTarget, revenue }: {
               <span style={{ fontSize: 8, color: "var(--text-muted)", letterSpacing: "0.06em" }}>TARGET</span>
               <span style={{ fontSize: 8.5, fontWeight: 700, color: pctColor }}>{pct}%</span>
             </div>
-            <div style={{ height: 3, borderRadius: 3, background: "rgba(12,26,46,0.07)", overflow: "hidden" }}>
+            <div style={{ height: 3, borderRadius: 3, background: "rgba(0,0,0,0.07)", overflow: "hidden" }}>
               <motion.div
                 initial={{ width: 0 }}
                 animate={{ width: `${Math.min(pct, 100)}%` }}
@@ -522,7 +522,7 @@ function StorePanel() {
         <motion.button
           whileTap={{ scale: 0.96 }}
           onClick={handleSave}
-          style={{ padding: "8px 20px", minHeight: 40, borderRadius: 9, border: "none", background: saved ? "#10b981" : "linear-gradient(135deg, #C9A55A, #d4a84b)", color: saved ? "#fff" : "#0c1a2e", fontSize: 9, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6, transition: "background 0.2s" }}>
+          style={{ padding: "8px 20px", minHeight: 40, borderRadius: 9, border: "none", background: saved ? "#10b981" : "linear-gradient(135deg, #8bc42a, #b5f23d)", color: saved ? "#fff" : "#050505", fontSize: 9, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6, transition: "background 0.2s" }}>
           <Check size={10} /> {saved ? "ĐÃ LƯU" : "LƯU"}
         </motion.button>
       </div>
@@ -534,7 +534,7 @@ function DisplayPanel() {
   const uiAnimations = useStore(sel.uiAnimations);
   const setUISetting  = useStore(sel.setUISetting);
   return (
-    <PremiumCard title="GIAO DIỆN" icon={Zap} iconColor="#C9A55A" accentColor="#C9A55A">
+    <PremiumCard title="GIAO DIỆN" icon={Zap} iconColor="#b5f23d" accentColor="#b5f23d">
       <AnimatedToggle label="Hiệu ứng chuyển động" desc="Bật/tắt animation toàn app" on={!!uiAnimations} set={v => setUISetting("uiAnimations", v)} />
     </PremiumCard>
   );
@@ -583,7 +583,7 @@ function NotifyPanel() {
             <div>
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                 <span style={{ fontSize: 11, fontWeight: 600, color: "var(--text-primary)" }}>{label}</span>
-                {important && <span style={{ fontSize: 8, padding: "1px 5px", borderRadius: 8, background: "rgba(201,165,90,0.15)", color: "#C9A55A", fontWeight: 700 }}>Quan trọng</span>}
+                {important && <span style={{ fontSize: 8, padding: "1px 5px", borderRadius: 8, background: "rgba(181,242,61,0.15)", color: "#b5f23d", fontWeight: 700 }}>Quan trọng</span>}
               </div>
               <span style={{ fontSize: 10, color: "var(--text-muted)" }}>{desc}</span>
             </div>
@@ -709,7 +709,7 @@ function UsersPanel() {
   };
 
   return (
-    <PremiumCard title="NGƯỜI DÙNG" icon={Users} iconColor="#C9A55A" accentColor="#C9A55A">
+    <PremiumCard title="NGƯỜI DÙNG" icon={Users} iconColor="#b5f23d" accentColor="#b5f23d">
       <div style={{ padding: "4px 20px 12px" }}>
         {users.map(u => {
           const rcfg = ROLE_CFG[u.role] ?? ROLE_CFG.staff;
@@ -956,7 +956,7 @@ function PushPanel({ userId }: { userId: string }) {
         <div style={{ display: "flex", gap: 6 }}>
           {!isDenied && (
             <motion.button whileTap={{ scale: 0.96 }} onClick={isGranted ? resub : enable} disabled={resubStatus === "loading"}
-              style={{ padding: "6px 14px", minHeight: 40, borderRadius: 7, border: "none", background: resubStatus === "done" ? "#10b981" : resubStatus === "error" ? "#ef4444" : isDefault ? "#C9A55A" : "#7c3aed", color: "#fff", fontSize: 9, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+              style={{ padding: "6px 14px", minHeight: 40, borderRadius: 7, border: "none", background: resubStatus === "done" ? "#10b981" : resubStatus === "error" ? "#ef4444" : isDefault ? "#b5f23d" : "#7c3aed", color: "#fff", fontSize: 9, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
               {resubStatus === "loading" ? "…" : resubStatus === "done" ? "✓ Đã đăng ký" : resubStatus === "error" ? "✗ Lỗi" : isDefault ? "BẬT THÔNG BÁO" : "Đăng ký lại"}
             </motion.button>
           )}
@@ -1120,8 +1120,8 @@ function VersionPanel() {
     <PremiumCard title="PHIÊN BẢN" icon={Info} iconColor="#0ea5e9" accentColor="#0ea5e9">
       <div style={{ padding: "14px 20px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(145deg, #0d1f38, #061020)", border: "1.5px solid rgba(201,165,90,0.4)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 0 12px rgba(201,165,90,0.15)" }}>
-            <span style={{ fontSize: 10, fontWeight: 800, color: "#C9A55A", letterSpacing: "0.05em", fontFamily: "var(--font-montserrat), sans-serif" }}>ADL</span>
+          <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(145deg, #0a0a0a, #111111)", border: "1.5px solid rgba(181,242,61,0.4)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 0 12px rgba(181,242,61,0.15)" }}>
+            <span style={{ fontSize: 10, fontWeight: 800, color: "#b5f23d", letterSpacing: "0.05em", fontFamily: "var(--font-montserrat), sans-serif" }}>ADL</span>
           </div>
           <div>
             <p style={{ fontSize: 12, color: "var(--text-primary)", fontWeight: 700 }}>Postlain Store Manager</p>
@@ -1130,7 +1130,7 @@ function VersionPanel() {
         </div>
         {updateReady ? (
           <motion.button whileTap={{ scale: 0.96 }} onClick={onUpdate}
-            style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", minHeight: 40, borderRadius: 8, border: "none", background: "linear-gradient(135deg, #C9A55A, #d4a84b)", color: "var(--text-primary)", fontSize: 9, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+            style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", minHeight: 40, borderRadius: 8, border: "none", background: "linear-gradient(135deg, #8bc42a, #b5f23d)", color: "var(--text-primary)", fontSize: 9, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
             <RefreshCw size={10} /> CẬP NHẬT
           </motion.button>
         ) : (
@@ -1211,12 +1211,12 @@ function KpiTargetPanel({ storeTarget, individualTargets, allUsers, onSetStoreTa
   }
 
   return (
-    <PremiumCard title="Target KPI" icon={TrendingUp} iconColor="#C9A55A" accentColor="#C9A55A">
+    <PremiumCard title="Target KPI" icon={TrendingUp} iconColor="#b5f23d" accentColor="#b5f23d">
       <div style={{ padding: "14px 20px", display: "flex", flexDirection: "column", gap: 16 }}>
         {/* Store target */}
         <div>
           <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
-            <Store size={12} style={{ color: "#C9A55A" }} />
+            <Store size={12} style={{ color: "#b5f23d" }} />
             <span style={{ fontSize: 10, fontWeight: 700, color: "var(--text-muted)", letterSpacing: "0.1em", textTransform: "uppercase" }}>Target Cửa Hàng / Tháng</span>
           </div>
           <div style={{ position: "relative" }}>
@@ -1228,7 +1228,7 @@ function KpiTargetPanel({ storeTarget, individualTargets, allUsers, onSetStoreTa
               style={{ width: "100%", height: 40, padding: "0 12px", fontSize: 14, fontWeight: 700, color: "var(--text-primary)", boxSizing: "border-box" }}
             />
             {storeInput && parseTargetInput(storeInput) > 0 && (
-              <span style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", fontSize: 10, color: "#C9A55A", fontWeight: 700, pointerEvents: "none" }}>
+              <span style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", fontSize: 10, color: "#b5f23d", fontWeight: 700, pointerEvents: "none" }}>
                 = {fmtM(parseTargetInput(storeInput))} ₫
               </span>
             )}
@@ -1245,8 +1245,8 @@ function KpiTargetPanel({ storeTarget, individualTargets, allUsers, onSetStoreTa
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {activeUsers.map(u => (
                 <div key={u.id} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <div style={{ width: 30, height: 30, borderRadius: "50%", background: "linear-gradient(135deg, #0c1a2e, #1e3a5f)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, border: "1.5px solid rgba(201,165,90,0.3)" }}>
-                    <span style={{ fontSize: 11, fontWeight: 700, color: "#C9A55A" }}>{u.name.slice(0,1).toUpperCase()}</span>
+                  <div style={{ width: 30, height: 30, borderRadius: "50%", background: "linear-gradient(135deg, #0a0a0a, #1a1a1a)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, border: "1.5px solid rgba(181,242,61,0.3)" }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: "#b5f23d" }}>{u.name.slice(0,1).toUpperCase()}</span>
                   </div>
                   <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-primary)", width: 90, flexShrink: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{u.name}</span>
                   <div style={{ flex: 1, position: "relative" }}>
@@ -1273,11 +1273,11 @@ function KpiTargetPanel({ storeTarget, individualTargets, allUsers, onSetStoreTa
           onClick={handleSave}
           style={{
             height: 40, borderRadius: 10, border: "none",
-            background: saved ? "#10b981" : "linear-gradient(135deg, #C9A55A, #a07830)",
+            background: saved ? "#10b981" : "linear-gradient(135deg, #8bc42a, #b5f23d)",
             cursor: "pointer", fontFamily: "inherit",
             fontSize: 12, fontWeight: 700, color: "#fff",
             display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-            boxShadow: saved ? "none" : "0 4px 16px rgba(201,165,90,0.35)",
+            boxShadow: saved ? "none" : "0 4px 16px rgba(181,242,61,0.35)",
             transition: "background 0.2s",
           }}
         >
@@ -1591,7 +1591,7 @@ export default function ProfilePage() {
 
       {/* ── Floating Background Orbs ─────────────────────────────────────── */}
       <FloatingOrb x="5%"  y="10%" size={280} color="rgba(14,165,233,0.18)"   delay={0}   />
-      <FloatingOrb x="70%" y="5%"  size={200} color="rgba(201,165,90,0.15)"  delay={2.5} />
+      <FloatingOrb x="70%" y="5%"  size={200} color="rgba(181,242,61,0.15)"  delay={2.5} />
       <FloatingOrb x="60%" y="55%" size={240} color="rgba(124,58,237,0.12)"  delay={1.2} />
       <FloatingOrb x="0%"  y="60%" size={180} color="rgba(16,185,129,0.12)"  delay={3.5} />
 
@@ -1601,10 +1601,10 @@ export default function ProfilePage() {
         <motion.div
           initial={{ opacity: 0, y: -16 }} animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-          style={{ borderRadius: 22, overflow: "hidden", boxShadow: "0 12px 48px rgba(12,26,46,0.22), 0 2px 0 rgba(201,165,90,0.18) inset", marginBottom: 16, border: "1px solid rgba(201,165,90,0.25)" }}
+          style={{ borderRadius: 22, overflow: "hidden", boxShadow: "0 12px 48px rgba(0,0,0,0.22), 0 2px 0 rgba(181,242,61,0.18) inset", marginBottom: 16, border: "1px solid rgba(181,242,61,0.25)" }}
         >
           {/* Cover */}
-          <div style={{ height: 140, background: "linear-gradient(135deg, #0c1a2e 0%, #0f2540 50%, #162d4a 100%)", position: "relative", overflow: "hidden" }}>
+          <div style={{ height: 140, background: "linear-gradient(135deg, #050505 0%, #0a0a0a 50%, #111111 100%)", position: "relative", overflow: "hidden" }}>
             {/* Animated mesh overlay */}
             <motion.div
               animate={{ opacity: [0.4, 0.6, 0.4] }}
@@ -1615,7 +1615,7 @@ export default function ProfilePage() {
             <motion.div
               animate={{ rotate: 360 }}
               transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-              style={{ position: "absolute", top: -40, right: -40, width: 180, height: 180, borderRadius: "50%", background: "conic-gradient(from 0deg, transparent, rgba(201,165,90,0.15) 25%, transparent 50%, rgba(14,165,233,0.12) 75%, transparent)", filter: "blur(8px)" }}
+              style={{ position: "absolute", top: -40, right: -40, width: 180, height: 180, borderRadius: "50%", background: "conic-gradient(from 0deg, transparent, rgba(181,242,61,0.15) 25%, transparent 50%, rgba(14,165,233,0.12) 75%, transparent)", filter: "blur(8px)" }}
             />
             {/* Particles */}
             {[
@@ -1625,13 +1625,13 @@ export default function ProfilePage() {
               <motion.div key={i}
                 animate={{ opacity: [0, 0.7, 0], scale: [0, 1, 0], y: [0, -20] }}
                 transition={{ duration: 2.5, repeat: Infinity, delay: i * 0.8, repeatDelay: 1.5 }}
-                style={{ position: "absolute", left: p.x, top: p.y, width: p.s, height: p.s, borderRadius: "50%", background: "linear-gradient(135deg, #C9A55A, #0ea5e9)" }}
+                style={{ position: "absolute", left: p.x, top: p.y, width: p.s, height: p.s, borderRadius: "50%", background: "linear-gradient(135deg, #b5f23d, #0ea5e9)" }}
               />
             ))}
             {/* Corner brackets */}
             {[
-              { top: "12%", left: "3%",  br: "0 0 6px 0",  bRight: "1px solid rgba(201,165,90,0.5)", bBot: "1px solid rgba(201,165,90,0.5)" },
-              { top: "12%", right: "3%", br: "0 0 0 6px",  bLeft:  "1px solid rgba(201,165,90,0.5)", bBot: "1px solid rgba(201,165,90,0.5)" },
+              { top: "12%", left: "3%",  br: "0 0 6px 0",  bRight: "1px solid rgba(181,242,61,0.5)", bBot: "1px solid rgba(181,242,61,0.5)" },
+              { top: "12%", right: "3%", br: "0 0 0 6px",  bLeft:  "1px solid rgba(181,242,61,0.5)", bBot: "1px solid rgba(181,242,61,0.5)" },
               { bottom: "12%", left: "3%",  br: "0 6px 0 0", bRight: "1px solid rgba(14,165,233,0.4)", bTop: "1px solid rgba(14,165,233,0.4)" },
               { bottom: "12%", right: "3%", br: "6px 0 0 0", bLeft:  "1px solid rgba(14,165,233,0.4)", bTop: "1px solid rgba(14,165,233,0.4)" },
             ].map((c, i) => (
@@ -1653,7 +1653,7 @@ export default function ProfilePage() {
                   whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.94 }}
                   onClick={() => fileRef.current?.click()}
                   title="Đổi ảnh đại diện"
-                  style={{ position: "absolute", bottom: 4, right: 4, width: 28, height: 28, borderRadius: "50%", background: "linear-gradient(135deg, #C9A55A, #d4a84b)", border: "3px solid #fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", zIndex: 3, boxShadow: "0 2px 8px rgba(201,165,90,0.4)" }}>
+                  style={{ position: "absolute", bottom: 4, right: 4, width: 28, height: 28, borderRadius: "50%", background: "linear-gradient(135deg, #8bc42a, #b5f23d)", border: "3px solid #fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", zIndex: 3, boxShadow: "0 2px 8px rgba(181,242,61,0.4)" }}>
                   <Camera size={12} style={{ color: "#fff" }} />
                 </motion.button>
                 {/* Remove avatar button — only when avatar exists */}
@@ -1671,7 +1671,7 @@ export default function ProfilePage() {
 
               <div style={{ flex: 1, paddingBottom: 4, paddingTop: 52 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                  <p style={{ fontSize: 21, fontWeight: 900, color: "var(--text-primary)", letterSpacing: "-0.025em", fontFamily: "var(--font-montserrat), sans-serif", textShadow: "0 1px 2px rgba(12,26,46,0.06)" }}>
+                  <p style={{ fontSize: 21, fontWeight: 900, color: "var(--text-primary)", letterSpacing: "-0.025em", fontFamily: "var(--font-montserrat), sans-serif", textShadow: "0 1px 2px rgba(0,0,0,0.06)" }}>
                     {profile?.fullName || currentUser.name}
                   </p>
                   <motion.div
@@ -1720,14 +1720,14 @@ export default function ProfilePage() {
                 ? Math.round(odooStats.sales / myIndivTarget * 100)
                 : null;
               const targetColor = myTargetPct == null ? "#0ea5e9"
-                : myTargetPct >= 100 ? "#C9A55A"
+                : myTargetPct >= 100 ? "#b5f23d"
                 : myTargetPct >= 80  ? "#10b981"
                 : myTargetPct >= 60  ? "#0ea5e9"
                 : myTargetPct >= 40  ? "#f59e0b"
                 : "#ef4444";
               const stats = [
                 { label: "Thành viên", value: activeMembers as number | null, icon: Users,    color: "#10b981", fmt: (v: number | string) => String(v) },
-                { label: "Doanh số",   value: odooStats?.sales ?? null, icon: Zap,     color: "#C9A55A", fmt: (v: number | string) => typeof v === "number" ? (v >= 1e6 ? `${(v/1e6).toFixed(1)}M` : `${Math.round(v/1e3)}K`) : "—" },
+                { label: "Doanh số",   value: odooStats?.sales ?? null, icon: Zap,     color: "#b5f23d", fmt: (v: number | string) => typeof v === "number" ? (v >= 1e6 ? `${(v/1e6).toFixed(1)}M` : `${Math.round(v/1e3)}K`) : "—" },
                 { label: "Target",     value: myTargetPct as number | null,   icon: TrendingUp, color: targetColor, fmt: (v: number | string) => `${v}%` },
                 { label: "Xếp hạng",  value: odooStats?.rank ?? null,  icon: Award,   color: "#7c3aed", fmt: (v: number | string) => v == null ? "—" : String(v) },
               ];
@@ -1763,8 +1763,8 @@ export default function ProfilePage() {
           display: "flex", gap: 4,
           background: "var(--bg-card)",
           backdropFilter: "blur(20px) saturate(1.8)", WebkitBackdropFilter: "blur(20px) saturate(1.8)",
-          borderRadius: 18, border: "1px solid rgba(201,165,90,0.22)", padding: 5, marginBottom: 16,
-          boxShadow: "0 4px 20px rgba(12,26,46,0.1), inset 0 1px 0 rgba(255,255,255,0.9)",
+          borderRadius: 18, border: "1px solid rgba(181,242,61,0.22)", padding: 5, marginBottom: 16,
+          boxShadow: "0 4px 20px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.9)",
           transition: "background 0.5s, border-color 0.5s",
         }}>
           {TABS.map(t => {
@@ -1778,12 +1778,12 @@ export default function ProfilePage() {
                 style={{
                   flex: 1, padding: "10px 4px", borderRadius: 13, border: "none", cursor: "pointer",
                   fontFamily: "inherit", position: "relative",
-                  background: active ? "linear-gradient(135deg, #C9A55A 0%, #d4a84b 60%, #b8913e 100%)" : "transparent",
+                  background: active ? "linear-gradient(135deg, #8bc42a 0%, #b5f23d 60%, #d4ff6b 100%)" : "transparent",
                   color: active ? "#fff" : "var(--text-muted)",
                   fontSize: 9.5, fontWeight: active ? 800 : 500,
                   transition: "all 0.2s",
                   display: "flex", flexDirection: "column", alignItems: "center", gap: 3,
-                  boxShadow: active ? "0 4px 14px rgba(201,165,90,0.4), inset 0 1px 0 rgba(255,255,255,0.25)" : "none",
+                  boxShadow: active ? "0 4px 14px rgba(181,242,61,0.4), inset 0 1px 0 rgba(255,255,255,0.25)" : "none",
                   letterSpacing: active ? "0.02em" : "0",
                 }}
               >
@@ -1806,7 +1806,7 @@ export default function ProfilePage() {
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
 
                 {/* Info card */}
-                <div style={{ borderRadius: 18, border: "1px solid rgba(186,230,253,0.65)", background: "var(--bg-card)", overflow: "hidden", boxShadow: "0 4px 24px rgba(12,26,46,0.08), inset 0 1px 0 rgba(255,255,255,0.9)", backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)" }}>
+                <div style={{ borderRadius: 18, border: "1px solid rgba(186,230,253,0.65)", background: "var(--bg-card)", overflow: "hidden", boxShadow: "0 4px 24px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.9)", backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)" }}>
                   <div style={{ padding: "13px 20px", borderBottom: "1px solid rgba(255,255,255,0.06)", background: "linear-gradient(90deg, rgba(14,165,233,0.08), rgba(255,255,255,0.03))", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                       <div style={{ width: 3, height: 14, borderRadius: 2, background: "#0ea5e9", boxShadow: "0 0 6px rgba(14,165,233,0.5)" }} />
@@ -1822,7 +1822,7 @@ export default function ProfilePage() {
                         </motion.button>
                       : <div style={{ display: "flex", gap: 6 }}>
                           <motion.button whileTap={{ scale: 0.96 }} onClick={handleSave}
-                            style={{ display: "flex", alignItems: "center", gap: 4, padding: "6px 16px", borderRadius: 9, border: "none", background: saved ? "#10b981" : "linear-gradient(135deg, #C9A55A 0%, #d4a84b 60%, #b8913e 100%)", color: "#fff", cursor: "pointer", fontFamily: "inherit", fontSize: 8.5, fontWeight: 800, boxShadow: saved ? "none" : "0 3px 12px rgba(201,165,90,0.4)", letterSpacing: "0.04em" }}>
+                            style={{ display: "flex", alignItems: "center", gap: 4, padding: "6px 16px", borderRadius: 9, border: "none", background: saved ? "#10b981" : "linear-gradient(135deg, #8bc42a 0%, #b5f23d 60%, #d4ff6b 100%)", color: "#fff", cursor: "pointer", fontFamily: "inherit", fontSize: 8.5, fontWeight: 800, boxShadow: saved ? "none" : "0 3px 12px rgba(181,242,61,0.4)", letterSpacing: "0.04em" }}>
                             <Check size={9} /> {saved ? "ĐÃ LƯU" : "LƯU"}
                           </motion.button>
                           <button onClick={() => setEditing(false)}
@@ -1887,13 +1887,13 @@ export default function ProfilePage() {
                 {/* Stats chips */}
                 <div style={{ display: "flex", gap: 8 }}>
                   <StatChip icon={Users}    value={activeMembers}                                                                 label="Thành viên" color="#10b981" />
-                  <StatChip icon={Zap}      value={odooStats ? (odooStats.sales >= 1e6 ? `${(odooStats.sales/1e6).toFixed(1)}M` : `${Math.round(odooStats.sales/1e3)}K`) : "—"} label="Doanh số"   color="#C9A55A" />
+                  <StatChip icon={Zap}      value={odooStats ? (odooStats.sales >= 1e6 ? `${(odooStats.sales/1e6).toFixed(1)}M` : `${Math.round(odooStats.sales/1e3)}K`) : "—"} label="Doanh số"   color="#b5f23d" />
                   <StatChip icon={Activity} value={odooStats ? (odooStats.ipt >= 1000 ? `${(odooStats.ipt/1000).toFixed(0)}K` : String(Math.round(odooStats.ipt))) : "—"}           label="IPT"        color="#0ea5e9" />
                   <StatChip icon={Award}    value={odooStats?.rank ?? "—"}                                                        label="Xếp hạng"   color="#7c3aed" />
                 </div>
 
                 {/* Password change */}
-                <div style={{ borderRadius: 18, border: "1px solid rgba(186,230,253,0.65)", background: "var(--bg-card)", overflow: "hidden", boxShadow: "0 4px 24px rgba(12,26,46,0.08), inset 0 1px 0 rgba(255,255,255,0.9)", backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)", transition: "background 0.5s, border-color 0.5s" }}>
+                <div style={{ borderRadius: 18, border: "1px solid rgba(186,230,253,0.65)", background: "var(--bg-card)", overflow: "hidden", boxShadow: "0 4px 24px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.9)", backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)", transition: "background 0.5s, border-color 0.5s" }}>
                   <motion.button whileHover={{ background: "var(--bg-base)" }} onClick={() => setPwOpen(v => !v)}
                     style={{ width: "100%", padding: "14px 20px", display: "flex", alignItems: "center", gap: 10, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", textAlign: "left", transition: "background 0.15s" }}>
                     <div style={{ width: 28, height: 28, borderRadius: 8, background: "rgba(220,38,38,0.08)", border: "1px solid rgba(220,38,38,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -2034,8 +2034,8 @@ export default function ProfilePage() {
               return (
                 <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                   {/* Month selector */}
-                  <div style={{ background: "var(--bg-card)", backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)", borderRadius: 18, border: "1px solid rgba(201,165,90,0.22)", padding: "14px 20px", display: "flex", alignItems: "center", gap: 12, boxShadow: "0 4px 20px rgba(12,26,46,0.08), inset 0 1px 0 rgba(255,255,255,0.9)" }}>
-                    <Trophy size={16} style={{ color: "#C9A55A" }} />
+                  <div style={{ background: "var(--bg-card)", backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)", borderRadius: 18, border: "1px solid rgba(181,242,61,0.22)", padding: "14px 20px", display: "flex", alignItems: "center", gap: 12, boxShadow: "0 4px 20px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.9)" }}>
+                    <Trophy size={16} style={{ color: "#b5f23d" }} />
                     <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)", flex: 1, fontFamily: "var(--font-montserrat), sans-serif" }}>BẢNG XẾP HẠNG DOANH SỐ</span>
                     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                       <motion.button whileTap={{ scale: 0.9 }} onClick={prevMonth}
@@ -2071,12 +2071,12 @@ export default function ProfilePage() {
                         const indivTarget = matchedUser ? (kpiIndividualTargets[matchedUser.id] ?? 0) : 0;
                         const achievedPct = indivTarget > 0 ? Math.round(row.revenue / indivTarget * 100) : null;
                         const pctColor = achievedPct == null ? "#94a3b8"
-                          : achievedPct >= 100 ? "#C9A55A"
+                          : achievedPct >= 100 ? "#b5f23d"
                           : achievedPct >= 80  ? "#10b981"
                           : achievedPct >= 60  ? "#0ea5e9"
                           : achievedPct >= 40  ? "#f59e0b"
                           : "#ef4444";
-                        const barColor = i === 0 ? "linear-gradient(90deg, #C9A55A, #e6c474)"
+                        const barColor = i === 0 ? "linear-gradient(90deg, #b5f23d, #e6c474)"
                           : i === 1 ? "linear-gradient(90deg, #94a3b8, #cbd5e1)"
                           : i === 2 ? "linear-gradient(90deg, #c07a38, #d4956a)"
                           : `linear-gradient(90deg, ${pctColor}80, ${pctColor})`;
@@ -2087,10 +2087,10 @@ export default function ProfilePage() {
                             initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
                             transition={{ delay: i * 0.04, ease: [0.16, 1, 0.3, 1] }}
                             style={{
-                              background: isMe ? "linear-gradient(135deg, rgba(201,165,90,0.10), rgba(59,130,246,0.06))" : "var(--bg-card)",
-                              border: isMe ? "1.5px solid rgba(201,165,90,0.35)" : "1px solid var(--border)",
+                              background: isMe ? "linear-gradient(135deg, rgba(181,242,61,0.10), rgba(59,130,246,0.06))" : "var(--bg-card)",
+                              border: isMe ? "1.5px solid rgba(181,242,61,0.35)" : "1px solid var(--border)",
                               borderRadius: 14, padding: "14px 16px",
-                              boxShadow: isMe ? "0 6px 24px rgba(201,165,90,0.20), inset 0 1px 0 rgba(255,255,255,0.06)" : "0 2px 8px rgba(0,0,0,0.30)",
+                              boxShadow: isMe ? "0 6px 24px rgba(181,242,61,0.20), inset 0 1px 0 rgba(255,255,255,0.06)" : "0 2px 8px rgba(0,0,0,0.30)",
                               backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)",
                             }}>
                             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -2129,7 +2129,7 @@ export default function ProfilePage() {
                                       <div style={{
                                         position: "absolute", top: 0, bottom: 0,
                                         left: `${Math.min(indivTarget / maxRev * 100, 100)}%`,
-                                        width: 2, background: "rgba(201,165,90,0.7)",
+                                        width: 2, background: "rgba(181,242,61,0.7)",
                                         borderRadius: 2,
                                       }} />
                                     )}
@@ -2176,12 +2176,12 @@ export default function ProfilePage() {
                     const totalRev = staffSales.reduce((s, r) => s + r.revenue, 0);
                     const totalOrders = staffSales.reduce((s, r) => s + r.orders, 0);
                     const storePct = kpiStoreTarget > 0 ? Math.round(totalRev / kpiStoreTarget * 100) : null;
-                    const storePctColor = storePct == null ? "#C9A55A"
-                      : storePct >= 100 ? "#C9A55A" : storePct >= 80 ? "#10b981" : storePct >= 60 ? "#0ea5e9" : storePct >= 40 ? "#f59e0b" : "#ef4444";
+                    const storePctColor = storePct == null ? "#b5f23d"
+                      : storePct >= 100 ? "#b5f23d" : storePct >= 80 ? "#10b981" : storePct >= 60 ? "#0ea5e9" : storePct >= 40 ? "#f59e0b" : "#ef4444";
                     return (
-                      <div style={{ background: "linear-gradient(135deg, rgba(12,26,46,0.05), rgba(14,165,233,0.05))", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", borderRadius: 16, border: "1px solid rgba(201,165,90,0.2)", padding: "14px 16px", boxShadow: "0 4px 16px rgba(12,26,46,0.07)" }}>
+                      <div style={{ background: "linear-gradient(135deg, rgba(0,0,0,0.05), rgba(14,165,233,0.05))", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", borderRadius: 16, border: "1px solid rgba(181,242,61,0.2)", padding: "14px 16px", boxShadow: "0 4px 16px rgba(0,0,0,0.07)" }}>
                         <div style={{ display: "flex", gap: 4, alignItems: "center", marginBottom: 10 }}>
-                          <TrendingUp size={12} style={{ color: "#C9A55A" }} />
+                          <TrendingUp size={12} style={{ color: "#b5f23d" }} />
                           <span style={{ fontSize: 9, fontWeight: 700, color: "var(--text-muted)", letterSpacing: "0.08em", textTransform: "uppercase", flex: 1 }}>Tổng Cộng Tháng</span>
                           {storePct != null && (
                             <span style={{ fontSize: 12, fontWeight: 800, color: storePctColor, background: `${storePctColor}12`, padding: "2px 10px", borderRadius: 10, border: `1px solid ${storePctColor}25` }}>
